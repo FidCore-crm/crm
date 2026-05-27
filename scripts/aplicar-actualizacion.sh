@@ -285,13 +285,19 @@ if [ ${PIPESTATUS[0]} -ne 0 ]; then
   ejecutar_rollback "git fetch falló. Verificá conexión a internet."
 fi
 
-if ! git rev-parse "v${VERSION_NUEVA}" >/dev/null 2>&1; then
-  ejecutar_rollback "El tag v${VERSION_NUEVA} no existe en GitHub."
+# El tag en GitHub puede tener prefijo `v` o `V` — tolerar ambos.
+TAG_USADO=""
+if git rev-parse "v${VERSION_NUEVA}" >/dev/null 2>&1; then
+  TAG_USADO="v${VERSION_NUEVA}"
+elif git rev-parse "V${VERSION_NUEVA}" >/dev/null 2>&1; then
+  TAG_USADO="V${VERSION_NUEVA}"
+else
+  ejecutar_rollback "El tag v${VERSION_NUEVA} no existe en GitHub (probé también V${VERSION_NUEVA})."
 fi
 
-git checkout "v${VERSION_NUEVA}" --quiet 2>&1 | tee -a "$LOG_FILE"
+git checkout "$TAG_USADO" --quiet 2>&1 | tee -a "$LOG_FILE"
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
-  ejecutar_rollback "git checkout v${VERSION_NUEVA} falló."
+  ejecutar_rollback "git checkout $TAG_USADO falló."
 fi
 CHECKOUT_HECHO=1
 log "  ✓ Código actualizado a v${VERSION_NUEVA}"

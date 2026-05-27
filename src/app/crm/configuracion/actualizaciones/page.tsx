@@ -242,7 +242,7 @@ export default function ActualizacionesPage() {
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                 <div>
-                  <h3 className="text-sm font-semibold text-emerald-900">Estás al día</h3>
+                  <h3 className="text-sm font-semibold text-emerald-900">✓ Estás al día</h3>
                   <p className="text-xs text-emerald-800 mt-0.5">
                     Pulzar v{estado?.version_actual} es la última versión disponible.
                   </p>

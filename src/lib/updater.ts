@@ -91,7 +91,7 @@ export function obtenerVersionActual(): string {
  * Ignora sufijos pre-release (`-rc1`, `-beta`).
  */
 export function compararVersiones(v1: string, v2: string): -1 | 0 | 1 {
-  const clean = (s: string) => s.replace(/^v/, '').split('-')[0]
+  const clean = (s: string) => s.replace(/^v/i, '').split('-')[0]
   const a = clean(v1).split('.').map(n => parseInt(n, 10) || 0)
   const b = clean(v2).split('.').map(n => parseInt(n, 10) || 0)
   for (let i = 0; i < Math.max(a.length, b.length); i++) {
@@ -195,7 +195,7 @@ export async function consultarUltimaActualizacion(opciones?: {
 
     const release: ReleaseGitHub = {
       tag: json.tag_name,
-      version: json.tag_name.replace(/^v/, ''),
+      version: json.tag_name.replace(/^v/i, ''),
       nombre: json.name ?? json.tag_name,
       changelog: json.body ?? '',
       published_at: json.published_at,
