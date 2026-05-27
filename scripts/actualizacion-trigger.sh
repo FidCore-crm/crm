@@ -9,6 +9,13 @@
 # Si el archivo `tmp/updates/pending.json` existe y su `programada_para`
 # ya pasó (o es null = "actualizar ahora"), dispara aplicar-actualizacion.sh.
 #
+# Defensas:
+#   - Lock file con PID — no re-dispara si ya hay un script corriendo.
+#   - Chequeo de estado en DB antes de invocar — si la fila ya está
+#     FALLIDA/COMPLETADA/CANCELADA (típicamente por un retry de cron tras crash),
+#     borra el trigger y sale silenciosamente para no relanzar todo.
+#   - Validación de UUID del actualizacion_id antes de hablar con la DB.
+#
 # Instalación (parte de INSTALACION.md):
 #   1. Copiar este archivo a /usr/local/bin/pulzar-actualizacion-trigger.sh
 #   2. Agregar al crontab del usuario que tiene acceso a Docker:
@@ -24,6 +31,7 @@ TRIGGER_FILE="${CRM_DIR}/tmp/updates/pending.json"
 TRIGGER_LOG="${CRM_DIR}/tmp/updates/trigger.log"
 APLICAR_SCRIPT="${CRM_DIR}/scripts/aplicar-actualizacion.sh"
 LOCK_FILE="${CRM_DIR}/tmp/updates/.in-progress"
+LOG_MAX_BYTES=$((1 * 1024 * 1024))   # 1 MB
 
 # Si no hay archivo de trigger, no hay nada que hacer
 [ -f "$TRIGGER_FILE" ] || exit 0
@@ -42,12 +50,19 @@ fi
 
 mkdir -p "$(dirname "$TRIGGER_LOG")"
 
+# Rotar trigger.log si supera 1 MB
+if [ -f "$TRIGGER_LOG" ]; then
+  TLOG_SIZE=$(stat -c %s "$TRIGGER_LOG" 2>/dev/null || echo 0)
+  if [ "$TLOG_SIZE" -gt "$LOG_MAX_BYTES" ]; then
+    mv -f "$TRIGGER_LOG" "${TRIGGER_LOG}.1" 2>/dev/null || true
+  fi
+fi
+
 log() {
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" >> "$TRIGGER_LOG"
 }
 
 # Parsear el JSON sin jq (queremos minimizar dependencias del host)
-# Asumimos formato simple producido por src/lib/updater.ts.
 ACTUALIZACION_ID=$(grep -oE '"actualizacion_id"\s*:\s*"[^"]+"' "$TRIGGER_FILE" | sed 's/.*"\([^"]*\)"$/\1/')
 VERSION_NUEVA=$(grep -oE '"version_nueva"\s*:\s*"[^"]+"' "$TRIGGER_FILE" | sed 's/.*"\([^"]*\)"$/\1/')
 PROGRAMADA_PARA=$(grep -oE '"programada_para"\s*:\s*"[^"]+"' "$TRIGGER_FILE" | sed 's/.*"\([^"]*\)"$/\1/')
@@ -57,6 +72,48 @@ if [ -z "$ACTUALIZACION_ID" ] || [ -z "$VERSION_NUEVA" ]; then
   rm -f "$TRIGGER_FILE"
   exit 1
 fi
+
+# Validar formato UUID — si está corrupto, descartar
+if [[ ! "$ACTUALIZACION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+  log "trigger con UUID inválido: '${ACTUALIZACION_ID}' — borrando"
+  rm -f "$TRIGGER_FILE"
+  exit 1
+fi
+
+# Chequear estado en DB ANTES de invocar el script pesado.
+# Si la fila ya está en estado final, borrar trigger y salir.
+# Esto evita re-disparos infinitos si el script crashea sin limpiar trigger.
+ESTADO_DB=$(docker exec -i supabase-db psql -U supabase_admin -d postgres -tAc \
+  "SELECT estado FROM actualizaciones WHERE id='${ACTUALIZACION_ID}';" 2>/dev/null | tr -d '[:space:]')
+
+case "$ESTADO_DB" in
+  COMPLETADA|FALLIDA|CANCELADA)
+    log "Trigger ignorado: fila ${ACTUALIZACION_ID:0:8} ya está en estado ${ESTADO_DB}. Borrando trigger."
+    rm -f "$TRIGGER_FILE"
+    exit 0
+    ;;
+  EJECUTANDO)
+    # Caso raro: la fila quedó EJECUTANDO de un run previo pero no hay lock vivo.
+    # El cleanup del aplicar-actualizacion.sh ya tiene trap que marca FALLIDA al
+    # crashear; si igual quedó stuck, esperamos que el admin la cierre desde la UI.
+    log "Trigger ignorado: fila ${ACTUALIZACION_ID:0:8} ya está EJECUTANDO. Borrando trigger para no duplicar."
+    rm -f "$TRIGGER_FILE"
+    exit 0
+    ;;
+  PROGRAMADA)
+    # OK, esperado — continuar
+    ;;
+  "")
+    log "Trigger ignorado: fila ${ACTUALIZACION_ID} no existe en DB. Borrando trigger."
+    rm -f "$TRIGGER_FILE"
+    exit 1
+    ;;
+  *)
+    log "Trigger con estado DB inesperado '${ESTADO_DB}' — borrando trigger por seguridad"
+    rm -f "$TRIGGER_FILE"
+    exit 1
+    ;;
+esac
 
 # Si programada_para no es vacía, verificar que ya pasó
 if [ -n "$PROGRAMADA_PARA" ]; then
@@ -70,7 +127,7 @@ if [ -n "$PROGRAMADA_PARA" ]; then
 fi
 
 # Disparar el update
-log "Disparando aplicar-actualizacion.sh para v${VERSION_NUEVA} (id=${ACTUALIZACION_ID})"
+log "Disparando aplicar-actualizacion.sh para v${VERSION_NUEVA} (id=${ACTUALIZACION_ID:0:8})"
 echo $$ > "$LOCK_FILE"
 
 # Exportamos las variables que el script espera
@@ -79,7 +136,6 @@ export VERSION_NUEVA
 export CRM_DIR
 
 # Ejecutamos en foreground (este script ya lo lanza cron en background)
-# y capturamos exit code
 bash "$APLICAR_SCRIPT"
 EXIT_CODE=$?
 

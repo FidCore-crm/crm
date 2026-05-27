@@ -36,7 +36,7 @@ export const GET = manejarErrores(async (request: Request) => {
   const { data, count, error } = await supabase
     .from('actualizaciones')
     .select(
-      'id, version_anterior, version_nueva, estado, programada_para, fecha_solicitud, fecha_inicio_ejecucion, fecha_fin_ejecucion, error_mensaje, solicitada_por_usuario_id, cancelada_por_usuario_id, created_at',
+      'id, version_anterior, version_nueva, changelog, estado, programada_para, fecha_solicitud, fecha_inicio_ejecucion, fecha_fin_ejecucion, error_mensaje, solicitada_por_usuario_id, cancelada_por_usuario_id, created_at',
       { count: 'exact' },
     )
     .order('created_at', { ascending: false })

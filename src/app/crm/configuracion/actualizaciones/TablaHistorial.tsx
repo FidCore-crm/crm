@@ -3,14 +3,18 @@
 /**
  * Tabla con el historial de actualizaciones aplicadas.
  *
- * Muestra: fecha, versiones anterior/nueva, estado, duración, quién la solicitó.
- * Paginación 20 items por página.
+ * Mejoras:
+ *   - Click en fila abre ModalDetalle con changelog + log_completo.
+ *   - Detecta filas EJECUTANDO stuck (sin avance >15 min) y las marca
+ *     visualmente en ámbar.
+ *   - Pagination 20/página.
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { CheckCircle2, XCircle, Clock, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Clock, AlertCircle, ArrowLeft, Loader2, Eye } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import type { ActualizacionRow } from './tipos'
+import { ModalDetalle } from './ModalDetalle'
 
 interface Props {
   onCerrar: () => void
@@ -39,10 +43,19 @@ function calcularDuracion(inicio: string | null, fin: string | null): string {
   return `${Math.floor(s / 60)}m ${s % 60}s`
 }
 
+/** Detecta si una actualización EJECUTANDO está stuck (no avanza hace mucho). */
+function esStuck(a: ActualizacionRow): boolean {
+  if (a.estado !== 'EJECUTANDO') return false
+  if (!a.fecha_inicio_ejecucion) return false
+  const minutos = (Date.now() - new Date(a.fecha_inicio_ejecucion).getTime()) / 60000
+  return minutos > 15
+}
+
 export function TablaHistorial({ onCerrar }: Props) {
   const [pagina, setPagina] = useState(0)
   const [data, setData] = useState<HistorialResp | null>(null)
   const [cargando, setCargando] = useState(true)
+  const [detalleAbierto, setDetalleAbierto] = useState<string | null>(null)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -84,14 +97,20 @@ export function TablaHistorial({ onCerrar }: Props) {
                 <th>Estado</th>
                 <th>Duración</th>
                 <th>Detalle</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {data.data.map(a => {
                 const eb = ESTADO_BADGE[a.estado] ?? ESTADO_BADGE.COMPLETADA
                 const Icon = eb.icon
+                const stuck = esStuck(a)
                 return (
-                  <tr key={a.id}>
+                  <tr
+                    key={a.id}
+                    className={`cursor-pointer hover:bg-slate-50 ${stuck ? 'bg-amber-50/40' : ''}`}
+                    onClick={() => setDetalleAbierto(a.id)}
+                  >
                     <td className="text-xs text-slate-600">
                       {new Date(a.created_at).toLocaleString('es-AR', {
                         dateStyle: 'short', timeStyle: 'short',
@@ -104,15 +123,29 @@ export function TablaHistorial({ onCerrar }: Props) {
                     </td>
                     <td>
                       <span className={`inline-flex items-center gap-1 text-2xs font-semibold px-1.5 py-0.5 rounded border ${eb.color}`}>
-                        <Icon className="h-3 w-3" />
+                        <Icon className={`h-3 w-3 ${a.estado === 'EJECUTANDO' ? 'animate-spin' : ''}`} />
                         {eb.label}
                       </span>
+                      {stuck && (
+                        <span className="ml-1.5 inline-flex items-center gap-1 text-2xs font-semibold px-1.5 py-0.5 rounded border bg-amber-100 text-amber-800 border-amber-300">
+                          stuck
+                        </span>
+                      )}
                     </td>
                     <td className="text-xs text-slate-600 font-mono">
                       {calcularDuracion(a.fecha_inicio_ejecucion, a.fecha_fin_ejecucion)}
                     </td>
                     <td className="text-xs text-slate-600 max-w-xs truncate" title={a.error_mensaje ?? ''}>
                       {a.error_mensaje ?? (a.estado === 'COMPLETADA' ? 'OK' : '—')}
+                    </td>
+                    <td className="text-right">
+                      <button
+                        className="btn-tabla-accion"
+                        title="Ver detalle"
+                        onClick={(e) => { e.stopPropagation(); setDetalleAbierto(a.id) }}
+                      >
+                        <Eye />
+                      </button>
                     </td>
                   </tr>
                 )
@@ -142,6 +175,14 @@ export function TablaHistorial({ onCerrar }: Props) {
             </button>
           </div>
         </div>
+      )}
+
+      {detalleAbierto && (
+        <ModalDetalle
+          id={detalleAbierto}
+          onCerrar={() => setDetalleAbierto(null)}
+          onCambioEstado={cargar}
+        />
       )}
     </div>
   )

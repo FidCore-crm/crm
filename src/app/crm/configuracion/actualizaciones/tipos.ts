@@ -13,12 +13,19 @@ export interface ReleaseGitHub {
   es_mas_nueva: boolean
 }
 
+export type EstadoActualizacion =
+  | 'PROGRAMADA'
+  | 'EJECUTANDO'
+  | 'COMPLETADA'
+  | 'FALLIDA'
+  | 'CANCELADA'
+
 export interface ActualizacionRow {
   id: string
   version_anterior: string
   version_nueva: string
   changelog: string | null
-  estado: 'PROGRAMADA' | 'EJECUTANDO' | 'COMPLETADA' | 'FALLIDA' | 'CANCELADA'
+  estado: EstadoActualizacion
   programada_para: string | null
   fecha_solicitud: string
   fecha_inicio_ejecucion: string | null
@@ -30,4 +37,27 @@ export interface ActualizacionRow {
   cancelada_por_usuario_id: string | null
   created_at: string
   updated_at: string
+}
+
+/** Progreso real del script aplicar-actualizacion.sh, leído de progress.json. */
+export interface ProgressInfo {
+  actualizacion_id: string
+  paso:
+    | 'INICIANDO'
+    | 'BACKUP'
+    | 'BACKUP_OK'
+    | 'FETCH'
+    | 'FETCH_OK'
+    | 'BUILD'
+    | 'BUILD_OK'
+    | 'MIGRATIONS'
+    | 'MIGRATIONS_OK'
+    | 'RESTART'
+    | 'HEALTHCHECK'
+    | 'DONE'
+    | 'ROLLBACK'
+    | 'FAILED'
+  porcentaje: number
+  mensaje: string
+  actualizado_en: string
 }

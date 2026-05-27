@@ -4,11 +4,11 @@
  * Pantalla de gestión de actualizaciones del CRM.
  *
  * Estados que muestra:
- *   - No hay update disponible: solo muestra versión actual y botón "Verificar"
+ *   - No hay update disponible: muestra versión actual + card "qué trae" + botón "Verificar"
  *   - Update disponible (sin acción): banner + botones [Actualizar ahora] [Programar]
  *   - Update programado: tarjeta con countdown + botón [Cancelar]
  *   - Update en ejecución: pantalla full con stepper + log en vivo
- *   - Update terminado (éxito/fallo): tarjeta con resultado + link al historial
+ *   - Update terminado RECIENTE (<10 min): banner verde "Acabás de actualizar a vX.Y.Z" con changelog
  *
  * Polling: cada 5s cuando hay una actualización ACTIVA (PROGRAMADA o EJECUTANDO).
  * Cuando no hay activa, hace una sola consulta al montar.
@@ -17,20 +17,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Download, CheckCircle2, AlertCircle, Loader2, Calendar, X,
-  Sparkles, ArrowRight, RefreshCw, History, Clock,
+  Sparkles, ArrowRight, RefreshCw, History, Clock, PartyPopper,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import type { ReleaseGitHub, ActualizacionRow } from './tipos'
+import type { ReleaseGitHub, ActualizacionRow, ProgressInfo } from './tipos'
 import { ModalProgramar } from './ModalProgramar'
 import { PantallaProgreso } from './PantallaProgreso'
 import { TablaHistorial } from './TablaHistorial'
+import { ChangelogViewer } from './ChangelogViewer'
 
 interface EstadoData {
   version_actual: string
   actualizacion_activa: ActualizacionRow | null
+  ultima_completada: ActualizacionRow | null
+  progreso: ProgressInfo | null
 }
 
 interface DisponibleData {
@@ -39,6 +42,9 @@ interface DisponibleData {
   ultimo_release?: ReleaseGitHub
   error?: string
 }
+
+/** Una update "reciente" es < 10 min — mostramos banner celebratorio. */
+const MIN_PARA_BANNER_RECIENTE = 10
 
 export default function ActualizacionesPage() {
   const router = useRouter()
@@ -50,6 +56,8 @@ export default function ActualizacionesPage() {
   const [verificando, setVerificando] = useState(false)
   const [modalProgramarAbierto, setModalProgramarAbierto] = useState(false)
   const [tabHistorial, setTabHistorial] = useState(false)
+  const [mostrarNovedades, setMostrarNovedades] = useState(false)
+  const [bannerDescartado, setBannerDescartado] = useState(false)
 
   // ─── Carga inicial + polling ────────────────────────────
 
@@ -94,10 +102,16 @@ export default function ActualizacionesPage() {
     setVerificando(true)
     await cargarDisponible(true)
     setVerificando(false)
-    if (disponible?.hay_actualizacion) {
-      toast.info(`Nueva versión disponible: v${disponible.ultimo_release?.version}`)
-    } else if (!disponible?.error) {
-      toast.exito('Ya estás en la última versión')
+    // Re-leer disponible directamente (el setState es async)
+    const r = await apiCall<DisponibleData>('/api/actualizaciones/disponible', {}, {
+      mostrar_toast_en_error: false,
+    })
+    if (r.ok && r.data) {
+      if (r.data.hay_actualizacion) {
+        toast.info(`Nueva versión disponible: v${r.data.ultimo_release?.version}`)
+      } else if (!r.data.error) {
+        toast.exito('Ya estás en la última versión')
+      }
     }
   }
 
@@ -144,6 +158,14 @@ export default function ActualizacionesPage() {
 
   const activa = estado?.actualizacion_activa
   const enEjecucion = activa?.estado === 'EJECUTANDO'
+  const ultimaCompletada = estado?.ultima_completada
+
+  // ¿Hay banner celebratorio?
+  let bannerReciente = false
+  if (ultimaCompletada && !bannerDescartado && ultimaCompletada.fecha_fin_ejecucion) {
+    const minutosDesdeFin = (Date.now() - new Date(ultimaCompletada.fecha_fin_ejecucion).getTime()) / 60000
+    bannerReciente = minutosDesdeFin <= MIN_PARA_BANNER_RECIENTE
+  }
 
   // Si hay un update EJECUTANDO, pantalla full de progreso
   if (enEjecucion) {
@@ -184,6 +206,38 @@ export default function ActualizacionesPage() {
         <TablaHistorial onCerrar={() => setTabHistorial(false)} />
       ) : (
         <>
+          {/* Banner celebratorio post-update */}
+          {bannerReciente && ultimaCompletada && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded p-4 mb-4">
+              <div className="flex items-start gap-3">
+                <PartyPopper className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-emerald-900">
+                    ¡Listo! Tu CRM se actualizó a v{ultimaCompletada.version_nueva}
+                  </h3>
+                  <p className="text-xs text-emerald-800 mt-0.5">
+                    Actualización completada el{' '}
+                    {new Date(ultimaCompletada.fecha_fin_ejecucion!).toLocaleString('es-AR', {
+                      dateStyle: 'long', timeStyle: 'short',
+                    })}
+                  </p>
+                  {ultimaCompletada.changelog && (
+                    <div className="mt-3 bg-white border border-emerald-100 rounded p-3 max-h-64 overflow-y-auto">
+                      <p className="text-xs font-semibold text-emerald-900 mb-2">Qué trajo esta versión:</p>
+                      <ChangelogViewer texto={ultimaCompletada.changelog} />
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setBannerDescartado(true)}
+                    className="mt-3 text-xs text-emerald-700 hover:text-emerald-900 underline"
+                  >
+                    Ocultar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Caso 1: hay update PROGRAMADA */}
           {activa?.estado === 'PROGRAMADA' && (
             <div className="bg-amber-50 border border-amber-200 rounded p-5 mb-4">
@@ -202,6 +256,16 @@ export default function ActualizacionesPage() {
                     </p>
                   ) : (
                     <p className="text-xs text-amber-800 mt-1">Se aplicará en el próximo ciclo del cron del host (~1 min).</p>
+                  )}
+                  {activa.changelog && (
+                    <details className="mt-2">
+                      <summary className="text-xs text-amber-800 cursor-pointer hover:text-amber-900">
+                        Ver qué cambios trae →
+                      </summary>
+                      <div className="mt-2 bg-white border border-amber-100 rounded p-3 max-h-64 overflow-y-auto">
+                        <ChangelogViewer texto={activa.changelog} />
+                      </div>
+                    </details>
                   )}
                   <button
                     onClick={() => cancelarProgramada(activa.id)}
@@ -237,15 +301,29 @@ export default function ActualizacionesPage() {
           )}
 
           {/* Caso 4: al día */}
-          {!activa && disponible && !disponible.hay_actualizacion && !disponible.error && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded p-5">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                <div>
+          {!activa && !bannerReciente && disponible && !disponible.hay_actualizacion && !disponible.error && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded p-5 mb-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
                   <h3 className="text-sm font-semibold text-emerald-900">✓ Sistema al día</h3>
                   <p className="text-xs text-emerald-800 mt-0.5">
                     Estás corriendo Pulzar v{estado?.version_actual} — la última versión disponible.
                   </p>
+                  {ultimaCompletada?.changelog && (
+                    <button
+                      onClick={() => setMostrarNovedades(!mostrarNovedades)}
+                      className="mt-2 text-xs text-emerald-700 hover:text-emerald-900 underline flex items-center gap-1"
+                    >
+                      {mostrarNovedades ? 'Ocultar' : 'Ver'} qué trae esta versión
+                      <ArrowRight className={`h-3 w-3 transition-transform ${mostrarNovedades ? 'rotate-90' : ''}`} />
+                    </button>
+                  )}
+                  {mostrarNovedades && ultimaCompletada?.changelog && (
+                    <div className="mt-3 bg-white border border-emerald-100 rounded p-3 max-h-64 overflow-y-auto">
+                      <ChangelogViewer texto={ultimaCompletada.changelog} />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -296,15 +374,11 @@ function BannerUpdateDisponible({
         </div>
       </div>
 
-      {/* Changelog */}
-      {release.changelog && (
-        <div className="bg-white border border-blue-100 rounded p-3 mb-4 max-h-64 overflow-y-auto">
-          <p className="text-xs font-semibold text-slate-600 mb-2">Cambios:</p>
-          <div className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
-            {release.changelog}
-          </div>
-        </div>
-      )}
+      {/* Changelog renderizado */}
+      <div className="bg-white border border-blue-100 rounded p-3 mb-4 max-h-72 overflow-y-auto">
+        <p className="text-xs font-semibold text-slate-600 mb-2">Qué incorpora o corrige:</p>
+        <ChangelogViewer texto={release.changelog} />
+      </div>
 
       {/* Acciones */}
       <div className="flex flex-wrap items-center gap-2">
@@ -322,7 +396,7 @@ function BannerUpdateDisponible({
           rel="noopener noreferrer"
           className="text-xs text-blue-700 hover:underline flex items-center gap-1 ml-auto"
         >
-          Ver detalles <ArrowRight className="h-3 w-3" />
+          Ver detalles en GitHub <ArrowRight className="h-3 w-3" />
         </a>
       </div>
     </div>

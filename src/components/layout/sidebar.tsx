@@ -367,9 +367,13 @@ export function Sidebar() {
               {process.env.NEXT_PUBLIC_STACK_LABEL}
             </span>
           )}
-          <span className="text-2xs text-slate-500 leading-none">
-            v1.0
-          </span>
+          <Link
+            href="/crm/configuracion/actualizaciones"
+            className="text-2xs text-slate-500 leading-none hover:text-slate-300 transition-colors"
+            title="Ver actualizaciones y novedades"
+          >
+            v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+          </Link>
         </div>
       </div>
 

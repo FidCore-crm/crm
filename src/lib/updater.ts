@@ -417,3 +417,44 @@ export async function obtenerActualizacionActiva(): Promise<ActualizacionRow | n
     .maybeSingle()
   return (data as ActualizacionRow) ?? null
 }
+
+/**
+ * Retorna la última actualización COMPLETADA con éxito (para mostrar al PAS
+ * "qué cambios trajo la versión que estás corriendo").
+ */
+export async function obtenerUltimaCompletada(): Promise<ActualizacionRow | null> {
+  const supabase = getSupabaseAdmin()
+  const { data } = await supabase
+    .from('actualizaciones')
+    .select('*')
+    .eq('estado', 'COMPLETADA')
+    .order('fecha_fin_ejecucion', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return (data as ActualizacionRow) ?? null
+}
+
+/**
+ * Lee el archivo progress.json escrito por aplicar-actualizacion.sh.
+ * Devuelve null si no existe o está malformado. El frontend lo usa para
+ * mostrar el stepper con el paso REAL en vez de estimaciones por tiempo.
+ */
+export interface ProgressInfo {
+  actualizacion_id: string
+  paso: string           // BACKUP | FETCH | BUILD | MIGRATIONS | RESTART | HEALTHCHECK | DONE | FAILED | ROLLBACK | INICIANDO
+  porcentaje: number     // 0-100
+  mensaje: string
+  actualizado_en: string
+}
+
+export async function leerProgreso(): Promise<ProgressInfo | null> {
+  const file = path.join(UPDATES_DIR, 'progress.json')
+  try {
+    const raw = await fs.readFile(file, 'utf-8')
+    const parsed = JSON.parse(raw)
+    if (!parsed.paso || typeof parsed.porcentaje !== 'number') return null
+    return parsed as ProgressInfo
+  } catch {
+    return null
+  }
+}
