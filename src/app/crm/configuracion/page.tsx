@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Building2, Settings, Globe, Bell, Users, Shield, ChevronRight, Mail, HardDrive, MessageSquare, ExternalLink, Sparkles, AlertTriangle, Power } from 'lucide-react'
+import { Building2, Settings, Globe, Bell, Users, Shield, ChevronRight, Mail, HardDrive, MessageSquare, ExternalLink, Sparkles, AlertTriangle, Power, Download } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 const secciones = [
@@ -97,6 +97,14 @@ const secciones = [
     icon: Shield,
     titulo: 'Licencia',
     descripcion: 'Estado de tu suscripción y carga de nueva licencia',
+    activo: true,
+    adminOnly: true,
+  },
+  {
+    href: '/crm/configuracion/actualizaciones',
+    icon: Download,
+    titulo: 'Actualizaciones',
+    descripcion: 'Verificar e instalar nuevas versiones del CRM',
     activo: true,
     adminOnly: true,
   },

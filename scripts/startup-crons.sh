@@ -70,3 +70,4 @@ run_cron "emails/jobs huerfanos"  /api/cron/recuperar-huerfanos
 run_cron "purga personas"         /api/cron/personas-purgar
 run_cron "purga siniestros"       /api/cron/siniestros-purgar
 run_cron "licencias"              /api/cron/licencias
+run_cron "verificar updates"      /api/cron/verificar-actualizaciones
