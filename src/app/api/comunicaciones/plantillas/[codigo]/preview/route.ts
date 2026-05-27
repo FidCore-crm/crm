@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { obtenerUsuarioDesdeRequest } from '@/lib/auth'
+import { renderizarPlantilla } from '@/lib/email-templates/renderizador'
+import {
+  obtenerVariablesPersona,
+  obtenerVariablesPoliza,
+  obtenerVariablesOrganizacion,
+} from '@/lib/email-variables'
+import { obtenerUrlCRM } from '@/lib/urls-publicas'
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ codigo: string }> },
+) {
+  const usuario = await obtenerUsuarioDesdeRequest(request)
+  if (!usuario) {
+    return NextResponse.json({ ok: false, error: 'No autenticado' }, { status: 401 })
+  }
+
+  const { codigo } = await params
+  const body = await request.json().catch(() => ({}))
+  const { persona_id, poliza_id, campos_editables } = body
+
+  const [variablesPersona, variablesPoliza, variablesOrganizacion] = await Promise.all([
+    persona_id ? obtenerVariablesPersona(persona_id) : Promise.resolve({}),
+    poliza_id ? obtenerVariablesPoliza(poliza_id) : Promise.resolve({}),
+    obtenerVariablesOrganizacion(),
+  ])
+
+  const variables: Record<string, string> = {
+    ...variablesOrganizacion,
+    ...variablesPoliza,
+    ...variablesPersona,
+    ...(campos_editables?.titulo ? { titulo: campos_editables.titulo } : {}),
+    ...(campos_editables?.cuerpo ? { cuerpo_mensaje: campos_editables.cuerpo } : {}),
+  }
+
+  const baseUrl = (await obtenerUrlCRM()) || 'http://localhost:3000'
+  const organizacion = {
+    nombre: variables.productora_nombre || 'Productor de Seguros',
+    telefono: variables.productora_telefono || '',
+    email: variables.productora_email || '',
+    logo_url: variables.productora_logo ? `${baseUrl}/api/storage/${variables.productora_logo}` : '',
+    color_marca: variables.productora_color_marca || undefined,
+  }
+
+  try {
+    const { cuerpo_html } = await renderizarPlantilla(codigo, variables, organizacion)
+    return NextResponse.json({ ok: true, html: cuerpo_html })
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: 'Error al renderizar la plantilla' }, { status: 500 })
+  }
+}

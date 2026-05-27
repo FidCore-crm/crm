@@ -1,0 +1,54 @@
+# Build / cache
+node_modules
+.next
+out
+dist
+
+# Local env (los secrets se inyectan por docker-compose / .env runtime)
+.env
+.env.local
+.env.*.local
+
+# Datos del runtime — nunca van al image
+storage/
+tmp/
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Tests / coverage
+coverage
+.nyc_output
+
+# Claude / Cursor / etc.
+.claude
+.cursor
+
+# Sentry
+.sentryclirc
+
+# Docs / docker meta (no afectan el runtime)
+README.md
+INSTALACION.md
+docker-compose.yml
+docker-compose.*.yml
+Dockerfile
+.dockerignore
+
+# Backups — nunca van al image
+backups/
+*.crmbak

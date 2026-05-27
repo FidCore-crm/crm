@@ -1,0 +1,17 @@
+{
+  "services_a_parchar": [
+    { "name": "auth-v1-open",          "path_extra": "/supabase/auth/v1/verify" },
+    { "name": "auth-v1-open-callback", "path_extra": "/supabase/auth/v1/callback" },
+    { "name": "auth-v1-open-authorize","path_extra": "/supabase/auth/v1/authorize" },
+    { "name": "auth-v1",               "path_extra": "/supabase/auth/v1/" },
+    { "name": "rest-v1",               "path_extra": "/supabase/rest/v1/" },
+    { "name": "graphql-v1",            "path_extra": "/supabase/graphql/v1" },
+    { "name": "realtime-v1-ws",        "path_extra": "/supabase/realtime/v1/" },
+    { "name": "realtime-v1-rest",      "path_extra": "/supabase/realtime/v1/api" },
+    { "name": "storage-v1",            "path_extra": "/supabase/storage/v1/" },
+    { "name": "functions-v1",          "path_extra": "/supabase/functions/v1/" }
+  ],
+  "services_a_no_tocar": [
+    "meta", "mcp", "mcp-blocker", "dashboard"
+  ]
+}

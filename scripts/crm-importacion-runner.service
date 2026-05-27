@@ -1,0 +1,17 @@
+[Unit]
+Description=CRM Seguros - Importacion jobs runner loop (cada 30s)
+After=network.target crm-seguros.service
+Requires=crm-seguros.service
+
+[Service]
+Type=simple
+User=nahuel
+WorkingDirectory=/home/nahuel/crm-seguros
+ExecStart=/bin/bash /home/nahuel/crm-seguros/scripts/importacion-runner-loop.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

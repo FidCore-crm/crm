@@ -1,0 +1,105 @@
+# =====================================================================
+# Pulzar — .gitignore
+# =====================================================================
+# Reglas para que git ignore archivos sensibles, datos del cliente,
+# caches y artefactos de build. NO borra archivos del disco — solo los
+# excluye del repositorio.
+
+# ---------------------------------------------------------------------
+# Secretos y configs locales (NUNCA van al repo)
+# ---------------------------------------------------------------------
+.env
+.env.local
+.env.docker
+.env.production
+.env.*.local
+
+# Los .example sí van — son templates sin secretos
+!.env.example
+!.env.local.example
+!.env.docker.example
+
+# ---------------------------------------------------------------------
+# Documentación interna (solo para el equipo, no para el repo público)
+# ---------------------------------------------------------------------
+CLAUDE.md
+auditoria.md
+auditoria-*.md
+INSTALACION.md
+NOTAS.md
+TODO.md
+ROADMAP.md
+DECISIONES.md
+.claude/
+
+# Memoria de Claude Code (si alguien la copiara al proyecto por error)
+memory/
+
+# ---------------------------------------------------------------------
+# Datos del cliente (NUNCA al repo, vienen en cada instalación)
+# ---------------------------------------------------------------------
+storage/
+tmp/
+
+# Backups (.crmbak)
+*.crmbak
+backups/
+
+# Licencias emitidas
+*.lic
+licencias-emitidas/
+
+# Llaves criptográficas privadas
+*.pem
+!public.pem.example
+
+# ---------------------------------------------------------------------
+# Build artifacts y caches
+# ---------------------------------------------------------------------
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Coverage / tests
+coverage/
+.nyc_output/
+__test-output/
+
+# ---------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ---------------------------------------------------------------------
+# Editores e IDEs
+# ---------------------------------------------------------------------
+.vscode/
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ---------------------------------------------------------------------
+# Sistema
+# ---------------------------------------------------------------------
+.cache/
+.pnpm-store/
+*.pid
+*.seed
+*.pid.lock
+
+# ---------------------------------------------------------------------
+# Sentry — los configs sí van pero NO el archivo de auth token
+# ---------------------------------------------------------------------
+.sentryclirc

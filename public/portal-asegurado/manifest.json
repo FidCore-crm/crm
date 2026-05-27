@@ -1,0 +1,19 @@
+{
+  "name": "Mi Portal del Asegurado",
+  "short_name": "Mi Portal",
+  "description": "Portal personal del asegurado: pólizas, siniestros y datos de contacto.",
+  "start_url": ".",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#0A1628",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+Pulzar — Licencia de Software Propietario
+==========================================
+
+Copyright (c) 2026 Pulzar. Todos los derechos reservados.
+
+Este software ("Pulzar") es propiedad exclusiva de su titular. El código
+fuente está disponible públicamente con fines de auditoría, transparencia
+e inspección técnica, pero su uso, copia, modificación, redistribución o
+explotación comercial requieren una licencia válida emitida por Pulzar.
+
+PERMITIDO sin licencia comercial:
+
+  * Leer el código fuente.
+  * Clonar el repositorio con fines de auditoría o estudio.
+  * Reportar bugs o sugerencias mediante issues en el repositorio.
+  * Hacer forks privados con fines de revisión personal.
+
+PROHIBIDO sin licencia comercial escrita:
+
+  * Ejecutar Pulzar en producción para uso propio o de terceros.
+  * Distribuir, vender, sublicenciar o alquilar el software.
+  * Modificar el código y distribuir la versión modificada.
+  * Eliminar, deshabilitar o eludir el sistema de validación de licencias.
+  * Usar el nombre "Pulzar", su logo o cualquier elemento de su identidad
+    visual sin autorización escrita.
+
+VALIDACIÓN DE LICENCIA:
+
+Pulzar incluye un mecanismo criptográfico (Ed25519) que verifica la
+validez de la licencia. Cualquier intento de eludir, alterar o
+deshabilitar este mecanismo constituye una violación de los términos de
+esta licencia y de las leyes de protección de software aplicables.
+
+GARANTÍAS:
+
+EL SOFTWARE SE PROVEE "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA
+O IMPLÍCITA, INCLUYENDO PERO NO LIMITADA A LAS GARANTÍAS DE
+COMERCIABILIDAD, IDONEIDAD PARA UN PROPÓSITO PARTICULAR Y NO INFRACCIÓN.
+EN NINGÚN CASO LOS AUTORES O TITULARES DE LOS DERECHOS DE AUTOR SERÁN
+RESPONSABLES POR RECLAMOS, DAÑOS U OTRAS RESPONSABILIDADES, YA SEA EN
+UNA ACCIÓN DE CONTRATO, AGRAVIO O DE OTRO MODO, QUE SURJAN DE, FUERA DE
+O EN CONEXIÓN CON EL SOFTWARE O EL USO U OTROS TRATOS EN EL SOFTWARE.
+
+CONTACTO COMERCIAL:
+
+Para licencias comerciales, soporte técnico o consultas:
+https://pulzar.com.ar

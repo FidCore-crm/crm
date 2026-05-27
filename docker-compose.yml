@@ -1,0 +1,126 @@
+# ============================================================================
+# Pulzar CRM — docker-compose
+#
+# Stack de 4 services que comparten el mismo image (build local con Dockerfile):
+#   - crm:                 Next.js standalone, puerto 3000 interno
+#   - crons:               Loop bash que dispara los crons cada 4h (catch-up al boot)
+#   - importacion-runner:  Loop bash que dispara el job runner del importador cada 30s
+#   - cloudflared (opt):   Cloudflare Tunnel para acceso público vía HTTPS.
+#                          Solo arranca con `docker compose --profile tunnel up`.
+#                          En instalaciones LAN-only se omite con `up` simple.
+#
+# La network externa `supabase_default` ya existe (la creó el stack de Supabase
+# self-hosted). Conectarse a ella permite resolver `supabase-db` y `supabase-kong`
+# por hostname interno sin atravesar el host.
+#
+# Volúmenes:
+#   - ./storage           bind-mount con los archivos del CRM (pólizas, siniestros,
+#                         importaciones). Persisten fuera del container.
+#   - /var/backups/...    bind-mount con los .crmbak generados.
+#   - ./tmp               bind-mount para temporales (/tmp/pdf-procesamientos,
+#                         /tmp/crm-restauraciones).
+# ============================================================================
+
+services:
+  crm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Estas se inlinean en el bundle del browser durante `next build`.
+        # Sin esto, process.env.NEXT_PUBLIC_* queda undefined en el cliente y
+        # el cliente Supabase tira error → pantalla de "error inesperado".
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN}
+        NEXT_PUBLIC_STACK_LABEL: ${NEXT_PUBLIC_STACK_LABEL:-}
+        NEXT_PUBLIC_APP_VERSION: ${NEXT_PUBLIC_APP_VERSION:-1.0.0}
+    image: pulzar-crm:local
+    container_name: pulzar-crm
+    restart: unless-stopped
+    networks:
+      - supabase_default
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker
+    environment:
+      # Variables que el código del CRM detecta para cambiar comportamiento
+      # cuando corre en container (ver src/lib/backup-restore.ts).
+      RUNNING_IN_DOCKER: "true"
+      NODE_ENV: production
+    volumes:
+      - ./storage:/app/storage
+      - ./tmp:/app/tmp
+      - /var/backups/crm-seguros:/var/backups/crm-seguros
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  crons:
+    image: pulzar-crm:local
+    container_name: pulzar-crm-crons
+    restart: unless-stopped
+    networks:
+      - supabase_default
+    depends_on:
+      crm:
+        condition: service_started
+    env_file:
+      - .env.docker
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      CRM_BASE_URL: "http://crm:3000"
+      CRONS_INTERVAL_SECONDS: "14400"
+    volumes:
+      - ./storage:/app/storage
+      - ./tmp:/app/tmp
+      - /var/backups/crm-seguros:/var/backups/crm-seguros
+    command: ["bash", "/app/scripts/crons-loop.sh"]
+
+  importacion-runner:
+    image: pulzar-crm:local
+    container_name: pulzar-crm-importacion-runner
+    restart: unless-stopped
+    networks:
+      - supabase_default
+    depends_on:
+      crm:
+        condition: service_started
+    env_file:
+      - .env.docker
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      CRM_BASE_URL: "http://crm:3000"
+      IMPORTACION_RUNNER_INTERVAL_SECONDS: "30"
+    volumes:
+      - ./storage:/app/storage
+      - ./tmp:/app/tmp
+    command: ["bash", "/app/scripts/importacion-runner-loop.sh"]
+
+  # Cloudflare Tunnel — opcional. Activar con `--profile tunnel`.
+  # Cuando arranca, conecta a la network del CRM, levanta el tunnel autenticado
+  # con TUNNEL_TOKEN y rutea los hostnames configurados en el dashboard CF
+  # (`<cliente>.pulzar.com.ar` y `denuncia.<cliente>.pulzar.com.ar`) hacia
+  # `http://crm:3000`. Cloudflare termina TLS y manda HTTPS al asegurado /
+  # PAS — el container del CRM solo recibe HTTP plano por la red interna.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: pulzar-cloudflared
+    restart: unless-stopped
+    profiles: [tunnel]
+    networks:
+      - supabase_default
+    depends_on:
+      crm:
+        condition: service_started
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    command: ["tunnel", "--no-autoupdate", "run"]
+
+networks:
+  supabase_default:
+    external: true
