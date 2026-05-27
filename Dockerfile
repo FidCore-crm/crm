@@ -77,25 +77,27 @@ RUN apt-get update \
       tini \
  && rm -rf /var/lib/apt/lists/*
 
-# Usuario non-root. Next.js standalone corre fine como cualquier user.
-RUN groupadd --system --gid 1001 nodejs \
- && useradd --system --uid 1001 --gid nodejs --no-create-home nextjs
+# Usamos el usuario `node` (UID/GID 1000) que ya viene en la imagen base
+# `node:20-bookworm-slim`. Coincide con el primer usuario no-root del host
+# Ubuntu (convención: Debian/Ubuntu siempre crea el primer usuario con UID 1000).
+# Esto evita problemas de permisos en bind mounts (storage/, tmp/, backups/)
+# sin necesidad de `chown` post-instalación con UIDs especiales.
 
 # Copiar el build standalone — Next.js incluye solo lo que usa el server.
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/public ./public
 
 # Copiar scripts y migraciones que el runtime necesita (los scripts de backup
 # se ejecutan via execAsync bash, las migraciones se aplican al boot).
-COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
-COPY --from=builder --chown=nextjs:nodejs /app/sql ./sql
+COPY --from=builder --chown=node:node /app/scripts ./scripts
+COPY --from=builder --chown=node:node /app/sql ./sql
 
 # Crear carpetas que el runtime espera con permisos correctos.
 RUN mkdir -p /app/storage /app/tmp \
- && chown -R nextjs:nodejs /app/storage /app/tmp
+ && chown -R node:node /app/storage /app/tmp
 
-USER nextjs
+USER node
 
 EXPOSE 3000
 

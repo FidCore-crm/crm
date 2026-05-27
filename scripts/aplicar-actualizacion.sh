@@ -237,31 +237,76 @@ log "Commit pre-update: ${COMMIT_PRE_UPDATE:0:12}"
 
 log "[1/6] Creando backup pre-update..."
 
-BACKUP_RESP=$(curl -sS -X POST "http://localhost:3000/api/backups" \
-  -H "Authorization: Bearer ${CRON_SECRET:-}" \
-  -H "Content-Type: application/json" \
-  -d '{"tipo":"PRE_UPDATE","nota":"Backup automático pre-actualización a v'"${VERSION_NUEVA}"'"}' \
-  --max-time 600 2>&1)
+# Ejecutamos backup-now.sh DENTRO del container del CRM (no en el host)
+# porque ahí sí está instalado pg_dump 15. El host no tiene
+# postgresql-client y queremos evitar tener que instalarlo en cada mini-PC.
+#
+# Como `/var/backups/crm-seguros/` está bind-mounted, el .crmbak resultante
+# aparece en el host inmediatamente.
+#
+# Después de crear el archivo, insertamos manualmente la fila en `backups`
+# con SQL directo — evitamos depender del endpoint HTTP que requiere auth
+# de usuario admin.
+
+BACKUP_OUTPUT=$(docker exec pulzar-crm bash /app/scripts/backup-now.sh --tipo=PRE_UPDATE 2>&1)
 BACKUP_EXIT=$?
 
 if [ $BACKUP_EXIT -ne 0 ]; then
-  log "FATAL: backup falló (curl exit $BACKUP_EXIT): $BACKUP_RESP"
-  # No hay rollback porque no se cambió nada todavía. Solo marcar FALLIDA.
-  marcar_actualizacion FALLIDA "El backup pre-update falló y se abortó la actualización. Detalle: $BACKUP_RESP"
+  log "FATAL: backup-now.sh falló (exit $BACKUP_EXIT):"
+  echo "$BACKUP_OUTPUT" | tail -20 | tee -a "$LOG_FILE"
+  marcar_actualizacion FALLIDA "El backup pre-update falló. Revisar log para detalles."
   exit 1
 fi
 
-# Extraer backup_id y path del response JSON. Usamos grep + sed para no
-# depender de jq en el host.
-BACKUP_ID=$(echo "$BACKUP_RESP" | grep -oE '"id"\s*:\s*"[^"]+"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
-BACKUP_PATH=$(echo "$BACKUP_RESP" | grep -oE '"archivo_unico_path"\s*:\s*"[^"]+"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+# Parsear BACKUP_RESULT_JSON={...} del output del script
+BACKUP_JSON=$(echo "$BACKUP_OUTPUT" | grep -oE 'BACKUP_RESULT_JSON=\{.*\}' | sed 's/^BACKUP_RESULT_JSON=//')
+if [ -z "$BACKUP_JSON" ]; then
+  log "FATAL: backup-now.sh no devolvió BACKUP_RESULT_JSON. Output:"
+  echo "$BACKUP_OUTPUT" | tail -20 | tee -a "$LOG_FILE"
+  marcar_actualizacion FALLIDA "El backup se completó pero no devolvió metadata utilizable."
+  exit 1
+fi
 
-if [ -z "$BACKUP_ID" ] || [ -z "$BACKUP_PATH" ]; then
-  log "FATAL: no se pudo parsear backup_id/path del response: $BACKUP_RESP"
+BACKUP_NOMBRE=$(echo "$BACKUP_JSON" | grep -oE '"nombre"\s*:\s*"[^"]+"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+BACKUP_PATH=$(echo "$BACKUP_JSON" | grep -oE '"archivo_unico_path"\s*:\s*"[^"]+"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+BACKUP_SIZE=$(echo "$BACKUP_JSON" | grep -oE '"archivo_unico_tamano_bytes"\s*:\s*[0-9]+' | head -1 | grep -oE '[0-9]+$')
+BACKUP_DB_SIZE=$(echo "$BACKUP_JSON" | grep -oE '"tamano_db"\s*:\s*[0-9]+' | head -1 | grep -oE '[0-9]+$')
+BACKUP_STORAGE_SIZE=$(echo "$BACKUP_JSON" | grep -oE '"tamano_storage"\s*:\s*[0-9]+' | head -1 | grep -oE '[0-9]+$')
+BACKUP_DURACION=$(echo "$BACKUP_JSON" | grep -oE '"duracion"\s*:\s*[0-9]+' | head -1 | grep -oE '[0-9]+$')
+
+if [ -z "$BACKUP_NOMBRE" ] || [ -z "$BACKUP_PATH" ]; then
+  log "FATAL: no se pudo parsear backup metadata: $BACKUP_JSON"
   marcar_actualizacion FALLIDA "El backup se creó pero no se pudo identificar para hacer rollback."
   exit 1
 fi
-log "  ✓ Backup OK — id=${BACKUP_ID:0:8} path=${BACKUP_PATH##*/}"
+
+# Insertar manualmente la fila en la tabla `backups`
+BACKUP_NOTA="Backup automático pre-actualización a v${VERSION_NUEVA}"
+BACKUP_NOTA_ESC="${BACKUP_NOTA//\'/\'\'}"
+BACKUP_ID=$(docker exec -i supabase-db psql -U supabase_admin -d postgres -tAc "
+INSERT INTO backups (
+  nombre, tipo, estado,
+  fecha_inicio, fecha_fin, duracion_segundos,
+  tamano_db_bytes, tamano_storage_bytes, tamano_total_bytes,
+  archivo_unico_path, archivo_unico_tamano_bytes,
+  contenido_incluido
+) VALUES (
+  '${BACKUP_NOMBRE}', 'PRE_UPDATE', 'COMPLETADO',
+  now() - interval '${BACKUP_DURACION:-0} seconds', now(), ${BACKUP_DURACION:-0},
+  ${BACKUP_DB_SIZE:-0}, ${BACKUP_STORAGE_SIZE:-0}, ${BACKUP_SIZE:-0},
+  '${BACKUP_PATH}', ${BACKUP_SIZE:-0},
+  '{\"database\":true,\"storage\":true}'::jsonb
+)
+RETURNING id;
+" 2>&1 | tr -d '[:space:]')
+
+if [ -z "$BACKUP_ID" ] || [[ ! "$BACKUP_ID" =~ ^[0-9a-f-]+$ ]]; then
+  log "FATAL: no se pudo registrar el backup en DB. Output: $BACKUP_ID"
+  marcar_actualizacion FALLIDA "El backup físico se creó pero no se pudo registrar en DB."
+  exit 1
+fi
+
+log "  ✓ Backup OK — id=${BACKUP_ID:0:8} path=${BACKUP_PATH##*/} (${BACKUP_DURACION}s)"
 
 # Verificar que el archivo del backup existe (defensivo)
 if [ ! -f "$BACKUP_PATH" ]; then
