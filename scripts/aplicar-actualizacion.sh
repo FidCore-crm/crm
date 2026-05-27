@@ -71,7 +71,7 @@ marcar_actualizacion() {
     local mensaje_escaped="${mensaje//\'/\'\'}"
     sql="$sql, error_mensaje='${mensaje_escaped}'"
   fi
-  if [ -n "$BACKUP_ID" ]; then
+  if [ -n "$BACKUP_ID" ] && [[ "$BACKUP_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
     sql="$sql, backup_id='${BACKUP_ID}'"
   fi
 
@@ -298,9 +298,9 @@ INSERT INTO backups (
   '{\"database\":true,\"storage\":true}'::jsonb
 )
 RETURNING id;
-" 2>&1 | tr -d '[:space:]')
+" 2>&1 | head -1 | tr -d '[:space:]')
 
-if [ -z "$BACKUP_ID" ] || [[ ! "$BACKUP_ID" =~ ^[0-9a-f-]+$ ]]; then
+if [ -z "$BACKUP_ID" ] || [[ ! "$BACKUP_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
   log "FATAL: no se pudo registrar el backup en DB. Output: $BACKUP_ID"
   marcar_actualizacion FALLIDA "El backup físico se creó pero no se pudo registrar en DB."
   exit 1
