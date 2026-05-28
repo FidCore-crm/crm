@@ -56,7 +56,10 @@ export interface ProgressInfo {
     | 'HEALTHCHECK'
     | 'DONE'
     | 'ROLLBACK'
+    | 'ROLLBACK_OK'
+    | 'ROLLBACK_FAILED'
     | 'FAILED'
+    | 'CANCELADA'
   porcentaje: number
   mensaje: string
   actualizado_en: string

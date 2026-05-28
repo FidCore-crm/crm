@@ -1,5 +1,9 @@
 #!/bin/bash
 set -e
+set -o pipefail   # CRÍTICO: sin esto, `pg_dump | gzip` puede dejar el .sql.gz
+                  # corrupto cuando pg_dump falla a mitad (gzip recibe EOF y
+                  # devuelve exit 0). El .crmbak resultante pasaría `tar -tzf`
+                  # OK pero al intentar restaurar la DB se rompería todo.
 
 # ============================================================================
 # backup-now.sh — genera un backup .crmbak (tar.gz sin cifrar)

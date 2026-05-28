@@ -10,52 +10,57 @@
 # ya pasó (o es null = "actualizar ahora"), dispara aplicar-actualizacion.sh.
 #
 # Defensas:
+#   - PATH explícito (cron no hereda /usr/local/bin).
 #   - Lock file con PID — no re-dispara si ya hay un script corriendo.
 #   - Chequeo de estado en DB antes de invocar — si la fila ya está
 #     FALLIDA/COMPLETADA/CANCELADA (típicamente por un retry de cron tras crash),
 #     borra el trigger y sale silenciosamente para no relanzar todo.
 #   - Validación de UUID del actualizacion_id antes de hablar con la DB.
+#   - Rotación de cron.log y trigger.log para no crecer indefinidamente.
 #
 # Instalación (parte de INSTALACION.md):
 #   1. Copiar este archivo a /usr/local/bin/pulzar-actualizacion-trigger.sh
 #   2. Agregar al crontab del usuario que tiene acceso a Docker:
 #        * * * * * /usr/local/bin/pulzar-actualizacion-trigger.sh
 #   3. Asegurarse de que el usuario tenga acceso a `docker compose` sin sudo
-#
-# Output: log en `tmp/updates/trigger.log` para diagnóstico.
 
 set -u
+
+# PATH explícito porque cron tiene PATH minimal — sin esto, `docker` y otros
+# binarios pueden no encontrarse cuando se invoca desde crontab.
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 CRM_DIR="${CRM_DIR:-/home/nahuel/crm-seguros}"
 TRIGGER_FILE="${CRM_DIR}/tmp/updates/pending.json"
 TRIGGER_LOG="${CRM_DIR}/tmp/updates/trigger.log"
+CRON_LOG="${CRM_DIR}/tmp/updates/cron.log"
 APLICAR_SCRIPT="${CRM_DIR}/scripts/aplicar-actualizacion.sh"
 LOCK_FILE="${CRM_DIR}/tmp/updates/.in-progress"
 LOG_MAX_BYTES=$((1 * 1024 * 1024))   # 1 MB
+
+mkdir -p "$(dirname "$TRIGGER_LOG")"
+
+# Rotar logs si superan 1 MB (incluye cron.log al que crontab redirige stdout)
+for L in "$TRIGGER_LOG" "$CRON_LOG"; do
+  if [ -f "$L" ]; then
+    LSIZE=$(stat -c %s "$L" 2>/dev/null || echo 0)
+    if [ "$LSIZE" -gt "$LOG_MAX_BYTES" ]; then
+      mv -f "$L" "${L}.1" 2>/dev/null || true
+    fi
+  fi
+done
 
 # Si no hay archivo de trigger, no hay nada que hacer
 [ -f "$TRIGGER_FILE" ] || exit 0
 
 # Lock: si ya hay un update corriendo, salir silenciosamente
 if [ -f "$LOCK_FILE" ]; then
-  # Verificar si el proceso del lock todavía vive
   LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null)
   if [ -n "$LOCK_PID" ] && kill -0 "$LOCK_PID" 2>/dev/null; then
-    # Proceso vivo, no hacer nada
     exit 0
   fi
-  # Lock viejo, lo limpiamos
+  # Lock viejo (proceso muerto), lo limpiamos
   rm -f "$LOCK_FILE"
-fi
-
-mkdir -p "$(dirname "$TRIGGER_LOG")"
-
-# Rotar trigger.log si supera 1 MB
-if [ -f "$TRIGGER_LOG" ]; then
-  TLOG_SIZE=$(stat -c %s "$TRIGGER_LOG" 2>/dev/null || echo 0)
-  if [ "$TLOG_SIZE" -gt "$LOG_MAX_BYTES" ]; then
-    mv -f "$TRIGGER_LOG" "${TRIGGER_LOG}.1" 2>/dev/null || true
-  fi
 fi
 
 log() {
@@ -80,9 +85,14 @@ if [[ ! "$ACTUALIZACION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-
   exit 1
 fi
 
+# Validar VERSION_NUEVA con regex semver flexible
+if [[ ! "$VERSION_NUEVA" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][a-zA-Z0-9]+)*$ ]]; then
+  log "trigger con VERSION_NUEVA inválida: '${VERSION_NUEVA}' — borrando"
+  rm -f "$TRIGGER_FILE"
+  exit 1
+fi
+
 # Chequear estado en DB ANTES de invocar el script pesado.
-# Si la fila ya está en estado final, borrar trigger y salir.
-# Esto evita re-disparos infinitos si el script crashea sin limpiar trigger.
 ESTADO_DB=$(docker exec -i supabase-db psql -U supabase_admin -d postgres -tAc \
   "SELECT estado FROM actualizaciones WHERE id='${ACTUALIZACION_ID}';" 2>/dev/null | tr -d '[:space:]')
 
@@ -93,9 +103,6 @@ case "$ESTADO_DB" in
     exit 0
     ;;
   EJECUTANDO)
-    # Caso raro: la fila quedó EJECUTANDO de un run previo pero no hay lock vivo.
-    # El cleanup del aplicar-actualizacion.sh ya tiene trap que marca FALLIDA al
-    # crashear; si igual quedó stuck, esperamos que el admin la cierre desde la UI.
     log "Trigger ignorado: fila ${ACTUALIZACION_ID:0:8} ya está EJECUTANDO. Borrando trigger para no duplicar."
     rm -f "$TRIGGER_FILE"
     exit 0
@@ -117,7 +124,6 @@ esac
 
 # Si programada_para no es vacía, verificar que ya pasó
 if [ -n "$PROGRAMADA_PARA" ]; then
-  # Convertir ISO a epoch
   PROGRAMADA_EPOCH=$(date -d "$PROGRAMADA_PARA" +%s 2>/dev/null || echo 0)
   AHORA_EPOCH=$(date +%s)
   if [ "$PROGRAMADA_EPOCH" -gt "$AHORA_EPOCH" ]; then

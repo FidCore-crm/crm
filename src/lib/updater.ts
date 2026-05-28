@@ -358,8 +358,15 @@ export async function programarActualizacion(
 
 /**
  * Cancela una actualización en estado PROGRAMADA.
- * Una vez que pasó a EJECUTANDO ya no se puede cancelar (el script del host
- * está corriendo, matarlo dejaría todo en estado inconsistente).
+ *
+ * Estrategia:
+ *   - Si está PROGRAMADA: UPDATE atómico → CANCELADA + limpiar archivos trigger/progress.
+ *   - Si está EJECUTANDO: NO se puede cancelar limpio (script ya corre). Devolvemos
+ *     mensaje claro. El admin puede usar forzar-cierre desde el modal si está stuck.
+ *
+ * El UPDATE usa WHERE estado='PROGRAMADA' para evitar race condition: si entre
+ * el SELECT y el UPDATE la fila pasó a EJECUTANDO, el UPDATE no afecta filas y
+ * detectamos que ya empezó.
  */
 export async function cancelarActualizacion(
   id: string,
@@ -367,42 +374,91 @@ export async function cancelarActualizacion(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = getSupabaseAdmin()
 
-  const { data: act } = await supabase
-    .from('actualizaciones')
-    .select('id, estado')
-    .eq('id', id)
-    .maybeSingle()
-
-  if (!act) return { ok: false, error: 'Actualización no encontrada.' }
-  if ((act as any).estado !== 'PROGRAMADA') {
-    return {
-      ok: false,
-      error: `No se puede cancelar una actualización en estado ${(act as any).estado}.`,
-    }
-  }
-
-  const { error } = await (supabase
+  // UPDATE atómico: solo cancela si SIGUE en PROGRAMADA.
+  // Si entre lectura previa y este UPDATE la fila pasó a EJECUTANDO,
+  // affectedRows = 0 → no se pudo cancelar.
+  const { data: actualizadas, error } = await (supabase
     .from('actualizaciones') as any)
     .update({
       estado: 'CANCELADA',
       cancelada_por_usuario_id: usuario_id,
+      fecha_fin_ejecucion: new Date().toISOString(),
     })
     .eq('id', id)
+    .eq('estado', 'PROGRAMADA')
+    .select('id')
 
   if (error) {
     return { ok: false, error: 'No se pudo cancelar la actualización.' }
   }
 
-  // Borrar el trigger file para que el cron del host no la dispare
-  try {
-    await fs.unlink(TRIGGER_FILE)
-  } catch {
-    // Si no existe, no es un error — el host puede haberlo procesado
-    // entre el SELECT y el UPDATE. La actualización queda CANCELADA
-    // y el host la encontrará en ese estado.
+  if (!actualizadas || actualizadas.length === 0) {
+    // No se pudo cancelar — averiguar por qué para dar mensaje claro
+    const { data: act } = await supabase
+      .from('actualizaciones')
+      .select('id, estado')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (!act) return { ok: false, error: 'Actualización no encontrada.' }
+    const estado = (act as any).estado
+    if (estado === 'EJECUTANDO') {
+      return {
+        ok: false,
+        error:
+          'La actualización ya está en curso y no se puede cancelar. ' +
+          'Esperá a que termine, o si quedó stuck usá "Marcar como fallida" desde el detalle.',
+      }
+    }
+    return { ok: false, error: `No se puede cancelar una actualización en estado ${estado}.` }
+  }
+
+  // Limpiar archivos trigger + progress + lock (best-effort, no falla si no existen)
+  for (const f of ['pending.json', 'progress.json', '.in-progress']) {
+    try {
+      await fs.unlink(path.join(UPDATES_DIR, f))
+    } catch {
+      // No existe → OK
+    }
   }
 
   return { ok: true }
+}
+
+/**
+ * Limpia actualizaciones que quedaron PROGRAMADA hace mucho tiempo y nunca
+ * se procesaron (típicamente porque el cron del host no está instalado o
+ * el trigger file se borró).
+ *
+ * Las marca como FALLIDA con mensaje explicativo para que el admin lo vea
+ * en el historial y pueda actuar.
+ */
+export async function limpiarProgramadasViejas(diasMax = 7): Promise<number> {
+  const supabase = getSupabaseAdmin()
+  const limite = new Date(Date.now() - diasMax * 24 * 60 * 60 * 1000).toISOString()
+
+  const { data, error } = await (supabase.from('actualizaciones') as any)
+    .update({
+      estado: 'FALLIDA',
+      fecha_fin_ejecucion: new Date().toISOString(),
+      error_mensaje:
+        `Actualización quedó PROGRAMADA más de ${diasMax} días sin ejecutarse. ` +
+        'Posibles causas: cron del host no instalado, o trigger file borrado. ' +
+        'Verificar que /usr/local/bin/pulzar-actualizacion-trigger.sh esté en el crontab.',
+    })
+    .eq('estado', 'PROGRAMADA')
+    .lt('fecha_solicitud', limite)
+    .select('id')
+
+  if (error) {
+    logger.warn({
+      modulo: 'updater',
+      mensaje: 'Error limpiando programadas viejas',
+      contexto: { error: error.message },
+    })
+    return 0
+  }
+  return data?.length ?? 0
 }
 
 /** Retorna la actualización activa (PROGRAMADA o EJECUTANDO) si hay. */

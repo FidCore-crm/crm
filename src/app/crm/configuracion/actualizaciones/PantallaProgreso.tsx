@@ -4,19 +4,23 @@
  * Pantalla full que se muestra durante un update en EJECUTANDO.
  *
  * Mejoras vs versión anterior:
- *   - El stepper avanza por el PASO REAL del script (leído de progress.json
- *     via /api/actualizaciones/estado.progreso), no por timer estimado.
- *   - Contador de errores consecutivos: si el polling falla N veces seguidas,
- *     muestra mensaje claro "El sistema está reiniciando — esto es normal,
- *     esperá 1 min y refrescá".
- *   - Botón "Ver detalles" después de N minutos para diagnosticar si tarda
- *     más de lo esperado.
- *   - Cuando el estado pasa a COMPLETADA/FALLIDA, llama onTerminada() para
- *     volver a la pantalla principal con el resultado.
+ *   - El stepper avanza por el PASO REAL del script (leído de progress.json).
+ *   - 6 pasos visibles (separamos RESTART de HEALTHCHECK).
+ *   - Banner "El CRM está reiniciando" PROACTIVO cuando paso=RESTART/HEALTHCHECK,
+ *     no reactivo (no espera errores de polling).
+ *   - Contador de errores consecutivos como red de seguridad adicional.
+ *   - Detecta cambio de version_actual y hace location.reload() al detectarlo
+ *     (forzando bundle nuevo del browser para que no quede desincronizado).
+ *   - Maneja ROLLBACK / ROLLBACK_OK / ROLLBACK_FAILED / FAILED por separado.
+ *   - Botón "Ver historial" siempre disponible (en caso de problemas).
  */
 
 import { useEffect, useState, useRef } from 'react'
-import { Loader2, AlertCircle, Database, GitBranch, Package, RefreshCw, CheckCircle2, Wifi, WifiOff } from 'lucide-react'
+import {
+  Loader2, AlertCircle, Database, GitBranch, Package, RefreshCw,
+  CheckCircle2, Wifi, WifiOff, Shield, History,
+} from 'lucide-react'
+import Link from 'next/link'
 import { apiCall } from '@/lib/api-client'
 import type { ActualizacionRow, ProgressInfo } from './tipos'
 
@@ -33,11 +37,12 @@ interface EstadoResp {
 }
 
 const PASOS = [
-  { key: 'BACKUP',     icon: Database,  label: 'Creando backup' },
-  { key: 'FETCH',      icon: GitBranch, label: 'Descargando código nuevo' },
-  { key: 'BUILD',      icon: Package,   label: 'Reconstruyendo el sistema' },
-  { key: 'MIGRATIONS', icon: Database,  label: 'Aplicando cambios de DB' },
-  { key: 'RESTART',    icon: RefreshCw, label: 'Reiniciando' },
+  { key: 'BACKUP',      icon: Database,  label: 'Creando backup' },
+  { key: 'FETCH',       icon: GitBranch, label: 'Descargando código nuevo' },
+  { key: 'BUILD',       icon: Package,   label: 'Reconstruyendo el sistema' },
+  { key: 'MIGRATIONS',  icon: Database,  label: 'Aplicando cambios de DB' },
+  { key: 'RESTART',     icon: RefreshCw, label: 'Reiniciando' },
+  { key: 'HEALTHCHECK', icon: Shield,    label: 'Verificando que responde' },
 ]
 
 /** Mapea el `paso` del script al índice del stepper visible. */
@@ -48,14 +53,23 @@ function pasoAIndice(paso: string | undefined): number {
   if (paso === 'FETCH' || paso === 'FETCH_OK') return 1
   if (paso === 'BUILD' || paso === 'BUILD_OK') return 2
   if (paso === 'MIGRATIONS' || paso === 'MIGRATIONS_OK') return 3
-  if (paso === 'RESTART' || paso === 'HEALTHCHECK') return 4
-  if (paso === 'DONE') return 5
+  if (paso === 'RESTART') return 4
+  if (paso === 'HEALTHCHECK') return 5
+  if (paso === 'DONE') return 6
   return 0
 }
 
-const MAX_ERRORES_ANTES_DE_ALERTA = 3       // 3 fallos consecutivos → mostrar "reiniciando"
-const MIN_PARA_DIAGNOSTICO = 8 * 60          // 8 min → mostrar botón ver detalles
-const MAX_MIN_ANTES_DE_TIMEOUT_UI = 35       // después de 35 min asumir que el script murió y dar opción de forzar cierre
+/** Pasos en los que el container puede estar caído/reiniciando. */
+function esPasoConDowntime(paso: string | undefined): boolean {
+  return paso === 'RESTART' || paso === 'HEALTHCHECK'
+}
+
+const MAX_ERRORES_ANTES_DE_ALERTA = 3
+const MIN_PARA_DIAGNOSTICO = 8 * 60
+const MAX_MIN_ANTES_DE_TIMEOUT_UI = 35
+
+/** Versión del bundle del browser (inyectada en build time). */
+const VERSION_BUNDLE = process.env.NEXT_PUBLIC_APP_VERSION ?? ''
 
 export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props) {
   const [actualizacion, setActualizacion] = useState(inicial)
@@ -63,6 +77,7 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
   const [tiempoTranscurrido, setTiempoTranscurrido] = useState(0)
   const [erroresConsecutivos, setErroresConsecutivos] = useState(0)
   const [mostrarDiagnostico, setMostrarDiagnostico] = useState(false)
+  const yaRecargado = useRef(false)
 
   // Polling del estado
   useEffect(() => {
@@ -75,6 +90,24 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
       if (r.ok && r.data) {
         setErroresConsecutivos(0)
         const activa = r.data.actualizacion_activa
+        const nuevaVersionActual = r.data.version_actual
+
+        // Detectar desincronización entre el bundle del browser y el server.
+        // Comparamos contra VERSION_BUNDLE (constante de build time) en vez de
+        // un ref interno — así también detectamos el caso "browser cacheado abierto
+        // DESPUÉS del update" donde no hay versión "previa" en memoria.
+        if (
+          VERSION_BUNDLE &&
+          nuevaVersionActual &&
+          VERSION_BUNDLE !== nuevaVersionActual &&
+          !yaRecargado.current
+        ) {
+          yaRecargado.current = true
+          // Pequeño delay para que el último paint termine
+          setTimeout(() => window.location.reload(), 1000)
+          return
+        }
+
         if (r.data.progreso) setProgreso(r.data.progreso)
 
         if (!activa || activa.id !== actualizacion.id) {
@@ -87,7 +120,6 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
           onTerminada()
         }
       } else {
-        // Polling falló (server cayéndose por el restart, network glitch, etc.)
         setErroresConsecutivos(prev => prev + 1)
       }
     }, 5000)
@@ -105,12 +137,10 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
     return () => clearInterval(interval)
   }, [actualizacion.fecha_inicio_ejecucion])
 
-  // Mostrar botón "Ver detalles" si tarda mucho
   useEffect(() => {
     if (tiempoTranscurrido > MIN_PARA_DIAGNOSTICO) setMostrarDiagnostico(true)
   }, [tiempoTranscurrido])
 
-  // Stepper: usa progress real si está disponible; fallback a estimación por tiempo
   const pasoActualIdx = progreso
     ? pasoAIndice(progreso.paso)
     : (() => {
@@ -118,22 +148,30 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
         if (tiempoTranscurrido < 60) return 1
         if (tiempoTranscurrido < 180) return 2
         if (tiempoTranscurrido < 210) return 3
-        return 4
+        if (tiempoTranscurrido < 240) return 4
+        return 5
       })()
 
   const mm = Math.floor(tiempoTranscurrido / 60)
   const ss = tiempoTranscurrido % 60
-  const enReinicio = erroresConsecutivos >= MAX_ERRORES_ANTES_DE_ALERTA
+  const enRollback = progreso?.paso === 'ROLLBACK' || progreso?.paso === 'ROLLBACK_OK' || progreso?.paso === 'ROLLBACK_FAILED'
+  const enDowntime = esPasoConDowntime(progreso?.paso)
+  const enReinicio = enDowntime || erroresConsecutivos >= MAX_ERRORES_ANTES_DE_ALERTA
   const minutos = mm
   const timeoutSospechoso = minutos >= MAX_MIN_ANTES_DE_TIMEOUT_UI
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div className="max-w-md w-full">
-        {/* Spinner / banner de reinicio */}
+        {/* Header visual */}
         <div className="flex justify-center mb-6">
           <div className="relative">
-            {enReinicio ? (
+            {enRollback ? (
+              <>
+                <div className="absolute inset-0 bg-red-500/20 rounded-full animate-pulse" />
+                <AlertCircle className="h-16 w-16 text-red-600 relative" />
+              </>
+            ) : enReinicio ? (
               <>
                 <div className="absolute inset-0 bg-amber-500/20 rounded-full animate-pulse" />
                 <WifiOff className="h-16 w-16 text-amber-600 relative" />
@@ -149,18 +187,25 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
 
         {/* Título */}
         <h2 className="text-lg font-semibold text-center text-slate-800 mb-1">
-          {enReinicio
-            ? 'El sistema se está reiniciando'
+          {enRollback
+            ? 'Algo falló — restaurando estado anterior'
+            : enReinicio
+            ? 'El CRM se está reiniciando'
             : `Actualizando Pulzar a v${actualizacion.version_nueva}`
           }
         </h2>
 
         {/* Subtítulo / mensaje del paso actual */}
-        {enReinicio ? (
+        {enRollback ? (
+          <p className="text-xs text-center text-red-700 mb-6 px-4 leading-relaxed">
+            {progreso?.mensaje ?? 'Restaurando el sistema a la versión anterior...'}
+            <br />
+            <span className="text-2xs text-red-600">No cierres esta ventana — el rollback puede tardar 3-5 min.</span>
+          </p>
+        ) : enReinicio ? (
           <p className="text-xs text-center text-amber-700 mb-6 px-4">
-            Esto es normal durante el reinicio del CRM. Esperá 1 minuto y
-            refrescá la página. Si no carga después de varios minutos, andá
-            al historial de actualizaciones para ver el resultado.
+            Esto es normal durante el reinicio del CRM. Esperá 1 minuto. Si la
+            página no responde, refrescala manualmente.
           </p>
         ) : (
           <p className="text-xs text-center text-slate-500 mb-6">
@@ -173,7 +218,7 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
         )}
 
         {/* Stepper */}
-        {!enReinicio && (
+        {!enRollback && (
           <div className="bg-white border border-slate-200 rounded p-4 mb-4">
             <ol className="space-y-3">
               {PASOS.map((paso, idx) => {
@@ -230,32 +275,41 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
 
         {/* Diagnóstico */}
         {mostrarDiagnostico && !timeoutSospechoso && (
-          <div className="bg-slate-50 border border-slate-200 rounded p-3 text-xs text-slate-600">
+          <div className="bg-slate-50 border border-slate-200 rounded p-3 text-xs text-slate-600 mb-3">
             <p className="flex items-center gap-1">
               <Wifi className="h-3.5 w-3.5" />
               <strong>Está tardando más de lo habitual.</strong>
             </p>
             <p className="mt-1 leading-relaxed">
               Builds grandes pueden llevar hasta 8 minutos. Si pasaron más de 30
-              minutos, andá al historial de actualizaciones y marcala como
-              fallida desde el detalle.
+              minutos, andá al historial y marcala como fallida desde el detalle.
             </p>
           </div>
         )}
 
         {timeoutSospechoso && (
-          <div className="bg-red-50 border border-red-200 rounded p-3 text-xs text-red-800">
+          <div className="bg-red-50 border border-red-200 rounded p-3 text-xs text-red-800 mb-3">
             <p className="flex items-center gap-1 font-semibold">
               <AlertCircle className="h-3.5 w-3.5" />
               La actualización está tomando mucho más tiempo del esperado.
             </p>
             <p className="mt-1 leading-relaxed">
-              El script puede haberse colgado. Ir a "Historial" arriba de esta
-              pantalla, abrir el detalle de esta actualización y usar "Marcar
-              como fallida" para desbloquear el sistema.
+              El script puede haberse colgado. Ir a "Historial" arriba, abrir el
+              detalle de esta actualización y usar "Marcar como fallida" para
+              desbloquear el sistema.
             </p>
           </div>
         )}
+
+        {/* Link al historial siempre disponible */}
+        <div className="text-center">
+          <Link
+            href="/crm/configuracion/actualizaciones"
+            className="text-2xs text-slate-400 hover:text-slate-600 inline-flex items-center gap-1"
+          >
+            <History className="h-3 w-3" /> Ver historial completo
+          </Link>
+        </div>
       </div>
     </div>
   )

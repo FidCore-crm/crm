@@ -86,6 +86,25 @@ export default function ActualizacionesPage() {
     Promise.all([cargarEstado(), cargarDisponible()]).finally(() => setCargando(false))
   }, [isAdmin, cargarEstado, cargarDisponible, router])
 
+  // Detectar desincronización entre bundle del browser y server.
+  // Si el usuario abre la página con código cacheado mientras el server tiene
+  // versión nueva, recargamos para evitar errores de queries contra schema nuevo.
+  useEffect(() => {
+    const versionBundle = process.env.NEXT_PUBLIC_APP_VERSION
+    if (
+      versionBundle &&
+      estado?.version_actual &&
+      versionBundle !== estado.version_actual &&
+      typeof window !== 'undefined'
+    ) {
+      // Marca para no recargar en loop si versión del bundle siempre difiere
+      if (!sessionStorage.getItem('pulzar-version-mismatch-reloaded')) {
+        sessionStorage.setItem('pulzar-version-mismatch-reloaded', '1')
+        window.location.reload()
+      }
+    }
+  }, [estado?.version_actual])
+
   // Polling cada 5s si hay update activo
   useEffect(() => {
     const activa = estado?.actualizacion_activa

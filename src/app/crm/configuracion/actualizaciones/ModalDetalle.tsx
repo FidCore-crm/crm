@@ -15,7 +15,7 @@
 import { useState, useEffect } from 'react'
 import {
   X, Loader2, CheckCircle2, XCircle, Clock, AlertCircle,
-  Terminal, FileText, Calendar, Activity, ShieldAlert,
+  Terminal, FileText, Calendar, Activity, ShieldAlert, Download,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
@@ -179,13 +179,33 @@ export function ModalDetalle({ id, onCerrar, onCambioEstado }: Props) {
           {/* Log técnico */}
           {data.log_completo && (
             <div>
-              <button
-                onClick={() => setMostrarLog(!mostrarLog)}
-                className="text-xs font-semibold text-slate-600 hover:text-slate-800 flex items-center gap-1"
-              >
-                <Terminal className="h-3.5 w-3.5" />
-                Log técnico {mostrarLog ? '▲' : '▼'}
-              </button>
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setMostrarLog(!mostrarLog)}
+                  className="text-xs font-semibold text-slate-600 hover:text-slate-800 flex items-center gap-1"
+                >
+                  <Terminal className="h-3.5 w-3.5" />
+                  Log técnico {mostrarLog ? '▲' : '▼'}
+                </button>
+                <button
+                  onClick={() => {
+                    const blob = new Blob([data.log_completo ?? ''], { type: 'text/plain' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `pulzar-update-${data.version_anterior}-to-${data.version_nueva}-${data.id.slice(0, 8)}.log`
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                    URL.revokeObjectURL(url)
+                  }}
+                  className="text-2xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                  title="Descargar log completo (.log)"
+                >
+                  <Download className="h-3 w-3" />
+                  Descargar
+                </button>
+              </div>
               {mostrarLog && (
                 <pre className="mt-2 bg-slate-900 text-slate-100 text-2xs font-mono rounded p-3 max-h-80 overflow-auto whitespace-pre-wrap leading-relaxed">
                   {data.log_completo}

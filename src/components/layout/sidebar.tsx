@@ -372,7 +372,7 @@ export function Sidebar() {
             className="text-2xs text-slate-500 leading-none hover:text-slate-300 transition-colors"
             title="Ver actualizaciones y novedades"
           >
-            v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+            v{process.env.NEXT_PUBLIC_APP_VERSION || '?'}
           </Link>
         </div>
       </div>

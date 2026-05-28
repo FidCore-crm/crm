@@ -8,27 +8,28 @@
 # Lo ejecuta `actualizacion-trigger.sh` (cron del host) cuando detecta que
 # el archivo `tmp/updates/pending.json` está listo para procesarse.
 #
-# Flujo:
-#   1. Capturar el commit actual (para rollback de git si algo falla)
-#   2. Crear backup pre-update (.crmbak con DB + storage) + validar tar
-#   3. git fetch + checkout del tag nuevo + validar package.json
-#   4. docker compose build crm
-#   5. Aplicar migraciones SQL nuevas (idempotente)
-#   6. docker compose up -d --force-recreate crm
-#   7. Esperar healthcheck (curl /login)
-#   8. Actualizar version_actual en DB → marcar COMPLETADA
+# Flujo (cada paso atómico y verificado):
+#   0. Validaciones previas + capturar commit + setear EJECUTANDO atómico
+#   1. Crear backup pre-update (.crmbak con DB + storage) + validar tar
+#   2. git fetch + checkout del tag nuevo + validar package.json
+#   3. docker compose build crm (con NEXT_PUBLIC_APP_VERSION inyectado)
+#   4. Aplicar migraciones SQL nuevas (idempotente, error capturado)
+#   5. docker compose up -d --force-recreate crm
+#   6. Esperar healthcheck robusto (DB + filesystem + auth)
+#   7. Actualizar version_actual en DB → marcar COMPLETADA
 #
 # Si CUALQUIER paso después del backup falla, dispara rollback automático.
 #
 # Mecanismos defensivos:
-#   - Trap EXIT garantiza que la fila NUNCA quede en EJECUTANDO si el
-#     script termina sin marcar COMPLETADA/FALLIDA explícito (crash, kill).
-#   - Timeout máximo global (TIMEOUT_TOTAL_SEC = 1800 = 30 min): si el script
-#     no terminó en ese tiempo, lo matamos para liberar la fila.
-#   - Logs rotados a 5 MB para no crecer indefinidamente.
-#   - Validación tar -tzf del backup antes de considerarlo válido.
-#   - Validación post-checkout que el package.json realmente tenga la versión.
-#   - progress.json escrito en cada paso para que el frontend tenga estado real.
+#   - PATH explícito para que cron del host encuentre docker, git, curl.
+#   - Trap EXIT único que cubre cleanup + estado defensivo + log a DB.
+#   - Timeout total robusto: si el script se cuelga, mata todo el process group.
+#   - Marcado de estado atómico (UPDATE ... WHERE estado='PROGRAMADA' RETURNING).
+#   - Chequeo periódico de "fui cancelado" entre pasos.
+#   - Validación tar -tzf del backup + validación post-checkout del package.json.
+#   - Healthcheck robusto via /api/health (no solo /login).
+#   - progress.json con escape JSON para mensajes con caracteres especiales.
+#   - Logs rotados para no crecer indefinidamente.
 #
 # Variables esperadas (las pasa el trigger script):
 #   ACTUALIZACION_ID    UUID de la fila en `actualizaciones`
@@ -37,6 +38,10 @@
 
 set -u
 
+# PATH explícito porque cron tiene PATH minimal — sin esto, `docker compose`
+# y otros binarios pueden no encontrarse cuando se invoca desde crontab.
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 # Defaults
 CRM_DIR="${CRM_DIR:-/home/nahuel/crm-seguros}"
 LOG_FILE="${CRM_DIR}/tmp/updates/last-run.log"
@@ -44,6 +49,7 @@ TRIGGER_FILE="${CRM_DIR}/tmp/updates/pending.json"
 PROGRESS_FILE="${CRM_DIR}/tmp/updates/progress.json"
 LOG_MAX_BYTES=$((5 * 1024 * 1024))   # 5 MB
 TIMEOUT_TOTAL_SEC=1800               # 30 min
+MAIN_PID=$$                          # PID real del script (lo usa el timeout)
 
 # Carga variables del .env.docker (CRON_SECRET, etc.)
 #
@@ -79,21 +85,33 @@ db_exec() {
   docker exec -i supabase-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 "$@"
 }
 
-# Escribe un snapshot del paso actual + porcentaje al PROGRESS_FILE.
-# El frontend lo lee via /api/actualizaciones/estado.
+# Escapa una string para usar dentro de un string JSON.
+# Reemplaza: \ → \\, " → \", newlines → \n, etc.
+json_escape() {
+  printf '%s' "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read())[1:-1], end="")' 2>/dev/null \
+    || printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g' | tr -d '\n\r'
+}
+
+# Escribe un snapshot del paso actual + porcentaje al PROGRESS_FILE
+# de forma atómica (escribe a tmp + mv). El frontend lo lee via
+# /api/actualizaciones/estado.
 escribir_progreso() {
-  local paso="$1"          # ej: BACKUP, FETCH, BUILD, MIGRATIONS, RESTART, HEALTH, DONE
+  local paso="$1"
   local porcentaje="${2:-0}"
   local mensaje="${3:-}"
-  cat > "$PROGRESS_FILE" <<EOF
+  local mensaje_esc
+  mensaje_esc=$(json_escape "$mensaje")
+  local tmp="${PROGRESS_FILE}.tmp"
+  cat > "$tmp" <<EOF
 {
   "actualizacion_id": "${ACTUALIZACION_ID:-}",
   "paso": "${paso}",
   "porcentaje": ${porcentaje},
-  "mensaje": "${mensaje}",
+  "mensaje": "${mensaje_esc}",
   "actualizado_en": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
+  mv -f "$tmp" "$PROGRESS_FILE" 2>/dev/null || true
 }
 
 # Variables que se llenan durante la ejecución (para uso del rollback)
@@ -103,10 +121,10 @@ BACKUP_PATH=""
 MIGRACIONES_APLICADAS=0
 CHECKOUT_HECHO=0
 ESTADO_FINAL_MARCADO=0
+TIMEOUT_PID=""
 
 # Marca el estado de la actualización en DB. Args: $1=estado, $2=mensaje opcional.
-# Setea ESTADO_FINAL_MARCADO=1 cuando llega a COMPLETADA/FALLIDA/CANCELADA, así
-# el trap defensivo no pisa el resultado.
+# Setea ESTADO_FINAL_MARCADO=1 cuando llega a COMPLETADA/FALLIDA/CANCELADA.
 marcar_actualizacion() {
   local estado="$1"
   local mensaje="${2:-}"
@@ -121,7 +139,10 @@ marcar_actualizacion() {
   fi
 
   case "$estado" in
-    EJECUTANDO) sql="$sql, fecha_inicio_ejecucion=now()" ;;
+    EJECUTANDO)
+      # COALESCE para no pisar la fecha original si se llama 2 veces
+      sql="$sql, fecha_inicio_ejecucion=COALESCE(fecha_inicio_ejecucion, now())"
+      ;;
     COMPLETADA|FALLIDA|CANCELADA)
       sql="$sql, fecha_fin_ejecucion=now()"
       ESTADO_FINAL_MARCADO=1
@@ -132,19 +153,72 @@ marcar_actualizacion() {
   db_exec -c "$sql" >> "$LOG_FILE" 2>&1 || log "WARN: db_exec falló para estado=$estado"
 }
 
-# Guarda el log completo del run en DB. Logs largos o con caracteres especiales
-# romperían si los pasamos via `-c "UPDATE ... SET log='${escaped}'"`. Solución:
-# pasamos el log via stdin a un script SQL inline que usa `\copy` para leer
-# desde stdin a una tabla temporal, y después un UPDATE que lee de ahí.
+# Marca EJECUTANDO de forma ATÓMICA: solo cambia si está en PROGRAMADA.
+# Devuelve 0 si se hizo el cambio, 1 si la fila fue cancelada/avanzada por otro.
+# Esto cierra la race condition con `cancelarActualizacion` del backend.
+marcar_ejecutando_atomico() {
+  local out
+  out=$(db_exec -tAc \
+    "UPDATE actualizaciones
+       SET estado='EJECUTANDO',
+           fecha_inicio_ejecucion=COALESCE(fecha_inicio_ejecucion, now())
+     WHERE id='${ACTUALIZACION_ID}' AND estado='PROGRAMADA'
+     RETURNING id;" 2>&1 | head -1 | tr -d '[:space:]')
+  if [ -n "$out" ] && [[ "$out" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+    return 0
+  fi
+  return 1
+}
+
+# Marca COMPLETADA de forma ATÓMICA: solo cambia si está en EJECUTANDO.
+# Si el admin marcó FALLIDA (forzar-cierre) mientras el script seguía corriendo,
+# NO pisamos esa decisión — devolvemos error y el cleanup respeta el estado.
+marcar_completada_atomica() {
+  local out
+  out=$(db_exec -tAc \
+    "UPDATE actualizaciones
+       SET estado='COMPLETADA',
+           fecha_fin_ejecucion=now()
+     WHERE id='${ACTUALIZACION_ID}' AND estado='EJECUTANDO'
+     RETURNING id;" 2>&1 | head -1 | tr -d '[:space:]')
+  if [ -n "$out" ] && [[ "$out" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+    ESTADO_FINAL_MARCADO=1
+    return 0
+  fi
+  # No se pudo marcar COMPLETADA — la fila ya no está en EJECUTANDO.
+  # Eso significa que un admin la cerró manualmente. Respetamos esa decisión.
+  ESTADO_FINAL_MARCADO=1
+  return 1
+}
+
+# Chequea si la actualización fue finalizada externamente entre dos pasos
+# (admin la canceló con "Cancelar" o forzó cierre con "Marcar como fallida").
+# Si sí, abortamos limpio SIN pisar el estado externo.
+# Llamarlo antes de cada paso pesado.
+abortar_si_finalizado() {
+  local estado_actual
+  estado_actual=$(db_exec -tAc \
+    "SELECT estado FROM actualizaciones WHERE id='${ACTUALIZACION_ID}';" 2>/dev/null \
+    | head -1 | tr -d '[:space:]')
+  case "$estado_actual" in
+    CANCELADA|FALLIDA|COMPLETADA)
+      log "  ⚠ Estado externo cambió a ${estado_actual} — abortando sin tocar"
+      ESTADO_FINAL_MARCADO=1   # no pisamos lo que ya quedó
+      escribir_progreso "$estado_actual" 100 "Estado modificado externamente"
+      exit 1
+      ;;
+  esac
+}
+
+# Guarda el log completo del run en DB via stdin (\copy desde STDIN).
+# Maneja cualquier carácter especial sin necesidad de escape manual y no
+# depende del filesystem del container.
 guardar_log_completo() {
   [ -f "$LOG_FILE" ] || return 0
   # Truncar a 256 KB para no saturar la fila
   local truncated
   truncated=$(tail -c 262144 "$LOG_FILE")
 
-  # Usamos cat | docker exec con HEREDOC: el contenido del log viaja por stdin
-  # del psql. \copy lee desde STDIN (el stdin del psql) a una tabla temporal.
-  # Después UPDATE lee de la tabla temporal hacia actualizaciones.log_completo.
   {
     echo "BEGIN;"
     echo "CREATE TEMP TABLE _log_buf(linea text);"
@@ -160,13 +234,6 @@ guardar_log_completo() {
 # =====================================================================
 # ROLLBACK AUTOMÁTICO
 # =====================================================================
-#
-# Se llama cuando un paso después del backup falla. Reglas claras:
-#   - Restaurar DB → SOLO si las migraciones se aplicaron (la DB cambió).
-#   - Restaurar storage → SIEMPRE si hay backup (cualquier paso puede haber
-#     tocado archivos sin querer; restaurar es defensivo y barato).
-#   - Rebuild + restart → SIEMPRE si ya hicimos checkout (el container nuevo
-#     puede estar arriba con código nuevo + DB vieja).
 ejecutar_rollback() {
   local motivo_fallo="$1"
 
@@ -242,6 +309,10 @@ ejecutar_rollback() {
   if [ $CHECKOUT_HECHO -eq 1 ]; then
     log "  [rollback C] Reconstruyendo container con código anterior..."
     if cd "$CRM_DIR"; then
+      # También exportamos versión vieja para el sidebar
+      local version_vieja
+      version_vieja=$(grep -oE '"version": *"[^"]+"' "$CRM_DIR/package.json" | head -1 | cut -d'"' -f4)
+      export NEXT_PUBLIC_APP_VERSION="$version_vieja"
       if docker compose build crm 2>&1 | tee -a "$LOG_FILE"; then
         if docker compose up -d --force-recreate crm 2>&1 | tee -a "$LOG_FILE"; then
           log "  ✓ Container reconstruido con código anterior"
@@ -265,56 +336,68 @@ ejecutar_rollback() {
     marcar_actualizacion FALLIDA "$motivo_fallo. Rollback aplicado: el sistema volvió a v${version_actual}."
     log ""
     log "  ✓ Rollback completado. El CRM está corriendo v${version_actual}."
+    escribir_progreso "ROLLBACK_OK" 100 "Rollback exitoso — sistema en v${version_actual}"
   else
     marcar_actualizacion FALLIDA "$motivo_fallo. ⚠ EL ROLLBACK TAMBIÉN FALLÓ — revisar manualmente el servidor."
     log ""
     log "  ⚠ Rollback INCOMPLETO. El servidor puede estar en estado inconsistente."
     log "  Acción manual: SSH al servidor y verificar 'docker ps' + estado de DB."
+    escribir_progreso "ROLLBACK_FAILED" 100 "Rollback incompleto — revisar manualmente"
   fi
 
-  escribir_progreso "FAILED" 100 "$motivo_fallo"
   exit 1
 }
 
 # =====================================================================
-# Trap EXIT defensivo
+# Cleanup unificado (trap EXIT)
 # =====================================================================
 #
 # Se ejecuta SIEMPRE al salir del script (éxito, error, signal, exit).
-# Responsabilidades:
-#   - Borrar el trigger file (que actualizacion-trigger.sh no re-dispare).
-#   - Guardar log_completo en DB (para que admin vea en historial).
+# Es UN solo trap que cubre todo:
+#   - Mata el watcher de timeout si sigue vivo.
+#   - Borra el trigger file (que actualizacion-trigger.sh no re-dispare).
+#   - Mata el process group entero (incluido docker compose build si quedó vivo).
 #   - Si la fila quedó en EJECUTANDO sin marcar resultado explícito,
-#     marcarla FALLIDA con mensaje "Script terminó sin marcar resultado".
-#     Esto cubre crashes (kill -9, OOM, set -u con var faltante, etc.).
-cleanup() {
+#     marcarla FALLIDA (cubre crashes: kill -9, OOM, set -u, etc.).
+#   - Guarda log_completo en DB (para historial).
+cleanup_total() {
   local exit_code=$?
+
+  # Matar el watcher de timeout (si sigue corriendo)
+  if [ -n "$TIMEOUT_PID" ]; then
+    kill "$TIMEOUT_PID" 2>/dev/null || true
+  fi
+
+  # Borrar trigger para que el cron no re-dispare
   rm -f "$TRIGGER_FILE"
 
+  # Si terminó sin marcar resultado explícito, marcar FALLIDA defensivamente
   if [ "$ESTADO_FINAL_MARCADO" -eq 0 ] && [ -n "${ACTUALIZACION_ID:-}" ]; then
     log ""
     log "  ⚠ El script terminó (exit=$exit_code) sin marcar resultado explícito."
     log "  Marcando actualización como FALLIDA para que la UI no quede stuck."
-    marcar_actualizacion FALLIDA "El script terminó inesperadamente (exit $exit_code). Revisar log_completo."
+    marcar_actualizacion FALLIDA "El script terminó inesperadamente (exit $exit_code). Revisar log_completo para detalles."
     escribir_progreso "FAILED" 100 "El script terminó inesperadamente"
   fi
 
   guardar_log_completo
 }
-trap cleanup EXIT
+trap cleanup_total EXIT
 
-# Timeout total: si el script entero supera TIMEOUT_TOTAL_SEC, kill -TERM.
-# Asegura que la fila nunca quede stuck más allá del límite.
+# Timeout watcher robusto: usa MAIN_PID (capturado antes de la subshell) +
+# kill al process group para matar también procesos hijos colgados (build, etc.).
 (
   sleep "$TIMEOUT_TOTAL_SEC"
-  if kill -0 $$ 2>/dev/null; then
-    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] FATAL: timeout total ${TIMEOUT_TOTAL_SEC}s alcanzado, matando script" >> "$LOG_FILE"
-    kill -TERM $$ 2>/dev/null
+  if kill -0 "$MAIN_PID" 2>/dev/null; then
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] FATAL: timeout total ${TIMEOUT_TOTAL_SEC}s alcanzado, matando script y procesos hijos" >> "$LOG_FILE"
+    # Matar el process group (negativo = pgid) para llevarse hijos colgados
+    kill -TERM -- "-$MAIN_PID" 2>/dev/null || kill -TERM "$MAIN_PID" 2>/dev/null
+    sleep 5
+    # Si sigue vivo después de 5s, kill -9
+    kill -KILL -- "-$MAIN_PID" 2>/dev/null || kill -KILL "$MAIN_PID" 2>/dev/null
   fi
 ) &
 TIMEOUT_PID=$!
-# Matar el watcher al salir
-trap 'rm -f "$TRIGGER_FILE"; kill "$TIMEOUT_PID" 2>/dev/null; cleanup' EXIT
 
 # =====================================================================
 # Validaciones previas
@@ -333,6 +416,31 @@ if [ ! -d "$CRM_DIR/.git" ]; then
   exit 1
 fi
 
+# Verificar que el usuario tenga acceso a Docker. Si el cron del host corre con
+# un usuario sin grupo `docker` (o sin sudoers para docker), todos los pasos
+# fallan más adelante con "permission denied" confuso. Mejor abortar limpio.
+if ! docker ps >/dev/null 2>&1; then
+  log "FATAL: el usuario que ejecuta este script no tiene acceso a Docker."
+  log "       Solución: agregar el usuario al grupo 'docker' con"
+  log "         sudo usermod -aG docker \$USER"
+  log "       y volver a iniciar sesión."
+  if [ -n "${ACTUALIZACION_ID:-}" ]; then
+    # No podemos hablar con la DB sin docker — solo dejar marcado en log
+    echo "Si el cron host corre con un usuario sin acceso a docker, el script no puede actualizar." >> "$LOG_FILE"
+  fi
+  exit 1
+fi
+
+# Verificar que los containers críticos existan (no necesariamente corriendo)
+if ! docker inspect pulzar-crm >/dev/null 2>&1; then
+  log "FATAL: el container 'pulzar-crm' no existe. ¿La instalación del CRM está completa?"
+  exit 1
+fi
+if ! docker inspect supabase-db >/dev/null 2>&1; then
+  log "FATAL: el container 'supabase-db' no existe. ¿Supabase self-hosted está instalado?"
+  exit 1
+fi
+
 log "═══════════════════════════════════════════════════════════════"
 log "  Aplicando actualización a Pulzar v${VERSION_NUEVA}"
 log "  ID: ${ACTUALIZACION_ID}"
@@ -340,7 +448,15 @@ log "  Directorio: ${CRM_DIR}"
 log "  Timeout total: ${TIMEOUT_TOTAL_SEC}s"
 log "═══════════════════════════════════════════════════════════════"
 
-marcar_actualizacion EJECUTANDO
+# CRÍTICO: marcar EJECUTANDO de forma ATÓMICA antes de empezar.
+# Si la fila ya no está en PROGRAMADA (porque fue cancelada o ya pasó a
+# EJECUTANDO por otro proceso), abortamos sin tocar nada.
+if ! marcar_ejecutando_atomico; then
+  log "FATAL: no se pudo cambiar PROGRAMADA → EJECUTANDO. La fila puede haber sido"
+  log "       cancelada por el usuario o ya estar siendo procesada por otro script."
+  ESTADO_FINAL_MARCADO=1   # No marcar nada en cleanup — el estado ya es correcto
+  exit 1
+fi
 escribir_progreso "INICIANDO" 1 "Preparando actualización"
 
 # Capturar commit actual ANTES de tocar nada (para rollback)
@@ -352,25 +468,26 @@ log "Commit pre-update: ${COMMIT_PRE_UPDATE:0:12}"
 # Paso 1: Backup pre-update
 # =====================================================================
 
+abortar_si_finalizado
 log "[1/6] Creando backup pre-update..."
 escribir_progreso "BACKUP" 10 "Creando backup del sistema"
 
-# Ejecutamos backup-now.sh DENTRO del container (pg_dump 15 vive ahí, no en host)
+# backup-now.sh corre DENTRO del container (pg_dump 15 vive ahí, no en host)
 BACKUP_OUTPUT=$(docker exec pulzar-crm bash /app/scripts/backup-now.sh --tipo=PRE_UPDATE 2>&1)
 BACKUP_EXIT=$?
 
 if [ $BACKUP_EXIT -ne 0 ]; then
-  log "FATAL: backup-now.sh falló (exit $BACKUP_EXIT):"
-  echo "$BACKUP_OUTPUT" | tail -20 | tee -a "$LOG_FILE"
-  marcar_actualizacion FALLIDA "El backup pre-update falló. Revisar log para detalles."
+  log "FATAL: backup-now.sh falló (exit $BACKUP_EXIT). Output completo:"
+  echo "$BACKUP_OUTPUT" | tee -a "$LOG_FILE"
+  marcar_actualizacion FALLIDA "El backup pre-update falló (exit $BACKUP_EXIT). Revisar log para detalles."
   exit 1
 fi
 
 # Parsear BACKUP_RESULT_JSON={...} del output del script
 BACKUP_JSON=$(echo "$BACKUP_OUTPUT" | grep -oE 'BACKUP_RESULT_JSON=\{.*\}' | sed 's/^BACKUP_RESULT_JSON=//')
 if [ -z "$BACKUP_JSON" ]; then
-  log "FATAL: backup-now.sh no devolvió BACKUP_RESULT_JSON. Output:"
-  echo "$BACKUP_OUTPUT" | tail -20 | tee -a "$LOG_FILE"
+  log "FATAL: backup-now.sh no devolvió BACKUP_RESULT_JSON. Output completo:"
+  echo "$BACKUP_OUTPUT" | tee -a "$LOG_FILE"
   marcar_actualizacion FALLIDA "El backup se completó pero no devolvió metadata utilizable."
   exit 1
 fi
@@ -400,6 +517,16 @@ log "  Validando integridad del backup..."
 if ! tar -tzf "$BACKUP_PATH" >/dev/null 2>&1; then
   log "FATAL: el backup ${BACKUP_PATH##*/} está corrupto o no es un tar.gz válido"
   marcar_actualizacion FALLIDA "El backup se creó pero está corrupto (tar -tzf falló). No se puede continuar sin un backup íntegro."
+  exit 1
+fi
+
+# Validar integridad ADICIONAL del database.sql.gz interno (defensivo:
+# backup-now.sh ya tiene `set -o pipefail` pero validar acá protege contra
+# corrupción del filesystem o copia parcial).
+log "  Validando integridad del .sql.gz interno..."
+if ! tar -xzOf "$BACKUP_PATH" --wildcards '*/database.sql.gz' 2>/dev/null | gunzip -t 2>/dev/null; then
+  log "FATAL: database.sql.gz dentro del backup está corrupto"
+  marcar_actualizacion FALLIDA "El backup contiene un database.sql.gz corrupto. No se puede continuar."
   exit 1
 fi
 
@@ -436,6 +563,7 @@ escribir_progreso "BACKUP_OK" 25 "Backup creado y validado"
 # Paso 2: git fetch + checkout + validación post-checkout
 # =====================================================================
 
+abortar_si_finalizado
 log "[2/6] Descargando v${VERSION_NUEVA} desde GitHub..."
 escribir_progreso "FETCH" 30 "Descargando código nuevo"
 
@@ -474,6 +602,7 @@ escribir_progreso "FETCH_OK" 35 "Código v${VERSION_NUEVA} descargado"
 # Paso 3: Build de la imagen Docker
 # =====================================================================
 
+abortar_si_finalizado
 log "[3/6] Building imagen Docker (puede tardar 3-5 minutos)..."
 escribir_progreso "BUILD" 45 "Reconstruyendo el sistema (3-5 min)"
 
@@ -493,57 +622,87 @@ escribir_progreso "BUILD_OK" 70 "Sistema reconstruido"
 # Paso 4: Aplicar migraciones SQL
 # =====================================================================
 
+abortar_si_finalizado
 log "[4/6] Aplicando migraciones SQL nuevas..."
 escribir_progreso "MIGRATIONS" 75 "Aplicando cambios de base de datos"
 
-# IMPORTANTE: forzamos POSTGRES_HOST="" + CRM_ENV_FILE=/dev/null para que el script
-# de migraciones use el modo `docker exec supabase-db psql` en vez de TCP a
-# `supabase-db:5432` (que es un hostname Docker, no resuelve desde el host).
-# El check `if [ -z "${!key+x}" ]` del script hijo respeta vars vacías (no las pisa).
+# Capturamos stdout+stderr a archivo separado para extraer mensaje útil si falla.
+MIG_LOG=$(mktemp)
+# POSTGRES_HOST="" + CRM_ENV_FILE=/dev/null fuerza modo `docker exec supabase-db psql`
 # POSTGRES_USER=supabase_admin garantiza permisos sobre auth.* y todas las tablas.
 POSTGRES_HOST= POSTGRES_PORT= POSTGRES_PASSWORD= POSTGRES_DB=postgres \
   POSTGRES_USER=supabase_admin \
   CRM_ENV_FILE=/dev/null \
-  bash "$CRM_DIR/scripts/aplicar-migraciones.sh" 2>&1 | tee -a "$LOG_FILE"
-if [ "${PIPESTATUS[0]}" -ne 0 ]; then
-  ejecutar_rollback "Las migraciones SQL fallaron."
+  bash "$CRM_DIR/scripts/aplicar-migraciones.sh" >"$MIG_LOG" 2>&1
+MIG_EXIT=$?
+cat "$MIG_LOG" | tee -a "$LOG_FILE"
+
+if [ $MIG_EXIT -ne 0 ]; then
+  # Extraer últimas líneas relevantes para mostrar al PAS
+  local_resumen=$(tail -10 "$MIG_LOG" | head -5)
+  rm -f "$MIG_LOG"
+  ejecutar_rollback "Las migraciones SQL fallaron (exit $MIG_EXIT). Resumen: ${local_resumen}"
 fi
+rm -f "$MIG_LOG"
 MIGRACIONES_APLICADAS=1
 log "  ✓ Migraciones aplicadas"
 escribir_progreso "MIGRATIONS_OK" 85 "Base de datos actualizada"
 
 # =====================================================================
-# Paso 5: Recrear container + healthcheck
+# Paso 5: Recrear container
 # =====================================================================
 
+abortar_si_finalizado
 log "[5/6] Recreando container con la imagen nueva..."
-escribir_progreso "RESTART" 90 "Reiniciando el CRM"
+escribir_progreso "RESTART" 90 "Reiniciando el CRM (puede tardar 30-60s)"
 
 docker compose up -d --force-recreate crm 2>&1 | tee -a "$LOG_FILE"
 if [ "${PIPESTATUS[0]}" -ne 0 ]; then
   ejecutar_rollback "Recrear container falló."
 fi
 
-# Esperar healthcheck (max 120s)
-log "  Esperando que el CRM responda..."
-escribir_progreso "HEALTHCHECK" 95 "Esperando que el CRM responda"
+# =====================================================================
+# Paso 6: Healthcheck robusto
+# =====================================================================
+#
+# No alcanza con curl /login (puede dar 200 con CRM zombi). Hacemos
+# healthcheck multi-señal:
+#   1. /api/health responde 200 con JSON { ok: true }
+#   2. (fallback) /login responde 200 si /api/health no existe todavía
+# Max 120s total.
+
+log "  Esperando que el CRM responda (healthcheck robusto)..."
+escribir_progreso "HEALTHCHECK" 95 "Verificando que el CRM responde correctamente"
 WAIT=0
 MAX_WAIT=120
+HEALTH_OK=0
 while [ $WAIT -lt $MAX_WAIT ]; do
-  if curl -sf -o /dev/null "http://localhost:3000/login" 2>/dev/null; then
-    log "  ✓ CRM respondió tras ${WAIT}s"
+  # Intento 1: endpoint /api/health (preferido)
+  HEALTH_RESP=$(curl -sf --max-time 5 "http://localhost:3000/api/health" 2>/dev/null || echo "")
+  if [ -n "$HEALTH_RESP" ] && echo "$HEALTH_RESP" | grep -q '"ok":\s*true'; then
+    log "  ✓ /api/health respondió OK tras ${WAIT}s"
+    HEALTH_OK=1
+    break
+  fi
+  # Intento 2: fallback a /login (compatibilidad si /api/health no existe en la versión)
+  if curl -sf --max-time 5 -o /dev/null "http://localhost:3000/login" 2>/dev/null; then
+    # /login responde — esperar 5s más para que la app termine de inicializar
+    log "  /login responde (fallback) — esperando 5s más por seguridad..."
+    sleep 5
+    log "  ✓ CRM respondió tras ${WAIT}s (modo fallback /login)"
+    HEALTH_OK=1
     break
   fi
   sleep 3
   WAIT=$((WAIT + 3))
 done
 
-if [ $WAIT -ge $MAX_WAIT ]; then
-  ejecutar_rollback "El CRM no arrancó tras ${MAX_WAIT}s — la imagen nueva puede tener un bug crítico."
+if [ $HEALTH_OK -eq 0 ]; then
+  ejecutar_rollback "El CRM no respondió tras ${MAX_WAIT}s — la imagen nueva puede tener un bug crítico."
 fi
 
 # =====================================================================
-# Paso 6: Marcar version_actual en DB
+# Paso 7: Marcar version_actual en DB
 # =====================================================================
 
 log "[6/6] Marcando version_actual=${VERSION_NUEVA} en configuración..."
@@ -551,12 +710,22 @@ log "[6/6] Marcando version_actual=${VERSION_NUEVA} en configuración..."
 db_exec -c "UPDATE configuracion SET version_actual='${VERSION_NUEVA}';" >/dev/null 2>&1 || \
   log "WARN: no se pudo actualizar version_actual (no es crítico)"
 
-marcar_actualizacion COMPLETADA
-escribir_progreso "DONE" 100 "Actualización completada"
-log ""
-log "═══════════════════════════════════════════════════════════════"
-log "  ✓ Actualización completada con éxito"
-log "  Versión nueva: v${VERSION_NUEVA}"
-log "═══════════════════════════════════════════════════════════════"
+if marcar_completada_atomica; then
+  escribir_progreso "DONE" 100 "Actualización completada"
+  log ""
+  log "═══════════════════════════════════════════════════════════════"
+  log "  ✓ Actualización completada con éxito"
+  log "  Versión nueva: v${VERSION_NUEVA}"
+  log "═══════════════════════════════════════════════════════════════"
+else
+  # El admin cerró la fila manualmente mientras corríamos. No pisamos su decisión,
+  # pero el código nuevo igual quedó aplicado. Loggeamos el estado.
+  log ""
+  log "═══════════════════════════════════════════════════════════════"
+  log "  ⚠ El código nuevo se aplicó pero la fila ya no estaba en EJECUTANDO."
+  log "     Otro admin la marcó como cerrada manualmente. No se pisó la decisión."
+  log "     Versión efectiva del CRM: v${VERSION_NUEVA}"
+  log "═══════════════════════════════════════════════════════════════"
+fi
 
 exit 0
