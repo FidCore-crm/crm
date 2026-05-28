@@ -45,11 +45,20 @@ PROGRESS_FILE="${CRM_DIR}/tmp/updates/progress.json"
 LOG_MAX_BYTES=$((5 * 1024 * 1024))   # 5 MB
 TIMEOUT_TOTAL_SEC=1800               # 30 min
 
-# Carga variables del .env.docker (CRON_SECRET, POSTGRES_PASSWORD, etc.)
+# Carga variables del .env.docker (CRON_SECRET, etc.)
+#
+# IMPORTANTE: el .env.docker está pensado para el container, NO para el host.
+# Tiene `POSTGRES_HOST=supabase-db` que solo resuelve adentro de la red Docker.
+# Si lo dejamos en el environment del host, scripts hijos como aplicar-migraciones.sh
+# intentan conectar por TCP a `supabase-db:5432` y fallan con "no se pudo conectar".
+#
+# Solución: hacer source pero después limpiar las vars de Postgres para que los
+# scripts hijos usen el modo "docker exec supabase-db psql" (POSTGRES_HOST="").
 if [ -f "${CRM_DIR}/.env.docker" ]; then
   set -a
   source "${CRM_DIR}/.env.docker"
   set +a
+  unset POSTGRES_HOST POSTGRES_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB
 fi
 
 mkdir -p "$(dirname "$LOG_FILE")"
@@ -123,21 +132,29 @@ marcar_actualizacion() {
   db_exec -c "$sql" >> "$LOG_FILE" 2>&1 || log "WARN: db_exec falló para estado=$estado"
 }
 
-# Guarda el log completo del run en DB via HEREDOC (no -c) — evita
-# que logs con caracteres especiales o size > ARG_MAX rompan el query.
+# Guarda el log completo del run en DB. Logs largos o con caracteres especiales
+# romperían si los pasamos via `-c "UPDATE ... SET log='${escaped}'"`. Solución:
+# pasamos el log via stdin a un script SQL inline que usa `\copy` para leer
+# desde stdin a una tabla temporal, y después un UPDATE que lee de ahí.
 guardar_log_completo() {
   [ -f "$LOG_FILE" ] || return 0
-  # Truncar a 256 KB max para no saturar la fila de DB
-  local tmp_log
-  tmp_log=$(mktemp)
-  tail -c 262144 "$LOG_FILE" > "$tmp_log"
+  # Truncar a 256 KB para no saturar la fila
+  local truncated
+  truncated=$(tail -c 262144 "$LOG_FILE")
 
-  docker exec -i supabase-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 <<SQL >>"$LOG_FILE" 2>&1 || log "WARN: no se pudo guardar log_completo en DB"
-\set log_contenido \`cat $tmp_log\`
-UPDATE actualizaciones SET log_completo = :'log_contenido' WHERE id = '${ACTUALIZACION_ID}';
-SQL
-
-  rm -f "$tmp_log"
+  # Usamos cat | docker exec con HEREDOC: el contenido del log viaja por stdin
+  # del psql. \copy lee desde STDIN (el stdin del psql) a una tabla temporal.
+  # Después UPDATE lee de la tabla temporal hacia actualizaciones.log_completo.
+  {
+    echo "BEGIN;"
+    echo "CREATE TEMP TABLE _log_buf(linea text);"
+    echo "\\copy _log_buf FROM STDIN"
+    printf '%s\n' "$truncated"
+    echo "\\."
+    echo "UPDATE actualizaciones SET log_completo = (SELECT string_agg(linea, E'\\n') FROM _log_buf) WHERE id = '${ACTUALIZACION_ID}';"
+    echo "COMMIT;"
+  } | docker exec -i supabase-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 >>"$LOG_FILE" 2>&1 \
+    || log "WARN: no se pudo guardar log_completo en DB"
 }
 
 # =====================================================================
@@ -460,11 +477,16 @@ escribir_progreso "FETCH_OK" 35 "Código v${VERSION_NUEVA} descargado"
 log "[3/6] Building imagen Docker (puede tardar 3-5 minutos)..."
 escribir_progreso "BUILD" 45 "Reconstruyendo el sistema (3-5 min)"
 
+# Exportamos NEXT_PUBLIC_APP_VERSION para que docker-compose.yml lo pase como
+# build arg al Dockerfile. Sin esto, queda hardcoded en "1.0.0" (default) y el
+# sidebar del CRM nuevo muestra una versión incorrecta.
+export NEXT_PUBLIC_APP_VERSION="$VERSION_NUEVA"
+
 docker compose build crm 2>&1 | tee -a "$LOG_FILE"
 if [ "${PIPESTATUS[0]}" -ne 0 ]; then
   ejecutar_rollback "Build de Docker falló. Revisar log para detalles."
 fi
-log "  ✓ Imagen built"
+log "  ✓ Imagen built con NEXT_PUBLIC_APP_VERSION=${VERSION_NUEVA}"
 escribir_progreso "BUILD_OK" 70 "Sistema reconstruido"
 
 # =====================================================================
@@ -474,7 +496,15 @@ escribir_progreso "BUILD_OK" 70 "Sistema reconstruido"
 log "[4/6] Aplicando migraciones SQL nuevas..."
 escribir_progreso "MIGRATIONS" 75 "Aplicando cambios de base de datos"
 
-bash "$CRM_DIR/scripts/aplicar-migraciones.sh" 2>&1 | tee -a "$LOG_FILE"
+# IMPORTANTE: forzamos POSTGRES_HOST="" + CRM_ENV_FILE=/dev/null para que el script
+# de migraciones use el modo `docker exec supabase-db psql` en vez de TCP a
+# `supabase-db:5432` (que es un hostname Docker, no resuelve desde el host).
+# El check `if [ -z "${!key+x}" ]` del script hijo respeta vars vacías (no las pisa).
+# POSTGRES_USER=supabase_admin garantiza permisos sobre auth.* y todas las tablas.
+POSTGRES_HOST= POSTGRES_PORT= POSTGRES_PASSWORD= POSTGRES_DB=postgres \
+  POSTGRES_USER=supabase_admin \
+  CRM_ENV_FILE=/dev/null \
+  bash "$CRM_DIR/scripts/aplicar-migraciones.sh" 2>&1 | tee -a "$LOG_FILE"
 if [ "${PIPESTATUS[0]}" -ne 0 ]; then
   ejecutar_rollback "Las migraciones SQL fallaron."
 fi
