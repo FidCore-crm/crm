@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/api-auth'
 import { renderizarPlantillaDraft } from '@/lib/email-templates/renderizador'
 import { obtenerVariablesOrganizacion } from '@/lib/email-variables'
 import { construirUrlPortalDinamica } from '@/lib/urls-publicas'
+import { logoComoDataUrl } from '@/lib/email-templates/logo-preview'
 
 /**
  * POST — Renderiza un draft de plantilla (textos aún no guardados) para
@@ -56,15 +57,17 @@ export async function POST(
   const organizacionVars = await obtenerVariablesOrganizacion()
   const variables = { ...organizacionVars, ...variablesBase, ...(body.variables || {}) }
 
+  // Logo como data URL inline: garantiza que se vea en el iframe del editor
+  // sin depender de sandbox / cookies / origin del browser.
+  const logoDataUrl = await logoComoDataUrl(variables.organizacion_logo)
+
   try {
     const { cuerpo_html, asunto } = await renderizarPlantillaDraft(draft, variables, {
-      nombre: variables.productora_nombre || 'Productor de Seguros',
-      telefono: variables.productora_telefono,
-      email: variables.productora_email,
-      logo_url: variables.productora_logo
-        ? `${request.nextUrl.origin}/api/storage/${variables.productora_logo}`
-        : undefined,
-      color_marca: variables.productora_color_marca || undefined,
+      nombre: variables.organizacion_nombre || 'Productor de Seguros',
+      telefono: variables.organizacion_telefono,
+      email: variables.organizacion_email,
+      logo_url: logoDataUrl,
+      color_marca: variables.organizacion_color_marca || undefined,
     })
     return NextResponse.json({ ok: true, html: cuerpo_html, asunto })
   } catch (err: any) {

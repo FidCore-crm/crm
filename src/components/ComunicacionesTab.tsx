@@ -58,12 +58,32 @@ function fmtFecha(iso: string | null): string {
 
 function labelTipo(t: string): string {
   const map: Record<string, string> = {
+    // Al asegurado (automáticos del sistema disparados por eventos)
     AUTOMATICO_BIENVENIDA: 'Bienvenida',
     AUTOMATICO_RENOVACION: 'Renovación',
     AUTOMATICO_PORTAL_CLIENTE: 'Portal',
+    // Manuales del PAS
     MANUAL: 'Manual',
     MASIVO: 'Masivo',
     NOTIFICACION_INTERNA: 'Interna',
+    // Notificaciones al admin (sistema)
+    SISTEMA_BACKUP_COMPLETADO: 'Backup OK',
+    SISTEMA_BACKUP_FALLIDO: 'Backup falló',
+    SISTEMA_BACKUP_SYNC_FALLIDO: 'Backup sync falló',
+    SISTEMA_RESTAURACION_INICIADA: 'Restauración iniciada',
+    SISTEMA_RESTAURACION_COMPLETADA: 'Restauración OK',
+    SISTEMA_RESTAURACION_FALLIDA: 'Restauración falló',
+    SISTEMA_PDF_PROCESADO: 'PDF procesado',
+    SISTEMA_PDF_FALLIDO: 'PDF falló',
+    SISTEMA_EMAIL_AUTOMATICO_FALLIDO: 'Email cliente falló',
+    SISTEMA_ERROR_CRITICO: 'Error crítico',
+    SISTEMA_SUGERENCIA_CORRECCION_PORTAL: 'Sugerencia del cliente',
+    SISTEMA_SOLICITUD_BLANQUEO_PASSWORD: 'Pedido blanqueo password',
+    SISTEMA_BLANQUEO_ADMIN_CONFIRMACION: 'Confirmación blanqueo',
+    // Autenticación / acceso
+    AUTH_RECUPERAR_PASSWORD: 'Reset password',
+    AUTH_INVITACION_USUARIO: 'Invitación usuario',
+    AUTH_CONFIRMACION_EMAIL: 'Confirmar email',
   }
   return map[t] || t
 }
@@ -223,11 +243,33 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
             className="form-input text-2xs h-6 px-1.5 py-0"
           >
             <option value="">Todos los tipos</option>
-            <option value="AUTOMATICO_BIENVENIDA">Bienvenida</option>
-            <option value="AUTOMATICO_RENOVACION">Renovación</option>
-            <option value="AUTOMATICO_PORTAL_CLIENTE">Portal cliente</option>
-            <option value="MANUAL">Manual</option>
-            <option value="MASIVO">Masivo</option>
+            <optgroup label="Al asegurado (automáticos)">
+              <option value="AUTOMATICO_BIENVENIDA">Bienvenida</option>
+              <option value="AUTOMATICO_RENOVACION">Renovación</option>
+              <option value="AUTOMATICO_PORTAL_CLIENTE">Portal cliente</option>
+            </optgroup>
+            <optgroup label="Del PAS (manuales)">
+              <option value="MANUAL">Manual desde ficha</option>
+              <option value="MASIVO">Masivo / campaña</option>
+            </optgroup>
+            <optgroup label="Al admin (sistema)">
+              <option value="SISTEMA_BACKUP_COMPLETADO">Backup OK</option>
+              <option value="SISTEMA_BACKUP_FALLIDO">Backup falló</option>
+              <option value="SISTEMA_BACKUP_SYNC_FALLIDO">Backup sync falló</option>
+              <option value="SISTEMA_RESTAURACION_INICIADA">Restauración iniciada</option>
+              <option value="SISTEMA_RESTAURACION_COMPLETADA">Restauración OK</option>
+              <option value="SISTEMA_RESTAURACION_FALLIDA">Restauración falló</option>
+              <option value="SISTEMA_PDF_PROCESADO">PDF procesado</option>
+              <option value="SISTEMA_PDF_FALLIDO">PDF falló</option>
+              <option value="SISTEMA_EMAIL_AUTOMATICO_FALLIDO">Email al cliente falló</option>
+              <option value="SISTEMA_ERROR_CRITICO">Error crítico</option>
+              <option value="SISTEMA_SUGERENCIA_CORRECCION_PORTAL">Sugerencia del cliente</option>
+            </optgroup>
+            <optgroup label="Autenticación">
+              <option value="AUTH_RECUPERAR_PASSWORD">Reset password</option>
+              <option value="AUTH_INVITACION_USUARIO">Invitación usuario</option>
+              <option value="AUTH_CONFIRMACION_EMAIL">Confirmar email</option>
+            </optgroup>
           </select>
           <label className="flex items-center gap-1 text-2xs text-slate-500 cursor-pointer">
             <input type="checkbox" checked={incluirArchivados} onChange={(e) => { setPage(1); setIncluirArchivados(e.target.checked) }} />

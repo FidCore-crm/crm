@@ -320,6 +320,7 @@ async function reconstruirUsuario(userId: string, emailHint?: string): Promise<U
     ultimo_acceso: p.ultimo_acceso,
     intentos_fallidos: p.intentos_fallidos ?? 0,
     bloqueado_hasta: p.bloqueado_hasta,
+    mostrar_ayuda_contextual: p.mostrar_ayuda_contextual ?? true,
     created_at: p.created_at,
     updated_at: p.updated_at,
   }

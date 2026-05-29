@@ -41,8 +41,8 @@ export default function ComunicacionesPage() {
   // Config
   const [activo, setActivo] = useState(false)
   const [envioAutoRenovaciones, setEnvioAutoRenovaciones] = useState(false)
-  const [envioAutoBienvenida, setEnvioAutoBienvenida] = useState(true)
-  const [envioAutoPortal, setEnvioAutoPortal] = useState(true)
+  const [envioAutoBienvenida, setEnvioAutoBienvenida] = useState(false)
+  const [envioAutoPortal, setEnvioAutoPortal] = useState(false)
   const [adjuntarDocs, setAdjuntarDocs] = useState(true)
   const [limiteDiario, setLimiteDiario] = useState(500)
   const [delayEnvios, setDelayEnvios] = useState(2000)
@@ -59,12 +59,12 @@ export default function ComunicacionesPage() {
   const [notifRestauracionIni, setNotifRestauracionIni] = useState(false)
   const [notifRestauracionOk, setNotifRestauracionOk] = useState(false)
   const [notifPdfOk, setNotifPdfOk] = useState(false)
-  const [notifPdfFallido, setNotifPdfFallido] = useState(true)
-  const [notifEmailFallido, setNotifEmailFallido] = useState(true)
+  const [notifPdfFallido, setNotifPdfFallido] = useState(false)
+  const [notifEmailFallido, setNotifEmailFallido] = useState(false)
 
   // Toggles para emails del formulario público de denuncia
-  const [denunciaEmailCliente, setDenunciaEmailCliente] = useState(true)
-  const [denunciaEmailPas, setDenunciaEmailPas] = useState(true)
+  const [denunciaEmailCliente, setDenunciaEmailCliente] = useState(false)
+  const [denunciaEmailPas, setDenunciaEmailPas] = useState(false)
   const [smtpConfigurado, setSmtpConfigurado] = useState(false)
   const [editandoPlantilla, setEditandoPlantilla] = useState<string | null>(null)
 
@@ -105,8 +105,8 @@ export default function ComunicacionesPage() {
         const c = configRes.data.configuracion
         setActivo(c.activo ?? false)
         setEnvioAutoRenovaciones(c.envio_automatico_renovaciones ?? false)
-        setEnvioAutoBienvenida(c.envio_automatico_bienvenida_poliza ?? true)
-        setEnvioAutoPortal(c.envio_automatico_portal_cliente ?? true)
+        setEnvioAutoBienvenida(c.envio_automatico_bienvenida_poliza ?? false)
+        setEnvioAutoPortal(c.envio_automatico_portal_cliente ?? false)
         setAdjuntarDocs(c.adjuntar_docs_renovacion ?? true)
         setLimiteDiario(c.limite_diario ?? 500)
         setDelayEnvios(c.delay_entre_envios_ms ?? 2000)
@@ -120,10 +120,10 @@ export default function ComunicacionesPage() {
         setNotifRestauracionIni(c.notificar_admin_restauracion_iniciada ?? false)
         setNotifRestauracionOk(c.notificar_admin_restauracion_completada ?? false)
         setNotifPdfOk(c.notificar_admin_pdf_procesado ?? false)
-        setNotifPdfFallido(c.notificar_admin_pdf_fallido ?? true)
-        setNotifEmailFallido(c.notificar_admin_email_automatico_fallido ?? true)
-        setDenunciaEmailCliente(c.envio_automatico_denuncia_publica_cliente ?? true)
-        setDenunciaEmailPas(c.envio_automatico_denuncia_publica_pas ?? true)
+        setNotifPdfFallido(c.notificar_admin_pdf_fallido ?? false)
+        setNotifEmailFallido(c.notificar_admin_email_automatico_fallido ?? false)
+        setDenunciaEmailCliente(c.envio_automatico_denuncia_publica_cliente ?? false)
+        setDenunciaEmailPas(c.envio_automatico_denuncia_publica_pas ?? false)
       } else if (!configRes.ok) {
         setErrorGral(configRes.error?.mensaje ?? 'Error al cargar la configuración')
       }
@@ -350,6 +350,15 @@ export default function ComunicacionesPage() {
           <h2 className="text-sm font-semibold text-slate-800">Emails automáticos</h2>
         </div>
         <p className="text-2xs text-slate-500 mb-4">Activá cada tipo de email automático de forma independiente. Todos se envían a través de la cola de envíos.</p>
+
+        {smtpConfigurado && !activo && (
+          <div className="mb-4 flex items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-2.5">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              El sistema general de comunicaciones está apagado. Estos toggles no van a tener efecto hasta que lo actives arriba.
+            </span>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3">
           {/* Toggle: Bienvenida */}
@@ -702,6 +711,62 @@ export default function ComunicacionesPage() {
                 Acá podés elegir individualmente qué <strong>eventos informativos</strong> querés recibir.
               </p>
 
+              {smtpConfigurado && !activo && (
+                <div className="mb-3 flex items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-2.5">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    El sistema general está apagado. Estos toggles no van a tener efecto hasta que lo actives.
+                  </span>
+                </div>
+              )}
+
+              {/* Atajos: activar/desactivar todos los informativos de un saque */}
+              {(() => {
+                const informativos = [notifBackupOk, notifRestauracionIni, notifRestauracionOk, notifPdfOk, notifPdfFallido, notifEmailFallido]
+                const activados = informativos.filter(Boolean).length
+                const todosActivos = activados === informativos.length
+                const ninguno = activados === 0
+
+                function setearTodos(valor: boolean) {
+                  setNotifBackupOk(valor); setNotifRestauracionIni(valor); setNotifRestauracionOk(valor)
+                  setNotifPdfOk(valor); setNotifPdfFallido(valor); setNotifEmailFallido(valor)
+                  immediateSave({
+                    notificar_admin_backup_completado: valor,
+                    notificar_admin_restauracion_iniciada: valor,
+                    notificar_admin_restauracion_completada: valor,
+                    notificar_admin_pdf_procesado: valor,
+                    notificar_admin_pdf_fallido: valor,
+                    notificar_admin_email_automatico_fallido: valor,
+                  })
+                }
+
+                return (
+                  <div className="flex items-center justify-between gap-2 mb-3 bg-slate-50 border border-slate-200 rounded p-2">
+                    <p className="text-2xs text-slate-600">
+                      <strong className="font-mono text-slate-800">{activados}/6</strong> informativos activados
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setearTodos(true)}
+                        disabled={todosActivos}
+                        className="text-2xs px-2 py-1 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Activar todos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setearTodos(false)}
+                        disabled={ninguno}
+                        className="text-2xs px-2 py-1 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Desactivar todos
+                      </button>
+                    </div>
+                  </div>
+                )
+              })()}
+
               <div className="flex flex-col gap-2">
                 {/* Backup completado */}
                 <div className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-100">
@@ -955,25 +1020,25 @@ function PlantillasHardcoded({ onPreview, previewActual }: { onPreview: (c: stri
       codigo: 'renovacion_poliza',
       nombre: 'Renovación de póliza',
       descripcion: 'Email automático o manual al renovar una póliza, con la nueva documentación adjunta',
-      variables: ['nombre', 'apellido', 'numero_poliza', 'compania', 'ramo', 'fecha_inicio', 'fecha_fin', 'riesgo', 'productora_nombre', 'productora_telefono', 'productora_email'],
+      variables: ['nombre', 'apellido', 'numero_poliza', 'compania', 'ramo', 'fecha_inicio', 'fecha_fin', 'riesgo', 'organizacion_nombre', 'organizacion_telefono', 'organizacion_email'],
     },
     {
       codigo: 'recordatorio_pago',
       nombre: 'Recordatorio de pago',
       descripcion: 'Email para recordar al cliente que tiene pagos pendientes',
-      variables: ['nombre', 'apellido', 'numero_poliza', 'compania', 'ramo', 'productora_nombre', 'productora_telefono', 'productora_email'],
+      variables: ['nombre', 'apellido', 'numero_poliza', 'compania', 'ramo', 'organizacion_nombre', 'organizacion_telefono', 'organizacion_email'],
     },
     {
       codigo: 'notificacion_general',
       nombre: 'Notificación / Novedades',
       descripcion: 'Email para comunicar novedades, cambios o información general',
-      variables: ['nombre', 'apellido', 'productora_nombre', 'productora_telefono', 'productora_email'],
+      variables: ['nombre', 'apellido', 'organizacion_nombre', 'organizacion_telefono', 'organizacion_email'],
     },
     {
       codigo: 'informativa',
       nombre: 'Informativa puntual',
       descripcion: 'Email para avisos puntuales con título y cuerpo libre',
-      variables: ['nombre', 'apellido', 'productora_nombre', 'productora_telefono', 'productora_email'],
+      variables: ['nombre', 'apellido', 'organizacion_nombre', 'organizacion_telefono', 'organizacion_email'],
     },
   ]
 
@@ -1044,7 +1109,9 @@ function PreviewModal({ codigo, onClose }: { codigo: string; onClose: () => void
               title="Preview"
               className="w-full border-0 rounded"
               style={{ minHeight: '500px' }}
-              sandbox=""
+              // allow-same-origin + allow-popups: el logo carga y los links
+              // abren en nueva pestaña. Sin allow-scripts → sigue seguro.
+              sandbox="allow-same-origin allow-popups"
             />
           )}
         </div>

@@ -37,11 +37,11 @@ export async function POST(
 
   const baseUrl = (await obtenerUrlCRM()) || 'http://localhost:3000'
   const organizacion = {
-    nombre: variables.productora_nombre || 'Productor de Seguros',
-    telefono: variables.productora_telefono || '',
-    email: variables.productora_email || '',
-    logo_url: variables.productora_logo ? `${baseUrl}/api/storage/${variables.productora_logo}` : '',
-    color_marca: variables.productora_color_marca || undefined,
+    nombre: variables.organizacion_nombre || 'Productor de Seguros',
+    telefono: variables.organizacion_telefono || '',
+    email: variables.organizacion_email || '',
+    logo_url: variables.organizacion_logo ? `${baseUrl}/api/storage/${variables.organizacion_logo}` : '',
+    color_marca: variables.organizacion_color_marca || undefined,
   }
 
   try {

@@ -90,6 +90,9 @@ const config = {
         sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
         // IBM Plex Mono — para DNI, patentes, números de póliza
         mono: ["IBM Plex Mono", "monospace"],
+        // Caveat — fuente "manuscrita" para los post-its del dashboard:
+        // imita la letra de una nota escrita a mano sobre un papel adhesivo.
+        postit: ['Caveat', 'Comic Sans MS', 'cursive'],
       },
       fontSize: {
         "2xs": ["11px", { lineHeight: "15px" }],

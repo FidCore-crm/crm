@@ -70,6 +70,21 @@ export async function enviarEmail(params: {
   text?: string
   attachments?: Array<{ filename: string; path?: string; content?: Buffer; cid?: string }>
   replyTo?: string
+  /**
+   * Override del nombre y email de remitente. Si se pasan, se ignoran los
+   * valores de `configuracion_correos.from_name/from_email`. Útil para
+   * emails que el sistema envía en nombre de un tercero (ej: notificaciones
+   * de Pulzar al admin del PAS — el SMTP es del PAS pero el From dice Pulzar).
+   * Si solo se pasa uno, el otro mantiene el default de la configuración.
+   */
+  fromName?: string
+  fromEmail?: string
+  /**
+   * Si es true, omite la firma_html configurada por el PAS. Usado para emails
+   * que no son del PAS (ej: notificaciones de Pulzar al admin) — su firma
+   * propia no aplica.
+   */
+  omitirFirma?: boolean
 }): Promise<{ ok: boolean; messageId?: string; error?: string }> {
   try {
     const transporter = await getTransporter()
@@ -79,12 +94,11 @@ export async function enviarEmail(params: {
       throw new EmailError('NO_CONFIGURADO', 'Sin configuración')
     }
 
-    const fromName = config.from_name || 'Productor de Seguros'
-    const fromEmail = config.from_email || config.smtp_user
+    const fromName = params.fromName ?? (config.from_name || 'Productor de Seguros')
+    const fromEmail = params.fromEmail ?? (config.from_email || config.smtp_user)
 
-    // Si hay firma_html, agregarla al HTML
     let htmlFinal = params.html
-    if (config.firma_html) {
+    if (config.firma_html && !params.omitirFirma) {
       htmlFinal += '<br><br>' + config.firma_html
     }
 

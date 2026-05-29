@@ -17,6 +17,7 @@ import { EstadoCarga } from '@/components/EstadoCarga'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { apiCall } from '@/lib/api-client'
 import { useEsSoloLectura } from '@/contexts/LicenciaContext'
+import AyudaTooltip from '@/components/AyudaTooltip'
 
 interface Poliza {
   id: string
@@ -542,7 +543,12 @@ function PolizasContent() {
               <th onClick={() => toggleSort('fecha_fin')} className="cursor-pointer select-none">
                 <div className="flex items-center gap-1">Vigencia <SortIcon field="fecha_fin"/></div>
               </th>
-              <th>Estado</th>
+              <th>
+                <span className="inline-flex items-center gap-1">
+                  Estado
+                  <AyudaTooltip clave="polizas.estado" inline />
+                </span>
+              </th>
               <th style={{width:100}}>Acciones</th>
             </tr>
           </thead>

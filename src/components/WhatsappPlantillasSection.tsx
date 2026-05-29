@@ -48,8 +48,8 @@ const CONTEXTO_COLOR: Record<string, string> = {
 const VALORES_EJEMPLO: Record<string, string> = {
   nombre:            'Juan',
   apellido:          'Pérez',
-  url_portal:        'https://clientes.tuproductora.com.ar/c/abc123',
-  productora_nombre: 'Productor de Seguros',
+  url_portal:           'https://clientes.tu-organizacion.com.ar/c/abc123',
+  organizacion_nombre:  'Productor de Seguros',
   numero_poliza:     'AP-2026-001234',
   numero_caso:       'CASO-2026-0001',
   numero_cotizacion: 'COT-2026-0042',

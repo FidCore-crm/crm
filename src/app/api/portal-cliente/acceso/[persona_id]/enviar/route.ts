@@ -106,7 +106,7 @@ export async function POST(
         { status: 400 },
       )
     }
-    // Cargar plantilla configurable + nombre productora en paralelo.
+    // Cargar plantilla configurable + nombre del PAS u organización en paralelo.
     const [{ data: plantilla }, { data: organizacion }] = await Promise.all([
       supabase
         .from('plantillas_whatsapp')
@@ -121,14 +121,14 @@ export async function POST(
     ])
     const organizacionNombre = (organizacion as any)?.nombre || 'tu productor de seguros'
     const plantillaMensaje = (plantilla as any)?.mensaje
-      || `Hola {{nombre}}, te paso el link a tu portal personal de {{productora_nombre}}.\n\n{{url_portal}}\n\nGuardalo en tus favoritos, no vence.`
+      || `Hola {{nombre}}, te paso el link a tu portal personal de {{organizacion_nombre}}.\n\n{{url_portal}}\n\nGuardalo en tus favoritos, no vence.`
 
     // Reemplazo manual de variables (no podemos usar el helper del browser).
     const vars: Record<string, string> = {
       nombre: personaRow.nombre || '',
       apellido: personaRow.apellido || '',
       url_portal: urlPortal,
-      productora_nombre: organizacionNombre,
+      organizacion_nombre: organizacionNombre,
     }
     const mensaje = plantillaMensaje.replace(/\{\{(\w+)\}\}/g, (_: string, k: string) => vars[k] ?? '')
     const urlWhatsapp = `https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`

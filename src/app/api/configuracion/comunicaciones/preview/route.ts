@@ -3,6 +3,7 @@ import { renderizarPlantilla } from '@/lib/email-templates/renderizador'
 import { obtenerVariablesOrganizacion } from '@/lib/email-variables'
 import { construirUrlPortalDinamica } from '@/lib/urls-publicas'
 import { requireAdmin } from '@/lib/api-auth'
+import { logoComoDataUrl } from '@/lib/email-templates/logo-preview'
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin(request)
@@ -40,18 +41,20 @@ export async function GET(request: NextRequest) {
     const organizacionVars = await obtenerVariablesOrganizacion()
     const variables = { ...organizacionVars, ...variablesEjemplo }
 
+    // En el preview inyectamos el logo como data URL para que se vea siempre,
+    // incluso dentro de un iframe sandbox sin acceso a la red del padre.
+    const logoDataUrl = await logoComoDataUrl(variables.organizacion_logo)
+
     try {
       const { cuerpo_html } = await renderizarPlantilla(
         codigo,
         variables,
         {
-          nombre: variables.productora_nombre || 'Productor de Seguros',
-          telefono: variables.productora_telefono,
-          email: variables.productora_email,
-          logo_url: variables.productora_logo
-            ? `${request.nextUrl.origin}/api/storage/${variables.productora_logo}`
-            : undefined,
-          color_marca: variables.productora_color_marca || undefined,
+          nombre: variables.organizacion_nombre || 'Productor de Seguros',
+          telefono: variables.organizacion_telefono,
+          email: variables.organizacion_email,
+          logo_url: logoDataUrl,
+          color_marca: variables.organizacion_color_marca || undefined,
         },
       )
       return NextResponse.json({ ok: true, html: cuerpo_html })

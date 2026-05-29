@@ -60,21 +60,21 @@ function getRiesgoTexto(datos, tipo) {
   return lineas
 }
 
-function construirDocumentoCotizacion(cotizacion, destinatario, companias, productora) {
+function construirDocumentoCotizacion(cotizacion, destinatario, companias, organizacion) {
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   let y = 20
 
-  // Header productora con logo opcional
-  const nombreProd = productora.razon_social || productora.nombre || 'Mi Productora'
+  // Header organizacion con logo opcional
+  const nombreOrg = organizacion.razon_social || organizacion.nombre || 'Mi Organización'
   let textoX = 14
 
-  if (productora.logo_data_url) {
+  if (organizacion.logo_data_url) {
     try {
-      const m = productora.logo_data_url.match(/^data:image\/(\w+);/i)
+      const m = organizacion.logo_data_url.match(/^data:image\/(\w+);/i)
       const ext = (m && m[1] ? m[1] : 'png').toUpperCase()
       const formato = ext === 'JPG' ? 'JPEG' : ext
-      doc.addImage(productora.logo_data_url, formato, 14, 14, 24, 24)
+      doc.addImage(organizacion.logo_data_url, formato, 14, 14, 24, 24)
       textoX = 42
     } catch (e) {
       textoX = 14
@@ -84,26 +84,26 @@ function construirDocumentoCotizacion(cotizacion, destinatario, companias, produ
   doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(10, 22, 40)
-  doc.text(nombreProd, textoX, y)
+  doc.text(nombreOrg, textoX, y)
   y += 6
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(100, 100, 100)
   const contactoLineas = []
-  if (productora.telefono) contactoLineas.push(`Tel: ${productora.telefono}`)
-  if (productora.email) contactoLineas.push(`Email: ${productora.email}`)
-  if (productora.direccion) contactoLineas.push(productora.direccion)
+  if (organizacion.telefono) contactoLineas.push(`Tel: ${organizacion.telefono}`)
+  if (organizacion.email) contactoLineas.push(`Email: ${organizacion.email}`)
+  if (organizacion.direccion) contactoLineas.push(organizacion.direccion)
   if (contactoLineas.length > 0) {
     doc.text(contactoLineas.join('  |  '), textoX, y)
     y += 4
   }
-  if (productora.matricula_ssn) {
-    doc.text(`Matrícula SSN: ${productora.matricula_ssn}`, textoX, y)
+  if (organizacion.matricula_ssn) {
+    doc.text(`Matrícula SSN: ${organizacion.matricula_ssn}`, textoX, y)
     y += 4
   }
 
   y += 2
-  if (productora.logo_data_url) {
+  if (organizacion.logo_data_url) {
     const yLogoBottom = 14 + 24
     if (y < yLogoBottom + 2) y = yLogoBottom + 2
   }
@@ -222,7 +222,7 @@ function construirDocumentoCotizacion(cotizacion, destinatario, companias, produ
     : 'Cotización válida por 30 días desde la fecha de envío. Los precios están sujetos a confirmación por parte de la compañía aseguradora.'
   doc.text(textoValidez, 14, y)
   y += 4
-  const pieProd = [nombreProd, productora.matricula_ssn ? `Matrícula SSN: ${productora.matricula_ssn}` : ''].filter(Boolean).join(' — ')
+  const pieProd = [nombreOrg, organizacion.matricula_ssn ? `Matrícula SSN: ${organizacion.matricula_ssn}` : ''].filter(Boolean).join(' — ')
   doc.text(pieProd, 14, y)
 
   return doc
@@ -231,7 +231,7 @@ function construirDocumentoCotizacion(cotizacion, destinatario, companias, produ
 // ── Datos de ejemplo: automotor con 4 compañías, una seleccionada ──
 
 const DATOS_EJEMPLO = {
-  productora: {
+  organizacion: {
     nombre: 'Lobo Seguros',
     razon_social: 'Lobo Seguros S.A.',
     telefono: '+54 11 1234-5678',
@@ -300,7 +300,7 @@ const doc = construirDocumentoCotizacion(
   DATOS_EJEMPLO.cotizacion,
   DATOS_EJEMPLO.destinatario,
   DATOS_EJEMPLO.companias,
-  DATOS_EJEMPLO.productora,
+  DATOS_EJEMPLO.organizacion,
 )
 
 const outPath = path.join('/tmp', 'preview-cotizacion.pdf')

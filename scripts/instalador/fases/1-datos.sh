@@ -28,7 +28,7 @@ Tip: si estás reanudando una instalación, los valores ya cargados aparecen com
   echo ""
 
   # Nombre legible (no validado más allá de no-vacío)
-  ui_info "Nombre legible de la productora (aparece en saludos / emails)."
+  ui_info "Nombre legible del PAS u organización (aparece en saludos / emails)."
   local nombre_default
   nombre_default=$(estado_get CLIENTE_NOMBRE)
   local nombre

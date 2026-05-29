@@ -216,11 +216,8 @@ export default function LicenciaPage() {
                   Licencia vencida
                 </h2>
                 <p className="text-sm text-amber-700">
-                  Tu licencia venció el {formatearFecha(activa.fecha_vencimiento)}. Te quedan{' '}
-                  <span className="font-semibold">
-                    {estado.dias_gracia_restantes} día{estado.dias_gracia_restantes === 1 ? '' : 's'}
-                  </span>{' '}
-                  para cargar una nueva y mantener todas las funciones activas.
+                  Tu licencia venció el {formatearFecha(activa.fecha_vencimiento)}.
+                  Cargá una nueva para mantener todas las funciones activas.
                 </p>
               </>
             )}

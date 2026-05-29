@@ -35,7 +35,7 @@ export interface PlantillaWhatsapp {
 // Cache module-level: una sola carga por vida del browser. La invalidación
 // la dispara el editor cuando guarda cambios (vía resetCachePlantillasWhatsapp).
 let cache: Map<string, PlantillaWhatsapp> | null = null
-let productoraNombre: string = ''
+let organizacionNombre: string = ''
 let cargaPendiente: Promise<Map<string, PlantillaWhatsapp>> | null = null
 
 async function cargarPlantillas(): Promise<Map<string, PlantillaWhatsapp>> {
@@ -44,8 +44,8 @@ async function cargarPlantillas(): Promise<Map<string, PlantillaWhatsapp>> {
 
   cargaPendiente = (async () => {
     const supabase = getSupabaseClient()
-    // Plantillas y nombre de la productora en paralelo. Si falla el nombre,
-    // usamos string vacío — el render igual funciona.
+    // Plantillas y nombre del PAS u organización en paralelo. Si falla el
+    // nombre, usamos string vacío — el render igual funciona.
     const [{ data: plantillas, error }, { data: cfg }] = await Promise.all([
       supabase.from('plantillas_whatsapp').select('*').eq('activa', true),
       supabase.from('configuracion').select('nombre').limit(1).maybeSingle(),
@@ -57,7 +57,7 @@ async function cargarPlantillas(): Promise<Map<string, PlantillaWhatsapp>> {
     const map = new Map<string, PlantillaWhatsapp>()
     for (const p of plantillas) map.set(p.codigo, p as PlantillaWhatsapp)
     cache = map
-    productoraNombre = cfg?.nombre || ''
+    organizacionNombre = cfg?.nombre || ''
     cargaPendiente = null
     return map
   })()
@@ -67,7 +67,7 @@ async function cargarPlantillas(): Promise<Map<string, PlantillaWhatsapp>> {
 
 export function resetCachePlantillasWhatsapp() {
   cache = null
-  productoraNombre = ''
+  organizacionNombre = ''
 }
 
 /**
@@ -102,9 +102,9 @@ export async function construirUrlWhatsapp(
     const plantillas = await cargarPlantillas()
     const plantilla = plantillas.get(codigo)
     if (plantilla) {
-      // Auto-completar productora_nombre si el caller no lo pasó
+      // Auto-completar el nombre del PAS u organización si el caller no lo pasó.
       const varsCompletas = {
-        productora_nombre: productoraNombre,
+        organizacion_nombre: organizacionNombre,
         ...vars,
       }
       mensaje = renderizarPlantillaWhatsapp(plantilla.mensaje, varsCompletas)

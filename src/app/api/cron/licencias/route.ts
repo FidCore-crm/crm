@@ -6,8 +6,7 @@
  *   2. Marca como EXPIRADA cualquier ENCOLADA que ya pasó (fecha_vencimiento < hoy).
  *   3. Genera notificaciones in-app + emails al admin según el escalonamiento:
  *        - 30, 15, 7 días antes del vencimiento (LICENCIA_POR_VENCER)
- *        - El día del vencimiento (entra en gracia)
- *        - Cada día del período de gracia
+ *        - Al vencer y mientras siga en modo gracia interno (LICENCIA_EN_GRACIA)
  *        - Al pasar a BLOQUEADA
  *
  * Anti-spam: cada tipo de notificación tiene su ventana — no repetimos el mismo
@@ -19,7 +18,8 @@ import { manejarErrores, respuestaError, respuestaExito, ERRORES, logger } from 
 import { validarCronSecret } from '@/lib/cron-auth'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { rotarLicencias, obtenerEstadoLicencia, invalidarCacheEstado, DIAS_GRACIA_POST_VENCIMIENTO } from '@/lib/licencia'
-import { encolarEmailSistema, type TipoEventoSistema } from '@/lib/comunicaciones-sender'
+import { obtenerAdminsActivos } from '@/lib/comunicaciones-sender'
+import { enviarEmailPulzar, type TipoEmailPulzar } from '@/lib/pulzar-emails'
 
 interface NotificacionInsertar {
   tipo: 'LICENCIA_POR_VENCER' | 'LICENCIA_VENCIDA' | 'LICENCIA_EN_GRACIA' | 'LICENCIA_BLOQUEADA'
@@ -65,17 +65,49 @@ async function notificarAdminSiCorresponde(
   return true
 }
 
-async function emitirEmailSistemaLicencia(
-  tipo_evento: TipoEventoSistema,
-  variables_extra: Record<string, string>,
+/**
+ * Envía un email DESDE Pulzar AL admin del PAS.
+ *
+ * A diferencia del resto de eventos `sistema_*` (backup, PDF, error crítico),
+ * los avisos de licencia NO los manda el CRM del PAS — los manda Pulzar (la
+ * empresa) usando un From `Pulzar <pulzar.crm@gmail.com>` con datos de
+ * contacto propios. El SMTP sigue siendo el del PAS por simplicidad, pero el
+ * From/Reply-To/firma se sobreescriben en `enviarEmailPulzar()`.
+ *
+ * Esto evita que el PAS pueda editar el contenido (las plantillas son
+ * hardcoded en `src/lib/pulzar-emails.ts`) y deja claro al cliente con quién
+ * tiene que contactar para renovar.
+ *
+ * Síncrono y fire-and-forget por admin: si un email puntual falla, se loggea
+ * pero el resto se envía.
+ */
+async function emitirEmailLicenciaDesdePulzar(
+  tipo: TipoEmailPulzar,
+  variables: { dias_restantes?: number; plan?: string; fecha_vencimiento?: string },
 ): Promise<void> {
   try {
-    await encolarEmailSistema({ tipo_evento, variables_extra })
+    const admins = await obtenerAdminsActivos()
+    if (admins.length === 0) {
+      logger.warn({
+        modulo: 'cron-licencias',
+        mensaje: 'No hay admins activos con email para notificar licencia',
+        contexto: { tipo },
+      })
+      return
+    }
+
+    for (const admin of admins) {
+      await enviarEmailPulzar({
+        tipo,
+        destinatarioEmail: admin.email,
+        variables: { ...variables, nombre_admin: admin.nombre },
+      })
+    }
   } catch (err) {
     logger.warn({
       modulo: 'cron-licencias',
-      mensaje: 'No se pudo encolar email de sistema para licencia',
-      contexto: { error: String(err), tipo_evento },
+      mensaje: 'No se pudo enviar email Pulzar de licencia',
+      contexto: { error: String(err), tipo },
     })
   }
 }
@@ -135,8 +167,8 @@ export const GET = manejarErrores(async (request: NextRequest) => {
       avisos.push({ tipo: 'POR_VENCER', enviado })
 
       if (enviado) {
-        await emitirEmailSistemaLicencia('LICENCIA_POR_VENCER', {
-          dias_restantes: String(dias),
+        await emitirEmailLicenciaDesdePulzar('LICENCIA_POR_VENCER', {
+          dias_restantes: dias,
           plan: estado.licencia_activa.plan,
           fecha_vencimiento: formatearFecha(estado.licencia_activa.fecha_vencimiento),
         })
@@ -144,26 +176,21 @@ export const GET = manejarErrores(async (request: NextRequest) => {
     }
   }
 
-  // Caso 2: licencia en período de gracia
-  if (estado.modo === 'GRACIA' && estado.licencia_activa && estado.dias_gracia_restantes !== null) {
-    const fechaBloqueo = new Date()
-    fechaBloqueo.setDate(fechaBloqueo.getDate() + estado.dias_gracia_restantes)
-    const fechaBloqueoIso = fechaBloqueo.toISOString().slice(0, 10)
-
+  // Caso 2: licencia vencida (sigue funcionando temporalmente, ver lib/licencia.ts).
+  // No mencionamos el concepto al admin: el mensaje es simplemente "venció, cargá una nueva".
+  if (estado.modo === 'GRACIA' && estado.licencia_activa) {
     const enviado = await notificarAdminSiCorresponde(supabase, {
       tipo: 'LICENCIA_EN_GRACIA',
       prioridad: 'CRITICA',
       titulo: 'Tu licencia venció',
-      mensaje: `Quedan ${estado.dias_gracia_restantes} días para cargar una nueva licencia y mantener todas las funciones activas.`,
+      mensaje: 'Cargá una nueva licencia para mantener todas las funciones activas.',
       url: URL_LICENCIA,
     })
     avisos.push({ tipo: 'GRACIA', enviado })
 
     if (enviado) {
-      await emitirEmailSistemaLicencia('LICENCIA_EN_GRACIA', {
-        dias_gracia: String(estado.dias_gracia_restantes),
+      await emitirEmailLicenciaDesdePulzar('LICENCIA_VENCIDA', {
         fecha_vencimiento: formatearFecha(estado.licencia_activa.fecha_vencimiento),
-        fecha_bloqueo: formatearFecha(fechaBloqueoIso),
       })
     }
   }
@@ -182,8 +209,12 @@ export const GET = manejarErrores(async (request: NextRequest) => {
     })
     avisos.push({ tipo: 'BLOQUEADA', enviado })
 
-    if (enviado) {
-      await emitirEmailSistemaLicencia('LICENCIA_BLOQUEADA', {})
+    // Solo mandamos email Pulzar si el admin tiene una licencia previa
+    // vencida (BLOQUEADA). Si nunca cargó ninguna (SIN_LICENCIA, ej. en
+    // instalación nueva), el aviso por email no aplica — no sabemos quién es
+    // el cliente todavía.
+    if (enviado && estado.modo === 'BLOQUEADA') {
+      await emitirEmailLicenciaDesdePulzar('LICENCIA_BLOQUEADA', {})
     }
   }
 

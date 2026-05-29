@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Caveat:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -265,5 +265,51 @@
   /* ── Alerta urgente en tabla ── */
   .alerta-urgente {
     @apply bg-red-50;
+  }
+
+  /* ── Centro de Ayuda: tipografía de artículos ── */
+  /* Los artículos se escriben con HTML semántico puro (h2, h3, p, ul, etc.).
+     Estas reglas definen un único estilo coherente para todos. */
+  .ayuda-prose {
+    @apply text-sm text-slate-700 leading-relaxed;
+  }
+  .ayuda-prose h2 {
+    @apply text-base font-semibold text-slate-800 mt-6 mb-2 pb-1 border-b border-slate-200;
+  }
+  .ayuda-prose h2:first-child {
+    @apply mt-0;
+  }
+  .ayuda-prose h3 {
+    @apply text-sm font-semibold text-slate-800 mt-4 mb-1.5;
+  }
+  .ayuda-prose p {
+    @apply my-2 leading-relaxed;
+  }
+  .ayuda-prose ul {
+    @apply my-2 ml-5 list-disc space-y-1;
+  }
+  .ayuda-prose ol {
+    @apply my-2 ml-5 list-decimal space-y-1;
+  }
+  .ayuda-prose li {
+    @apply leading-relaxed;
+  }
+  .ayuda-prose strong {
+    @apply font-semibold text-slate-900;
+  }
+  .ayuda-prose code {
+    @apply bg-slate-100 text-slate-800 px-1 py-0.5 rounded text-xs font-mono;
+  }
+  .ayuda-prose a {
+    @apply text-blue-600 hover:text-blue-800 underline;
+  }
+  .ayuda-prose blockquote {
+    @apply border-l-4 border-amber-300 bg-amber-50/50 px-3 py-2 my-3 text-slate-700;
+  }
+  .ayuda-prose .ayuda-tip {
+    @apply bg-blue-50 border border-blue-200 rounded-md px-3 py-2 my-3 text-slate-700;
+  }
+  .ayuda-prose .ayuda-warning {
+    @apply bg-amber-50 border border-amber-200 rounded-md px-3 py-2 my-3 text-slate-700;
   }
 }

@@ -417,6 +417,7 @@ export interface Usuario {
   ultimo_acceso: string | null
   intentos_fallidos: number
   bloqueado_hasta: string | null
+  mostrar_ayuda_contextual: boolean
   created_at: string
   updated_at: string
 }

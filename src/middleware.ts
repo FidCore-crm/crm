@@ -22,6 +22,9 @@ const PUBLIC_ROUTES = [
   '/auth/email-confirmado',
   // Refresh de JWT del cliente browser (#68 — RLS)
   '/api/auth/refrescar-token',
+  // Healthcheck público (usado por aplicar-actualizacion.sh + monitoreo externo).
+  // No expone info sensible: solo {ok, version, checks}.
+  '/api/health',
 ]
 
 function isPublicRoute(pathname: string): boolean {

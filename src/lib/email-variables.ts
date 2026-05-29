@@ -76,15 +76,10 @@ export async function obtenerVariablesPoliza(polizaId: string): Promise<Record<s
 }
 
 /**
- * Obtiene variables de la organización desde configuración.
+ * Obtiene variables del PAS u organización desde configuración.
  *
- * Nota: las CLAVES del objeto retornado (`productora_*`) se mantienen tal cual
- * porque son strings literales referenciados por las plantillas de email
- * guardadas en la tabla `plantillas_email`. Renombrarlas rompería todas las
- * plantillas existentes.
- *
- * Cache en proceso (TTL 60s): la configuración de la productora cambia muy
- * raramente (logo nuevo o cambio de teléfono) pero esta función la llama
+ * Cache en proceso (TTL 60s): la configuración cambia muy raramente (logo
+ * nuevo o cambio de teléfono) pero esta función la llama
  * `procesarEmailEncolado` UNA VEZ POR EMAIL. Una bandeja de 50 emails
  * automáticos = 50 queries idénticas. Con cache de 60s, un ciclo completo
  * del cron gasta 1 query en vez de 50.
@@ -93,12 +88,12 @@ export async function obtenerVariablesPoliza(polizaId: string): Promise<Record<s
  * próximo email después de 60s. Aceptable — la alternativa sería un
  * pub/sub que rompe la simpleza.
  */
-let _cacheProductora: { data: Record<string, string>; expira: number } | null = null
-const TTL_PRODUCTORA_MS = 60_000
+let _cacheOrganizacion: { data: Record<string, string>; expira: number } | null = null
+const TTL_ORGANIZACION_MS = 60_000
 
 export async function obtenerVariablesOrganizacion(): Promise<Record<string, string>> {
-  if (_cacheProductora && Date.now() < _cacheProductora.expira) {
-    return _cacheProductora.data
+  if (_cacheOrganizacion && Date.now() < _cacheOrganizacion.expira) {
+    return _cacheOrganizacion.data
   }
 
   const supabase = getSupabaseAdmin()
@@ -109,7 +104,7 @@ export async function obtenerVariablesOrganizacion(): Promise<Record<string, str
     .maybeSingle()
 
   if (!data) {
-    _cacheProductora = { data: {}, expira: Date.now() + TTL_PRODUCTORA_MS }
+    _cacheOrganizacion = { data: {}, expira: Date.now() + TTL_ORGANIZACION_MS }
     return {}
   }
 
@@ -117,18 +112,24 @@ export async function obtenerVariablesOrganizacion(): Promise<Record<string, str
   // el renderizador del email cae al fallback de "solo nombre".
   const mostrarLogo = data.usar_logo !== false && !!data.logo_path
 
+  const nombre = data.nombre || ''
+  const telefono = data.telefono || ''
+  const email = data.email || ''
+  const logo = mostrarLogo ? (data.logo_path || '') : ''
+  const colorMarca = data.color_marca || ''
+
   const vars = {
-    productora_nombre: data.nombre || '',
-    productora_telefono: data.telefono || '',
-    productora_email: data.email || '',
-    productora_logo: mostrarLogo ? (data.logo_path || '') : '',
-    productora_color_marca: data.color_marca || '',
+    organizacion_nombre: nombre,
+    organizacion_telefono: telefono,
+    organizacion_email: email,
+    organizacion_logo: logo,
+    organizacion_color_marca: colorMarca,
   }
-  _cacheProductora = { data: vars, expira: Date.now() + TTL_PRODUCTORA_MS }
+  _cacheOrganizacion = { data: vars, expira: Date.now() + TTL_ORGANIZACION_MS }
   return vars
 }
 
 /** Útil cuando el admin guarda /crm/configuracion/perfil: forzar refresh */
 export function invalidarCacheVariablesOrganizacion(): void {
-  _cacheProductora = null
+  _cacheOrganizacion = null
 }

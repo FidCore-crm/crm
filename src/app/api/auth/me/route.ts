@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       rol: usuario.rol,
       acceso_cartera: usuario.acceso_cartera,
       activo: usuario.activo,
+      mostrar_ayuda_contextual: usuario.mostrar_ayuda_contextual,
     },
   })
 

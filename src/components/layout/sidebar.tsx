@@ -21,6 +21,7 @@ import {
   Bell,
   Upload,
   Mail,
+  BookOpen,
 } from 'lucide-react'
 import { cn, hoyLocal } from '@/lib/utils'
 import { getSupabaseClient } from '@/lib/supabase/client'
@@ -160,6 +161,12 @@ const navItems: NavSection[] = [
         icon: Upload,
         label: 'Importar cartera',
         modulo: 'importar',
+      },
+      {
+        href: '/crm/ayuda',
+        icon: BookOpen,
+        label: 'Centro de Ayuda',
+        sublabel: 'Guías cortas por módulo',
       },
     ],
   },

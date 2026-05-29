@@ -11,7 +11,9 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
  *   - aperturas_mes     : aperturas únicas (cantidad_aperturas > 0) sobre los enviados del mes
  *   - clicks_mes        : clicks únicos (cantidad_clicks > 0) sobre los enviados del mes
  *   - en_cola           : ENCOLADO + ENVIANDO ahora
+ *   - cola_atrasada     : ENCOLADOS esperando hace >12h (señal de SMTP caído o cron muerto)
  *   - fallidos_mes      : FALLIDO con fecha_creacion en el mes en curso
+ *   - fallidos_reintentables : FALLIDOS TRANSITORIO con intentos < 4 (el cron los va a reintentar)
  *   - tasa_apertura     : (aperturas / enviados) * 100, redondeado
  *   - tasa_click        : (clicks / enviados) * 100, redondeado
  *
@@ -38,7 +40,8 @@ export async function GET(request: NextRequest) {
         ok: true,
         kpis: {
           enviados_mes: 0, aperturas_mes: 0, clicks_mes: 0,
-          en_cola: 0, fallidos_mes: 0, tasa_apertura: 0, tasa_click: 0,
+          en_cola: 0, cola_atrasada: 0, fallidos_mes: 0, fallidos_reintentables: 0,
+          tasa_apertura: 0, tasa_click: 0,
         },
       })
     }
@@ -47,11 +50,14 @@ export async function GET(request: NextRequest) {
   // Rango "este mes"
   const ahora = new Date()
   const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString()
+  // Umbral "cola atrasada": ENCOLADOS esperando hace más de 12h. Si esto
+  // crece, casi seguro hay un problema (SMTP caído, cron muerto).
+  const hace12h = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
 
   const conCartera = (q: any) => idsPersonas !== null ? q.in('persona_id', idsPersonas) : q
 
   // Queries en paralelo
-  const [enviados, aperturas, clicks, enCola, fallidos] = await Promise.all([
+  const [enviados, aperturas, clicks, enCola, colaAtrasada, fallidos, fallidosReint] = await Promise.all([
     conCartera(supabase
       .from('email_envios')
       .select('id', { count: 'exact', head: true })
@@ -76,8 +82,20 @@ export async function GET(request: NextRequest) {
     conCartera(supabase
       .from('email_envios')
       .select('id', { count: 'exact', head: true })
+      .eq('estado', 'ENCOLADO')
+      .lt('enviar_despues_de', hace12h)),
+    conCartera(supabase
+      .from('email_envios')
+      .select('id', { count: 'exact', head: true })
       .eq('estado', 'FALLIDO')
       .gte('fecha_creacion', inicioMes)),
+    conCartera(supabase
+      .from('email_envios')
+      .select('id', { count: 'exact', head: true })
+      .eq('estado', 'FALLIDO')
+      .eq('error_tipo', 'TRANSITORIO')
+      .lt('intentos', 4)
+      .not('proximo_intento_en', 'is', null)),
   ])
 
   const enviadosMes = enviados.count ?? 0
@@ -91,7 +109,9 @@ export async function GET(request: NextRequest) {
       aperturas_mes: aperturasMes,
       clicks_mes: clicksMes,
       en_cola: enCola.count ?? 0,
+      cola_atrasada: colaAtrasada.count ?? 0,
       fallidos_mes: fallidos.count ?? 0,
+      fallidos_reintentables: fallidosReint.count ?? 0,
       tasa_apertura: enviadosMes > 0 ? Math.round((aperturasMes / enviadosMes) * 100) : 0,
       tasa_click: enviadosMes > 0 ? Math.round((clicksMes / enviadosMes) * 100) : 0,
     },

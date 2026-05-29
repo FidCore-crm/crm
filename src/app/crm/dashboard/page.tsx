@@ -824,7 +824,7 @@ export default function DashboardPage() {
                         onChange={e => setPostitTexto(e.target.value)}
                         maxLength={500}
                         placeholder="Escribí tu nota..."
-                        className="flex-1 bg-transparent border-none outline-none resize-none text-sm text-slate-800 placeholder-slate-400"
+                        className="flex-1 bg-transparent border-none outline-none resize-none font-postit text-xl leading-tight text-slate-800 placeholder-slate-400"
                         autoFocus
                         rows={5}
                       />
@@ -939,8 +939,8 @@ export default function DashboardPage() {
                           </div>
                         )}
 
-                        {/* Texto */}
-                        <p className="flex-1 text-sm text-slate-800 whitespace-pre-wrap break-words leading-snug">{p.texto}</p>
+                        {/* Texto manuscrito tipo nota real */}
+                        <p className="flex-1 font-postit text-xl leading-tight text-slate-800 whitespace-pre-wrap break-words">{p.texto}</p>
 
                         {/* Footer */}
                         <div className="flex items-end justify-between mt-2">

@@ -10,14 +10,19 @@ export const maxDuration = 300
 /**
  * GET /api/cron/enviar-emails-encolados
  *
- * Procesa la cola de emails ENCOLADO con `enviar_despues_de <= NOW()`.
- * Máximo 50 emails por ciclo, con delay configurable entre cada uno
- * (configuracion_comunicaciones.delay_entre_envios_automaticos_seg).
+ * Procesa hasta 50 emails por ciclo, en este orden:
+ *   1. ENCOLADO con `enviar_despues_de <= NOW()`
+ *   2. FALLIDO con `error_tipo=TRANSITORIO`, `intentos < 4` y
+ *      `proximo_intento_en <= NOW()` (backoff exponencial 30m/2h/8h/24h)
  *
- * Si un email falla, crea una notificación tipo EMAIL_AUTOMATICO_FALLIDO
- * para que el admin lo vea en el panel.
+ * Si un email falla, el procesador clasifica el error:
+ *   - TRANSITORIO (timeout/4XX/rate limit) → programa el próximo intento
+ *   - PERMANENTE (email inválido/5.X.X) → FALLIDO definitivo, no reintentar
  *
- * maxDuration = 300s (5 min) para que quepan los 50 emails × 10s delay.
+ * Notifica al admin (EMAIL_AUTOMATICO_FALLIDO) cuando un AUTOMATICO_* a
+ * cliente falla. Los SISTEMA_* solo se loggean (anti-bucle).
+ *
+ * maxDuration = 300s (5 min).
  */
 export async function GET(request: Request) {
   const authError = await validarCronSecret(request)
@@ -38,25 +43,45 @@ export async function GET(request: Request) {
 
   const delaySeg = (config as any).delay_entre_envios_automaticos_seg ?? 10
 
-  // Tomar hasta 50 emails encolados listos para enviar.
-  // Priorizamos ALTA (críticos del sistema) sobre NORMAL, luego por fecha
-  // programada y por orden de creación. El índice
-  // `idx_email_envios_cola_priorizada` acompaña este ORDER BY.
+  // Tomar hasta 50 emails listos para procesar (ENCOLADO o FALLIDO con
+  // backoff cumplido). Priorizamos ALTA sobre NORMAL.
   const ahora = new Date().toISOString()
-  const { data: encolados, error } = await supabase
-    .from('email_envios')
-    .select('id, tipo_envio, destinatario_email, persona_id')
-    .eq('estado', 'ENCOLADO')
-    .lte('enviar_despues_de', ahora)
-    .order('prioridad', { ascending: false })
-    .order('enviar_despues_de', { ascending: true })
-    .order('fecha_creacion', { ascending: true })
-    .limit(50)
+  const [encoladosRes, fallidosRes] = await Promise.all([
+    supabase
+      .from('email_envios')
+      .select('id, tipo_envio, destinatario_email, persona_id')
+      .eq('estado', 'ENCOLADO')
+      .lte('enviar_despues_de', ahora)
+      .order('prioridad', { ascending: false })
+      .order('enviar_despues_de', { ascending: true })
+      .order('fecha_creacion', { ascending: true })
+      .limit(50),
+    supabase
+      .from('email_envios')
+      .select('id, tipo_envio, destinatario_email, persona_id')
+      .eq('estado', 'FALLIDO')
+      .eq('error_tipo', 'TRANSITORIO')
+      .lt('intentos', 4)
+      .not('proximo_intento_en', 'is', null)
+      .lte('proximo_intento_en', ahora)
+      .order('prioridad', { ascending: false })
+      .order('proximo_intento_en', { ascending: true })
+      .limit(50),
+  ])
 
-  if (error) {
+  if (encoladosRes.error || fallidosRes.error) {
     return NextResponse.json({ ok: false, error: 'Error al obtener los datos' }, { status: 500 })
   }
-  if (!encolados || encolados.length === 0) {
+  // Mergeamos respetando el límite de 50, priorizando los ENCOLADOS frescos.
+  const encolados = [
+    ...(encoladosRes.data ?? []),
+    ...(fallidosRes.data ?? []),
+  ].slice(0, 50)
+
+  if (encolados.length === 0) {
+    // Aprovechamos el ciclo (sin trabajo) para chequear si hay cola atrasada
+    // y avisar al admin si corresponde.
+    await alertarSiColaAtrasada(supabase)
     return NextResponse.json({ ok: true, procesados: 0 })
   }
 
@@ -126,6 +151,10 @@ export async function GET(request: Request) {
     }
   }
 
+  // Después de procesar, chequear si quedaron muchos atrasados — eso señala
+  // un problema sistémico (SMTP malo, etc.) y vale avisar al admin.
+  await alertarSiColaAtrasada(supabase)
+
   return NextResponse.json({
     ok: true,
     procesados: encolados.length,
@@ -133,4 +162,47 @@ export async function GET(request: Request) {
     fallidos,
     errores: errores.slice(0, 20), // truncar
   })
+}
+
+/**
+ * Si hay más de UMBRAL emails ENCOLADO esperando hace >24h, encola una
+ * notificación in-app al admin. Anti-spam: no repetir el aviso si ya hay
+ * una notif COLA_EMAILS_ATRASADA en las últimas 24h.
+ *
+ * No mandamos email Pulzar para esto porque puede ser justamente el SMTP
+ * el que está fallando — la notif in-app + banner del CRM alcanzan.
+ */
+async function alertarSiColaAtrasada(supabase: ReturnType<typeof getSupabaseAdmin>): Promise<void> {
+  const UMBRAL = 5
+  const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+  try {
+    const { count } = await supabase
+      .from('email_envios')
+      .select('id', { count: 'exact', head: true })
+      .eq('estado', 'ENCOLADO')
+      .lt('enviar_despues_de', hace24h)
+
+    if ((count ?? 0) < UMBRAL) return
+
+    // Anti-spam: si ya avisamos en las últimas 24h, no repetir.
+    const { data: previa } = await supabase
+      .from('notificaciones')
+      .select('id')
+      .eq('tipo', 'COLA_EMAILS_ATRASADA')
+      .gte('created_at', hace24h)
+      .limit(1)
+    if (previa && previa.length > 0) return
+
+    await (supabase.from('notificaciones') as any).insert({
+      tipo: 'COLA_EMAILS_ATRASADA',
+      prioridad: 'CRITICA',
+      titulo: 'La cola de emails está atrasada',
+      mensaje: `Hay ${count} emails encolados hace más de 24 horas. Revisá la configuración SMTP y el estado del cron.`,
+      url: '/crm/comunicaciones',
+      leida: false,
+    })
+  } catch (err: any) {
+    logger.warn({ modulo: 'cron', mensaje: 'No se pudo chequear/notificar cola atrasada', contexto: { error: err?.message } })
+  }
 }

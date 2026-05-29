@@ -9,8 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
  * Banner sticky arriba de toda la app que avisa sobre vencimiento de licencia.
  * Aparece cuando:
  *   - Faltan <= 30 días para que venza la licencia activa.
- *   - Está en período de gracia.
- *   - Está en modo bloqueado (solo lectura).
+ *   - La licencia ya venció (modo gracia interno o bloqueada).
  *   - No hay licencia cargada.
  *
  * Color escalonado: amarillo → naranja → rojo según urgencia.
@@ -66,7 +65,7 @@ export function BannerLicencia() {
     textColor = 'text-orange-900'
     borderColor = 'border-orange-400'
     Icono = AlertTriangle
-    mensaje = `Tu licencia venció. Quedan ${estado.dias_gracia_restantes} días para cargar una nueva y mantener todas las funciones activas.`
+    mensaje = 'Tu licencia venció. Cargá una nueva para mantener todas las funciones activas.'
   } else if (modo === 'BLOQUEADA') {
     bgColor = 'bg-red-600'
     textColor = 'text-white'

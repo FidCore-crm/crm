@@ -173,12 +173,17 @@ marcar_ejecutando_atomico() {
 # Marca COMPLETADA de forma ATÓMICA: solo cambia si está en EJECUTANDO.
 # Si el admin marcó FALLIDA (forzar-cierre) mientras el script seguía corriendo,
 # NO pisamos esa decisión — devolvemos error y el cleanup respeta el estado.
+# Si hay BACKUP_ID válido, lo linkeamos para que se vea en la UI del historial.
 marcar_completada_atomica() {
+  local set_backup=""
+  if [ -n "$BACKUP_ID" ] && [[ "$BACKUP_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+    set_backup=", backup_id='${BACKUP_ID}'"
+  fi
   local out
   out=$(db_exec -tAc \
     "UPDATE actualizaciones
        SET estado='COMPLETADA',
-           fecha_fin_ejecucion=now()
+           fecha_fin_ejecucion=now()${set_backup}
      WHERE id='${ACTUALIZACION_ID}' AND estado='EJECUTANDO'
      RETURNING id;" 2>&1 | head -1 | tr -d '[:space:]')
   if [ -n "$out" ] && [[ "$out" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then

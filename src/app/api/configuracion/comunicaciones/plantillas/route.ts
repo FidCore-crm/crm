@@ -7,9 +7,15 @@ export async function GET(request: NextRequest) {
   if (auth instanceof NextResponse) return auth
   try {
     const supabase = getSupabaseAdmin()
+    // Excluye las plantillas sistema_licencia_* defensivamente: son
+    // notificaciones de Pulzar al admin (hardcoded en src/lib/pulzar-emails.ts)
+    // y el PAS no debería poder editarlas. La migración 083 las elimina de
+    // DB; este filtro queda para que si por algún motivo reaparecen no se
+    // muestren en la UI.
     const { data, error } = await supabase
       .from('plantillas_email')
       .select('*')
+      .not('codigo', 'like', 'sistema_licencia_%')
       .order('created_at', { ascending: true })
 
     if (error) {

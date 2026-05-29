@@ -18,6 +18,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { enviarEmail } from '@/lib/email-sender'
 import { renderizarPlantilla, escapeHtml } from '@/lib/email-templates/renderizador'
 import { logger } from '@/lib/errores/logger'
+import { clasificarError, calcularProximoIntento, MAX_INTENTOS } from '@/lib/email-error-classifier'
 import {
   obtenerVariablesPersona,
   obtenerVariablesPoliza,
@@ -470,17 +471,18 @@ export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boo
   const urlsPublicas = await obtenerUrlsPublicas()
   const baseUrl = getBaseUrl(urlsPublicas.crm)
 
-  // Marcar ENVIANDO atómicamente
+  // Marcar ENVIANDO atómicamente. Aceptamos también FALLIDO (reintento de
+  // backoff): el cron solo nos llama cuando proximo_intento_en <= NOW().
   const { data: envio } = await supabase
     .from('email_envios')
     .update({ estado: 'ENVIANDO' })
     .eq('id', envio_id)
-    .eq('estado', 'ENCOLADO')
+    .in('estado', ['ENCOLADO', 'FALLIDO'])
     .select('*')
     .single()
 
   if (!envio) {
-    return { ok: false, error: 'Envío no está en estado ENCOLADO' }
+    return { ok: false, error: 'Envío no está en estado procesable (ENCOLADO/FALLIDO)' }
   }
 
   const e = envio as any
@@ -551,7 +553,7 @@ export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boo
     if (e.poliza_id && (tipo === 'AUTOMATICO_BIENVENIDA' || tipo === 'AUTOMATICO_RENOVACION')) {
       const portalHtml = await obtenerBloquePortalAsegurado(
         e.poliza_id,
-        variables.productora_color_marca || undefined,
+        variables.organizacion_color_marca || undefined,
       )
       if (portalHtml) {
         bloqueExtraHtml = (bloqueExtraHtml ? bloqueExtraHtml + '\n' : '') + portalHtml
@@ -560,11 +562,11 @@ export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boo
 
     // Organización
     const organizacion = {
-      nombre: variables.productora_nombre || 'Productor de Seguros',
-      telefono: variables.productora_telefono,
-      email: variables.productora_email,
-      logo_url: variables.productora_logo ? `${baseUrl}/api/storage/${variables.productora_logo}` : undefined,
-      color_marca: variables.productora_color_marca || undefined,
+      nombre: variables.organizacion_nombre || 'Productor de Seguros',
+      telefono: variables.organizacion_telefono,
+      email: variables.organizacion_email,
+      logo_url: variables.organizacion_logo ? `${baseUrl}/api/storage/${variables.organizacion_logo}` : undefined,
+      color_marca: variables.organizacion_color_marca || undefined,
     }
 
     // URLs de tracking
@@ -621,28 +623,62 @@ export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boo
           estado: 'ENVIADO',
           fecha_envio: new Date().toISOString(),
           intentos: (e.intentos || 0) + 1,
+          proximo_intento_en: null,
+          error_tipo: null,
         })
         .eq('id', envio_id)
       return { ok: true }
     } else {
-      await supabase
-        .from('email_envios')
-        .update({
-          estado: 'FALLIDO',
-          error_mensaje: resultado.error || 'Error desconocido',
-          intentos: (e.intentos || 0) + 1,
-        })
-        .eq('id', envio_id)
+      await marcarFalladoConBackoff(envio_id, e.intentos || 0, resultado.error || 'Error desconocido')
       return { ok: false, error: resultado.error }
     }
   } catch (err: any) {
     const msg = err?.message || 'Error inesperado al procesar envío'
-    await supabase
-      .from('email_envios')
-      .update({ estado: 'FALLIDO', error_mensaje: msg, intentos: (e.intentos || 0) + 1 })
-      .eq('id', envio_id)
+    await marcarFalladoConBackoff(envio_id, e.intentos || 0, msg)
     return { ok: false, error: msg }
   }
+}
+
+/**
+ * Marca un envío como FALLIDO clasificando el error y decidiendo si se
+ * reintenta más tarde (TRANSITORIO con backoff) o si queda como definitivo
+ * (PERMANENTE, o TRANSITORIO que ya agotó sus 4 intentos).
+ */
+async function marcarFalladoConBackoff(
+  envio_id: string,
+  intentosPrevios: number,
+  mensajeError: string,
+): Promise<void> {
+  const supabase = getSupabaseAdmin()
+  const intentos = intentosPrevios + 1
+  const tipo = clasificarError(mensajeError)
+  // Solo intentamos de nuevo si el error es transitorio Y no superamos el máximo.
+  const proximoIntento = tipo === 'TRANSITORIO' && intentos < MAX_INTENTOS
+    ? calcularProximoIntento(intentos - 1)
+    : null
+
+  await supabase
+    .from('email_envios')
+    .update({
+      estado: 'FALLIDO',
+      error_mensaje: mensajeError,
+      error_tipo: tipo,
+      intentos,
+      proximo_intento_en: proximoIntento ? proximoIntento.toISOString() : null,
+    })
+    .eq('id', envio_id)
+
+  logger.warn({
+    modulo: 'comunicaciones',
+    mensaje: 'Email FALLIDO',
+    contexto: {
+      envio_id,
+      intentos,
+      tipo,
+      reintentara_en: proximoIntento?.toISOString() ?? 'no_reintenta',
+      error: mensajeError.slice(0, 200),
+    },
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -879,8 +915,11 @@ function mapearTipoEvento(tipo: TipoEventoSistema): MapeoEventoSistema {
 /**
  * Devuelve los admins activos (rol=ADMIN, activo=true) con email válido.
  * Usado como destinatarios de las notificaciones de sistema.
+ *
+ * Exportado para que otros helpers (ej: `pulzar-emails`) puedan resolver
+ * destinatarios admin sin duplicar la query.
  */
-async function obtenerAdminsActivos(): Promise<Array<{ id: string; email: string; nombre: string }>> {
+export async function obtenerAdminsActivos(): Promise<Array<{ id: string; email: string; nombre: string }>> {
   const supabase = getSupabaseAdmin()
   // 1) Listar IDs y nombres desde usuarios_perfil
   const { data } = await supabase

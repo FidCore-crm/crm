@@ -14,6 +14,7 @@ import { formatFechaLocal, formatMoneda, getTooltipEstado, sanitizarBusquedaNorm
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { EstadoCarga } from '@/components/EstadoCarga'
 import { useEsSoloLectura } from '@/contexts/LicenciaContext'
+import AyudaTooltip from '@/components/AyudaTooltip'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface Siniestro {
@@ -387,7 +388,12 @@ export default function SiniestrosPage() {
         <table className="crm-table">
           <thead>
             <tr>
-              <th>Caso</th>
+              <th>
+                <span className="inline-flex items-center gap-1">
+                  Caso
+                  <AyudaTooltip clave="siniestros.numero_caso_vs_siniestro" inline />
+                </span>
+              </th>
               <th>Siniestro N°</th>
               <th>
                 <div className="flex items-center gap-1 cursor-pointer" onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}>
@@ -400,7 +406,12 @@ export default function SiniestrosPage() {
               <th>Bien afectado</th>
               <th>Póliza</th>
               <th className="text-right">Monto est.</th>
-              <th>Estado</th>
+              <th>
+                <span className="inline-flex items-center gap-1">
+                  Estado
+                  <AyudaTooltip clave="siniestros.estado" inline />
+                </span>
+              </th>
               <th style={{ width: 80 }}>Acciones</th>
             </tr>
           </thead>

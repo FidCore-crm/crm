@@ -241,7 +241,11 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
                     </div>
                   ) : previewHtml ? (
                     <iframe
-                      sandbox=""
+                      // allow-same-origin + allow-popups: imágenes del logo
+                      // cargan correctamente y los links del preview abren
+                      // en nueva pestaña. Scripts siguen bloqueados (sin
+                      // allow-scripts) → no hay riesgo de XSS.
+                      sandbox="allow-same-origin allow-popups"
                       srcDoc={previewHtml}
                       className="w-full bg-white"
                       style={{ height: '600px', border: 'none' }}
