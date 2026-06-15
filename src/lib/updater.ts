@@ -140,81 +140,113 @@ export async function consultarUltimaActualizacion(opciones?: {
   // versiones no promovidas todavía. En instalaciones de clientes la env var
   // no está y el comportamiento es el de siempre (solo Latest).
   const incluirPrereleases = process.env.FIDCORE_INCLUIR_PRERELEASES === 'true'
-  const endpoint = incluirPrereleases
-    ? `https://api.github.com/repos/${repo}/releases?per_page=10`
-    : `https://api.github.com/repos/${repo}/releases/latest`
+
+  type ReleaseJson = {
+    tag_name: string
+    name: string | null
+    body: string | null
+    published_at: string
+    html_url: string
+    draft: boolean
+    prerelease: boolean
+  }
+
+  /**
+   * Consulta un endpoint de GitHub y devuelve el resultado clasificado.
+   *   - { ok: true, data }        → consulta exitosa con datos
+   *   - { ok: true, vacio: true } → 404 (no hay releases — válido)
+   *   - { ok: false, error }      → 403 rate limit, 5xx upstream, timeout, etc.
+   */
+  async function consultarGitHub(
+    path: string,
+  ): Promise<
+    | { ok: true; data: unknown; vacio?: false }
+    | { ok: true; vacio: true; data?: undefined }
+    | { ok: false; error: string; status?: number }
+  > {
+    try {
+      const resp = await fetch(`https://api.github.com/repos/${repo}${path}`, {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+        signal: AbortSignal.timeout(5000),
+      })
+
+      if (resp.status === 404) return { ok: true, vacio: true }
+      if (resp.status === 403) {
+        return { ok: false, error: 'GitHub rate limit alcanzado. Reintentar en 1 hora.', status: 403 }
+      }
+      if (!resp.ok) {
+        return { ok: false, error: `GitHub respondió HTTP ${resp.status}`, status: resp.status }
+      }
+      return { ok: true, data: await resp.json() }
+    } catch (err: any) {
+      const isTimeout = err?.name === 'TimeoutError' || err?.code === 'ETIMEDOUT'
+      return {
+        ok: false,
+        error: isTimeout ? 'GitHub no respondió (timeout 5s)' : `Error de red: ${err?.message ?? String(err)}`,
+      }
+    }
+  }
 
   try {
-    const resp = await fetch(endpoint, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
-      // GitHub responde rápido; 5s es generoso pero evita colgar el endpoint
-      signal: AbortSignal.timeout(5000),
-    })
-
-    if (resp.status === 404) {
-      // No hay releases publicados todavía. Es válido.
-      const data: ActualizacionDisponibleResult = {
-        version_actual: versionActual,
-        hay_actualizacion: false,
-      }
-      _cacheRelease = { data, expira: Date.now() + TTL_RELEASE_CHECK_MS }
-      return data
-    }
-
-    if (resp.status === 403) {
-      // Rate limit (GitHub permite 60 req/h sin auth).
-      const data: ActualizacionDisponibleResult = {
-        version_actual: versionActual,
-        hay_actualizacion: false,
-        error: 'GitHub rate limit alcanzado. Reintentar en 1 hora.',
-      }
-      // No cacheamos errores de rate limit por mucho tiempo
-      _cacheRelease = { data, expira: Date.now() + 60_000 }
-      return data
-    }
-
-    if (!resp.ok) {
-      const data: ActualizacionDisponibleResult = {
-        version_actual: versionActual,
-        hay_actualizacion: false,
-        error: `GitHub respondió HTTP ${resp.status}`,
-      }
-      _cacheRelease = { data, expira: Date.now() + 60_000 }
-      return data
-    }
-
-    type ReleaseJson = {
-      tag_name: string
-      name: string | null
-      body: string | null
-      published_at: string
-      html_url: string
-      draft: boolean
-      prerelease: boolean
-    }
-
-    // En modo "incluir pre-releases", recibimos un array y tomamos el primer
-    // release no-draft que sea más nuevo que la versión actual. La API devuelve
-    // los releases ordenados por created_at DESC, así que el primero es el más
-    // reciente. Considerando que el equipo dev publica primero como pre-release
-    // y después promueve a Latest, queremos detectar tanto la pre-release nueva
-    // como un Latest nuevo.
     let releaseSeleccionado: ReleaseJson | null = null
+    let errorFinal: { error: string; status?: number } | null = null
+
     if (incluirPrereleases) {
-      const arr = await resp.json() as ReleaseJson[]
-      // Saltear drafts (los publicados con prerelease=true sí los consideramos)
-      const candidato = arr.find(r => !r.draft)
-      if (candidato) releaseSeleccionado = candidato
-    } else {
-      releaseSeleccionado = await resp.json() as ReleaseJson
-      // /releases/latest YA excluye drafts y pre-releases por la API,
-      // pero defensivamente chequeamos por si GitHub cambia el comportamiento.
-      if (releaseSeleccionado.draft || releaseSeleccionado.prerelease) {
-        releaseSeleccionado = null
+      // Modo dev: consultamos /releases (lista) y tomamos el primer no-draft.
+      const r = await consultarGitHub(`/releases?per_page=10`)
+      if (!r.ok) {
+        errorFinal = { error: r.error, status: r.status }
+      } else if (!r.vacio) {
+        const arr = r.data as ReleaseJson[]
+        const candidato = arr.find(x => !x.draft)
+        if (candidato) releaseSeleccionado = candidato
       }
+    } else {
+      // Modo cliente: consultamos /releases/latest. Fallback automático: si
+      // GitHub devuelve 5xx (servidor caído, gateway, timeout), reintentamos
+      // contra /releases y tomamos el primero no-draft no-pre-release. Razón:
+      // se vio (incidente del 2026-06-15) que /releases/latest puede dar 504
+      // intermitente mientras /releases responde 200 OK. Esto da resiliencia
+      // contra el bug sin afectar el comportamiento normal.
+      const r = await consultarGitHub(`/releases/latest`)
+      if (r.ok && !r.vacio) {
+        const json = r.data as ReleaseJson
+        // /releases/latest YA excluye drafts y pre-releases por la API,
+        // pero defensivamente chequeamos por si GitHub cambia el comportamiento.
+        if (!json.draft && !json.prerelease) releaseSeleccionado = json
+      } else if (!r.ok && r.status && r.status >= 500) {
+        // 5xx → fallback a /releases (mismo repo, endpoint distinto)
+        logger.warn({
+          modulo: 'updater',
+          mensaje: 'GitHub /releases/latest devolvió 5xx — fallback a /releases',
+          contexto: { repo, status: r.status, error: r.error },
+        })
+        const r2 = await consultarGitHub(`/releases?per_page=5`)
+        if (r2.ok && !r2.vacio) {
+          const arr = r2.data as ReleaseJson[]
+          const candidato = arr.find(x => !x.draft && !x.prerelease)
+          if (candidato) releaseSeleccionado = candidato
+        } else if (!r2.ok) {
+          errorFinal = { error: r2.error, status: r2.status }
+        }
+      } else if (!r.ok) {
+        // 403, timeout, etc. → NO hacemos fallback (suelen afectar TODOS los
+        // endpoints de GitHub, fallback solo gastaría rate-limit adicional).
+        errorFinal = { error: r.error, status: r.status }
+      }
+    }
+
+    if (errorFinal) {
+      const data: ActualizacionDisponibleResult = {
+        version_actual: versionActual,
+        hay_actualizacion: false,
+        error: errorFinal.error,
+      }
+      _cacheRelease = { data, expira: Date.now() + 60_000 }
+      return data
     }
 
     if (!releaseSeleccionado) {

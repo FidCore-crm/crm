@@ -11,6 +11,8 @@ export interface ReleaseGitHub {
   published_at: string
   html_url: string
   es_mas_nueva: boolean
+  /** true si es un pre-release de GitHub (solo aparece si FIDCORE_INCLUIR_PRERELEASES=true) */
+  prerelease?: boolean
 }
 
 export type EstadoActualizacion =
