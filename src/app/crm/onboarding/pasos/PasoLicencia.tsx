@@ -153,7 +153,7 @@ export function PasoLicencia({ pasoActual, totalPasos, onAtras, onContinuar, onS
             </code>
             <p className="mt-2 text-xs text-slate-500">
               Si todavía no tenés tu archivo <code>.lic</code>, pasale este ID a tu contacto
-              de Pulzar para que te emita la licencia.
+              de FidCore para que te emita la licencia.
             </p>
           </div>
 

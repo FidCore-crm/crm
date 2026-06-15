@@ -12,8 +12,8 @@
  * atacante no puede engañar el header desde afuera.
  *
  * No seteamos `domain`: queremos que la cookie quede atada al hostname
- * exacto del CRM (ej: `<cliente>.pulzar.com.ar`) y NO se filtre a otros
- * subdominios que pudieran existir (ej: `denuncia.<cliente>.pulzar.com.ar`).
+ * exacto del CRM (ej: `<cliente>.fidcore.com.ar`) y NO se filtre a otros
+ * subdominios que pudieran existir (ej: `denuncia.<cliente>.fidcore.com.ar`).
  */
 
 export function detectarHttps(request: Request): boolean {
@@ -58,7 +58,7 @@ import type { NextResponse } from 'next/server'
 /** Setea las cookies de sesión Supabase Auth en el response:
  *    - `crm_session` (refresh_token, 30d, HttpOnly) — duradera, para backend
  *    - `crm_access`  (access_token, 1h, HttpOnly)   — rápida, para backend
- *    - `pulzar_jwt`  (access_token, 1h, NO-HttpOnly) — para el cliente Supabase
+ *    - `fidcore_jwt`  (access_token, 1h, NO-HttpOnly) — para el cliente Supabase
  *                                                      en el browser
  *
  *  ¿Por qué tres cookies? Las primeras dos son HttpOnly (no accesibles desde
@@ -93,7 +93,7 @@ export function setearCookiesSesion(
 
   // No-HttpOnly: para que el cliente Supabase del browser pueda agregar
   // el JWT como header Authorization en cada query (RLS necesita auth.uid()).
-  response.cookies.set('pulzar_jwt', tokens.access_token, {
+  response.cookies.set('fidcore_jwt', tokens.access_token, {
     httpOnly: false,
     secure,
     sameSite: 'lax',
@@ -106,5 +106,5 @@ export function setearCookiesSesion(
 export function limpiarCookiesSesion(response: NextResponse): void {
   response.cookies.set('crm_session', '', { path: '/', maxAge: 0 })
   response.cookies.set('crm_access', '', { path: '/', maxAge: 0 })
-  response.cookies.set('pulzar_jwt', '', { path: '/', maxAge: 0 })
+  response.cookies.set('fidcore_jwt', '', { path: '/', maxAge: 0 })
 }

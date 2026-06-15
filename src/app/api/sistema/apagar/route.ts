@@ -1,36 +1,40 @@
 import { NextResponse } from 'next/server'
-import { spawn, exec } from 'child_process'
-import { promisify } from 'util'
+import { promises as fs } from 'fs'
+import path from 'path'
 import { requireAdmin } from '@/lib/api-auth'
 import { logger } from '@/lib/errores'
+import { obtenerModo } from '@/lib/modo-instalacion'
 
-const execAsync = promisify(exec)
+// POST /api/sistema/apagar — solicita apagar el servidor físico (admin only,
+// modo APPLIANCE only).
+//
+// Funcionamiento:
+//   1. Verifica que el usuario sea admin y el modo sea APPLIANCE.
+//   2. Escribe un archivo trigger en /app/tmp/sistema/apagar.flag (bind-mounted
+//      al host como ${CRM_DIR}/tmp/sistema/apagar.flag).
+//   3. Un cron del host (sistema-trigger.sh) detecta el flag cada minuto y
+//      ejecuta sudo /sbin/shutdown -h now.
+//
+// El container no ejecuta sudo — Docker lo aislaría del host. El patrón
+// trigger+watcher es el mismo que usa el sistema de actualizaciones.
 
-// POST /api/sistema/apagar — apaga el servidor (admin only).
-// Verifica primero que sudoers permita el comando sin password; si no,
-// devuelve 503 con instrucciones claras.
+const SISTEMA_DIR = path.resolve(process.cwd(), 'tmp/sistema')
+const TRIGGER_FILE = path.join(SISTEMA_DIR, 'apagar.flag')
+
 export async function POST(request: Request) {
   const auth = await requireAdmin(request)
   if (auth instanceof NextResponse) return auth
 
-  // Pre-check: ¿el usuario que corre Node tiene permiso sudo NOPASSWD para shutdown?
-  try {
-    await execAsync('sudo -n -l /usr/sbin/shutdown')
-  } catch {
-    logger.error({
-      modulo: 'sistema-power',
-      mensaje: 'Sudoers no configurado para shutdown',
-      contexto: { usuario_id: auth.id },
-    })
+  if (obtenerModo() !== 'APPLIANCE') {
     return NextResponse.json(
       {
         ok: false,
         error: {
-          codigo: 'ERR_SYS_SUDOERS',
-          mensaje: 'El sistema no tiene permisos para apagar el servidor. Falta configurar sudoers (contactá al administrador del servidor).',
+          codigo: 'ERR_NEG_002',
+          mensaje: 'Apagar el servidor solo está disponible en modo servidor local. En VPS administrá la instancia desde el panel del proveedor.',
         },
       },
-      { status: 503 },
+      { status: 422 },
     )
   }
 
@@ -40,25 +44,35 @@ export async function POST(request: Request) {
     contexto: { usuario_id: auth.id, email: auth.email },
   })
 
-  // Disparar shutdown en background con 2s de gracia para que viaje la response.
-  setTimeout(() => {
-    try {
-      const child = spawn('sudo', ['-n', '/usr/sbin/shutdown', '-h', 'now', 'Apagado solicitado desde el CRM'], {
-        detached: true,
-        stdio: 'ignore',
-      })
-      child.unref()
-    } catch (err: any) {
-      logger.error({
-        modulo: 'sistema-power',
-        mensaje: 'Falló el spawn de shutdown',
-        contexto: { error: err?.message },
-      })
+  try {
+    await fs.mkdir(SISTEMA_DIR, { recursive: true })
+    const triggerData = {
+      accion: 'apagar',
+      solicitado_por_id: auth.id,
+      solicitado_por_email: auth.email,
+      timestamp: new Date().toISOString(),
     }
-  }, 2000)
+    await fs.writeFile(TRIGGER_FILE, JSON.stringify(triggerData, null, 2), 'utf-8')
+  } catch (err) {
+    logger.error({
+      modulo: 'sistema-power',
+      mensaje: 'No se pudo escribir el archivo trigger de apagado',
+      contexto: { error: String(err) },
+    })
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          codigo: 'ERR_SYS_001',
+          mensaje: 'No se pudo registrar la orden de apagado. Contactá al soporte técnico.',
+        },
+      },
+      { status: 500 },
+    )
+  }
 
   return NextResponse.json({
     ok: true,
-    mensaje: 'El servidor se está apagando. Perdiste acceso al CRM hasta que lo enciendas físicamente.',
+    mensaje: 'Orden de apagado registrada. El servidor se va a apagar en menos de 1 minuto.',
   })
 }

@@ -2,7 +2,7 @@
 # Fase 1 — Recolectar datos del cliente.
 #
 # Le pregunta al técnico los datos imprescindibles para la instalación.
-# No toca el sistema; solo persiste en /etc/pulzar/instalador.env.
+# No toca el sistema; solo persiste en /etc/fidcore/instalador.env.
 
 fase_datos_ejecutar() {
   ui_seccion "Datos del cliente"
@@ -18,7 +18,7 @@ Tip: si estás reanudando una instalación, los valores ya cargados aparecen com
   echo ""
 
   # Slug del cliente
-  ui_info "El slug es el identificador corto del cliente. Aparece en el subdominio (<slug>.pulzar.com.ar)."
+  ui_info "El slug es el identificador corto del cliente. Aparece en el subdominio (<slug>.fidcore.com.ar)."
   ui_desc "Solo minúsculas, números y guiones. Sin espacios, sin acentos, sin ñ."
   ui_desc "Ejemplo: juanperez, lobo-seguros, gomez-y-asoc"
   local slug
@@ -44,7 +44,7 @@ Tip: si estás reanudando una instalación, los valores ya cargados aparecen com
   # Tunnel token
   ui_info "Token del tunnel de Cloudflare (creado en el dashboard de Zero Trust)."
   ui_desc "Es el string largo del comando 'cloudflared service install <TOKEN>'."
-  ui_desc "Se guarda encriptado en /etc/pulzar/instalador.env (modo 600)."
+  ui_desc "Se guarda encriptado en /etc/fidcore/instalador.env (modo 600)."
   local tunnel_default
   tunnel_default=$(estado_get TUNNEL_TOKEN)
   local tunnel_token
@@ -108,8 +108,8 @@ Tip: si estás reanudando una instalación, los valores ya cargados aparecen com
   echo ""
   printf "  %-22s %s\n" "Cliente (slug):"      "$slug"
   printf "  %-22s %s\n" "Cliente (nombre):"    "$nombre"
-  printf "  %-22s %s\n" "Subdominio CRM:"      "https://$slug.pulzar.com.ar"
-  printf "  %-22s %s\n" "Subdominio denuncia:" "https://denuncia.$slug.pulzar.com.ar"
+  printf "  %-22s %s\n" "Subdominio CRM:"      "https://$slug.fidcore.com.ar"
+  printf "  %-22s %s\n" "Subdominio denuncia:" "https://denuncia.$slug.fidcore.com.ar"
   printf "  %-22s %s\n" "Tunnel token:"        "$(echo "$tunnel_token" | head -c 20)... (${#tunnel_token} chars)"
   printf "  %-22s %s\n" "Sentry DSN:"          "${sentry_dsn:-(sin configurar)}"
   printf "  %-22s %s\n" "Licencia .lic:"       "${licencia_path:-(se carga después)}"

@@ -19,7 +19,7 @@ import { validarCronSecret } from '@/lib/cron-auth'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { rotarLicencias, obtenerEstadoLicencia, invalidarCacheEstado, DIAS_GRACIA_POST_VENCIMIENTO } from '@/lib/licencia'
 import { obtenerAdminsActivos } from '@/lib/comunicaciones-sender'
-import { enviarEmailPulzar, type TipoEmailPulzar } from '@/lib/pulzar-emails'
+import { enviarEmailFidCore, type TipoEmailFidCore } from '@/lib/fidcore-emails'
 
 interface NotificacionInsertar {
   tipo: 'LICENCIA_POR_VENCER' | 'LICENCIA_VENCIDA' | 'LICENCIA_EN_GRACIA' | 'LICENCIA_BLOQUEADA'
@@ -66,23 +66,23 @@ async function notificarAdminSiCorresponde(
 }
 
 /**
- * Envía un email DESDE Pulzar AL admin del PAS.
+ * Envía un email DESDE FidCore AL admin del PAS.
  *
  * A diferencia del resto de eventos `sistema_*` (backup, PDF, error crítico),
- * los avisos de licencia NO los manda el CRM del PAS — los manda Pulzar (la
- * empresa) usando un From `Pulzar <pulzar.crm@gmail.com>` con datos de
+ * los avisos de licencia NO los manda el CRM del PAS — los manda FidCore (la
+ * empresa) usando un From `FidCore <pulzar.crm@gmail.com>` con datos de
  * contacto propios. El SMTP sigue siendo el del PAS por simplicidad, pero el
- * From/Reply-To/firma se sobreescriben en `enviarEmailPulzar()`.
+ * From/Reply-To/firma se sobreescriben en `enviarEmailFidCore()`.
  *
  * Esto evita que el PAS pueda editar el contenido (las plantillas son
- * hardcoded en `src/lib/pulzar-emails.ts`) y deja claro al cliente con quién
+ * hardcoded en `src/lib/fidcore-emails.ts`) y deja claro al cliente con quién
  * tiene que contactar para renovar.
  *
  * Síncrono y fire-and-forget por admin: si un email puntual falla, se loggea
  * pero el resto se envía.
  */
-async function emitirEmailLicenciaDesdePulzar(
-  tipo: TipoEmailPulzar,
+async function emitirEmailLicenciaDesdeFidCore(
+  tipo: TipoEmailFidCore,
   variables: { dias_restantes?: number; plan?: string; fecha_vencimiento?: string },
 ): Promise<void> {
   try {
@@ -97,7 +97,7 @@ async function emitirEmailLicenciaDesdePulzar(
     }
 
     for (const admin of admins) {
-      await enviarEmailPulzar({
+      await enviarEmailFidCore({
         tipo,
         destinatarioEmail: admin.email,
         variables: { ...variables, nombre_admin: admin.nombre },
@@ -106,7 +106,7 @@ async function emitirEmailLicenciaDesdePulzar(
   } catch (err) {
     logger.warn({
       modulo: 'cron-licencias',
-      mensaje: 'No se pudo enviar email Pulzar de licencia',
+      mensaje: 'No se pudo enviar email FidCore de licencia',
       contexto: { error: String(err), tipo },
     })
   }
@@ -161,13 +161,13 @@ export const GET = manejarErrores(async (request: NextRequest) => {
         tipo: 'LICENCIA_POR_VENCER',
         prioridad: dias <= 7 ? 'CRITICA' : 'ADVERTENCIA',
         titulo: `Tu licencia vence en ${dias} días`,
-        mensaje: `La licencia ${estado.licencia_activa.plan} vence el ${formatearFecha(estado.licencia_activa.fecha_vencimiento)}. Contactá a Pulzar para renovar.`,
+        mensaje: `La licencia ${estado.licencia_activa.plan} vence el ${formatearFecha(estado.licencia_activa.fecha_vencimiento)}. Contactá a FidCore para renovar.`,
         url: URL_LICENCIA,
       })
       avisos.push({ tipo: 'POR_VENCER', enviado })
 
       if (enviado) {
-        await emitirEmailLicenciaDesdePulzar('LICENCIA_POR_VENCER', {
+        await emitirEmailLicenciaDesdeFidCore('LICENCIA_POR_VENCER', {
           dias_restantes: dias,
           plan: estado.licencia_activa.plan,
           fecha_vencimiento: formatearFecha(estado.licencia_activa.fecha_vencimiento),
@@ -189,7 +189,7 @@ export const GET = manejarErrores(async (request: NextRequest) => {
     avisos.push({ tipo: 'GRACIA', enviado })
 
     if (enviado) {
-      await emitirEmailLicenciaDesdePulzar('LICENCIA_VENCIDA', {
+      await emitirEmailLicenciaDesdeFidCore('LICENCIA_VENCIDA', {
         fecha_vencimiento: formatearFecha(estado.licencia_activa.fecha_vencimiento),
       })
     }
@@ -209,12 +209,12 @@ export const GET = manejarErrores(async (request: NextRequest) => {
     })
     avisos.push({ tipo: 'BLOQUEADA', enviado })
 
-    // Solo mandamos email Pulzar si el admin tiene una licencia previa
+    // Solo mandamos email FidCore si el admin tiene una licencia previa
     // vencida (BLOQUEADA). Si nunca cargó ninguna (SIN_LICENCIA, ej. en
     // instalación nueva), el aviso por email no aplica — no sabemos quién es
     // el cliente todavía.
     if (enviado && estado.modo === 'BLOQUEADA') {
-      await emitirEmailLicenciaDesdePulzar('LICENCIA_BLOQUEADA', {})
+      await emitirEmailLicenciaDesdeFidCore('LICENCIA_BLOQUEADA', {})
     }
   }
 

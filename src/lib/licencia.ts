@@ -138,7 +138,7 @@ export function verificarLicencia(archivo: unknown): ResultadoVerificacion {
   if (esLicenciaPublicKeyPlaceholder()) {
     return {
       ok: false,
-      motivo: 'La llave pública de licencias no fue configurada en este CRM. Contactá a Pulzar.',
+      motivo: 'La llave pública de licencias no fue configurada en este CRM. Contactá a FidCore.',
     }
   }
 

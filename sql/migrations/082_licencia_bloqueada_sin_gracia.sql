@@ -11,10 +11,10 @@
 BEGIN;
 
 UPDATE public.plantillas_email SET
-  cuerpo = 'Tu licencia Pulzar venció. El sistema pasó a modo solo lectura: podés consultar personas, pólizas y siniestros, pero no crear ni editar nada nuevo.
+  cuerpo = 'Tu licencia FidCore venció. El sistema pasó a modo solo lectura: podés consultar personas, pólizas y siniestros, pero no crear ni editar nada nuevo.
 
 Para reactivar el sistema completo, cargá una licencia válida desde Configuración → Licencia. Apenas la subas, todas las funciones se desbloquean al instante.',
-  cuerpo_default = 'Tu licencia Pulzar venció. El sistema pasó a modo solo lectura: podés consultar personas, pólizas y siniestros, pero no crear ni editar nada nuevo.
+  cuerpo_default = 'Tu licencia FidCore venció. El sistema pasó a modo solo lectura: podés consultar personas, pólizas y siniestros, pero no crear ni editar nada nuevo.
 
 Para reactivar el sistema completo, cargá una licencia válida desde Configuración → Licencia. Apenas la subas, todas las funciones se desbloquean al instante.'
 WHERE codigo = 'sistema_licencia_bloqueada';

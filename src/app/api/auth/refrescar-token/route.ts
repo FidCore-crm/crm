@@ -2,14 +2,14 @@
 // POST /api/auth/refrescar-token
 //
 // Endpoint que el cliente Supabase del browser llama cuando recibe 401 en una
-// query (porque el JWT en la cookie `pulzar_jwt` venció).
+// query (porque el JWT en la cookie `fidcore_jwt` venció).
 //
 // Usa el refresh_token de la cookie HttpOnly `crm_session` para obtener un
 // nuevo par de tokens via GoTrue. Setea las 3 cookies actualizadas
-// (`crm_session`, `crm_access`, `pulzar_jwt`) y devuelve OK.
+// (`crm_session`, `crm_access`, `fidcore_jwt`) y devuelve OK.
 //
 // No expone el access_token en el body — el cliente lo va a leer desde
-// `pulzar_jwt` automáticamente.
+// `fidcore_jwt` automáticamente.
 //
 // Si no hay refresh_token válido, devuelve 401 — el cliente debería
 // redirigir a /login.

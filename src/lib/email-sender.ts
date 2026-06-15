@@ -74,14 +74,14 @@ export async function enviarEmail(params: {
    * Override del nombre y email de remitente. Si se pasan, se ignoran los
    * valores de `configuracion_correos.from_name/from_email`. Útil para
    * emails que el sistema envía en nombre de un tercero (ej: notificaciones
-   * de Pulzar al admin del PAS — el SMTP es del PAS pero el From dice Pulzar).
+   * de FidCore al admin del PAS — el SMTP es del PAS pero el From dice FidCore).
    * Si solo se pasa uno, el otro mantiene el default de la configuración.
    */
   fromName?: string
   fromEmail?: string
   /**
    * Si es true, omite la firma_html configurada por el PAS. Usado para emails
-   * que no son del PAS (ej: notificaciones de Pulzar al admin) — su firma
+   * que no son del PAS (ej: notificaciones de FidCore al admin) — su firma
    * propia no aplica.
    */
   omitirFirma?: boolean

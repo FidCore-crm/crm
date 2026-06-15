@@ -99,8 +99,8 @@ export default function SetupPage() {
         <div className="relative z-10 flex-1 flex items-center justify-center min-h-[160px] lg:min-h-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/branding/pulzar-logo.svg"
-            alt="Pulzar"
+            src="/branding/fidcore-logo.svg"
+            alt="FidCore"
             className="h-16 lg:h-24 w-auto select-none"
             draggable={false}
           />

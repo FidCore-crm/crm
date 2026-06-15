@@ -1,15 +1,15 @@
 -- Migración 083 — Eliminar plantillas sistema_licencia_* de plantillas_email.
 --
 -- Las plantillas relacionadas con avisos de vencimiento de licencia ya NO se
--- editan desde el CRM. Conceptualmente son emails que envía Pulzar (la
+-- editan desde el CRM. Conceptualmente son emails que envía FidCore (la
 -- empresa) al admin del PAS (el cliente). El PAS no tiene por qué editar el
 -- contenido de un mensaje que la empresa proveedora le manda. Tampoco los
 -- datos de contacto (1166794861 / pulzar.crm@gmail.com) deben venir de la
 -- configuración del PAS.
 --
--- Las plantillas pasan a estar hardcoded en `src/lib/pulzar-emails.ts` y el
+-- Las plantillas pasan a estar hardcoded en `src/lib/fidcore-emails.ts` y el
 -- envío usa el SMTP que el PAS configuró pero con From/Reply-To/firma
--- sobreescritos a los datos de Pulzar.
+-- sobreescritos a los datos de FidCore.
 --
 -- Detalles:
 --   * No se quita SISTEMA_LICENCIA_* del CHECK de email_envios.tipo_envio

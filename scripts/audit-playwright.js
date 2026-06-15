@@ -19,7 +19,7 @@ const fs = require('fs')
 const path = require('path')
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000'
-const EMAIL = process.env.TEST_EMAIL || 'audit@pulzar.local'
+const EMAIL = process.env.TEST_EMAIL || 'audit@fidcore.local'
 const PASSWORD = process.env.TEST_PASSWORD || 'audittest123'
 
 const OUT_DIR = path.join(__dirname, '..', 'tmp', 'audit')

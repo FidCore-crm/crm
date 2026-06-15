@@ -43,14 +43,14 @@ fase_crm_ejecutar() {
   # 1. Generar .env.docker
   ui_info "Generando .env.docker..."
   local env_crm="$CRM_DIR/.env.docker"
-  local url_publica="https://${slug}.pulzar.com.ar"
+  local url_publica="https://${slug}.fidcore.com.ar"
   local encryption_key
   local cron_secret
   encryption_key=$(generar_hex 32)
   cron_secret=$(generar_hex 32)
 
   cat > "$env_crm" <<EOF
-# Generado por el instalador de Pulzar el $(date -Iseconds)
+# Generado por el instalador de FidCore el $(date -Iseconds)
 # Cliente: ${slug}
 
 # --- Supabase ---
@@ -158,7 +158,7 @@ EOF
   done
   if [[ $elapsed -ge $timeout ]]; then
     ui_warn "El CRM no respondió en $timeout segundos. Revisá los logs:"
-    ui_desc "  docker logs pulzar-crm | tail -50"
+    ui_desc "  docker logs fidcore-crm | tail -50"
   fi
 
   # 6. Reiniciar el auth de Supabase (ahora que la migración creó custom_access_token_hook)
@@ -180,7 +180,7 @@ EOF
     _cargar_licencia "$licencia_path"
   else
     ui_warn "Sin licencia cargada. El CRM arranca en modo SOLO LECTURA hasta que el PAS cargue la suya."
-    ui_desc "El PAS la carga en https://${slug}.pulzar.com.ar/crm/configuracion/licencia"
+    ui_desc "El PAS la carga en https://${slug}.fidcore.com.ar/crm/configuracion/licencia"
   fi
 
   fase_completar "crm"

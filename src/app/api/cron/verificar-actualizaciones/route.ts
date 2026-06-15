@@ -79,7 +79,7 @@ export async function GET(request: Request) {
     const { error: errNotif } = await (supabase.from('notificaciones') as any).insert({
       tipo: 'ACTUALIZACION_DISPONIBLE',
       prioridad: 'INFORMATIVA',
-      titulo: `Nueva versión disponible: Pulzar v${release.version}`,
+      titulo: `Nueva versión disponible: FidCore v${release.version}`,
       mensaje: `Una nueva versión del CRM está lista para instalar. Ver detalles en Configuración → Actualizaciones.`,
       entidad_tipo: 'actualizacion',
       entidad_id: huella,

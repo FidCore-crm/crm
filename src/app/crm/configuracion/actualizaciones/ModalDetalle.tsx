@@ -193,7 +193,7 @@ export function ModalDetalle({ id, onCerrar, onCambioEstado }: Props) {
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
                     a.href = url
-                    a.download = `pulzar-update-${data.version_anterior}-to-${data.version_nueva}-${data.id.slice(0, 8)}.log`
+                    a.download = `fidcore-update-${data.version_anterior}-to-${data.version_nueva}-${data.id.slice(0, 8)}.log`
                     document.body.appendChild(a)
                     a.click()
                     document.body.removeChild(a)

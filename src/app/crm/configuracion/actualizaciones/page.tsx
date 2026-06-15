@@ -98,8 +98,8 @@ export default function ActualizacionesPage() {
       typeof window !== 'undefined'
     ) {
       // Marca para no recargar en loop si versión del bundle siempre difiere
-      if (!sessionStorage.getItem('pulzar-version-mismatch-reloaded')) {
-        sessionStorage.setItem('pulzar-version-mismatch-reloaded', '1')
+      if (!sessionStorage.getItem('fidcore-version-mismatch-reloaded')) {
+        sessionStorage.setItem('fidcore-version-mismatch-reloaded', '1')
         window.location.reload()
       }
     }
@@ -136,7 +136,7 @@ export default function ActualizacionesPage() {
 
   const actualizarAhora = async () => {
     if (!disponible?.ultimo_release) return
-    if (!confirm(`¿Actualizar ahora a Pulzar v${disponible.ultimo_release.version}?\n\nEl CRM va a estar inaccesible durante 2-5 minutos.`)) return
+    if (!confirm(`¿Actualizar ahora a FidCore v${disponible.ultimo_release.version}?\n\nEl CRM va a estar inaccesible durante 2-5 minutos.`)) return
 
     const r = await apiCall<ActualizacionRow>('/api/actualizaciones/programar', {
       method: 'POST',
@@ -327,7 +327,7 @@ export default function ActualizacionesPage() {
                 <div className="flex-1">
                   <h3 className="text-sm font-semibold text-emerald-900">✓ Sistema al día</h3>
                   <p className="text-xs text-emerald-800 mt-0.5">
-                    Estás corriendo Pulzar v{estado?.version_actual} — la última versión disponible.
+                    Estás corriendo FidCore v{estado?.version_actual} — la última versión disponible.
                   </p>
                   {ultimaCompletada?.changelog && (
                     <button
@@ -385,7 +385,7 @@ function BannerUpdateDisponible({
         </div>
         <div className="flex-1">
           <h3 className="text-base font-semibold text-blue-950">
-            Nueva versión disponible: Pulzar v{release.version}
+            Nueva versión disponible: FidCore v{release.version}
           </h3>
           <p className="text-xs text-blue-700 mt-0.5">
             Publicada el {new Date(release.published_at).toLocaleDateString('es-AR', { dateStyle: 'long' })}
@@ -430,7 +430,7 @@ function InfoActualizaciones() {
       </summary>
       <div className="mt-3 space-y-2 pl-4 leading-relaxed">
         <p>
-          El sistema consulta automáticamente cada 4 horas el repositorio de Pulzar
+          El sistema consulta automáticamente cada 4 horas el repositorio de FidCore
           para ver si hay nuevas versiones publicadas.
         </p>
         <p>

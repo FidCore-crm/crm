@@ -2,7 +2,7 @@
 --
 -- El cron de envío de emails ahora detecta cuando la cola lleva más de 24h
 -- atrasada (señal típica de SMTP caído o cron muerto) y dispara esta notif
--- in-app al admin. No mandamos email Pulzar porque puede ser justamente el
+-- in-app al admin. No mandamos email FidCore porque puede ser justamente el
 -- SMTP el que está fallando.
 
 BEGIN;

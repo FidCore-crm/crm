@@ -14,12 +14,12 @@
 BEGIN;
 
 UPDATE public.plantillas_email SET
-  asunto = 'Tu licencia Pulzar venció — renová pronto',
-  asunto_default = 'Tu licencia Pulzar venció — renová pronto',
-  cuerpo = 'Tu licencia Pulzar venció el {{fecha_vencimiento}}. El sistema sigue funcionando con normalidad por unos días para que tengas tiempo de renovar.
+  asunto = 'Tu licencia FidCore venció — renová pronto',
+  asunto_default = 'Tu licencia FidCore venció — renová pronto',
+  cuerpo = 'Tu licencia FidCore venció el {{fecha_vencimiento}}. El sistema sigue funcionando con normalidad por unos días para que tengas tiempo de renovar.
 
 Si no cargás una licencia válida pronto, el CRM pasa a modo solo lectura: podrás consultar personas, pólizas y siniestros, pero no editar ni crear nada nuevo.',
-  cuerpo_default = 'Tu licencia Pulzar venció el {{fecha_vencimiento}}. El sistema sigue funcionando con normalidad por unos días para que tengas tiempo de renovar.
+  cuerpo_default = 'Tu licencia FidCore venció el {{fecha_vencimiento}}. El sistema sigue funcionando con normalidad por unos días para que tengas tiempo de renovar.
 
 Si no cargás una licencia válida pronto, el CRM pasa a modo solo lectura: podrás consultar personas, pólizas y siniestros, pero no editar ni crear nada nuevo.'
 WHERE codigo = 'sistema_licencia_en_gracia';

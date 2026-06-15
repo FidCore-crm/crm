@@ -191,7 +191,7 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
             ? 'Algo falló — restaurando estado anterior'
             : enReinicio
             ? 'El CRM se está reiniciando'
-            : `Actualizando Pulzar a v${actualizacion.version_nueva}`
+            : `Actualizando FidCore a v${actualizacion.version_nueva}`
           }
         </h2>
 

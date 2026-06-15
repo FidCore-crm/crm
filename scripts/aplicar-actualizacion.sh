@@ -284,7 +284,7 @@ ejecutar_rollback() {
       log "  [rollback B] Restaurando ${BACKUP_PATH##*/} (db=$restaurar_db, storage=$restaurar_storage)"
 
       local WORK_DIR
-      WORK_DIR=$(mktemp -d -t pulzar-rollback-XXXXXX)
+      WORK_DIR=$(mktemp -d -t fidcore-rollback-XXXXXX)
 
       if tar -xzf "$BACKUP_PATH" -C "$WORK_DIR" 2>&1 | tee -a "$LOG_FILE"; then
         bash "$CRM_DIR/scripts/backup-restore.sh" \
@@ -437,8 +437,8 @@ if ! docker ps >/dev/null 2>&1; then
 fi
 
 # Verificar que los containers críticos existan (no necesariamente corriendo)
-if ! docker inspect pulzar-crm >/dev/null 2>&1; then
-  log "FATAL: el container 'pulzar-crm' no existe. ¿La instalación del CRM está completa?"
+if ! docker inspect fidcore-crm >/dev/null 2>&1; then
+  log "FATAL: el container 'fidcore-crm' no existe. ¿La instalación del CRM está completa?"
   exit 1
 fi
 if ! docker inspect supabase-db >/dev/null 2>&1; then
@@ -447,7 +447,7 @@ if ! docker inspect supabase-db >/dev/null 2>&1; then
 fi
 
 log "═══════════════════════════════════════════════════════════════"
-log "  Aplicando actualización a Pulzar v${VERSION_NUEVA}"
+log "  Aplicando actualización a FidCore v${VERSION_NUEVA}"
 log "  ID: ${ACTUALIZACION_ID}"
 log "  Directorio: ${CRM_DIR}"
 log "  Timeout total: ${TIMEOUT_TOTAL_SEC}s"
@@ -478,7 +478,7 @@ log "[1/6] Creando backup pre-update..."
 escribir_progreso "BACKUP" 10 "Creando backup del sistema"
 
 # backup-now.sh corre DENTRO del container (pg_dump 15 vive ahí, no en host)
-BACKUP_OUTPUT=$(docker exec pulzar-crm bash /app/scripts/backup-now.sh --tipo=PRE_UPDATE 2>&1)
+BACKUP_OUTPUT=$(docker exec fidcore-crm bash /app/scripts/backup-now.sh --tipo=PRE_UPDATE 2>&1)
 BACKUP_EXIT=$?
 
 if [ $BACKUP_EXIT -ne 0 ]; then

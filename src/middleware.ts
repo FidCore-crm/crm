@@ -43,15 +43,15 @@ function isPublicRoute(pathname: string): boolean {
 }
 
 // ============================================================================
-// Hostname único por cliente (<cliente>.pulzar.com.ar) sirve TODO el CRM:
+// Hostname único por cliente (<cliente>.fidcore.com.ar) sirve TODO el CRM:
 //  - Login + dashboard del PAS
 //  - Portal del asegurado (`/c/<token>`)
 //  - Formulario público de denuncia (`/denuncia`)
 //  - Path-based proxy a Supabase (`/supabase/*`, manejado por next.config.js)
 //
-// Antes existía un subdomain `denuncia.<cliente>.pulzar.com.ar` con bloqueo
+// Antes existía un subdomain `denuncia.<cliente>.fidcore.com.ar` con bloqueo
 // de rutas en el middleware como defense-in-depth. Lo eliminamos al pasar
-// al modelo single-hostname (cert wildcard `*.pulzar.com.ar` cubre solo un
+// al modelo single-hostname (cert wildcard `*.fidcore.com.ar` cubre solo un
 // nivel y los anidados requerían ACM pago en Cloudflare).
 // ============================================================================
 

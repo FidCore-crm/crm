@@ -15,7 +15,7 @@ export function PasoBienvenida({ pasoActual, totalPasos, onContinuar, nombreUsua
     <WizardLayout
       pasoActual={pasoActual}
       totalPasos={totalPasos}
-      titulo={nombreUsuario ? `¡Bienvenido, ${nombreUsuario}!` : '¡Bienvenido a Pulzar!'}
+      titulo={nombreUsuario ? `¡Bienvenido, ${nombreUsuario}!` : '¡Bienvenido a FidCore!'}
       descripcion="Vamos a configurar tu CRM en unos minutos. Vas a poder saltear los pasos opcionales y configurarlos después si querés."
       onContinuar={onContinuar}
       continuarLabel="Empezar"

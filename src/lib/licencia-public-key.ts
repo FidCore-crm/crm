@@ -3,10 +3,10 @@
  *
  * Este archivo se edita MANUALMENTE una sola vez en la vida del producto,
  * después de generar el par de llaves con el script portable de emisión:
- *   ~/pulzar-licencias-emision/generar-keypair.js
+ *   ~/fidcore-licencias-emision/generar-keypair.js
  *
  * Pasos:
- *   1) Correr el generador en la estación de emisión (~/pulzar-licencias-emision/).
+ *   1) Correr el generador en la estación de emisión (~/fidcore-licencias-emision/).
  *   2) Abrir public.pem que aparece al lado del script.
  *   3) Copiar TODO el contenido (incluyendo las líneas BEGIN/END).
  *   4) Pegarlo abajo reemplazando el bloque actual (mantener los backticks).
@@ -28,7 +28,7 @@ MCowBQYDK2VwAyEA8/Jd6bOrIfokt8FTLvW1RCTyfJrcJVf8aQEMmyTCgX8=
 -----END PUBLIC KEY-----`
 
 // Sentinel para detectar "repo sin keypair generado". Si alguien forkea el
-// código y resetea el archivo (o si Pulzar publica el repo público con la
+// código y resetea el archivo (o si FidCore publica el repo público con la
 // llave eliminada por seguridad), el bloque debería contener este texto.
 const SENTINEL_PLACEHOLDER = 'PLACEHOLDER_REEMPLAZAR'
 

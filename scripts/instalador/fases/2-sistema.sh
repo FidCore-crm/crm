@@ -49,8 +49,8 @@ APT::Periodic::Unattended-Upgrade "1";' | sudo tee /etc/apt/apt.conf.d/20auto-up
   # Blacklistear paquetes que NO queremos que se reinicien de madrugada sin
   # supervisión: Docker (un restart inesperado mata todos los containers del
   # CRM) y kernel (requiere reboot manual planeado).
-  sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-pulzar > /dev/null <<'EOF'
-// Excluciones agregadas por el instalador de Pulzar CRM.
+  sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-fidcore > /dev/null <<'EOF'
+// Excluciones agregadas por el instalador de FidCore CRM.
 // Estos paquetes requieren reinicio del servicio/sistema y deben actualizarse
 // en una ventana planeada, no a las 6 AM automáticamente.
 Unattended-Upgrade::Package-Blacklist {

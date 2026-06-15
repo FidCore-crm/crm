@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # ============================================================================
-# Pulzar CRM — Dockerfile multi-stage
+# FidCore CRM — Dockerfile multi-stage
 #
 # Base: node:20-bookworm-slim (Debian 12). Elegido sobre alpine porque:
 #   - Debian 12 trae postgresql-client-15 nativo (apt), match exacto con
@@ -39,12 +39,12 @@ ARG NEXT_PUBLIC_SUPABASE_URL=
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ARG NEXT_PUBLIC_SENTRY_DSN=
 ARG NEXT_PUBLIC_STACK_LABEL=
-ARG NEXT_PUBLIC_APP_VERSION=
+# NEXT_PUBLIC_APP_VERSION se lee de package.json en next.config.js — no se
+# pasa más como ARG para evitar que un default del entorno pise el valor real.
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
     NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
     NEXT_PUBLIC_STACK_LABEL=$NEXT_PUBLIC_STACK_LABEL \
-    NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION \
     NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build

@@ -178,7 +178,7 @@ export default function LicenciaPage() {
         <Shield className="h-5 w-5 text-slate-700" />
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Licencia</h1>
-          <p className="text-xs text-slate-500">Estado de tu suscripción a Pulzar</p>
+          <p className="text-xs text-slate-500">Estado de tu suscripción a FidCore</p>
         </div>
       </div>
 
@@ -240,7 +240,7 @@ export default function LicenciaPage() {
                   Activación pendiente
                 </h2>
                 <p className="text-sm text-red-700">
-                  Es necesario activar el sistema. Contactá a Pulzar para recibir tu archivo .lic
+                  Es necesario activar el sistema. Contactá a FidCore para recibir tu archivo .lic
                   y subilo abajo.
                 </p>
               </>
@@ -274,7 +274,7 @@ export default function LicenciaPage() {
       <div className="bg-white border border-slate-200 rounded-lg p-4">
         <h3 className="text-sm font-semibold text-slate-800 mb-1">ID de instalación</h3>
         <p className="text-xs text-slate-500 mb-2">
-          Cuando pidas o renueves tu licencia, mandale este ID a Pulzar — sirve para emitir un archivo
+          Cuando pidas o renueves tu licencia, mandale este ID a FidCore — sirve para emitir un archivo
           .lic que solo funcione en este server.
         </p>
         <div className="flex items-center gap-2">
@@ -296,7 +296,7 @@ export default function LicenciaPage() {
       <div className="bg-white border border-slate-200 rounded-lg p-4">
         <h3 className="text-sm font-semibold text-slate-800 mb-1">Cargar licencia</h3>
         <p className="text-xs text-slate-500 mb-3">
-          Subí el archivo .lic que te mandó Pulzar. Si la fecha de inicio es hoy o anterior, se activa
+          Subí el archivo .lic que te mandó FidCore. Si la fecha de inicio es hoy o anterior, se activa
           enseguida. Si es futura, queda encolada y se activa sola cuando llegue ese día.
         </p>
 

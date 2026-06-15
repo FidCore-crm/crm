@@ -5,7 +5,7 @@
  *
  * Provee:
  *   - Fondo navy gradient (consistente con /login y /setup)
- *   - Header con logo Pulzar (sobre navy)
+ *   - Header con logo FidCore (sobre navy)
  *   - Barra de progreso naranja con N pasos
  *   - Card blanca centrada con título + descripción + slot del paso
  *   - Footer sticky con botones "Atrás" / "Saltear" / "Continuar"
@@ -65,13 +65,13 @@ export function WizardLayout({
         aria-hidden="true"
       />
 
-      {/* Header con logo Pulzar */}
+      {/* Header con logo FidCore */}
       <header className="relative z-10 border-b border-white/10 backdrop-blur-sm bg-[#0A1628]/40">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/branding/pulzar-logo.svg"
-            alt="Pulzar"
+            src="/branding/fidcore-logo.svg"
+            alt="FidCore"
             className="h-7 w-auto select-none"
             draggable={false}
           />

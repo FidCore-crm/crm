@@ -19,9 +19,9 @@
 #   - Rotación de cron.log y trigger.log para no crecer indefinidamente.
 #
 # Instalación (parte de INSTALACION.md):
-#   1. Copiar este archivo a /usr/local/bin/pulzar-actualizacion-trigger.sh
+#   1. Copiar este archivo a /usr/local/bin/fidcore-actualizacion-trigger.sh
 #   2. Agregar al crontab del usuario que tiene acceso a Docker:
-#        * * * * * /usr/local/bin/pulzar-actualizacion-trigger.sh
+#        * * * * * /usr/local/bin/fidcore-actualizacion-trigger.sh
 #   3. Asegurarse de que el usuario tenga acceso a `docker compose` sin sudo
 
 set -u

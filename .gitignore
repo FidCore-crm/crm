@@ -1,5 +1,5 @@
 # =====================================================================
-# Pulzar — .gitignore
+# FidCore — .gitignore
 # =====================================================================
 # Reglas para que git ignore archivos sensibles, datos del cliente,
 # caches y artefactos de build. NO borra archivos del disco — solo los

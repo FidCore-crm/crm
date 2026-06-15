@@ -26,7 +26,7 @@ function esHostnameLocal(hostname: string): boolean {
   if (hostname === '127.0.0.1') return true
   if (hostname === '::1') return true
 
-  // mDNS / Bonjour — para cuando el instalador asigna nombre tipo `pulzar.local`
+  // mDNS / Bonjour — para cuando el instalador asigna nombre tipo `fidcore.local`
   if (hostname.endsWith('.local')) return true
 
   // RFC 1918 — redes privadas

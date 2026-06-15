@@ -2,7 +2,7 @@
 const { chromium } = require('playwright')
 
 const BASE = 'http://localhost:3000'
-const EMAIL = 'audit@pulzar.local'
+const EMAIL = 'audit@fidcore.local'
 const PASSWORD = 'audittest123'
 
 ;(async () => {

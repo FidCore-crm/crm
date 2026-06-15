@@ -72,9 +72,9 @@ export async function POST(request: Request) {
         auth: { user: config_temporal.user, pass: config_temporal.password }
       })
       await transporter.sendMail({
-        from: `"Pulzar - Test" <${config_temporal.user}>`,
+        from: `"FidCore - Test" <${config_temporal.user}>`,
         to: destinatario,
-        subject: 'Email de prueba — Pulzar',
+        subject: 'Email de prueba — FidCore',
         html: `<div style="font-family:sans-serif;padding:20px;">
           <h2 style="color:#1e293b;">Test de correo exitoso</h2>
           <p>Si recibís este email, la configuración SMTP del CRM funciona correctamente.</p>
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       // Enviar con configuración guardada
       const resultado = await enviarEmail({
         to: destinatario,
-        subject: 'Email de prueba — Pulzar',
+        subject: 'Email de prueba — FidCore',
         html: `<div style="font-family:sans-serif;padding:20px;">
           <h2 style="color:#1e293b;">Test de correo exitoso</h2>
           <p>Si recibís este email, la configuración SMTP del CRM funciona correctamente.</p>

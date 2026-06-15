@@ -54,7 +54,7 @@ fase_utils_ejecutar() {
     local tskey
     tskey=$(ui_input "Auth key (empieza con tskey-...):" "tskey-auth-XXXX")
     if [[ -n "$tskey" ]]; then
-      if sudo tailscale up --auth-key="$tskey" --advertise-tags=tag:pulzar-prod 2>&1 | tail -5; then
+      if sudo tailscale up --auth-key="$tskey" --advertise-tags=tag:fidcore-prod 2>&1 | tail -5; then
         local ts_ip
         ts_ip=$(sudo tailscale ip -4 | head -1)
         ui_ok "Tailscale registrado. IP: $ts_ip"

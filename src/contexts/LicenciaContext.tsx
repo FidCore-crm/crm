@@ -98,7 +98,7 @@ export function LicenciaProvider({ children }: { children: ReactNode }) {
     let canal: BroadcastChannel | null = null
     if (typeof BroadcastChannel !== 'undefined') {
       try {
-        canal = new BroadcastChannel('pulzar-licencia')
+        canal = new BroadcastChannel('fidcore-licencia')
         canal.onmessage = (ev) => {
           if (ev?.data?.tipo === 'licencia-actualizada') {
             refetch()
@@ -136,7 +136,7 @@ export function useLicenciaEstado() {
 export function emitirBroadcastLicencia() {
   if (typeof BroadcastChannel === 'undefined') return
   try {
-    const canal = new BroadcastChannel('pulzar-licencia')
+    const canal = new BroadcastChannel('fidcore-licencia')
     canal.postMessage({ tipo: 'licencia-actualizada' })
     canal.close()
   } catch {

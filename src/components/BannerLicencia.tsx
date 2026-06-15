@@ -43,7 +43,7 @@ export function BannerLicencia() {
       textColor = 'text-amber-800'
       borderColor = 'border-amber-200'
       Icono = Clock
-      mensaje = `Tu licencia Pulzar vence en ${activa.dias_restantes} días. Contactá a tu proveedor para renovar.`
+      mensaje = `Tu licencia FidCore vence en ${activa.dias_restantes} días. Contactá a tu proveedor para renovar.`
     } else if (activa.dias_restantes > 7) {
       bgColor = 'bg-orange-50'
       textColor = 'text-orange-800'

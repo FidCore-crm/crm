@@ -3,7 +3,7 @@ export default function Comunicaciones() {
     <>
       <h2>Dos sistemas de email en uno</h2>
       <p>
-        Pulzar tiene dos conjuntos de emails que es importante no confundir:
+        FidCore tiene dos conjuntos de emails que es importante no confundir:
       </p>
       <ul>
         <li>

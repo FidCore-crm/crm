@@ -109,8 +109,8 @@ function AceptarInvitacionContent() {
         <div className="relative z-10 flex-1 flex items-center justify-center min-h-[160px] lg:min-h-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/branding/pulzar-logo.svg"
-            alt="Pulzar"
+            src="/branding/fidcore-logo.svg"
+            alt="FidCore"
             className="h-16 lg:h-24 w-auto select-none"
             draggable={false}
           />
@@ -207,7 +207,7 @@ function AceptarInvitacionContent() {
           )}
 
           <p className="text-xs text-slate-400 text-center mt-10">
-            © {new Date().getFullYear()} Pulzar
+            © {new Date().getFullYear()} FidCore
           </p>
         </div>
       </div>

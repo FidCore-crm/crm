@@ -1,24 +1,26 @@
 /**
- * Emails que Pulzar (la empresa) envía al admin del PAS (el cliente).
+ * Emails que FidCore (la empresa) envía al admin del PAS (el cliente).
  *
  * A diferencia de los emails `sistema_*` que el CRM del PAS envía a su propio
  * admin (avisos técnicos sobre backup, PDF, restauración, etc. — esos sí son
  * configurables por el PAS porque son sobre su instalación), estos emails
  * están **hardcoded** porque:
  *
- *   1. El PAS NO debe editar lo que Pulzar le escribe — el contenido y el
- *      contacto los define Pulzar.
+ *   1. El PAS NO debe editar lo que FidCore le escribe — el contenido y el
+ *      contacto los define FidCore.
  *   2. El From / Reply-To apuntan a `pulzar.crm@gmail.com`, no al email del
- *      PAS. Si el PAS responde el aviso, le llega a Pulzar (no a sí mismo).
- *   3. Los datos de contacto del footer son los de Pulzar (1166794861 /
- *      pulzar.crm@gmail.com) para que el cliente sepa a quién contactar
+ *      PAS. Si el PAS responde el aviso, le llega a FidCore (no a sí mismo).
+ *   3. Los datos de contacto del footer son los de FidCore (1166794861 /
+ *      pulzar.crm@gmail.com — el email de Gmail se mantiene del rebrand
+ *      anterior para no romper continuidad histórica con clientes) para
+ *      que el cliente sepa a quién contactar
  *      por temas de licencia.
  *
  * Implementación: SMTP del PAS (el que tiene configurado), pero override del
- * From, Reply-To y firma para que el email se vea como enviado por Pulzar.
+ * From, Reply-To y firma para que el email se vea como enviado por FidCore.
  *
  * Por ahora solo cubre licencias (vencimiento / gracia / bloqueada). Si en el
- * futuro Pulzar quiere notificar al PAS sobre otros temas (versión nueva,
+ * futuro FidCore quiere notificar al PAS sobre otros temas (versión nueva,
  * anuncios), agregar el tipo nuevo acá y un caller correspondiente.
  */
 
@@ -27,24 +29,24 @@ import { logger } from '@/lib/errores'
 import { escapeHtml } from '@/lib/email-templates/renderizador'
 
 // ---------------------------------------------------------------------------
-// Datos de contacto de Pulzar (fijos, no configurables)
+// Datos de contacto de FidCore (fijos, no configurables)
 // ---------------------------------------------------------------------------
 
-export const PULZAR_NOMBRE = 'Pulzar'
-export const PULZAR_EMAIL = 'pulzar.crm@gmail.com'
-export const PULZAR_TELEFONO_WHATSAPP = '1166794861'
-export const PULZAR_TELEFONO_WHATSAPP_E164 = '5491166794861' // formato wa.me
+export const FIDCORE_NOMBRE = 'FidCore'
+export const FIDCORE_EMAIL = 'pulzar.crm@gmail.com'
+export const FIDCORE_TELEFONO_WHATSAPP = '1166794861'
+export const FIDCORE_TELEFONO_WHATSAPP_E164 = '5491166794861' // formato wa.me
 
 // ---------------------------------------------------------------------------
-// Tipos de aviso de Pulzar al admin
+// Tipos de aviso de FidCore al admin
 // ---------------------------------------------------------------------------
 
-export type TipoEmailPulzar =
+export type TipoEmailFidCore =
   | 'LICENCIA_POR_VENCER'
   | 'LICENCIA_VENCIDA'
   | 'LICENCIA_BLOQUEADA'
 
-interface VariablesEmailPulzar {
+interface VariablesEmailFidCore {
   nombre_admin: string
   // Para licencia
   dias_restantes?: number
@@ -53,21 +55,21 @@ interface VariablesEmailPulzar {
 }
 
 // ---------------------------------------------------------------------------
-// Renderer del HTML — estructura simple, consistente con tono de Pulzar
+// Renderer del HTML — estructura simple, consistente con tono de FidCore
 // ---------------------------------------------------------------------------
 
 function reemplazar(texto: string, vars: Record<string, string>): string {
   return texto.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => vars[key] ?? '')
 }
 
-function armarHtmlPulzar(params: {
+function armarHtmlFidCore(params: {
   asunto: string
   saludo: string
   cuerpo: string
 }): string {
   const { asunto, saludo, cuerpo } = params
 
-  const waUrl = `https://wa.me/${PULZAR_TELEFONO_WHATSAPP_E164}`
+  const waUrl = `https://wa.me/${FIDCORE_TELEFONO_WHATSAPP_E164}`
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -79,7 +81,7 @@ function armarHtmlPulzar(params: {
 
 <!-- Header -->
 <tr><td style="background-color:#0A1628;padding:28px 32px;text-align:center;">
-<p style="margin:0;font-size:22px;font-weight:bold;color:#ffffff;letter-spacing:0.5px;">Pulzar</p>
+<p style="margin:0;font-size:22px;font-weight:bold;color:#ffffff;letter-spacing:0.5px;">FidCore</p>
 <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;">CRM para Productores de Seguros</p>
 </td></tr>
 
@@ -93,16 +95,16 @@ function armarHtmlPulzar(params: {
 <div style="margin:0;font-size:15px;line-height:1.6;color:#334155;">${cuerpo}</div>
 </td></tr>
 
-<!-- Contacto Pulzar -->
+<!-- Contacto FidCore -->
 <tr><td style="padding:0 32px 32px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
 <tr><td style="padding:16px 20px;">
 <p style="margin:0 0 8px;font-size:13px;font-weight:bold;color:#0A1628;">¿Tenés dudas o querés renovar?</p>
 <p style="margin:0 0 4px;font-size:13px;color:#334155;">
-  📧 <a href="mailto:${PULZAR_EMAIL}" style="color:#0A1628;text-decoration:none;">${PULZAR_EMAIL}</a>
+  📧 <a href="mailto:${FIDCORE_EMAIL}" style="color:#0A1628;text-decoration:none;">${FIDCORE_EMAIL}</a>
 </p>
 <p style="margin:0;font-size:13px;color:#334155;">
-  📱 WhatsApp: <a href="${waUrl}" style="color:#0A1628;text-decoration:none;">${PULZAR_TELEFONO_WHATSAPP}</a>
+  📱 WhatsApp: <a href="${waUrl}" style="color:#0A1628;text-decoration:none;">${FIDCORE_TELEFONO_WHATSAPP}</a>
 </p>
 </td></tr>
 </table>
@@ -110,7 +112,7 @@ function armarHtmlPulzar(params: {
 
 <!-- Footer -->
 <tr><td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center;">
-<p style="margin:0;font-size:11px;color:#94a3b8;">Este email fue enviado automáticamente por Pulzar.</p>
+<p style="margin:0;font-size:11px;color:#94a3b8;">Este email fue enviado automáticamente por FidCore.</p>
 </td></tr>
 
 </table>
@@ -123,35 +125,35 @@ function armarHtmlPulzar(params: {
 // Plantillas hardcoded (NO viven en la tabla plantillas_email)
 // ---------------------------------------------------------------------------
 
-interface DefinicionPlantillaPulzar {
+interface DefinicionPlantillaFidCore {
   asunto: string
   saludo: string
   cuerpo: string
 }
 
-const PLANTILLAS: Record<TipoEmailPulzar, DefinicionPlantillaPulzar> = {
+const PLANTILLAS: Record<TipoEmailFidCore, DefinicionPlantillaFidCore> = {
   LICENCIA_POR_VENCER: {
-    asunto: 'Tu licencia Pulzar vence en {{dias_restantes}} días',
+    asunto: 'Tu licencia FidCore vence en {{dias_restantes}} días',
     saludo: 'Hola {{nombre_admin}},',
     cuerpo:
-      `Tu licencia <strong>{{plan}}</strong> de Pulzar vence el <strong>{{fecha_vencimiento}}</strong>.<br><br>` +
+      `Tu licencia <strong>{{plan}}</strong> de FidCore vence el <strong>{{fecha_vencimiento}}</strong>.<br><br>` +
       `Para evitar interrupciones en el servicio, te recomendamos renovarla antes de la fecha de vencimiento. ` +
       `Contactanos por WhatsApp o email para coordinar la renovación.`,
   },
   LICENCIA_VENCIDA: {
-    asunto: 'Tu licencia Pulzar venció — renová pronto',
+    asunto: 'Tu licencia FidCore venció — renová pronto',
     saludo: 'Hola {{nombre_admin}},',
     cuerpo:
-      `Tu licencia de Pulzar venció el <strong>{{fecha_vencimiento}}</strong>. ` +
+      `Tu licencia de FidCore venció el <strong>{{fecha_vencimiento}}</strong>. ` +
       `El sistema sigue funcionando con normalidad por unos días para que tengas tiempo de renovar.<br><br>` +
       `Si no cargás una licencia válida pronto, el CRM pasa a modo solo lectura: vas a poder consultar personas, pólizas y siniestros, pero no editar ni crear nada nuevo.<br><br>` +
       `Contactanos para coordinar la renovación.`,
   },
   LICENCIA_BLOQUEADA: {
-    asunto: 'Tu Pulzar quedó en modo solo lectura',
+    asunto: 'Tu FidCore quedó en modo solo lectura',
     saludo: 'Hola {{nombre_admin}},',
     cuerpo:
-      `Tu licencia de Pulzar venció y el CRM pasó a <strong>modo solo lectura</strong>: ` +
+      `Tu licencia de FidCore venció y el CRM pasó a <strong>modo solo lectura</strong>: ` +
       `podés consultar personas, pólizas y siniestros, pero no crear ni editar nada nuevo.<br><br>` +
       `Para reactivar el sistema completo, necesitamos coordinar la renovación de la licencia. ` +
       `Apenas cargues la nueva licencia, todas las funciones se desbloquean al instante.<br><br>` +
@@ -163,23 +165,23 @@ const PLANTILLAS: Record<TipoEmailPulzar, DefinicionPlantillaPulzar> = {
 // API pública
 // ---------------------------------------------------------------------------
 
-export interface EnviarEmailPulzarParams {
-  tipo: TipoEmailPulzar
+export interface EnviarEmailFidCoreParams {
+  tipo: TipoEmailFidCore
   destinatarioEmail: string
-  variables: VariablesEmailPulzar
+  variables: VariablesEmailFidCore
 }
 
-export interface EnviarEmailPulzarResult {
+export interface EnviarEmailFidCoreResult {
   ok: boolean
   error?: string
 }
 
 /**
- * Envía un email DESDE Pulzar AL admin del PAS.
+ * Envía un email DESDE FidCore AL admin del PAS.
  *
- * Usa el SMTP que el PAS tiene configurado (no hay SMTP de Pulzar en cada
+ * Usa el SMTP que el PAS tiene configurado (no hay SMTP de FidCore en cada
  * instalación) pero con el From, Reply-To y firma sobreescritos para que el
- * email se vea y se responda como si fuera de Pulzar.
+ * email se vea y se responda como si fuera de FidCore.
  *
  * Síncrono — no encola en email_envios. El cron de licencias usa el flag de
  * notificación in-app de 24h como anti-spam.
@@ -187,13 +189,13 @@ export interface EnviarEmailPulzarResult {
  * Nunca tira: cualquier error se loggea y se devuelve `ok:false`. El caller
  * (cron) no debe interrumpir su flujo si un email puntual falla.
  */
-export async function enviarEmailPulzar(
-  params: EnviarEmailPulzarParams,
-): Promise<EnviarEmailPulzarResult> {
+export async function enviarEmailFidCore(
+  params: EnviarEmailFidCoreParams,
+): Promise<EnviarEmailFidCoreResult> {
   try {
     const def = PLANTILLAS[params.tipo]
     if (!def) {
-      return { ok: false, error: `Tipo de email Pulzar desconocido: ${params.tipo}` }
+      return { ok: false, error: `Tipo de email FidCore desconocido: ${params.tipo}` }
     }
 
     // Hoy las variables son strings controlados por el cron (plan del enum,
@@ -211,7 +213,7 @@ export async function enviarEmailPulzar(
       Object.entries(varsCrudo).map(([k, v]) => [k, escapeHtml(v)]),
     )
 
-    // Asunto y saludo: van como texto puro a `armarHtmlPulzar`, que ya los
+    // Asunto y saludo: van como texto puro a `armarHtmlFidCore`, que ya los
     // escapa con `escapeHtml(...)`. Reemplazamos con varsCrudo para no
     // sufrir doble escape.
     const asunto = reemplazar(def.asunto, varsCrudo)
@@ -221,22 +223,22 @@ export async function enviarEmailPulzar(
     // futuro alguna viene de input de usuario, no abre XSS.
     const cuerpo = reemplazar(def.cuerpo, varsStr)
 
-    const html = armarHtmlPulzar({ asunto, saludo, cuerpo })
+    const html = armarHtmlFidCore({ asunto, saludo, cuerpo })
 
     const res = await enviarEmail({
       to: params.destinatarioEmail,
       subject: asunto,
       html,
-      fromName: PULZAR_NOMBRE,
-      fromEmail: PULZAR_EMAIL,
-      replyTo: PULZAR_EMAIL,
+      fromName: FIDCORE_NOMBRE,
+      fromEmail: FIDCORE_EMAIL,
+      replyTo: FIDCORE_EMAIL,
       omitirFirma: true,
     })
 
     if (!res.ok) {
       logger.warn({
-        modulo: 'pulzar-emails',
-        mensaje: `Fallo envío email Pulzar (${params.tipo})`,
+        modulo: 'fidcore-emails',
+        mensaje: `Fallo envío email FidCore (${params.tipo})`,
         contexto: { destinatario: params.destinatarioEmail, error: res.error },
       })
     }
@@ -244,8 +246,8 @@ export async function enviarEmailPulzar(
     return { ok: res.ok, error: res.error }
   } catch (err: any) {
     logger.error({
-      modulo: 'pulzar-emails',
-      mensaje: 'enviarEmailPulzar error inesperado',
+      modulo: 'fidcore-emails',
+      mensaje: 'enviarEmailFidCore error inesperado',
       contexto: { error: err?.message || String(err) },
     })
     return { ok: false, error: err?.message || 'Error inesperado' }

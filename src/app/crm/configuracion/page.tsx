@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { Building2, Settings, Globe, Bell, Users, Shield, ChevronRight, Mail, HardDrive, MessageSquare, ExternalLink, Sparkles, AlertTriangle, Power, Download } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { esModoAppliance } from '@/lib/modo-instalacion'
 
 const secciones = [
   {
@@ -91,6 +92,7 @@ const secciones = [
     descripcion: 'Apagar o reiniciar el servidor del CRM',
     activo: true,
     adminOnly: true,
+    applianceOnly: true,
   },
   {
     href: '/crm/configuracion/licencia',
@@ -114,7 +116,12 @@ export default function ConfiguracionPage() {
   const router = useRouter()
   const { isAdmin } = useAuth()
 
-  const seccionesVisibles = secciones.filter(s => !s.adminOnly || isAdmin)
+  const modoAppliance = esModoAppliance()
+  const seccionesVisibles = secciones.filter(s => {
+    if (s.adminOnly && !isAdmin) return false
+    if ((s as any).applianceOnly && !modoAppliance) return false
+    return true
+  })
 
   return (
     <div className="flex flex-col gap-3">

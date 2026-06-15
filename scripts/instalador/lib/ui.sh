@@ -2,8 +2,8 @@
 # Wrappers de gum para la UI del instalador.
 # Si gum no está instalado, lo instalamos primero (ver fases/0-prereqs.sh).
 
-# Colores Pulzar (naranja del logo)
-COLOR_PRIMARIO="#FF6B35"
+# Colores FidCore (naranja del logo)
+COLOR_PRIMARIO="#FF6A00"
 COLOR_OK="#22c55e"
 COLOR_WARN="#f59e0b"
 COLOR_ERROR="#ef4444"

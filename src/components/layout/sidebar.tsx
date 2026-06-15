@@ -359,8 +359,8 @@ export function Sidebar() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/branding/pulzar-logo.svg"
-          alt="Pulzar"
+          src="/branding/fidcore-logo.svg"
+          alt="FidCore"
           className="h-6 w-auto select-none"
           draggable={false}
         />

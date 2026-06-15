@@ -1,7 +1,15 @@
 const { withSentryConfig } = require('@sentry/nextjs')
+const packageJson = require('./package.json')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Single source of truth para la versión del CRM. Se lee de package.json y
+  // queda inlineada en el bundle del browser (sidebar, /actualizaciones, etc).
+  // Pisa cualquier NEXT_PUBLIC_APP_VERSION que venga del entorno, así no hay
+  // riesgo de que el default '1.0.0' de docker-compose se cuele en un build.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: packageJson.version,
+  },
   // Standalone output: el build genera un bundle minimalista en .next/standalone
   // con solo las deps que el runtime usa, listo para correr con `node server.js`
   // dentro de un container chico (alpine + node). Reduce ~70% el tamaño del image.
@@ -22,9 +30,9 @@ const nextConfig = {
     ],
   },
   // Path-based proxy a Supabase. Permite que el browser le pegue al CRM en
-  // `https://<cliente>.pulzar.com.ar/supabase/*` y Next.js lo reescribe
+  // `https://<cliente>.fidcore.com.ar/supabase/*` y Next.js lo reescribe
   // internamente al kong de Supabase via la network Docker. Evita necesitar
-  // un subdominio anidado (`api.<cliente>.pulzar.com.ar`) que requeriría
+  // un subdominio anidado (`api.<cliente>.fidcore.com.ar`) que requeriría
   // ACM en Cloudflare para el SSL.
   //
   // Solo se usa en producción (Docker). En dev el `NEXT_PUBLIC_SUPABASE_URL`

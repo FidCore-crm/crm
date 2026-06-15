@@ -1,5 +1,5 @@
 # ============================================================================
-# Pulzar CRM — docker-compose
+# FidCore CRM — docker-compose
 #
 # Stack de 4 services que comparten el mismo image (build local con Dockerfile):
 #   - crm:                 Next.js standalone, puerto 3000 interno
@@ -34,9 +34,8 @@ services:
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
         NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN}
         NEXT_PUBLIC_STACK_LABEL: ${NEXT_PUBLIC_STACK_LABEL:-}
-        NEXT_PUBLIC_APP_VERSION: ${NEXT_PUBLIC_APP_VERSION:-1.0.0}
-    image: pulzar-crm:local
-    container_name: pulzar-crm
+    image: fidcore-crm:local
+    container_name: fidcore-crm
     restart: unless-stopped
     networks:
       - supabase_default
@@ -61,8 +60,8 @@ services:
       start_period: 60s
 
   crons:
-    image: pulzar-crm:local
-    container_name: pulzar-crm-crons
+    image: fidcore-crm:local
+    container_name: fidcore-crm-crons
     restart: unless-stopped
     networks:
       - supabase_default
@@ -82,8 +81,8 @@ services:
     command: ["bash", "/app/scripts/crons-loop.sh"]
 
   importacion-runner:
-    image: pulzar-crm:local
-    container_name: pulzar-crm-importacion-runner
+    image: fidcore-crm:local
+    container_name: fidcore-crm-importacion-runner
     restart: unless-stopped
     networks:
       - supabase_default
@@ -104,12 +103,12 @@ services:
   # Cloudflare Tunnel — opcional. Activar con `--profile tunnel`.
   # Cuando arranca, conecta a la network del CRM, levanta el tunnel autenticado
   # con TUNNEL_TOKEN y rutea los hostnames configurados en el dashboard CF
-  # (`<cliente>.pulzar.com.ar` y `denuncia.<cliente>.pulzar.com.ar`) hacia
+  # (`<cliente>.fidcore.com.ar` y `denuncia.<cliente>.fidcore.com.ar`) hacia
   # `http://crm:3000`. Cloudflare termina TLS y manda HTTPS al asegurado /
   # PAS — el container del CRM solo recibe HTTP plano por la red interna.
   cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: pulzar-cloudflared
+    container_name: fidcore-cloudflared
     restart: unless-stopped
     profiles: [tunnel]
     networks:

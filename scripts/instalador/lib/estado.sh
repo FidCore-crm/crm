@@ -3,12 +3,12 @@
 # Permite reanudar una instalación interrumpida sin volver a preguntar todo.
 #
 # Estructura:
-#   /etc/pulzar/instalador.env  →  variables recolectadas (slug, tokens, etc.)
-#   /etc/pulzar/instalador.progreso  →  marcas de fase completada
+#   /etc/fidcore/instalador.env  →  variables recolectadas (slug, tokens, etc.)
+#   /etc/fidcore/instalador.progreso  →  marcas de fase completada
 #
 # Las marcas son fase=NOMBRE\nfecha=ISO una línea por fase.
 
-ESTADO_DIR="/etc/pulzar"
+ESTADO_DIR="/etc/fidcore"
 ESTADO_ENV="$ESTADO_DIR/instalador.env"
 ESTADO_PROGRESO="$ESTADO_DIR/instalador.progreso"
 

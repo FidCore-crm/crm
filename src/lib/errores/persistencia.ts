@@ -11,7 +11,7 @@
  * Los callers (manejarErrores, libs) pueden llamarla con fire-and-forget.
  *
  * Telemetría externa: además de persistir local, los errores nuevos (no
- * agregaciones) se reportan a Sentry para que el equipo de Pulzar pueda ver
+ * agregaciones) se reportan a Sentry para que el equipo de FidCore pueda ver
  * issues de instalaciones en producción sin pedirle al PAS que mande logs.
  * Sentry se llama fire-and-forget: si falla, no impacta la persistencia.
  */

@@ -152,16 +152,16 @@ VALUES
     'GENERAL',
     'Aviso: licencia por vencer',
     'Se envía al admin cuando faltan 30, 15 o 7 días para que venza la licencia.',
-    'Tu licencia Pulzar vence en {{dias_restantes}} días',
+    'Tu licencia FidCore vence en {{dias_restantes}} días',
     'Hola {{nombre_admin}},',
-    'Tu licencia Pulzar plan {{plan}} vence el {{fecha_vencimiento}} ({{dias_restantes}} días restantes).' || E'\n\n' ||
+    'Tu licencia FidCore plan {{plan}} vence el {{fecha_vencimiento}} ({{dias_restantes}} días restantes).' || E'\n\n' ||
     'Para evitar interrupciones, contactá a tu proveedor para renovar antes del vencimiento. Cuando recibas la nueva licencia, podés cargarla desde Configuración → Licencia incluso ahora mismo: el sistema la activará automáticamente cuando venza la actual.',
-    'Equipo Pulzar',
-    'Tu licencia Pulzar vence en {{dias_restantes}} días',
+    'Equipo FidCore',
+    'Tu licencia FidCore vence en {{dias_restantes}} días',
     'Hola {{nombre_admin}},',
-    'Tu licencia Pulzar plan {{plan}} vence el {{fecha_vencimiento}} ({{dias_restantes}} días restantes).' || E'\n\n' ||
+    'Tu licencia FidCore plan {{plan}} vence el {{fecha_vencimiento}} ({{dias_restantes}} días restantes).' || E'\n\n' ||
     'Para evitar interrupciones, contactá a tu proveedor para renovar antes del vencimiento. Cuando recibas la nueva licencia, podés cargarla desde Configuración → Licencia incluso ahora mismo: el sistema la activará automáticamente cuando venza la actual.',
-    'Equipo Pulzar',
+    'Equipo FidCore',
     true, true, true
   ),
   (
@@ -169,16 +169,16 @@ VALUES
     'GENERAL',
     'Aviso: licencia vencida — período de gracia',
     'Se envía al admin cuando la licencia venció y entró en período de gracia (7 días).',
-    'Tu licencia Pulzar venció — quedan {{dias_gracia}} días de gracia',
+    'Tu licencia FidCore venció — quedan {{dias_gracia}} días de gracia',
     'Hola {{nombre_admin}},',
-    'Tu licencia Pulzar venció el {{fecha_vencimiento}}. El sistema sigue funcionando con normalidad durante los próximos {{dias_gracia}} días para que tengas tiempo de renovar.' || E'\n\n' ||
+    'Tu licencia FidCore venció el {{fecha_vencimiento}}. El sistema sigue funcionando con normalidad durante los próximos {{dias_gracia}} días para que tengas tiempo de renovar.' || E'\n\n' ||
     'Si no cargás una licencia válida antes del {{fecha_bloqueo}}, el CRM pasa a modo solo lectura: podrás consultar personas, pólizas y siniestros, pero no editar ni crear nada nuevo.',
-    'Equipo Pulzar',
-    'Tu licencia Pulzar venció — quedan {{dias_gracia}} días de gracia',
+    'Equipo FidCore',
+    'Tu licencia FidCore venció — quedan {{dias_gracia}} días de gracia',
     'Hola {{nombre_admin}},',
-    'Tu licencia Pulzar venció el {{fecha_vencimiento}}. El sistema sigue funcionando con normalidad durante los próximos {{dias_gracia}} días para que tengas tiempo de renovar.' || E'\n\n' ||
+    'Tu licencia FidCore venció el {{fecha_vencimiento}}. El sistema sigue funcionando con normalidad durante los próximos {{dias_gracia}} días para que tengas tiempo de renovar.' || E'\n\n' ||
     'Si no cargás una licencia válida antes del {{fecha_bloqueo}}, el CRM pasa a modo solo lectura: podrás consultar personas, pólizas y siniestros, pero no editar ni crear nada nuevo.',
-    'Equipo Pulzar',
+    'Equipo FidCore',
     true, true, true
   ),
   (
@@ -186,16 +186,16 @@ VALUES
     'GENERAL',
     'Aviso: licencia bloqueada — modo solo lectura',
     'Se envía al admin cuando se agotó el período de gracia y el CRM entró en modo solo lectura.',
-    'Tu Pulzar quedó en modo solo lectura',
+    'Tu FidCore quedó en modo solo lectura',
     'Hola {{nombre_admin}},',
-    'El período de gracia terminó. Tu Pulzar ahora está en modo solo lectura: podés consultar personas, pólizas y siniestros, pero no crear ni editar nada nuevo.' || E'\n\n' ||
+    'El período de gracia terminó. Tu FidCore ahora está en modo solo lectura: podés consultar personas, pólizas y siniestros, pero no crear ni editar nada nuevo.' || E'\n\n' ||
     'Para reactivar el sistema completo, cargá una licencia válida desde Configuración → Licencia. Apenas la subas, todas las funciones se desbloquean al instante.',
-    'Equipo Pulzar',
-    'Tu Pulzar quedó en modo solo lectura',
+    'Equipo FidCore',
+    'Tu FidCore quedó en modo solo lectura',
     'Hola {{nombre_admin}},',
-    'El período de gracia terminó. Tu Pulzar ahora está en modo solo lectura: podés consultar personas, pólizas y siniestros, pero no crear ni editar nada nuevo.' || E'\n\n' ||
+    'El período de gracia terminó. Tu FidCore ahora está en modo solo lectura: podés consultar personas, pólizas y siniestros, pero no crear ni editar nada nuevo.' || E'\n\n' ||
     'Para reactivar el sistema completo, cargá una licencia válida desde Configuración → Licencia. Apenas la subas, todas las funciones se desbloquean al instante.',
-    'Equipo Pulzar',
+    'Equipo FidCore',
     true, true, true
   )
 ON CONFLICT (codigo) DO NOTHING;

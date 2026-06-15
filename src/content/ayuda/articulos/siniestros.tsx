@@ -3,7 +3,7 @@ export default function Siniestros() {
     <>
       <h2>Número de caso vs número de siniestro</h2>
       <p>
-        Pulzar usa dos números distintos para identificar siniestros:
+        FidCore usa dos números distintos para identificar siniestros:
       </p>
       <ul>
         <li>

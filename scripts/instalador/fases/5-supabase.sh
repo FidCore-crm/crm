@@ -88,7 +88,7 @@ fase_supabase_ejecutar() {
 
   # 4. Completar el .env de Supabase
   local env_sb="$SUPABASE_DIR/docker/.env"
-  local url_publica="https://${slug}.pulzar.com.ar"
+  local url_publica="https://${slug}.fidcore.com.ar"
 
   _setear_env_var "$env_sb" "POSTGRES_PASSWORD"     "$postgres_password"
   _setear_env_var "$env_sb" "JWT_SECRET"            "$jwt_secret"
@@ -111,15 +111,15 @@ fase_supabase_ejecutar() {
 
   # 7. Resumen del Studio. La password NO se muestra en pantalla para evitar
   # que quede en el scrollback de la terminal o en una captura. Queda solo
-  # en /etc/pulzar/instalador.env (chmod 600) y .env de Supabase.
+  # en /etc/fidcore/instalador.env (chmod 600) y .env de Supabase.
   echo ""
   ui_box "Credenciales del Studio de Supabase:
   URL:   http://<ip-del-server>:8001
   User:  admin
-  Pass:  (guardada en /etc/pulzar/instalador.env como DASHBOARD_PASSWORD)
+  Pass:  (guardada en /etc/fidcore/instalador.env como DASHBOARD_PASSWORD)
 
 Para verla, en el server:
-  sudo grep DASHBOARD_PASSWORD /etc/pulzar/instalador.env"
+  sudo grep DASHBOARD_PASSWORD /etc/fidcore/instalador.env"
 
   fase_completar "supabase"
   return 0

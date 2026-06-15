@@ -119,7 +119,7 @@ export function LicenciaGuard({ children }: { children: React.ReactNode }) {
               </button>
             </div>
             <p className="text-xs text-slate-500 mt-2">
-              Pasale este ID a tu contacto de Pulzar para que te emita una licencia nueva.
+              Pasale este ID a tu contacto de FidCore para que te emita una licencia nueva.
             </p>
           </div>
         )}

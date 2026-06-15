@@ -6,7 +6,7 @@
  *   - Licencia activa con días restantes
  *   - Licencias encoladas (cargadas para activarse en el futuro)
  *   - Días de gracia restantes (si aplica)
- *   - instalacion_id (lo necesita el admin para pedirle a Pulzar la licencia)
+ *   - instalacion_id (lo necesita el admin para pedirle a FidCore la licencia)
  *
  * Visible para cualquier usuario autenticado — los módulos del CRM lo consultan
  * para saber si están en modo solo lectura. La info devuelta NO es sensible.

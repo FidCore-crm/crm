@@ -145,7 +145,7 @@ export function validarUrlPublica(
     return {
       valido: false,
       motivo:
-        'No se puede usar HTTPS con una IP privada o dominio local. Para que el link funcione en el teléfono del cliente, usá tu dominio público (ej: https://miorganizacion.pulzar.com.ar).',
+        'No se puede usar HTTPS con una IP privada o dominio local. Para que el link funcione en el teléfono del cliente, usá tu dominio público (ej: https://miorganizacion.fidcore.com.ar).',
     }
   }
   if (parsed.pathname && parsed.pathname !== '/' && parsed.pathname !== '') {

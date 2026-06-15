@@ -169,7 +169,7 @@ export async function GET(request: Request) {
  * notificación in-app al admin. Anti-spam: no repetir el aviso si ya hay
  * una notif COLA_EMAILS_ATRASADA en las últimas 24h.
  *
- * No mandamos email Pulzar para esto porque puede ser justamente el SMTP
+ * No mandamos email FidCore para esto porque puede ser justamente el SMTP
  * el que está fallando — la notif in-app + banner del CRM alcanzan.
  */
 async function alertarSiColaAtrasada(supabase: ReturnType<typeof getSupabaseAdmin>): Promise<void> {

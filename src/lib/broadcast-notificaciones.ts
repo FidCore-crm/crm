@@ -20,7 +20,7 @@ export type EventoBroadcast =
   | { tipo: 'eliminada'; id: string }
   | { tipo: 'eliminadas-antiguas' }
 
-const NOMBRE_CANAL = 'pulzar-notificaciones'
+const NOMBRE_CANAL = 'fidcore-notificaciones'
 
 // Sostén un canal por proceso para no abrir uno nuevo en cada `emitir`.
 // Sigue siendo lazy — solo se crea cuando se invoca por primera vez del lado

@@ -3,7 +3,7 @@ export default function Polizas() {
     <>
       <h2>Estados de una póliza</h2>
       <p>
-        El estado refleja en qué punto de su ciclo de vida está la póliza. Pulzar los actualiza solos según las fechas:
+        El estado refleja en qué punto de su ciclo de vida está la póliza. FidCore los actualiza solos según las fechas:
       </p>
       <ul>
         <li><strong>PROGRAMADA</strong> — la fecha de inicio todavía no llegó. Espera para arrancar.</li>

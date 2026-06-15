@@ -444,7 +444,7 @@ export async function limpiarProgramadasViejas(diasMax = 7): Promise<number> {
       error_mensaje:
         `Actualización quedó PROGRAMADA más de ${diasMax} días sin ejecutarse. ` +
         'Posibles causas: cron del host no instalado, o trigger file borrado. ' +
-        'Verificar que /usr/local/bin/pulzar-actualizacion-trigger.sh esté en el crontab.',
+        'Verificar que /usr/local/bin/fidcore-actualizacion-trigger.sh esté en el crontab.',
     })
     .eq('estado', 'PROGRAMADA')
     .lt('fecha_solicitud', limite)

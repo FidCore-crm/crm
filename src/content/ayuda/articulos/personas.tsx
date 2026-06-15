@@ -1,7 +1,7 @@
 export default function Personas() {
   return (
     <>
-      <h2>Qué es una persona en Pulzar</h2>
+      <h2>Qué es una persona en FidCore</h2>
       <p>
         "Persona" es cualquier cliente, prospecto o tomador con el que trabajás. Pueden ser{' '}
         <strong>físicas</strong> (con DNI) o <strong>jurídicas</strong> (empresas con CUIT).

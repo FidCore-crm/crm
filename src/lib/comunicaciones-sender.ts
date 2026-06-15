@@ -916,7 +916,7 @@ function mapearTipoEvento(tipo: TipoEventoSistema): MapeoEventoSistema {
  * Devuelve los admins activos (rol=ADMIN, activo=true) con email válido.
  * Usado como destinatarios de las notificaciones de sistema.
  *
- * Exportado para que otros helpers (ej: `pulzar-emails`) puedan resolver
+ * Exportado para que otros helpers (ej: `fidcore-emails`) puedan resolver
  * destinatarios admin sin duplicar la query.
  */
 export async function obtenerAdminsActivos(): Promise<Array<{ id: string; email: string; nombre: string }>> {

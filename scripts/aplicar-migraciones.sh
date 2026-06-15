@@ -114,7 +114,7 @@ psql_query() {
 }
 
 echo "=========================================="
-echo "Migraciones SQL — Pulzar CRM"
+echo "Migraciones SQL — FidCore CRM"
 if [ -n "$POSTGRES_HOST" ]; then
   echo "Conexión: TCP $POSTGRES_USER@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
 else

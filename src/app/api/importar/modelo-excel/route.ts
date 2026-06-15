@@ -441,7 +441,7 @@ export async function GET(request: Request) {
   if (auth instanceof NextResponse) return auth
 
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'Pulzar'
+  wb.creator = 'FidCore'
   wb.created = new Date()
 
   construirHojaClientes(wb)

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { ArrowLeft, Power, RotateCcw, AlertTriangle, X } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
+import { esModoAppliance } from '@/lib/modo-instalacion'
 
 type Accion = 'apagar' | 'reiniciar'
 
@@ -29,10 +30,14 @@ export default function SistemaPage() {
   const palabraEsperada = accionActiva ? PALABRAS_CONFIRMACION[accionActiva] : ''
   const textoOk = palabraEsperada !== '' && textoConfirmacion.trim().toUpperCase() === palabraEsperada
 
-  // Guard de admin
+  // Guard de admin + modo APPLIANCE (en VPS estas funciones no aplican)
   useEffect(() => {
     if (!authLoading && (!usuario || !isAdmin)) {
       router.push('/crm/dashboard')
+      return
+    }
+    if (!authLoading && !esModoAppliance()) {
+      router.push('/crm/configuracion')
     }
   }, [authLoading, usuario, isAdmin, router])
 

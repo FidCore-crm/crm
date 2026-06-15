@@ -12,7 +12,7 @@ import { resolverUrlSupabaseBrowser } from './url-resolver'
  * Comportamiento de auth:
  *  - El cliente NO maneja sus propias sesiones (`persistSession: false`,
  *    `autoRefreshToken: false`).
- *  - En cada query, lee el JWT desde la cookie `pulzar_jwt` (no-HttpOnly,
+ *  - En cada query, lee el JWT desde la cookie `fidcore_jwt` (no-HttpOnly,
  *    seteada por el backend en login/refresh) y lo agrega como header
  *    `Authorization: Bearer <jwt>`.
  *  - Si la query devuelve 401 (JWT vencido), pide al backend que refresque
@@ -39,7 +39,7 @@ function leerCookie(nombre: string): string | null {
 
 /** Llama al endpoint del CRM que refresca el JWT usando el refresh_token de
  *  la cookie HttpOnly. Devuelve true si el refresh fue exitoso (la cookie
- *  `pulzar_jwt` queda actualizada) o false si no se pudo renovar. */
+ *  `fidcore_jwt` queda actualizada) o false si no se pudo renovar. */
 async function refrescarJwt(): Promise<boolean> {
   try {
     const res = await fetch('/api/auth/refrescar-token', {
@@ -64,7 +64,7 @@ export function createClient() {
       },
       global: {
         fetch: async (input, init) => {
-          const jwt = leerCookie('pulzar_jwt')
+          const jwt = leerCookie('fidcore_jwt')
           const headers = new Headers(init?.headers)
           if (jwt) headers.set('Authorization', `Bearer ${jwt}`)
 
@@ -74,7 +74,7 @@ export function createClient() {
           if (response.status === 401 && jwt) {
             const refreshed = await refrescarJwt()
             if (refreshed) {
-              const nuevoJwt = leerCookie('pulzar_jwt')
+              const nuevoJwt = leerCookie('fidcore_jwt')
               if (nuevoJwt && nuevoJwt !== jwt) {
                 headers.set('Authorization', `Bearer ${nuevoJwt}`)
                 response = await fetch(input, { ...init, headers })

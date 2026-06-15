@@ -1,7 +1,7 @@
 /**
  * Identidad estable de cada instalación del CRM.
  *
- * Cada instalación de Pulzar tiene un UUID único que persiste en disco.
+ * Cada instalación de FidCore tiene un UUID único que persiste en disco.
  * Lo usamos para etiquetar errores en Sentry y poder correlacionar issues
  * con un cliente específico sin tener que loguear datos personales.
  *

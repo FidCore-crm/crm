@@ -1,34 +1,30 @@
 import { NextResponse } from 'next/server'
-import { spawn, exec } from 'child_process'
-import { promisify } from 'util'
+import { promises as fs } from 'fs'
+import path from 'path'
 import { requireAdmin } from '@/lib/api-auth'
 import { logger } from '@/lib/errores'
+import { obtenerModo } from '@/lib/modo-instalacion'
 
-const execAsync = promisify(exec)
+// POST /api/sistema/reiniciar — solicita reiniciar el servidor físico (admin only,
+// modo APPLIANCE only). Ver /api/sistema/apagar para el detalle del patrón.
 
-// POST /api/sistema/reiniciar — reinicia el servidor (admin only).
+const SISTEMA_DIR = path.resolve(process.cwd(), 'tmp/sistema')
+const TRIGGER_FILE = path.join(SISTEMA_DIR, 'reiniciar.flag')
+
 export async function POST(request: Request) {
   const auth = await requireAdmin(request)
   if (auth instanceof NextResponse) return auth
 
-  // Pre-check: ¿sudoers permite reboot sin password?
-  try {
-    await execAsync('sudo -n -l /usr/sbin/reboot')
-  } catch {
-    logger.error({
-      modulo: 'sistema-power',
-      mensaje: 'Sudoers no configurado para reboot',
-      contexto: { usuario_id: auth.id },
-    })
+  if (obtenerModo() !== 'APPLIANCE') {
     return NextResponse.json(
       {
         ok: false,
         error: {
-          codigo: 'ERR_SYS_SUDOERS',
-          mensaje: 'El sistema no tiene permisos para reiniciar el servidor. Falta configurar sudoers (contactá al administrador del servidor).',
+          codigo: 'ERR_NEG_002',
+          mensaje: 'Reiniciar el servidor solo está disponible en modo servidor local. En VPS administrá la instancia desde el panel del proveedor.',
         },
       },
-      { status: 503 },
+      { status: 422 },
     )
   }
 
@@ -38,24 +34,35 @@ export async function POST(request: Request) {
     contexto: { usuario_id: auth.id, email: auth.email },
   })
 
-  setTimeout(() => {
-    try {
-      const child = spawn('sudo', ['-n', '/usr/sbin/reboot'], {
-        detached: true,
-        stdio: 'ignore',
-      })
-      child.unref()
-    } catch (err: any) {
-      logger.error({
-        modulo: 'sistema-power',
-        mensaje: 'Falló el spawn de reboot',
-        contexto: { error: err?.message },
-      })
+  try {
+    await fs.mkdir(SISTEMA_DIR, { recursive: true })
+    const triggerData = {
+      accion: 'reiniciar',
+      solicitado_por_id: auth.id,
+      solicitado_por_email: auth.email,
+      timestamp: new Date().toISOString(),
     }
-  }, 2000)
+    await fs.writeFile(TRIGGER_FILE, JSON.stringify(triggerData, null, 2), 'utf-8')
+  } catch (err) {
+    logger.error({
+      modulo: 'sistema-power',
+      mensaje: 'No se pudo escribir el archivo trigger de reinicio',
+      contexto: { error: String(err) },
+    })
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          codigo: 'ERR_SYS_001',
+          mensaje: 'No se pudo registrar la orden de reinicio. Contactá al soporte técnico.',
+        },
+      },
+      { status: 500 },
+    )
+  }
 
   return NextResponse.json({
     ok: true,
-    mensaje: 'El servidor se está reiniciando. Volvé a intentar acceder al CRM en 1-2 minutos.',
+    mensaje: 'Orden de reinicio registrada. El servidor se va a reiniciar en menos de 1 minuto.',
   })
 }

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseAdmin()
     // Excluye las plantillas sistema_licencia_* defensivamente: son
-    // notificaciones de Pulzar al admin (hardcoded en src/lib/pulzar-emails.ts)
+    // notificaciones de FidCore al admin (hardcoded en src/lib/fidcore-emails.ts)
     // y el PAS no debería poder editarlas. La migración 083 las elimina de
     // DB; este filtro queda para que si por algún motivo reaparecen no se
     // muestren en la UI.

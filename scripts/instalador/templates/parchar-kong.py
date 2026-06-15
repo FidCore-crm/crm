@@ -78,7 +78,7 @@ def main():
 
     if modificados:
         # Backup antes de sobrescribir
-        backup = kong_yml.with_suffix(".yml.bak-pulzar")
+        backup = kong_yml.with_suffix(".yml.bak-fidcore")
         if not backup.exists():
             backup.write_text(kong_yml.read_text(), encoding="utf-8")
 
@@ -89,7 +89,7 @@ def main():
         "modificados": modificados,
         "skipeados": skipeados,
         "no_encontrados": no_encontrados,
-        "backup": str(kong_yml.with_suffix(".yml.bak-pulzar")) if modificados else None,
+        "backup": str(kong_yml.with_suffix(".yml.bak-fidcore")) if modificados else None,
     }, indent=2))
 
 

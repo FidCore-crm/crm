@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# Pulzar CRM — Instalador interactivo
+# FidCore CRM — Instalador interactivo
 #
 # Uso: bash scripts/instalador/instalar.sh
 #
@@ -12,7 +12,7 @@
 #   - Cloudflare Tunnel ya creado en el dashboard (necesitás el token)
 #
 # El script es idempotente: si una fase falla, podés volver a correrlo y elegir
-# desde dónde retomar (estado en /etc/pulzar/instalador.{env,progreso}).
+# desde dónde retomar (estado en /etc/fidcore/instalador.{env,progreso}).
 # ============================================================================
 
 # `-u` falla si se usa una variable no seteada.
@@ -72,7 +72,7 @@ _cargar_fases() {
 _bootstrap_sin_gum() {
   echo ""
   echo "═══════════════════════════════════════════════════════════════════════"
-  echo "  Pulzar CRM — Instalador"
+  echo "  FidCore CRM — Instalador"
   echo "═══════════════════════════════════════════════════════════════════════"
   echo ""
   echo "gum no está instalado todavía. Lo instalo ahora para tener una UI mejor..."
@@ -121,7 +121,7 @@ estado_init
 # ----- Banner principal -----
 mostrar_banner_principal() {
   clear
-  ui_banner "Pulzar CRM" "Instalador del servidor"
+  ui_banner "FidCore CRM" "Instalador del servidor"
 
   ui_box "Instalación 100% guiada. El wizard te va a pedir los datos del cliente,
 levantar Docker, Supabase y el CRM, aplicar migraciones, y dejar todo listo
@@ -129,7 +129,7 @@ para que el PAS se cree su admin.
 
 Tiempo estimado: ~15-20 min (sin contar download de containers).
 
-El estado se guarda en /etc/pulzar/instalador.* — si algo falla podés
+El estado se guarda en /etc/fidcore/instalador.* — si algo falla podés
 volver a correr y elegir 'Reanudar desde la última fase completada'."
   echo ""
 }

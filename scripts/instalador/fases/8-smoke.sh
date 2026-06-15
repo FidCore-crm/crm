@@ -15,7 +15,7 @@ fase_smoke_ejecutar() {
   local anon_key
   slug=$(estado_get CLIENTE_SLUG)
   anon_key=$(estado_get SB_ANON_KEY)
-  local dominio="https://${slug}.pulzar.com.ar"
+  local dominio="https://${slug}.fidcore.com.ar"
 
   local fallidos=0
 
@@ -40,7 +40,7 @@ fase_smoke_ejecutar() {
 
   # 3. Containers críticos — verificamos que estén EJECUTANDO (state=running)
   # y que no estén en restart loop (RestartCount alto en los últimos minutos).
-  local containers_esperados=(pulzar-crm pulzar-crm-crons pulzar-crm-importacion-runner supabase-db supabase-kong supabase-auth)
+  local containers_esperados=(fidcore-crm fidcore-crm-crons fidcore-crm-importacion-runner supabase-db supabase-kong supabase-auth)
   for c in "${containers_esperados[@]}"; do
     local state restarts
     state=$(dckr inspect -f '{{.State.Status}}' "$c" 2>/dev/null || echo "ausente")
@@ -129,10 +129,10 @@ _mostrar_resumen_final() {
   nombre=$(estado_get CLIENTE_NOMBRE)
 
   echo ""
-  ui_box "🚀 PULZAR CRM listo para entregar a ${nombre:-$slug}
+  ui_box "🚀 FIDCORE CRM listo para entregar a ${nombre:-$slug}
 
 URL del cliente:
-  https://${slug}.pulzar.com.ar
+  https://${slug}.fidcore.com.ar
   (sirve desde dentro y fuera de la oficina, en cualquier dispositivo)
 
 Lo que tiene que hacer el PAS:
@@ -148,12 +148,12 @@ Para tu soporte:
   • Portainer en https://localhost:9443 (vía SSH tunnel desde Tailscale)
 
 Credenciales del Supabase Studio (solo vos):
-  http://<ip-lan>:8001 → admin / (ver /etc/pulzar/instalador.env)
+  http://<ip-lan>:8001 → admin / (ver /etc/fidcore/instalador.env)
 
   Para obtener la pass desde el server:
-    sudo grep DASHBOARD_PASSWORD /etc/pulzar/instalador.env
+    sudo grep DASHBOARD_PASSWORD /etc/fidcore/instalador.env
 
 Backups locales en:  /var/backups/crm-seguros/
-Estado del instalador: /etc/pulzar/instalador.{env,progreso}"
+Estado del instalador: /etc/fidcore/instalador.{env,progreso}"
   echo ""
 }
