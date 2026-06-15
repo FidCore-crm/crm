@@ -470,6 +470,51 @@ COMMIT_PRE_UPDATE=$(git rev-parse HEAD)
 log "Commit pre-update: ${COMMIT_PRE_UPDATE:0:12}"
 
 # =====================================================================
+# Pre-flight: validar que el commit del tag nuevo sea distinto al HEAD actual.
+# Si son iguales (caso típico: alguien commiteó directo en el filesystem del
+# server donde corre el CRM), el rollback no tendría a dónde volver — sería
+# imposible recuperar si las migraciones fallan. Mejor abortar antes de tocar
+# storage y DB.
+# =====================================================================
+log "Pre-flight: verificando que v${VERSION_NUEVA} sea efectivamente más nueva..."
+git fetch --tags --quiet origin 2>&1 | tee -a "$LOG_FILE"
+if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+  log "FATAL: git fetch falló. Verificá conexión a internet."
+  marcar_actualizacion FALLIDA "Pre-flight: git fetch falló. Verificá conectividad a github.com."
+  exit 1
+fi
+
+TAG_VERIFICACION=""
+if git rev-parse "v${VERSION_NUEVA}" >/dev/null 2>&1; then
+  TAG_VERIFICACION="v${VERSION_NUEVA}"
+elif git rev-parse "V${VERSION_NUEVA}" >/dev/null 2>&1; then
+  TAG_VERIFICACION="V${VERSION_NUEVA}"
+else
+  log "FATAL: el tag v${VERSION_NUEVA} no existe en GitHub."
+  marcar_actualizacion FALLIDA "Pre-flight: el tag v${VERSION_NUEVA} no existe en GitHub (probé también V${VERSION_NUEVA})."
+  exit 1
+fi
+
+COMMIT_TAG_NUEVO=$(git rev-parse "$TAG_VERIFICACION")
+if [ "$COMMIT_TAG_NUEVO" = "$COMMIT_PRE_UPDATE" ]; then
+  log ""
+  log "FATAL: el commit del tag $TAG_VERIFICACION es IDÉNTICO al HEAD actual."
+  log "  HEAD actual:        ${COMMIT_PRE_UPDATE:0:12}"
+  log "  Tag $TAG_VERIFICACION: ${COMMIT_TAG_NUEVO:0:12}"
+  log ""
+  log "Esto suele pasar cuando el repo del CRM se usa para commits directos"
+  log "(el filesystem del server es el mismo que el del development). El"
+  log "rollback automático no tendría a dónde volver si las migraciones fallan."
+  log ""
+  log "Solución: hacé el rebuild manualmente con:"
+  log "  cd $CRM_DIR && docker compose build crm && docker compose up -d --force-recreate"
+  log ""
+  marcar_actualizacion FALLIDA "Pre-flight abortó: el código local ya contiene el commit del tag $TAG_VERIFICACION. Rebuild manual necesario (ver log)."
+  exit 1
+fi
+log "  ✓ Pre-flight OK — HEAD: ${COMMIT_PRE_UPDATE:0:12}, $TAG_VERIFICACION: ${COMMIT_TAG_NUEVO:0:12}"
+
+# =====================================================================
 # Paso 1: Backup pre-update
 # =====================================================================
 

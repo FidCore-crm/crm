@@ -51,6 +51,7 @@ CREATE INDEX IF NOT EXISTS idx_mailing_plantillas_activa
   ON public.mailing_plantillas (activa)
   WHERE activa = true;
 
+DROP TRIGGER IF EXISTS tg_mailing_plantillas_updated_at ON public.mailing_plantillas;
 CREATE TRIGGER tg_mailing_plantillas_updated_at
   BEFORE UPDATE ON public.mailing_plantillas
   FOR EACH ROW EXECUTE FUNCTION public.fn_actualizar_updated_at();
@@ -118,6 +119,7 @@ CREATE INDEX IF NOT EXISTS idx_mailing_audiencias_activa
   ON public.mailing_audiencias (activa)
   WHERE activa = true;
 
+DROP TRIGGER IF EXISTS tg_mailing_audiencias_updated_at ON public.mailing_audiencias;
 CREATE TRIGGER tg_mailing_audiencias_updated_at
   BEFORE UPDATE ON public.mailing_audiencias
   FOR EACH ROW EXECUTE FUNCTION public.fn_actualizar_updated_at();

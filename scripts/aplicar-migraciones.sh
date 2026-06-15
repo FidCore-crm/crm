@@ -9,12 +9,26 @@
 #   - --baseline:    marca todas las del repo como aplicadas SIN ejecutar
 #                    (útil cuando se conecta a una DB que ya tiene el schema
 #                    de un servidor pre-Docker)
+#   - --no-reconcile: desactiva la reconciliación automática (modo estricto)
 #
 # Idempotencia:
 #   - Crea/usa la tabla `migraciones_aplicadas (nombre PK, fecha)`.
 #   - Lee `sql/migrations/*.sql` en orden lex (que coincide con orden numérico
 #     porque todas tienen prefijo NNN_).
 #   - Skipea las que ya tienen row.
+#
+# Reconciliación automática (default en v1.0.9+):
+#   - Si una migración falla con un error "already exists" o "duplicate
+#     column" → asume que está aplicada (sus efectos ya estaban en la DB
+#     pero el row de tracking se perdió, ej: se aplicó con psql directo en
+#     un sprint y nunca quedó registrada). La marca como aplicada y sigue.
+#   - Si falla con cualquier OTRO error → aborta como antes.
+#   - Esto cubre el caso "DB tiene los efectos pero migraciones_aplicadas
+#     está desactualizada" sin requerir intervención manual.
+#   - Se puede desactivar con --no-reconcile.
+#   - Las migraciones nuevas DEBEN escribirse con `DROP X IF EXISTS + CREATE X`,
+#     `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, etc., para
+#     que el rollback de transacción no tape cambios reales pendientes.
 #
 # Detección de "primera vez vs repo existente":
 #   - Si la DB no tiene la tabla `personas` (heurística: es schema vacío),
@@ -33,12 +47,14 @@ MIGRATIONS_DIR="$PROJECT_DIR/sql/migrations"
 
 DRY_RUN=0
 BASELINE=0
+RECONCILE=1  # reconciliación automática activa por default
 for arg in "$@"; do
   case $arg in
     --dry-run) DRY_RUN=1 ;;
     --baseline) BASELINE=1 ;;
+    --no-reconcile) RECONCILE=0 ;;
     -h|--help)
-      sed -n '1,30p' "$0"
+      sed -n '1,40p' "$0"
       exit 0
       ;;
   esac
@@ -123,6 +139,7 @@ fi
 echo "Migraciones dir: $MIGRATIONS_DIR"
 [ $DRY_RUN -eq 1 ] && echo "Modo: DRY RUN"
 [ $BASELINE -eq 1 ] && echo "Modo: BASELINE (no ejecuta, solo marca)"
+[ $RECONCILE -eq 0 ] && echo "Modo: NO-RECONCILE (estricto, sin tolerancia a 'already exists')"
 echo "=========================================="
 
 # 1. Verificar conectividad
@@ -207,10 +224,32 @@ for nombre in "${PENDIENTES[@]}"; do
     echo "  [baseline] $nombre"
   else
     echo "  [aplicando] $nombre ..."
-    if ! psql_run -f "$archivo" >/dev/null; then
-      echo "  ERROR aplicando $nombre — abortando."
-      exit 2
+    # Capturamos stderr para poder detectar "already exists" (reconcile).
+    # stdout va a /dev/null como antes.
+    apply_output=$(psql_run -f "$archivo" 2>&1 >/dev/null) || apply_rc=$?
+    apply_rc=${apply_rc:-0}
+
+    if [ "$apply_rc" -ne 0 ]; then
+      # ¿Es un error idempotente que la reconciliación cubre?
+      # Solo miramos líneas que empiezan con "ERROR:" (no NOTICEs ni WARNINGs)
+      # para no confundirnos con un NOTICE benigno de "already exists, skipping"
+      # de algún CREATE ... IF NOT EXISTS dentro de la misma migración.
+      error_line=$(echo "$apply_output" | grep -E "^ERROR:" | head -1)
+      if [ $RECONCILE -eq 1 ] && \
+         echo "$error_line" | grep -qiE "already exists|duplicate column|duplicate key value violates unique constraint"; then
+        echo "  [reconcile] $nombre: la DB ya tiene los efectos de esta migración."
+        echo "              Marcando como aplicada sin re-ejecutar."
+        echo "              ($error_line)"
+        # No se ejecutó por el rollback de la transacción, pero los efectos ya estaban.
+        # Marcamos como aplicada y seguimos.
+      else
+        echo "  ERROR aplicando $nombre — abortando."
+        echo "$apply_output" | head -20
+        exit 2
+      fi
+      unset error_line
     fi
+    unset apply_rc
   fi
 
   # Marcar como aplicada (escapamos comillas simples por seguridad)

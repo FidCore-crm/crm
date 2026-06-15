@@ -75,6 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_mailing_campanas_programada
   WHERE estado = 'PROGRAMADA';
 
 -- Trigger updated_at
+DROP TRIGGER IF EXISTS tg_mailing_campanas_updated_at ON public.mailing_campanas;
 CREATE TRIGGER tg_mailing_campanas_updated_at
   BEFORE UPDATE ON public.mailing_campanas
   FOR EACH ROW EXECUTE FUNCTION public.fn_actualizar_updated_at();
