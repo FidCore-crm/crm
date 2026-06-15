@@ -57,6 +57,8 @@ export interface ReleaseGitHub {
   html_url: string
   /** true si la versión actual es anterior a esta release */
   es_mas_nueva: boolean
+  /** true si es un pre-release de GitHub (solo aparece si FIDCORE_INCLUIR_PRERELEASES=true) */
+  prerelease?: boolean
 }
 
 export interface ActualizacionDisponibleResult {
@@ -131,8 +133,19 @@ export async function consultarUltimaActualizacion(opciones?: {
 
   const repo = ((config as any)?.url_repo_updates) || 'Pulzar-crm/crm'
 
+  // Feature flag (oculto, solo para dev/staging del equipo FidCore): si la env
+  // var `FIDCORE_INCLUIR_PRERELEASES=true` está seteada, el server consulta
+  // /releases en vez de /releases/latest y considera el primero como candidato
+  // (incluso si es pre-release). Sirve para validar el flujo de updates con
+  // versiones no promovidas todavía. En instalaciones de clientes la env var
+  // no está y el comportamiento es el de siempre (solo Latest).
+  const incluirPrereleases = process.env.FIDCORE_INCLUIR_PRERELEASES === 'true'
+  const endpoint = incluirPrereleases
+    ? `https://api.github.com/repos/${repo}/releases?per_page=10`
+    : `https://api.github.com/repos/${repo}/releases/latest`
+
   try {
-    const resp = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
+    const resp = await fetch(endpoint, {
       headers: {
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',
@@ -173,7 +186,7 @@ export async function consultarUltimaActualizacion(opciones?: {
       return data
     }
 
-    const json = await resp.json() as {
+    type ReleaseJson = {
       tag_name: string
       name: string | null
       body: string | null
@@ -183,8 +196,28 @@ export async function consultarUltimaActualizacion(opciones?: {
       prerelease: boolean
     }
 
-    // Ignoramos drafts y prereleases — solo updates "production-ready"
-    if (json.draft || json.prerelease) {
+    // En modo "incluir pre-releases", recibimos un array y tomamos el primer
+    // release no-draft que sea más nuevo que la versión actual. La API devuelve
+    // los releases ordenados por created_at DESC, así que el primero es el más
+    // reciente. Considerando que el equipo dev publica primero como pre-release
+    // y después promueve a Latest, queremos detectar tanto la pre-release nueva
+    // como un Latest nuevo.
+    let releaseSeleccionado: ReleaseJson | null = null
+    if (incluirPrereleases) {
+      const arr = await resp.json() as ReleaseJson[]
+      // Saltear drafts (los publicados con prerelease=true sí los consideramos)
+      const candidato = arr.find(r => !r.draft)
+      if (candidato) releaseSeleccionado = candidato
+    } else {
+      releaseSeleccionado = await resp.json() as ReleaseJson
+      // /releases/latest YA excluye drafts y pre-releases por la API,
+      // pero defensivamente chequeamos por si GitHub cambia el comportamiento.
+      if (releaseSeleccionado.draft || releaseSeleccionado.prerelease) {
+        releaseSeleccionado = null
+      }
+    }
+
+    if (!releaseSeleccionado) {
       const data: ActualizacionDisponibleResult = {
         version_actual: versionActual,
         hay_actualizacion: false,
@@ -192,6 +225,8 @@ export async function consultarUltimaActualizacion(opciones?: {
       _cacheRelease = { data, expira: Date.now() + TTL_RELEASE_CHECK_MS }
       return data
     }
+
+    const json = releaseSeleccionado
 
     const release: ReleaseGitHub = {
       tag: json.tag_name,
@@ -201,6 +236,7 @@ export async function consultarUltimaActualizacion(opciones?: {
       published_at: json.published_at,
       html_url: json.html_url,
       es_mas_nueva: compararVersiones(versionActual, json.tag_name) < 0,
+      prerelease: json.prerelease,
     }
 
     const data: ActualizacionDisponibleResult = {

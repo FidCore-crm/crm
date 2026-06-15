@@ -386,6 +386,11 @@ function BannerUpdateDisponible({
         <div className="flex-1">
           <h3 className="text-base font-semibold text-blue-950">
             Nueva versión disponible: FidCore v{release.version}
+            {release.prerelease && (
+              <span className="ml-2 inline-block text-2xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium uppercase tracking-wide align-middle">
+                Pre-release
+              </span>
+            )}
           </h3>
           <p className="text-xs text-blue-700 mt-0.5">
             Publicada el {new Date(release.published_at).toLocaleDateString('es-AR', { dateStyle: 'long' })}
