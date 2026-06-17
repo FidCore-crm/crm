@@ -93,8 +93,20 @@ if [[ ! "$VERSION_NUEVA" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][a-zA-Z0-9]+)*$ ]]; then
 fi
 
 # Chequear estado en DB ANTES de invocar el script pesado.
-ESTADO_DB=$(docker exec -i supabase-db psql -U supabase_admin -d postgres -tAc \
-  "SELECT estado FROM actualizaciones WHERE id='${ACTUALIZACION_ID}';" 2>/dev/null | tr -d '[:space:]')
+#
+# IMPORTANTE: capturamos exit code de `docker exec` por separado para distinguir
+# "DB unreachable" (container caído, restart en curso) de "fila no existe".
+# Si la DB está unreachable transitoriamente, NO borramos el trigger — esperamos
+# al próximo tick (~1 min). Antes lo borraba y la actualización quedaba perdida.
+ESTADO_DB_RAW=$(docker exec -i supabase-db psql -U supabase_admin -d postgres -tAc \
+  "SELECT estado FROM actualizaciones WHERE id='${ACTUALIZACION_ID}';" 2>>"$TRIGGER_LOG")
+DB_EXIT=$?
+ESTADO_DB=$(echo "$ESTADO_DB_RAW" | tr -d '[:space:]')
+
+if [ "$DB_EXIT" -ne 0 ]; then
+  log "DB unreachable (docker exec exit=$DB_EXIT) — no borro trigger, reintento en el próximo tick"
+  exit 0
+fi
 
 case "$ESTADO_DB" in
   COMPLETADA|FALLIDA|CANCELADA)
@@ -141,8 +153,18 @@ export ACTUALIZACION_ID
 export VERSION_NUEVA
 export CRM_DIR
 
-# Ejecutamos en foreground (este script ya lo lanza cron en background)
-bash "$APLICAR_SCRIPT"
+# Ejecutamos con `setsid` para que el script viva en su propio process group.
+# Sin esto, el watcher de timeout interno (kill -- -$MAIN_PID) no puede matar
+# subprocesos colgados como `docker compose build`, porque MAIN_PID no es PGID
+# cuando heredamos el grupo del cron. Con setsid, MAIN_PID == PGID y `kill --`
+# se lleva al bash y a todos sus hijos directos.
+# Fallback a `bash` directo si setsid no existe (raro en Linux moderno).
+if command -v setsid >/dev/null 2>&1; then
+  setsid bash "$APLICAR_SCRIPT"
+else
+  log "WARN: setsid no disponible — el timeout watcher puede no matar subprocesos colgados"
+  bash "$APLICAR_SCRIPT"
+fi
 EXIT_CODE=$?
 
 rm -f "$LOCK_FILE"

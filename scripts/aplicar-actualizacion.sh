@@ -125,6 +125,13 @@ TIMEOUT_PID=""
 
 # Marca el estado de la actualización en DB. Args: $1=estado, $2=mensaje opcional.
 # Setea ESTADO_FINAL_MARCADO=1 cuando llega a COMPLETADA/FALLIDA/CANCELADA.
+#
+# Atomicidad: cuando el estado destino es final (COMPLETADA/FALLIDA/CANCELADA),
+# el UPDATE incluye `AND estado NOT IN ('COMPLETADA','FALLIDA','CANCELADA')`.
+# Esto protege la decisión del admin si hizo forzar-cierre desde la UI mientras
+# el script seguía corriendo: el primer estado final que se haya escrito gana,
+# y el rollback/cleanup posterior NO pisa el motivo original. También evita
+# pisarse a sí mismo si por error se llama dos veces en cadena.
 marcar_actualizacion() {
   local estado="$1"
   local mensaje="${2:-}"
@@ -138,6 +145,7 @@ marcar_actualizacion() {
     sql="$sql, backup_id='${BACKUP_ID}'"
   fi
 
+  local where_extra=""
   case "$estado" in
     EJECUTANDO)
       # COALESCE para no pisar la fecha original si se llama 2 veces
@@ -146,10 +154,13 @@ marcar_actualizacion() {
     COMPLETADA|FALLIDA|CANCELADA)
       sql="$sql, fecha_fin_ejecucion=now()"
       ESTADO_FINAL_MARCADO=1
+      # Atomicidad: no pisar otro estado final ya escrito (admin forzó cierre,
+      # o se llamó dos veces a marcar_actualizacion en cadena).
+      where_extra=" AND estado NOT IN ('COMPLETADA','FALLIDA','CANCELADA')"
       ;;
   esac
 
-  sql="$sql WHERE id='${ACTUALIZACION_ID}';"
+  sql="$sql WHERE id='${ACTUALIZACION_ID}'${where_extra};"
   db_exec -c "$sql" >> "$LOG_FILE" 2>&1 || log "WARN: db_exec falló para estado=$estado"
 }
 
