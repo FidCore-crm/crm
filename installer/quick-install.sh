@@ -5,7 +5,7 @@
 #
 # Pensado para correr en una sola línea desde un server fresh:
 #
-#   curl -fsSL https://raw.githubusercontent.com/Pulzar-crm/crm/main/installer/quick-install.sh \
+#   curl -fsSL https://raw.githubusercontent.com/FidCore-crm/crm/main/installer/quick-install.sh \
 #     | sudo bash
 #
 # Lo único que hace es:
@@ -16,12 +16,12 @@
 #
 # Variables de entorno respetadas (pasadas al install.sh):
 #   - FIDCORE_BRANCH    rama a clonar (default: main)
-#   - FIDCORE_REPO_URL  URL del repo (default: https://github.com/Pulzar-crm/crm.git)
+#   - FIDCORE_REPO_URL  URL del repo (default: https://github.com/FidCore-crm/crm.git)
 #   - Cualquier otra env var del install.sh (NO_WIZARD, SLUG_CLIENTE, etc.).
 
 set -euo pipefail
 
-FIDCORE_REPO_URL="${FIDCORE_REPO_URL:-https://github.com/Pulzar-crm/crm.git}"
+FIDCORE_REPO_URL="${FIDCORE_REPO_URL:-https://github.com/FidCore-crm/crm.git}"
 FIDCORE_BRANCH="${FIDCORE_BRANCH:-main}"
 TMP_DIR="${TMP_DIR:-/tmp/fidcore-installer}"
 

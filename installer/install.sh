@@ -14,7 +14,7 @@
 #      sudo NO_WIZARD=1 \
 #        SLUG_CLIENTE=juanperez \
 #        MODO_INSTALACION=APPLIANCE \
-#        CRM_REPO_URL="https://USER:PAT@github.com/Pulzar-crm/crm.git" \
+#        CRM_REPO_URL="https://USER:PAT@github.com/FidCore-crm/crm.git" \
 #        bash install.sh
 #
 #   3) Mixto — algunas vars por env, el wizard pregunta el resto:
@@ -72,9 +72,8 @@ INSTALACION_DIR_CRM="${INSTALACION_DIR_CRM:-/opt/crm-fidcore}"
 BACKUPS_DIR="${BACKUPS_DIR:-/var/backups/crm-seguros}"
 
 # Repo del CRM. Por default usa el repo público (mantenido por FidCore en la
-# organización Pulzar-crm de GitHub — el nombre del repo NO se rebrandeó para
-# no romper redirects ni links históricos). Sin PAT necesario.
-CRM_REPO_URL="${CRM_REPO_URL:-https://github.com/Pulzar-crm/crm.git}"
+# organización FidCore-crm de GitHub). Sin PAT necesario.
+CRM_REPO_URL="${CRM_REPO_URL:-https://github.com/FidCore-crm/crm.git}"
 CRM_REPO_BRANCH="${CRM_REPO_BRANCH:-main}"
 
 # Repo de Supabase (oficial)

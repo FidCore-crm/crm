@@ -131,7 +131,7 @@ export async function consultarUltimaActualizacion(opciones?: {
     .limit(1)
     .maybeSingle()
 
-  const repo = ((config as any)?.url_repo_updates) || 'Pulzar-crm/crm'
+  const repo = ((config as any)?.url_repo_updates) || 'FidCore-crm/crm'
 
   // Feature flag (oculto, solo para dev/staging del equipo FidCore): si la env
   // var `FIDCORE_INCLUIR_PRERELEASES=true` está seteada, el server consulta

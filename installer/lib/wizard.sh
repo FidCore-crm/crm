@@ -127,7 +127,7 @@ preguntar_slug() {
 }
 
 preguntar_repo_url() {
-  local default_repo="https://github.com/Pulzar-crm/crm.git"
+  local default_repo="https://github.com/FidCore-crm/crm.git"
 
   if [ -n "${CRM_REPO_URL:-}" ] && [ "$CRM_REPO_URL" != "$default_repo" ]; then
     ok "Repo CRM: $(echo "$CRM_REPO_URL" | sed -E 's#https?://[^@]+@#https://***@#') (ya seteado en env)"
@@ -137,7 +137,7 @@ preguntar_repo_url() {
   gum style --bold --foreground 51 '3/5  Repo del CRM'
   gum style --foreground 245 \
     'El repo oficial es público — no necesitás auth ni PAT.' \
-    '  Default: https://github.com/Pulzar-crm/crm.git' \
+    '  Default: https://github.com/FidCore-crm/crm.git' \
     'Solo cambialo si querés instalar un fork o una rama de test.'
   echo
 

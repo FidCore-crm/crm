@@ -36,7 +36,7 @@ Automatiza el manual `INSTALACION.md` (raíz del repo). Tiene 20 etapas en este 
 Server fresh con Ubuntu 22.04/24.04. Una sola línea, sin auth ni descargas previas:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Pulzar-crm/crm/main/installer/quick-install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/FidCore-crm/crm/main/installer/quick-install.sh | sudo bash
 ```
 
 `quick-install.sh` instala `git`, clona el repo público en `/tmp/fidcore-installer` y dispara el `install.sh`. Después arranca el wizard interactivo.
@@ -57,7 +57,7 @@ sudo NO_WIZARD=1 \
   bash install.sh
 ```
 
-`CRM_REPO_URL` ahora tiene default a `https://github.com/Pulzar-crm/crm.git` (público, sin auth). Solo seteala si querés clonar un fork o una rama de testing.
+`CRM_REPO_URL` ahora tiene default a `https://github.com/FidCore-crm/crm.git` (público, sin auth). Solo seteala si querés clonar un fork o una rama de testing.
 
 ### Mixto (algunas vars por env, el wizard pregunta el resto)
 
@@ -101,7 +101,7 @@ Estas son cosas que el PAS configura **desde el CRM** después de que el instala
 - Conectividad a github.com.
 - **Slug del cliente** ya decidido (ej: `juanperez`). Solo `[a-z0-9-]`, no se cambia después.
 
-El repo del CRM es **público** (`github.com/Pulzar-crm/crm`) — no necesitás PAT ni auth. La protección del código está en el sistema de licencias Ed25519, no en el control de acceso al código.
+El repo del CRM es **público** (`github.com/FidCore-crm/crm`) — no necesitás PAT ni auth. La protección del código está en el sistema de licencias Ed25519, no en el control de acceso al código.
 
 ## Variables de configuración
 
@@ -111,7 +111,7 @@ El repo del CRM es **público** (`github.com/Pulzar-crm/crm`) — no necesitás 
 |---|---|
 | `SLUG_CLIENTE` | Identificador del cliente. |
 | `MODO_INSTALACION` | `APPLIANCE` o `VPS`. |
-| `CRM_REPO_URL` | URL del repo del CRM. Default: `https://github.com/Pulzar-crm/crm.git`. Solo cambiar para forks o ramas de test. |
+| `CRM_REPO_URL` | URL del repo del CRM. Default: `https://github.com/FidCore-crm/crm.git`. Solo cambiar para forks o ramas de test. |
 | `TUNNEL_TOKEN` | Token de CF Tunnel. Opcional. |
 | `LICENCIA_PATH` | Ruta al archivo `.lic`. Opcional. |
 | `NO_WIZARD` | Si es `1`, salta el wizard. Las vars de arriba deben venir por env. |
