@@ -645,6 +645,16 @@ else
   ejecutar_rollback "El tag v${VERSION_NUEVA} no existe en GitHub (probé también V${VERSION_NUEVA})."
 fi
 
+# Descartar cambios uncommitted en archivos tracked. Sin esto, si alguien
+# editó algo directo en el server (típico: Nahuel toca un archivo en
+# /home/nahuel/crm-seguros para debuggear o aplicar un parche caliente), el
+# `git checkout` aborta con "Your local changes would be overwritten" y el
+# update entero falla. Como la regla es que los commits se hacen en crm-dev
+# y nunca acá, cualquier cambio local en este working tree es prescindible.
+# Esto NO toca el HEAD (los commits), ni archivos untracked (.env.docker,
+# storage/, tmp/, etc.). Solo descarta modificaciones a archivos tracked.
+git reset --hard HEAD --quiet 2>&1 | tee -a "$LOG_FILE" || true
+
 git checkout "$TAG_USADO" --quiet 2>&1 | tee -a "$LOG_FILE"
 if [ "${PIPESTATUS[0]}" -ne 0 ]; then
   ejecutar_rollback "git checkout $TAG_USADO falló."
