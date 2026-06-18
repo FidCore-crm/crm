@@ -817,14 +817,14 @@ export default function DashboardPage() {
                   {creandoPostit && (
                     <div
                       className="rounded-lg p-4 shadow-md flex flex-col gap-2"
-                      style={{ width: 200, minHeight: 200, backgroundColor: POSTIT_COLORES[postitColor] }}
+                      style={{ width: 240, minHeight: 240, backgroundColor: POSTIT_COLORES[postitColor] }}
                     >
                       <textarea
                         value={postitTexto}
                         onChange={e => setPostitTexto(e.target.value)}
                         maxLength={500}
                         placeholder="Escribí tu nota..."
-                        className="flex-1 bg-transparent border-none outline-none resize-none font-postit text-xl leading-tight text-slate-800 placeholder-slate-400"
+                        className="flex-1 bg-transparent border-none outline-none resize-none font-postit text-2xl leading-tight text-slate-800 placeholder-slate-400"
                         autoFocus
                         rows={5}
                       />
@@ -879,8 +879,8 @@ export default function DashboardPage() {
                         key={p.id}
                         className="group relative rounded-lg p-4 shadow-md transition-shadow hover:shadow-lg flex flex-col"
                         style={{
-                          width: 200,
-                          minHeight: 200,
+                          width: 240,
+                          minHeight: 240,
                           backgroundColor: POSTIT_COLORES[p.color] ?? POSTIT_COLORES.amarillo,
                           transform: `rotate(${rot}deg)`,
                         }}
@@ -940,7 +940,7 @@ export default function DashboardPage() {
                         )}
 
                         {/* Texto manuscrito tipo nota real */}
-                        <p className="flex-1 font-postit text-xl leading-tight text-slate-800 whitespace-pre-wrap break-words">{p.texto}</p>
+                        <p className="flex-1 font-postit text-2xl leading-tight text-slate-800 whitespace-pre-wrap break-words">{p.texto}</p>
 
                         {/* Footer */}
                         <div className="flex items-end justify-between mt-2">
