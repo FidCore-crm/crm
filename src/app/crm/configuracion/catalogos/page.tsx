@@ -6,7 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   Plus, Pencil, Trash2, Save, X, Loader2, AlertCircle,
   CheckCircle, ChevronRight, Settings, GripVertical,
-  ToggleLeft, ToggleRight, Type, AlignLeft, List, Calendar
+  ToggleLeft, ToggleRight, Type, AlignLeft, List, Calendar,
+  ArrowLeft
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 
@@ -414,6 +415,12 @@ export default function CatalogosPage() {
 
   return (
     <div className="flex flex-col gap-3">
+      <button
+        onClick={() => router.push('/crm/configuracion')}
+        className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 w-fit"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" /> Volver
+      </button>
       <div>
         <h1 className="text-lg font-semibold text-slate-800">Catálogos del Sistema</h1>
         <p className="text-xs text-slate-500 mt-0.5">
