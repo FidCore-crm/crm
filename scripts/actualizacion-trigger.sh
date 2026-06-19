@@ -50,6 +50,35 @@ for L in "$TRIGGER_LOG" "$CRON_LOG"; do
   fi
 done
 
+# Limpieza periódica de carpetas storage.pre-restore.* (cada 12h).
+#
+# Cada vez que ocurre un rollback o una restauración, backup-restore.sh mueve
+# storage/ → storage.pre-restore.<timestamp>/ por seguridad. Esas carpetas
+# acumulan disco y nunca se borran automáticamente. Las eliminamos pasados
+# los 7 días: tiempo suficiente para detectar problemas post-rollback y
+# recuperar archivos puntuales si fueran necesarios.
+#
+# El cleanup vive acá (script del host) y no en el cron del container porque
+# las carpetas viven al lado de `storage/` en el project root, FUERA del
+# bind-mount `./storage:/app/storage`. El container no puede verlas.
+#
+# Marker file con mtime: si tiene <12h, salteamos.
+PRE_RESTORE_MARKER="${CRM_DIR}/tmp/updates/.last-pre-restore-cleanup"
+PRE_RESTORE_TTL_DAYS=7
+DEBE_LIMPIAR=1
+if [ -f "$PRE_RESTORE_MARKER" ]; then
+  MARKER_AGE_SEC=$(( $(date +%s) - $(stat -c %Y "$PRE_RESTORE_MARKER" 2>/dev/null || echo 0) ))
+  [ "$MARKER_AGE_SEC" -lt 43200 ] && DEBE_LIMPIAR=0  # 12h = 43200s
+fi
+if [ "$DEBE_LIMPIAR" -eq 1 ] && [ -d "$CRM_DIR" ]; then
+  CANT=$(find "$CRM_DIR" -maxdepth 1 -name "storage.pre-restore.*" -type d -mtime "+${PRE_RESTORE_TTL_DAYS}" 2>/dev/null | wc -l)
+  if [ "$CANT" -gt 0 ]; then
+    find "$CRM_DIR" -maxdepth 1 -name "storage.pre-restore.*" -type d -mtime "+${PRE_RESTORE_TTL_DAYS}" -exec rm -rf {} + 2>/dev/null
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Cleanup: ${CANT} carpetas storage.pre-restore.* eliminadas (más de ${PRE_RESTORE_TTL_DAYS} días)" >> "$TRIGGER_LOG"
+  fi
+  touch "$PRE_RESTORE_MARKER" 2>/dev/null || true
+fi
+
 # Si no hay archivo de trigger, no hay nada que hacer
 [ -f "$TRIGGER_FILE" ] || exit 0
 

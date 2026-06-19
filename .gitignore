@@ -38,12 +38,19 @@ memory/
 # ---------------------------------------------------------------------
 # Datos del cliente (NUNCA al repo, vienen en cada instalación)
 # ---------------------------------------------------------------------
-storage/
-tmp/
+# OJO: anclar al root. Sin slash inicial "storage/" excluye también
+# src/app/api/storage/ → endpoints de upload/delete/serve archivos quedan
+# afuera de git y las instalaciones nuevas no pueden subir/servir archivos.
+# Mismo motivo para tmp/ y backups/ (ver más abajo).
+/storage/
+/tmp/
 
 # Backups (.crmbak)
 *.crmbak
-backups/
+# OJO: anclar al root. La regla "backups/" sin slash inicial excluiría también
+# src/app/api/cron/backups/ → endpoint del cron de backups quedaría afuera de git,
+# y las instalaciones nuevas perderían los backups automáticos.
+/backups/
 
 # Licencias emitidas
 *.lic

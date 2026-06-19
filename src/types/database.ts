@@ -634,6 +634,7 @@ export interface PlantillaEmail {
 export type TipoEnvioEmail =
   // Comunicaciones a clientes
   | 'AUTOMATICO_BIENVENIDA'
+  | 'AUTOMATICO_BIENVENIDA_CLIENTE'
   | 'AUTOMATICO_RENOVACION'
   | 'AUTOMATICO_PORTAL_CLIENTE'
   | 'MANUAL'
@@ -663,6 +664,8 @@ export type TipoEnvioEmail =
   | 'SISTEMA_LICENCIA_VENCIDA'
   | 'SISTEMA_LICENCIA_EN_GRACIA'
   | 'SISTEMA_LICENCIA_BLOQUEADA'
+  // Rollback del sistema de actualizaciones (migración 092)
+  | 'SISTEMA_ROLLBACK_UPDATE'
 
 export type PrioridadEmailEnvio = 'ALTA' | 'NORMAL'
 

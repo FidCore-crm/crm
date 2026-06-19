@@ -12,6 +12,7 @@ import {
   vencerPolizaSiCorresponde,
 } from '@/lib/polizas-transiciones'
 import { encolarEmailAutomaticoPoliza } from '@/lib/polizas-emails'
+import { encolarBienvenidaCliente } from '@/lib/personas-emails'
 import { requireLicenciaActiva } from '@/lib/licencia-guard'
 
 const STORAGE_ROOT = path.resolve(process.cwd(), 'storage')
@@ -349,7 +350,7 @@ export const PATCH = manejarErrores(async (
   // Cargar póliza con datos de ownership + valores actuales (para diff de bitácora)
   const { data: poliza } = await supabase
     .from('polizas')
-    .select('id, asegurado_id, compania_id, ramo_id, cobertura_id, numero_poliza, fecha_inicio, fecha_fin, refacturacion_id, vigencia_tipo_id, observaciones, notas, estado, poliza_origen_id, updated_at, asegurado:personas!asegurado_id (usuario_id)')
+    .select('id, asegurado_id, compania_id, ramo_id, cobertura_id, numero_poliza, fecha_inicio, fecha_fin, refacturacion_id, vigencia_tipo_id, observaciones, notas, estado, poliza_origen_id, origen_creacion, updated_at, asegurado:personas!asegurado_id (usuario_id)')
     .eq('id', id)
     .maybeSingle()
 
@@ -545,33 +546,49 @@ export const PATCH = manejarErrores(async (
   // Auto-transición tras editar fechas: si la póliza queda en condiciones de
   // cambiar de estado (renovada que llegó a su inicio, programada lista, vigente
   // que ya venció), no esperamos al cron — transicionamos ahora.
+  //
+  // No mandamos bienvenida/renovación si la póliza vino de una importación:
+  // el cliente ya tenía esa póliza con su productor anterior, sería confuso
+  // recibir un email de "bienvenida" por una póliza que conoce hace años.
   const cambiosTransicion: string[] = []
   const huboCambiosFecha = 'fecha_inicio' in patchPoliza || 'fecha_fin' in patchPoliza
+  const esImportada = (poliza as any).origen_creacion === 'IMPORTACION'
+  const aseguradoId = (poliza as any).asegurado_id
   if (huboCambiosFecha) {
     if ((poliza as any).estado === 'RENOVADA') {
       const t = await activarRenovadaSiCorresponde(supabase, id, usuario.id)
       cambiosTransicion.push(...t.cambios)
-      if (t.cambios.length > 0) await encolarEmailAutomaticoPoliza(supabase, id, 'AUTOMATICO_RENOVACION')
+      if (t.cambios.length > 0 && !esImportada) {
+        await encolarEmailAutomaticoPoliza(supabase, id, 'AUTOMATICO_RENOVACION')
+        await encolarBienvenidaCliente(supabase, aseguradoId)
+      }
     } else if ((poliza as any).estado === 'PROGRAMADA') {
       const t = await activarProgramadaSiCorresponde(supabase, id, usuario.id)
       cambiosTransicion.push(...t.cambios)
-      if (t.cambios.length > 0) await encolarEmailAutomaticoPoliza(supabase, id, 'AUTOMATICO_BIENVENIDA')
+      if (t.cambios.length > 0 && !esImportada) {
+        await encolarEmailAutomaticoPoliza(supabase, id, 'AUTOMATICO_BIENVENIDA')
+        await encolarBienvenidaCliente(supabase, aseguradoId)
+      }
     } else if ((poliza as any).estado === 'VIGENTE') {
       const t = await vencerPolizaSiCorresponde(supabase, id, usuario.id)
       cambiosTransicion.push(...t.cambios)
     }
 
     // Si esta póliza es origen y se acortó su fecha_fin, puede haber hijas
-    // RENOVADAS listas para activarse. Las verificamos.
+    // RENOVADAS listas para activarse. Las verificamos. La hija puede tener
+    // un origen distinto al padre, así que chequeamos individualmente.
     const { data: hijasPendientes } = await supabase
       .from('polizas')
-      .select('id')
+      .select('id, origen_creacion, asegurado_id')
       .eq('poliza_origen_id', id)
       .eq('estado', 'RENOVADA')
-    for (const h of (hijasPendientes ?? []) as Array<{ id: string }>) {
+    for (const h of (hijasPendientes ?? []) as Array<{ id: string; origen_creacion: string | null; asegurado_id: string }>) {
       const t = await activarRenovadaSiCorresponde(supabase, h.id, usuario.id)
       cambiosTransicion.push(...t.cambios)
-      if (t.cambios.length > 0) await encolarEmailAutomaticoPoliza(supabase, h.id, 'AUTOMATICO_RENOVACION')
+      if (t.cambios.length > 0 && h.origen_creacion !== 'IMPORTACION') {
+        await encolarEmailAutomaticoPoliza(supabase, h.id, 'AUTOMATICO_RENOVACION')
+        await encolarBienvenidaCliente(supabase, h.asegurado_id)
+      }
     }
   }
 

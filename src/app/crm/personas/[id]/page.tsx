@@ -1038,9 +1038,10 @@ export default function FichaPersonaPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="bg-white border border-green-200 rounded px-3 py-2 text-xs text-slate-600 leading-relaxed">
-                      El link de acceso ya fue mostrado y por seguridad no se almacena en el sistema.
-                      Si necesitás verlo o reenviarlo, regenerá un nuevo link (el anterior dejará de funcionar).
+                    <div className="bg-white border border-amber-200 rounded px-3 py-2 text-xs text-slate-600 leading-relaxed">
+                      Este link se generó antes de la última actualización y no se puede recuperar visualmente.
+                      Sigue funcionando para el asegurado. Si necesitás verlo de nuevo, regenerá uno nuevo
+                      (el anterior dejará de funcionar).
                     </div>
                   )}
 

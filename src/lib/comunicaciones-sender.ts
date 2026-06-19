@@ -39,6 +39,29 @@ function getBaseUrl(override?: string | null): string {
   return override || process.env.URL_CRM_PUBLICA || 'http://localhost:3000'
 }
 
+// Decide qué URL base usar en el HTML del email según el destinatario.
+//   - Si el email va al PAS / un usuario admin (AUTH_*, SISTEMA_*,
+//     NOTIFICACION_INTERNA), usamos `url_crm` — esos emails contienen links a
+//     pantallas del CRM admin (aceptar invitación, reset password, etc.) y
+//     deben apuntar al dominio donde el admin loguea.
+//   - Si el email va al asegurado (AUTOMATICO_*, MANUAL, MASIVO), usamos
+//     `url_portal_cliente` — el asegurado NO debe ver el dominio del CRM admin
+//     en links del footer, tracking pixel ni logo del email. Fallback a
+//     `url_crm` si el portal aún no está configurado.
+function elegirBaseUrlSegunTipo(
+  tipo: TipoEnvioEmail,
+  urls: { crm: string | null; portal_cliente: string | null },
+): string {
+  const esEmailAdmin =
+    tipo.startsWith('AUTH_') ||
+    tipo.startsWith('SISTEMA_') ||
+    tipo === 'NOTIFICACION_INTERNA'
+  if (esEmailAdmin) {
+    return getBaseUrl(urls.crm)
+  }
+  return getBaseUrl(urls.portal_cliente ?? urls.crm)
+}
+
 // ---------------------------------------------------------------------------
 // Tipos
 // ---------------------------------------------------------------------------
@@ -469,7 +492,6 @@ export async function encolarEmail(params: EncolarParams): Promise<EncolarResult
 export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = getSupabaseAdmin()
   const urlsPublicas = await obtenerUrlsPublicas()
-  const baseUrl = getBaseUrl(urlsPublicas.crm)
 
   // Marcar ENVIANDO atómicamente. Aceptamos también FALLIDO (reintento de
   // backoff): el cron solo nos llama cuando proximo_intento_en <= NOW().
@@ -487,6 +509,9 @@ export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boo
 
   const e = envio as any
   const token = e.token_tracking as string
+  // baseUrl depende del destinatario: admin → url_crm, asegurado → url_portal.
+  // Así los emails al asegurado nunca exponen el dominio del CRM admin.
+  const baseUrl = elegirBaseUrlSegunTipo(e.tipo_envio as TipoEnvioEmail, urlsPublicas)
 
   try {
     // Resolver variables frescas
@@ -767,6 +792,7 @@ export type TipoEventoSistema =
   | 'LICENCIA_POR_VENCER'
   | 'LICENCIA_EN_GRACIA'
   | 'LICENCIA_BLOQUEADA'
+  | 'ROLLBACK_UPDATE'
 
 interface MapeoEventoSistema {
   plantilla_codigo: string
@@ -905,6 +931,15 @@ function mapearTipoEvento(tipo: TipoEventoSistema): MapeoEventoSistema {
       plantilla_codigo: 'sistema_licencia_bloqueada',
       tipo_envio: 'SISTEMA_LICENCIA_BLOQUEADA',
       prioridad: 'ALTA',
+      es_critico: true,
+      es_informativo: false,
+    },
+    ROLLBACK_UPDATE: {
+      plantilla_codigo: 'sistema_rollback_update',
+      tipo_envio: 'SISTEMA_ROLLBACK_UPDATE',
+      prioridad: 'ALTA',
+      // Crítico: el admin necesita saber que un update falló y el sistema
+      // volvió a la versión anterior, incluso si volvió de forma exitosa.
       es_critico: true,
       es_informativo: false,
     },

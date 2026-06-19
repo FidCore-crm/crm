@@ -42,6 +42,7 @@ export default function ComunicacionesPage() {
   const [activo, setActivo] = useState(false)
   const [envioAutoRenovaciones, setEnvioAutoRenovaciones] = useState(false)
   const [envioAutoBienvenida, setEnvioAutoBienvenida] = useState(false)
+  const [envioAutoBienvenidaCliente, setEnvioAutoBienvenidaCliente] = useState(false)
   const [envioAutoPortal, setEnvioAutoPortal] = useState(false)
   const [adjuntarDocs, setAdjuntarDocs] = useState(true)
   const [limiteDiario, setLimiteDiario] = useState(500)
@@ -106,6 +107,7 @@ export default function ComunicacionesPage() {
         setActivo(c.activo ?? false)
         setEnvioAutoRenovaciones(c.envio_automatico_renovaciones ?? false)
         setEnvioAutoBienvenida(c.envio_automatico_bienvenida_poliza ?? false)
+        setEnvioAutoBienvenidaCliente(c.envio_automatico_bienvenida_cliente ?? false)
         setEnvioAutoPortal(c.envio_automatico_portal_cliente ?? false)
         setAdjuntarDocs(c.adjuntar_docs_renovacion ?? true)
         setLimiteDiario(c.limite_diario ?? 500)
@@ -361,11 +363,32 @@ export default function ComunicacionesPage() {
         )}
 
         <div className="flex flex-col gap-3">
-          {/* Toggle: Bienvenida */}
+          {/* Toggle: Bienvenida del cliente */}
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <p className="text-xs text-slate-700">Bienvenida al activarse una póliza nueva</p>
-              <p className="text-2xs text-slate-400 mt-0.5">Se envía cuando una póliza pasa a VIGENTE (nace vigente o transiciona desde PROGRAMADA). Adjunta toda la documentación disponible.</p>
+              <p className="text-xs text-slate-700">Bienvenida del cliente a la organización</p>
+              <p className="text-2xs text-slate-400 mt-0.5">Se envía UNA SOLA VEZ por cliente, al emitirse su primera póliza vigente. Es un saludo formal de incorporación, sin adjuntos. No se manda a clientes importados ni a los que ya estaban en el sistema antes de activar esta función.</p>
+            </div>
+            <label className={`relative inline-flex items-center ${!smtpConfigurado ? 'opacity-50' : 'cursor-pointer'}`}>
+              <input
+                type="checkbox"
+                checked={envioAutoBienvenidaCliente}
+                disabled={!smtpConfigurado}
+                onChange={e => {
+                  setEnvioAutoBienvenidaCliente(e.target.checked)
+                  immediateSave({ envio_automatico_bienvenida_cliente: e.target.checked })
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-slate-300 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5" />
+            </label>
+          </div>
+
+          {/* Toggle: Emisión de póliza */}
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <p className="text-xs text-slate-700">Emisión de póliza</p>
+              <p className="text-2xs text-slate-400 mt-0.5">Se envía cada vez que una póliza pasa a VIGENTE (nace vigente o transiciona desde PROGRAMADA). Adjunta toda la documentación disponible.</p>
             </div>
             <label className={`relative inline-flex items-center ${!smtpConfigurado ? 'opacity-50' : 'cursor-pointer'}`}>
               <input

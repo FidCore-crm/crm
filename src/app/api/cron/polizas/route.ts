@@ -9,6 +9,7 @@ import {
   vencerPolizaSiCorresponde,
 } from '@/lib/polizas-transiciones'
 import { encolarEmailAutomaticoPoliza } from '@/lib/polizas-emails'
+import { encolarBienvenidaCliente } from '@/lib/personas-emails'
 
 export async function GET(request: Request) {
   const authError = await validarCronSecret(request)
@@ -24,19 +25,27 @@ export async function GET(request: Request) {
 
   // ────────────────────────────────────────────────────────────
   // 1) PROGRAMADA → VIGENTE
+  //
+  // Activamos TODAS las que cumplan la fecha, incluso las importadas
+  // (típico: un PAS migra una cartera donde algunas pólizas arrancan
+  // dentro de unos días). Lo que NO hacemos es disparar bienvenida si
+  // la póliza vino de una importación — esas pólizas el cliente ya las
+  // tiene desde antes con su productor anterior.
   // ────────────────────────────────────────────────────────────
   const { data: programadasListas } = await supabase
     .from('polizas')
-    .select('id')
+    .select('id, origen_creacion, asegurado_id')
     .eq('estado', 'PROGRAMADA')
     .lte('fecha_inicio', hoy)
-    .neq('origen_creacion', 'IMPORTACION')
-  for (const p of (programadasListas ?? []) as Array<{ id: string }>) {
+  for (const p of (programadasListas ?? []) as Array<{ id: string; origen_creacion: string | null; asegurado_id: string }>) {
     try {
       const t = await activarProgramadaSiCorresponde(supabase, p.id, null)
       if (t.cambios.length > 0) {
         cantActivadas++
-        await encolarEmailAutomaticoPoliza(supabase, p.id, 'AUTOMATICO_BIENVENIDA')
+        if (p.origen_creacion !== 'IMPORTACION') {
+          await encolarEmailAutomaticoPoliza(supabase, p.id, 'AUTOMATICO_BIENVENIDA')
+          await encolarBienvenidaCliente(supabase, p.asegurado_id)
+        }
       }
     } catch (err) {
       cantFallos++
@@ -46,19 +55,26 @@ export async function GET(request: Request) {
 
   // ────────────────────────────────────────────────────────────
   // 2) RENOVADA → VIGENTE (con baja de la origen y movimiento de archivos)
+  //
+  // Las renovaciones se crean desde dentro del CRM (no por el importador),
+  // pero por defensa también filtramos IMPORTACION acá: si en algún caso
+  // futuro se importa una RENOVADA, se activa pero no manda email.
   // ────────────────────────────────────────────────────────────
   const { data: renovadasListas } = await supabase
     .from('polizas')
-    .select('id')
+    .select('id, origen_creacion, asegurado_id')
     .eq('estado', 'RENOVADA')
     .lte('fecha_inicio', hoy)
     .not('poliza_origen_id', 'is', null)
-  for (const ren of (renovadasListas ?? []) as Array<{ id: string }>) {
+  for (const ren of (renovadasListas ?? []) as Array<{ id: string; origen_creacion: string | null; asegurado_id: string }>) {
     try {
       const t = await activarRenovadaSiCorresponde(supabase, ren.id, null)
       if (t.cambios.length > 0) {
         cantRenovadasActivadas++
-        await encolarEmailAutomaticoPoliza(supabase, ren.id, 'AUTOMATICO_RENOVACION')
+        if (ren.origen_creacion !== 'IMPORTACION') {
+          await encolarEmailAutomaticoPoliza(supabase, ren.id, 'AUTOMATICO_RENOVACION')
+          await encolarBienvenidaCliente(supabase, ren.asegurado_id)
+        }
       }
       if (t.errores) {
         erroresGlobales.push(...t.errores)
@@ -102,7 +118,7 @@ export async function GET(request: Request) {
     for (let lote = 0; lote < MAX_LOTES; lote++) {
       const { data: vigentesRecientes } = await supabase
         .from('polizas')
-        .select('id')
+        .select('id, asegurado_id')
         .eq('estado', 'VIGENTE')
         .is('poliza_origen_id', null)
         .gte('created_at', hace7Dias)
@@ -110,12 +126,13 @@ export async function GET(request: Request) {
         .order('created_at', { ascending: true })
         .range(offset, offset + TAMANO_LOTE - 1)
 
-      const filas = (vigentesRecientes ?? []) as Array<{ id: string }>
+      const filas = (vigentesRecientes ?? []) as Array<{ id: string; asegurado_id: string }>
       if (filas.length === 0) break
 
       for (const p of filas) {
         try {
           await encolarEmailAutomaticoPoliza(supabase, p.id, 'AUTOMATICO_BIENVENIDA')
+          await encolarBienvenidaCliente(supabase, p.asegurado_id)
           cantBienvenidas++
         } catch (err) {
           cantFallos++

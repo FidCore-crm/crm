@@ -10,15 +10,25 @@
 // Se valida también el estado de la persona: si está BLOQUEADO /
 // INACTIVO, el token no funciona aunque no esté revocado.
 //
-// Seguridad (migración 042): el token plano NO se guarda en DB. Solo
-// se persiste sha256(token) en hex en `token_hash`. Si se filtra un
-// backup `.crmbak`, los tokens activos no quedan expuestos. El token
-// plano existe únicamente en el email/WhatsApp que se le mandó al
-// cliente cuando se generó. Si el cliente lo pierde, hay que regenerar.
+// Seguridad (migraciones 042 + 093):
+//  - `token_hash` (sha256 hex) → índice rápido para validar al cliente
+//    cuando entra a `/c/<token>`.
+//  - `token_encrypted` (AES-256-GCM con ENCRYPTION_KEY del .env.local) →
+//    permite que el PAS vea el link en la ficha sin que el token plano
+//    quede expuesto en la DB. Como `.env.local` no viaja en el `.crmbak`,
+//    un backup filtrado sigue siendo inútil sin la key (mismo modelo que
+//    SMTP password y API key de Anthropic).
+//
+// Si ENCRYPTION_KEY no está configurada (instalación vieja), seguimos
+// guardando solo el hash y el PAS ve el cartel "ya fue mostrado". Los
+// tokens viejos generados antes de la migración 093 también muestran ese
+// cartel hasta que se regeneran.
 // ============================================================
 
 import crypto from 'crypto'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
+import { encrypt, decrypt, isEncryptionAvailable } from '@/lib/encryption'
+import { logger } from '@/lib/errores/logger'
 
 function generarTokenSeguro(): string {
   // UUID (36 chars) + 32 hex extra => >60 chars impredecibles
@@ -49,13 +59,29 @@ export async function generarTokenAcceso(
     .eq('persona_id', persona_id)
     .eq('revocado', false)
 
-  // 2. Insertar el hash del token nuevo. El token plano se devuelve solo
-  // al caller (para el email/WhatsApp); nunca se persiste.
+  // 2. Insertar hash + plano encriptado. El plano queda accesible solo
+  // para quien tenga ENCRYPTION_KEY (server local). El email/WhatsApp se
+  // sigue mandando con el token plano que devolvemos al caller.
   const token = generarTokenSeguro()
   const token_hash = hashToken(token)
+  let token_encrypted: string | null = null
+  if (isEncryptionAvailable()) {
+    try {
+      token_encrypted = encrypt(token)
+    } catch (err) {
+      // Si la encriptación falla, seguimos guardando el hash. El PAS
+      // verá el cartel "ya fue mostrado" pero el token funciona.
+      logger.warn({
+        modulo: 'portal-cliente',
+        mensaje: 'No se pudo encriptar token de portal — se guarda solo hash',
+        contexto: { error: String(err) },
+      })
+    }
+  }
   const { error } = await supabase.from('portal_cliente_accesos').insert({
     persona_id,
     token_hash,
+    token_encrypted,
     creado_por_usuario_id: usuario_id,
   } as any)
 
@@ -156,4 +182,29 @@ export function construirUrlPortal(token: string, baseOverride?: string | null):
   const base = (baseOverride ?? process.env.URL_PORTAL_CLIENTE ?? '').replace(/\/+$/, '')
   if (!base) return ''
   return `${base}/c/${token}`
+}
+
+/**
+ * Recupera el token plano de una fila de `portal_cliente_accesos`
+ * desencriptando `token_encrypted`. Devuelve `null` si:
+ *   - el acceso no tiene `token_encrypted` (token viejo pre-093)
+ *   - la ENCRYPTION_KEY no está disponible
+ *   - la desencriptación falla (key cambió desde que se generó)
+ *
+ * Es best-effort: nunca tira; el caller decide qué mostrar si vuelve null
+ * (típicamente: cartel "ya fue mostrado, regenerá").
+ */
+export function recuperarTokenPlano(acceso: { token_encrypted?: string | null } | null | undefined): string | null {
+  if (!acceso?.token_encrypted) return null
+  if (!isEncryptionAvailable()) return null
+  try {
+    return decrypt(acceso.token_encrypted)
+  } catch (err) {
+    logger.warn({
+      modulo: 'portal-cliente',
+      mensaje: 'No se pudo desencriptar token de portal',
+      contexto: { error: String(err) },
+    })
+    return null
+  }
 }

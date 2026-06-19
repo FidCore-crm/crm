@@ -689,7 +689,7 @@ export default function PerfilPage() {
             />
           </Campo>
           <p className="text-2xs text-slate-500">
-            Pegá el subdominio público que vas a usar para entrar al CRM (Cloudflare Tunnel u otro). Solo el dominio raíz, sin <code className="bg-slate-100 px-1 rounded">/crm/login</code>.
+            Pegá el subdominio público que vas a usar para entrar al CRM (Cloudflare Tunnel u otro). Solo el dominio raíz, sin <code className="bg-slate-100 px-1 rounded">/login</code>.
             Esta URL se usa para los links que aparecen dentro de los emails que envía el sistema.
           </p>
           <p className="text-2xs text-slate-400">

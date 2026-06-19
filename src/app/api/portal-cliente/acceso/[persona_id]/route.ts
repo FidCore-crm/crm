@@ -7,6 +7,7 @@ import {
   regenerarTokenAcceso,
   revocarTokenAcceso,
   construirUrlPortal,
+  recuperarTokenPlano,
 } from '@/lib/portal-cliente-tokens'
 import { obtenerUrlPortalCliente } from '@/lib/urls-publicas'
 import { checkLicenciaActiva } from '@/lib/licencia-guard'
@@ -46,17 +47,19 @@ function respuestaAcceso(
   tokenPlano?: string | null,
 ) {
   if (!acceso) return { tiene_acceso: false, acceso: null }
-  // Nota: a partir de la migración 042 NO guardamos el token plano en DB,
-  // solo el hash sha256. El token solo está disponible en memoria justo
-  // después de generar/regenerar — en cualquier otro momento (lectura GET,
-  // listado), no se puede mostrar el link completo. Si el cliente pierde
-  // el token, hay que regenerar (lo cual revoca el anterior).
+  // Desde la migración 093 también guardamos el token encriptado en DB
+  // (AES-256-GCM con ENCRYPTION_KEY del .env.local, que no viaja en el
+  // backup). Si el caller no nos pasó el token (caso GET), lo intentamos
+  // recuperar del campo `token_encrypted`. Si falla (key faltante / token
+  // pre-093), devolvemos null y el frontend muestra el cartel "ya fue
+  // mostrado, regenerá".
+  const token = tokenPlano ?? recuperarTokenPlano(acceso)
   return {
     tiene_acceso: true,
     acceso: {
       id: acceso.id,
-      token: tokenPlano ?? null,
-      url_completa: tokenPlano ? construirUrlPortal(tokenPlano, urlBasePortal) : null,
+      token,
+      url_completa: token ? construirUrlPortal(token, urlBasePortal) : null,
       fecha_creacion: acceso.fecha_creacion,
       veces_accedido: acceso.veces_accedido ?? 0,
       ultimo_acceso: acceso.ultimo_acceso,

@@ -286,6 +286,12 @@ function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
     apellido: pr.apellido || pr.razon_social || 'S/D',
     pais: pr.pais || 'Argentina',
     estado: pr.estado || 'ACTIVO',
+    // Marca la persona como importada para que NO se le mande bienvenida
+    // de cliente automática (los clientes importados vienen de otra cartera).
+    origen_creacion: 'IMPORTACION',
+    // Backfill: las personas importadas también arrancan con el flag de
+    // bienvenida "consumido" — defensa adicional al filtro por origen_creacion.
+    bienvenida_cliente_encolada_en: new Date().toISOString(),
   };
   // NO incluir 'cuil_formateado' — es una GENERATED COLUMN que Postgres
   // calcula sola desde dni_cuil. Intentar insertarla tira

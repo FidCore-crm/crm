@@ -42,19 +42,6 @@ function isPublicRoute(pathname: string): boolean {
   return false
 }
 
-// ============================================================================
-// Hostname único por cliente (<cliente>.fidcore.com.ar) sirve TODO el CRM:
-//  - Login + dashboard del PAS
-//  - Portal del asegurado (`/c/<token>`)
-//  - Formulario público de denuncia (`/denuncia`)
-//  - Path-based proxy a Supabase (`/supabase/*`, manejado por next.config.js)
-//
-// Antes existía un subdomain `denuncia.<cliente>.fidcore.com.ar` con bloqueo
-// de rutas en el middleware como defense-in-depth. Lo eliminamos al pasar
-// al modelo single-hostname (cert wildcard `*.fidcore.com.ar` cubre solo un
-// nivel y los anidados requerían ACM pago en Cloudflare).
-// ============================================================================
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const token = request.cookies.get('crm_session')?.value
@@ -92,12 +79,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Ruta raíz
+  // Raíz: redirect a dashboard (que a su vez requiere login)
   if (pathname === '/') {
-    if (token) {
-      return NextResponse.redirect(new URL('/crm/dashboard', request.url))
-    }
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/crm/dashboard', request.url))
   }
 
   // Rutas de API protegidas
@@ -108,7 +92,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Rutas del CRM
+  // Rutas del CRM: requieren sesión
   if (pathname.startsWith('/crm/')) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url))

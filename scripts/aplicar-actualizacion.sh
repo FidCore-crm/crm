@@ -85,6 +85,40 @@ db_exec() {
   docker exec -i supabase-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 "$@"
 }
 
+# Llama al endpoint TS /api/sistema/notificar-rollback. Best-effort: si el CRM
+# no responde (el container puede estar caído en medio de un rollback fallido),
+# loggeamos y seguimos — la prioridad es completar el rollback.
+notificar_rollback_admin() {
+  local version_intentada="$1"
+  local version_actual="$2"
+  local motivo_fallo="$3"
+  local rollback_exitoso="$4"  # "true" | "false"
+
+  if [ -z "$CRON_SECRET" ]; then
+    log "  ⚠ CRON_SECRET vacío — no se puede notificar al admin"
+    return 0
+  fi
+
+  # JSON crudo (escapamos comillas dobles en motivo_fallo)
+  local motivo_escapado="${motivo_fallo//\"/\\\"}"
+  local payload
+  payload=$(printf '{"version_intentada":"%s","version_actual":"%s","motivo_fallo":"%s","rollback_exitoso":%s}' \
+    "$version_intentada" "$version_actual" "$motivo_escapado" "$rollback_exitoso")
+
+  local resp
+  resp=$(curl -sf --max-time 10 \
+    -X POST "http://localhost:3000/api/sistema/notificar-rollback" \
+    -H "Authorization: Bearer $CRON_SECRET" \
+    -H "Content-Type: application/json" \
+    -d "$payload" 2>&1 || echo "CURL_FAILED")
+
+  if [ "$resp" = "CURL_FAILED" ]; then
+    log "  ⚠ No se pudo notificar al admin (CRM no responde)"
+  else
+    log "  ✓ Admin notificado: $resp"
+  fi
+}
+
 # Escapa una string para usar dentro de un string JSON.
 # Reemplaza: \ → \\, " → \", newlines → \n, etc.
 json_escape() {
@@ -253,11 +287,15 @@ guardar_log_completo() {
 ejecutar_rollback() {
   local motivo_fallo="$1"
 
+  # Marker explícito y filtrable en log_completo. La pantalla
+  # /crm/configuracion/actualizaciones puede greppear "[ROLLBACK_EVENT]" para
+  # listar updates donde el sistema tuvo que volver atrás.
   log ""
-  log "═══════════════════════════════════════════════════════════════"
-  log "  ⚠ EL UPDATE FALLÓ — Iniciando rollback automático"
-  log "  Motivo: ${motivo_fallo}"
-  log "═══════════════════════════════════════════════════════════════"
+  log "[ROLLBACK_EVENT] ═══════════════════════════════════════════════════════════════"
+  log "[ROLLBACK_EVENT]   ⚠ EL UPDATE FALLÓ — Iniciando rollback automático"
+  log "[ROLLBACK_EVENT]   Motivo: ${motivo_fallo}"
+  log "[ROLLBACK_EVENT]   Versión intentada: ${VERSION_NUEVA:-desconocida}"
+  log "[ROLLBACK_EVENT] ═══════════════════════════════════════════════════════════════"
 
   escribir_progreso "ROLLBACK" 0 "$motivo_fallo"
 
@@ -350,16 +388,27 @@ ejecutar_rollback() {
   version_actual=$(grep -oE '"version": *"[^"]+"' "$CRM_DIR/package.json" | head -1 | cut -d'"' -f4)
   if [ $rollback_exitoso -eq 1 ]; then
     marcar_actualizacion FALLIDA "$motivo_fallo. Rollback aplicado: el sistema volvió a v${version_actual}."
-    log ""
-    log "  ✓ Rollback completado. El CRM está corriendo v${version_actual}."
+    log "[ROLLBACK_EVENT]   ✓ Rollback completado. El CRM está corriendo v${version_actual}."
     escribir_progreso "ROLLBACK_OK" 100 "Rollback exitoso — sistema en v${version_actual}"
   else
     marcar_actualizacion FALLIDA "$motivo_fallo. ⚠ EL ROLLBACK TAMBIÉN FALLÓ — revisar manualmente el servidor."
-    log ""
-    log "  ⚠ Rollback INCOMPLETO. El servidor puede estar en estado inconsistente."
-    log "  Acción manual: SSH al servidor y verificar 'docker ps' + estado de DB."
+    log "[ROLLBACK_EVENT]   ⚠ Rollback INCOMPLETO. El servidor puede estar en estado inconsistente."
+    log "[ROLLBACK_EVENT]   Acción manual: SSH al servidor y verificar 'docker ps' + estado de DB."
     escribir_progreso "ROLLBACK_FAILED" 100 "Rollback incompleto — revisar manualmente"
   fi
+
+  # Paso E: notificar al admin por email + notif in-app via endpoint TS.
+  # Esto es independiente del éxito del rollback — el admin necesita enterarse
+  # en ambos casos. Si el CRM no responde (rollback fallido catastrófico) el
+  # helper loggea y sigue sin abortar.
+  local rollback_flag="false"
+  [ $rollback_exitoso -eq 1 ] && rollback_flag="true"
+  log "[ROLLBACK_EVENT]   Notificando al admin..."
+  notificar_rollback_admin \
+    "${VERSION_NUEVA:-desconocida}" \
+    "$version_actual" \
+    "$motivo_fallo" \
+    "$rollback_flag"
 
   exit 1
 }

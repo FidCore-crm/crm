@@ -141,6 +141,7 @@ export async function PATCH(request: NextRequest) {
     if (body.activo !== undefined) campos.activo = body.activo
     if (body.envio_automatico_renovaciones !== undefined) campos.envio_automatico_renovaciones = body.envio_automatico_renovaciones
     if (body.envio_automatico_bienvenida_poliza !== undefined) campos.envio_automatico_bienvenida_poliza = body.envio_automatico_bienvenida_poliza
+    if (body.envio_automatico_bienvenida_cliente !== undefined) campos.envio_automatico_bienvenida_cliente = body.envio_automatico_bienvenida_cliente
     if (body.envio_automatico_portal_cliente !== undefined) campos.envio_automatico_portal_cliente = body.envio_automatico_portal_cliente
     if (body.adjuntar_docs_renovacion !== undefined) campos.adjuntar_docs_renovacion = body.adjuntar_docs_renovacion
     if (body.limite_diario !== undefined) campos.limite_diario = body.limite_diario

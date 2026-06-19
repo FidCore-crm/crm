@@ -3,23 +3,18 @@ import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/api-auth'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { enviarComunicacion } from '@/lib/comunicaciones-sender'
-import { regenerarTokenAcceso, construirUrlPortal } from '@/lib/portal-cliente-tokens'
+import { regenerarTokenAcceso, construirUrlPortal, recuperarTokenPlano } from '@/lib/portal-cliente-tokens'
 import { obtenerUrlPortalCliente } from '@/lib/urls-publicas'
 import { checkLicenciaActiva } from '@/lib/licencia-guard'
 
 /**
  * Envía el link del portal del cliente por email o WhatsApp.
  *
- * Detalle importante post-migración 042: los tokens viven hasheados en DB.
- * Eso implica que NO podemos leer el token plano de un acceso ya creado para
- * "reenviarlo". En cambio, este endpoint **regenera el token en cada llamada**:
- * el token anterior queda revocado y se crea uno nuevo. El link plano solo
- * existe en este request, viaja al cliente, y queda hasheado en DB.
- *
- * Consecuencia UX: si el PAS aprieta "Enviar de nuevo", el link anterior
- * deja de funcionar. Esto es intencional — un link que se reenvía es indis-
- * tinguible de un link comprometido, y la mejor práctica es invalidar el
- * anterior.
+ * Post-migración 093: si el acceso tiene `token_encrypted`, recuperamos
+ * el plano y lo reusamos — el PAS puede reenviar el mismo link 100 veces
+ * sin invalidar el original. Solo regeneramos (con revocación del anterior)
+ * cuando el acceso no tiene encrypted (token pre-093 o ENCRYPTION_KEY
+ * faltante).
  */
 export async function POST(
   request: NextRequest,
@@ -52,11 +47,11 @@ export async function POST(
     }
   }
 
-  // Verificar que existía un acceso activo previo (para no convertir este
+  // Verificar que existe un acceso activo previo (para no convertir este
   // endpoint en "generar"; debería pasarse por POST /acceso/[id] primero).
   const { data: accesoPrevio } = await supabase
     .from('portal_cliente_accesos')
-    .select('id')
+    .select('id, token_encrypted')
     .eq('persona_id', persona_id)
     .eq('revocado', false)
     .maybeSingle()
@@ -68,17 +63,25 @@ export async function POST(
     )
   }
 
-  // Regenerar — devuelve el token plano. El anterior queda revocado.
-  const regen = await regenerarTokenAcceso(persona_id, usuario.id)
-  if (!regen.ok || !regen.token) {
-    return NextResponse.json(
-      { ok: false, error: regen.error || 'No se pudo regenerar el token' },
-      { status: 500 },
-    )
+  // Si el acceso tiene token encriptado, reusamos el plano y NO regeneramos.
+  // Reenviar el mismo link no rompe el que ya tiene el cliente. Si no se
+  // puede recuperar (encrypted vacío o key faltante), caemos al fallback de
+  // regenerar — el link viejo deja de funcionar pero al menos podemos enviar
+  // algo válido.
+  let tokenPlano = recuperarTokenPlano(accesoPrevio)
+  if (!tokenPlano) {
+    const regen = await regenerarTokenAcceso(persona_id, usuario.id)
+    if (!regen.ok || !regen.token) {
+      return NextResponse.json(
+        { ok: false, error: regen.error || 'No se pudo regenerar el token' },
+        { status: 500 },
+      )
+    }
+    tokenPlano = regen.token
   }
 
   const urlBasePortal = await obtenerUrlPortalCliente()
-  const urlPortal = construirUrlPortal(regen.token, urlBasePortal)
+  const urlPortal = construirUrlPortal(tokenPlano, urlBasePortal)
   if (!urlPortal) {
     return NextResponse.json(
       { ok: false, error: 'La URL del portal del cliente no está configurada. Configurala en Configuración → Portal del Cliente.' },

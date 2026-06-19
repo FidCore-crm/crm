@@ -12,6 +12,7 @@ import { registrarEventoBitacora } from '@/lib/bitacora-poliza'
 import { logger } from '@/lib/errores'
 import { activarRenovadaSiCorresponde } from '@/lib/polizas-transiciones'
 import { encolarEmailAutomaticoPoliza } from '@/lib/polizas-emails'
+import { encolarBienvenidaCliente } from '@/lib/personas-emails'
 import type {
   DatosExtraidosPoliza,
   DatosExtraidosEndoso,
@@ -147,6 +148,9 @@ async function insertarPersona(
       pais: 'Argentina',
       estado: 'ACTIVO',
       origen: 'AGENTE_PDF',
+      // Distingue altas reales (AGENTE_PDF y MANUAL) de importadas
+      // a los fines de disparar bienvenida del cliente.
+      origen_creacion: 'AGENTE_PDF',
       usuario_id: usuarioId,
       ...extras,
     } as any)
@@ -482,6 +486,8 @@ export async function aplicarPolizaNueva(params: {
           anti_spam: true,
         })
       }
+      // Bienvenida del cliente: idempotente, se manda una sola vez por persona.
+      await encolarBienvenidaCliente(supabase, aseguradoId)
     } catch (err) {
       logger.warn({
         modulo: 'agente-pdf',
@@ -706,6 +712,10 @@ export async function aplicarRenovacion(params: {
     const t = await activarRenovadaSiCorresponde(supabase, polizaId, usuario_id)
     if (t.cambios.length > 0) {
       await encolarEmailAutomaticoPoliza(supabase, polizaId, 'AUTOMATICO_RENOVACION')
+      // También intentamos la bienvenida: si la persona nunca la recibió
+      // (cliente preexistente sin email en su primera póliza, ahora con email
+      // al renovar), este es el primer momento en que se le puede mandar.
+      await encolarBienvenidaCliente(supabase, (origen as any).asegurado_id)
     }
   } catch (err) {
     logger.warn({

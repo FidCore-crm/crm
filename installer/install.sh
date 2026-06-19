@@ -579,6 +579,48 @@ fase_migraciones() {
 }
 
 # =====================================================================
+# Seed de URLs públicas en la fila singleton de `configuracion`
+# =====================================================================
+#
+# El CRM lee de `configuracion.url_crm`, `url_portal_cliente` y
+# `url_formulario_publico` para armar los links de los emails. Sin esto
+# los emails llegan con `http://localhost:3000` o con un host random.
+#
+# Filosofía: la URL pública la sabe el técnico (es `<slug>.fidcore.com.ar`),
+# NO el PAS. Si la dejáramos vacía para que el PAS la cargue, nunca la
+# completaría y los emails saldrían rotos. Por eso la inyectamos acá.
+#
+# Las 3 columnas reciben el mismo valor inicial (mismo dominio). El PAS
+# después puede diferenciarlas desde /crm/configuracion/perfil si quiere
+# (ej: cuando compre su propio dominio).
+#
+# Idempotente: si la fila ya existe, hace UPDATE; si no, INSERT.
+# =====================================================================
+
+fase_seed_urls_publicas() {
+  fase "Sembrando URLs públicas en la configuración"
+
+  local url_publica="https://${SLUG_CLIENTE}.${DOMINIO_BASE}"
+  paso "URL del CRM = $url_publica"
+
+  local sql="
+    INSERT INTO public.configuracion (url_crm, url_portal_cliente, url_formulario_publico)
+    SELECT '$url_publica', '$url_publica', '$url_publica'
+    WHERE NOT EXISTS (SELECT 1 FROM public.configuracion);
+
+    UPDATE public.configuracion
+       SET url_crm = '$url_publica',
+           url_portal_cliente = '$url_publica',
+           url_formulario_publico = '$url_publica';
+  "
+
+  if ! echo "$sql" | docker exec -i supabase-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 >>"$LOG_FILE" 2>&1; then
+    abortar "No se pudo sembrar las URLs públicas en configuracion"
+  fi
+  ok "URLs públicas guardadas: url_crm = url_portal_cliente = url_formulario_publico = $url_publica"
+}
+
+# =====================================================================
 # Build y arranque del CRM
 # =====================================================================
 
@@ -967,6 +1009,7 @@ main() {
   fase_levantar_supabase
   fase_clonar_crm
   fase_migraciones
+  fase_seed_urls_publicas
   fase_build_crm
   fase_activar_auth_hook
   fase_levantar_cloudflared
