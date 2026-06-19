@@ -67,12 +67,12 @@ export const TEXTOS_AYUDA = {
   'polizas.refacturacion': {
     titulo: 'Refacturación',
     texto:
-      'Es la forma en que se factura/cobra la póliza: contado, mensual, trimestral, semestral, anual. Cada compañía tiene sus propias modalidades — se configuran en Catálogos.',
+      'Es la frecuencia con la que el cliente paga la póliza: Mensual, Bimestral, Trimestral, Cuatrimestral, Semestral, Anual o Pago único. Los 7 valores son fijos, no se configuran.',
   },
-  'polizas.vigencia_tipo': {
-    titulo: 'Tipo de vigencia',
+  'polizas.vigencia': {
+    titulo: 'Vigencia',
     texto:
-      'Anual es lo más común (1 año). Hay coberturas con vigencias especiales (mensual para flotas, semestral para riesgos puntuales). Define cuándo entra a Renovaciones.',
+      'La cantidad de meses que dura la póliza, calculada automáticamente desde la fecha de inicio y fin. 12 meses es lo más común. No hace falta seleccionarla — sale sola de las fechas.',
   },
   'polizas.cadena_renovaciones': {
     titulo: 'Cadena de renovaciones',

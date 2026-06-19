@@ -14,6 +14,8 @@ import { apiCall } from '@/lib/api-client'
 import BuscadorPersona from '@/components/BuscadorPersona'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
+import { opcionesRefacturacion } from '@/lib/refacturaciones'
+import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 
 interface Catalogo { id: string; nombre: string; metadata?: Record<string, any> | null }
 
@@ -21,7 +23,7 @@ interface FormPoliza {
   persona_id: string; compania_id: string; ramo_id: string; cobertura_id: string
   numero_poliza: string
   fecha_inicio: string; fecha_fin: string
-  refacturacion_id: string; vigencia_tipo_id: string
+  refacturacion: string
   observaciones: string; notas: string
 }
 
@@ -81,8 +83,6 @@ export default function EditarPolizaPage() {
   const [companias,      setCompanias]      = useState<Catalogo[]>([])
   const [ramos,          setRamos]          = useState<Catalogo[]>([])
   const [coberturas,     setCoberturas]     = useState<Catalogo[]>([])
-  const [refacturaciones, setRefacturaciones] = useState<Catalogo[]>([])
-  const [vigencias,      setVigencias]      = useState<Catalogo[]>([])
   const [tipoRiesgo,     setTipoRiesgo]     = useState('generico')
   // Render del form de póliza: mapea los 7 tipos a los 4 renders existentes.
   const renderTipo = tipoRenderForm(tipoRiesgo)
@@ -94,13 +94,11 @@ export default function EditarPolizaPage() {
       const { data: tipos } = await supabase.from('tipo_catalogo').select('id, codigo')
       if (!tipos) return
 
-      const tipoComp     = tipos.find((t: any) => t.codigo === 'COMPANIA')
-      const tipoRamo     = tipos.find((t: any) => t.codigo === 'RAMO')
-      const tipoCobert   = tipos.find((t: any) => t.codigo === 'COBERTURA')
-      const tipoRefact   = tipos.find((t: any) => t.codigo === 'REFACTURACION')
-      const tipoVigencia = tipos.find((t: any) => t.codigo === 'VIGENCIA')
+      const tipoComp   = tipos.find((t: any) => t.codigo === 'COMPANIA')
+      const tipoRamo   = tipos.find((t: any) => t.codigo === 'RAMO')
+      const tipoCobert = tipos.find((t: any) => t.codigo === 'COBERTURA')
 
-      const [{ data: comps }, { data: rams }, { data: cobs }, { data: refacts }, { data: vigs }] = await Promise.all([
+      const [{ data: comps }, { data: rams }, { data: cobs }] = await Promise.all([
         tipoComp
           ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoComp.id).eq('activo', true).order('nombre')
           : Promise.resolve({ data: [] }),
@@ -110,19 +108,11 @@ export default function EditarPolizaPage() {
         tipoCobert
           ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoCobert.id).eq('activo', true).order('nombre')
           : Promise.resolve({ data: [] }),
-        tipoRefact
-          ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoRefact.id).eq('activo', true).order('orden')
-          : Promise.resolve({ data: [] }),
-        tipoVigencia
-          ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoVigencia.id).eq('activo', true).order('nombre')
-          : Promise.resolve({ data: [] }),
       ])
 
       setCompanias((comps ?? []) as Catalogo[])
       setRamos((rams ?? []) as Catalogo[])
       setCoberturas((cobs ?? []) as Catalogo[])
-      setRefacturaciones((refacts ?? []) as Catalogo[])
-      setVigencias((vigs ?? []) as Catalogo[])
     }
     cargarCatalogos()
   }, [supabase, usuario])
@@ -132,7 +122,7 @@ export default function EditarPolizaPage() {
     setCargando(true)
     const { data: pol } = await supabase.from('polizas').select(`
       id, numero_poliza, asegurado_id, compania_id, ramo_id, cobertura_id,
-      fecha_inicio, fecha_fin, refacturacion_id, vigencia_tipo_id,
+      fecha_inicio, fecha_fin, refacturacion,
       observaciones, notas, updated_at,
       ramo:catalogos!ramo_id (id, nombre, metadata),
       riesgos (id, tipo_riesgo, detalle_tecnico)
@@ -156,8 +146,7 @@ export default function EditarPolizaPage() {
         numero_poliza: p.numero_poliza ?? '',
         fecha_inicio: p.fecha_inicio ?? '',
         fecha_fin: p.fecha_fin ?? '',
-        refacturacion_id: p.refacturacion_id ?? '',
-        vigencia_tipo_id: p.vigencia_tipo_id ?? '',
+        refacturacion: p.refacturacion ?? '',
         observaciones: p.observaciones ?? '',
         notas: p.notas ?? '',
       })
@@ -342,8 +331,7 @@ export default function EditarPolizaPage() {
         numero_poliza:    poliza.numero_poliza.trim(),
         fecha_inicio:     poliza.fecha_inicio,
         fecha_fin:        poliza.fecha_fin,
-        refacturacion_id: poliza.refacturacion_id || null,
-        vigencia_tipo_id: poliza.vigencia_tipo_id || null,
+        refacturacion:    poliza.refacturacion || null,
         observaciones:    poliza.observaciones || null,
         notas:            poliza.notas || null,
         riesgos: riesgosPayload,
@@ -490,16 +478,17 @@ export default function EditarPolizaPage() {
             <input type="date" className={ic('fecha_fin')} value={poliza.fecha_fin} onChange={e => setP('fecha_fin', e.target.value)} />
           </Campo>
           <Campo label="Refacturación">
-            <select className="form-input" value={poliza.refacturacion_id} onChange={e => setP('refacturacion_id', e.target.value)}>
+            <select className="form-input" value={poliza.refacturacion} onChange={e => setP('refacturacion', e.target.value)}>
               <option value="">— Seleccioná —</option>
-              {refacturaciones.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+              {opcionesRefacturacion().map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Campo>
-          <Campo label="Tipo de Vigencia">
-            <select className="form-input" value={poliza.vigencia_tipo_id} onChange={e => setP('vigencia_tipo_id', e.target.value)}>
-              <option value="">— Seleccioná —</option>
-              {vigencias.map(v => <option key={v.id} value={v.id}>{v.nombre}</option>)}
-            </select>
+          <Campo label="Vigencia">
+            <div className="form-input bg-slate-50 text-slate-600 flex items-center">
+              {poliza.fecha_inicio && poliza.fecha_fin
+                ? vigenciaTextoDesdeFechas(poliza.fecha_inicio, poliza.fecha_fin)
+                : <span className="text-slate-400">Se calcula con las fechas</span>}
+            </div>
           </Campo>
         </div>
       </div>
@@ -695,14 +684,13 @@ export default function EditarPolizaPage() {
             numero_poliza: 'N° de póliza',
             fecha_inicio: 'Vigencia desde',
             fecha_fin: 'Vigencia hasta',
-            refacturacion_id: 'Forma de pago',
-            vigencia_tipo_id: 'Tipo de vigencia',
+            refacturacion: 'Forma de pago',
             observaciones: 'Observaciones',
             notas: 'Notas',
           }}
           campos={[
             'asegurado_id', 'compania_id', 'ramo_id', 'cobertura_id', 'numero_poliza',
-            'fecha_inicio', 'fecha_fin', 'refacturacion_id', 'vigencia_tipo_id',
+            'fecha_inicio', 'fecha_fin', 'refacturacion',
             'observaciones', 'notas',
           ]}
           onCerrar={() => setConflicto(null)}

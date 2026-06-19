@@ -350,8 +350,7 @@ export async function aplicarPolizaNueva(params: {
       compania_id: mapeos.compania_id,
       ramo_id: mapeos.ramo_id,
       cobertura_id: mapeos.cobertura_id,
-      refacturacion_id: mapeos.refacturacion_id || null,
-      vigencia_tipo_id: mapeos.vigencia_tipo_id || null,
+      refacturacion: mapeos.refacturacion || null,
       fecha_inicio: datos.poliza.fecha_inicio,
       fecha_fin: datos.poliza.fecha_fin,
       moneda: datos.poliza.moneda || 'ARS',
@@ -518,7 +517,7 @@ export async function aplicarRenovacion(params: {
 
   const { data: origen } = await supabase
     .from('polizas')
-    .select('id, numero_poliza, fecha_fin, estado, asegurado_id, tomador_id, compania_id, ramo_id, cobertura_id, refacturacion_id, vigencia_tipo_id, riesgos(id, tipo_riesgo, descripcion_corta, detalle_tecnico, suma_asegurada, numero_item)')
+    .select('id, numero_poliza, fecha_fin, estado, asegurado_id, tomador_id, compania_id, ramo_id, cobertura_id, refacturacion, riesgos(id, tipo_riesgo, descripcion_corta, detalle_tecnico, suma_asegurada, numero_item)')
     .eq('id', poliza_origen_id)
     .maybeSingle()
 
@@ -571,8 +570,7 @@ export async function aplicarRenovacion(params: {
       compania_id: mapeos.compania_id || (origen as any).compania_id,
       ramo_id: mapeos.ramo_id || (origen as any).ramo_id,
       cobertura_id: mapeos.cobertura_id || (origen as any).cobertura_id,
-      refacturacion_id: mapeos.refacturacion_id || (origen as any).refacturacion_id,
-      vigencia_tipo_id: mapeos.vigencia_tipo_id || (origen as any).vigencia_tipo_id,
+      refacturacion: mapeos.refacturacion || (origen as any).refacturacion,
       fecha_inicio: datos.poliza.fecha_inicio,
       fecha_fin: datos.poliza.fecha_fin,
       moneda: datos.poliza.moneda || 'ARS',

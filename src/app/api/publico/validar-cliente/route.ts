@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Buscar póliza
     const { data: poliza } = await supabase
       .from('polizas')
-      .select('id, numero_poliza, compania_id, ramo_id, estado, asegurado_id')
+      .select('id, numero_poliza, compania_id, ramo_id, estado, asegurado_id, ramo:catalogos!ramo_id (metadata)')
       .eq('numero_poliza', numero_poliza.trim())
       .eq('asegurado_id', persona.id)
       .maybeSingle()
@@ -105,6 +105,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Extraer tipo_riesgo y campos custom del catálogo del ramo (si los hay).
+    // Esto permite al form público pintar los campos que el PAS configuró en
+    // /crm/configuracion/catalogos > Ramos > Campos del siniestro.
+    const ramoMeta = ((poliza as any).ramo?.metadata ?? {}) as Record<string, unknown>
+    const tipoRiesgo = (typeof ramoMeta.tipo_riesgo === 'string' ? ramoMeta.tipo_riesgo : '') || ''
+    const camposDinamicos = Array.isArray(ramoMeta.campos_siniestro) ? ramoMeta.campos_siniestro : []
+
     return NextResponse.json({
       ok: true,
       asegurado: {
@@ -116,6 +123,8 @@ export async function POST(request: NextRequest) {
         numero_poliza: poliza.numero_poliza,
         compania: companiaNombre,
         ramo: ramoNombre,
+        tipo_riesgo: tipoRiesgo,
+        campos_dinamicos: camposDinamicos,
       },
     })
   } catch (err: any) {

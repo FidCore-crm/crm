@@ -10,6 +10,7 @@ import {
   type TipoError,
 } from '@/lib/anthropic-client';
 import { normalizarEntidadesRegistro } from '@/lib/importacion/normalizadores';
+import { normalizarRefacturacion } from '@/lib/refacturaciones';
 import { getSupabaseAdmin } from '@/lib/supabase/server';
 import {
   validarDNI,
@@ -106,14 +107,10 @@ export async function cargarContextoCRM(): Promise<ContextoCRM> {
   const idCompania = tiposRows.find((t) => t.codigo === 'COMPANIA')?.id;
   const idRamo = tiposRows.find((t) => t.codigo === 'RAMO')?.id;
   const idCobertura = tiposRows.find((t) => t.codigo === 'COBERTURA')?.id;
-  const idRefacturacion = tiposRows.find((t) => t.codigo === 'REFACTURACION')?.id;
-  const idVigencia = tiposRows.find((t) => t.codigo === 'VIGENCIA')?.id;
 
   const companias: ContextoCRM['companias'] = [];
   const ramos: ContextoCRM['ramos'] = [];
   const coberturas: ContextoCRM['coberturas'] = [];
-  const refacturaciones: ContextoCRM['refacturaciones'] = [];
-  const vigencias: ContextoCRM['vigencias'] = [];
 
   if (idCompania) {
     const { data } = await supa
@@ -195,27 +192,7 @@ export async function cargarContextoCRM(): Promise<ContextoCRM> {
     });
   }
 
-  if (idRefacturacion) {
-    const { data } = await supa
-      .from('catalogos')
-      .select('id, codigo, nombre')
-      .eq('tipo_id', idRefacturacion)
-      .eq('activo', true);
-    const rows = (data || []) as Array<{ id: string; nombre: string; codigo: string }>;
-    rows.forEach((r) => refacturaciones.push({ id: r.id, nombre: r.nombre, codigo: r.codigo }));
-  }
-
-  if (idVigencia) {
-    const { data } = await supa
-      .from('catalogos')
-      .select('id, codigo, nombre')
-      .eq('tipo_id', idVigencia)
-      .eq('activo', true);
-    const rows = (data || []) as Array<{ id: string; nombre: string; codigo: string }>;
-    rows.forEach((v) => vigencias.push({ id: v.id, nombre: v.nombre, codigo: v.codigo }));
-  }
-
-  return { companias, ramos, coberturas, refacturaciones, vigencias };
+  return { companias, ramos, coberturas };
 }
 
 // ============================================================================
@@ -529,8 +506,6 @@ const CAMPOS_AUXILIARES_NO_COMPARABLES = new Set<string>([
   'ramo',
   'ramo_nombre',
   'cobertura',
-  'refacturacion',
-  'vigencia_tipo',
 ]);
 
 function compararEntidad(
@@ -984,35 +959,24 @@ function resolverCatalogos(
       }
     }
 
-    // refacturación
+    // refacturación: ya no es catálogo, se normaliza al enum REFACTURACIONES.
+    // Si el texto no matchea ninguno de los 7 valores válidos, queda como
+    // dudoso y el PAS lo resuelve manualmente. Si matchea, lo guardamos en
+    // mayúsculas snake (MENSUAL, PAGO_UNICO, ...).
     if (pol.refacturacion) {
-      const m = matchearCatalogoSimple(String(pol.refacturacion), ctx.refacturaciones);
-      if (m) {
-        pol.refacturacion_id = m.id;
+      const normalizada = normalizarRefacturacion(String(pol.refacturacion));
+      if (normalizada) {
+        pol.refacturacion = normalizada;
       } else {
         reg.problemas.push({
           tipo_entidad: 'POLIZA',
           tipo_problema: 'REFACTURACION_NO_RECONOCIDA',
-          descripcion: `Refacturación "${pol.refacturacion}" no coincide con el catálogo`,
+          descripcion: `Refacturación "${pol.refacturacion}" no coincide con ninguno de los 7 valores válidos`,
           campo: 'refacturacion',
           valor_original: pol.refacturacion,
         });
-      }
-    }
-
-    // tipo de vigencia
-    if (pol.vigencia_tipo) {
-      const m = matchearCatalogoSimple(String(pol.vigencia_tipo), ctx.vigencias);
-      if (m) {
-        pol.vigencia_tipo_id = m.id;
-      } else {
-        reg.problemas.push({
-          tipo_entidad: 'POLIZA',
-          tipo_problema: 'VIGENCIA_NO_RECONOCIDA',
-          descripcion: `Tipo de vigencia "${pol.vigencia_tipo}" no coincide con el catálogo`,
-          campo: 'vigencia_tipo',
-          valor_original: pol.vigencia_tipo,
-        });
+        // Limpiamos para no insertar un valor inválido y romper el CHECK constraint.
+        pol.refacturacion = null;
       }
     }
   }

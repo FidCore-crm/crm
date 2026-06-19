@@ -26,6 +26,8 @@ import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
+import { formatearRefacturacion } from '@/lib/refacturaciones'
+import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 
 // ── Tipos locales ────────────────────────────────────────────
 interface PolizaDetalle {
@@ -34,8 +36,7 @@ interface PolizaDetalle {
   numero_certificado: string | null
   fecha_inicio: string
   fecha_fin: string
-  refacturacion: { id: string; nombre: string } | null
-  vigencia_tipo: { id: string; nombre: string } | null
+  refacturacion: string | null
   moneda: string
   estado: string
   motivo_baja: string | null
@@ -148,11 +149,9 @@ export default function FichaPolizaPage() {
     const [{ data: pol }, { data: sin }] = await Promise.all([
       supabase.from('polizas').select(`
         id, numero_poliza, numero_certificado,
-        fecha_inicio, fecha_fin,
+        fecha_inicio, fecha_fin, refacturacion,
         moneda, estado, motivo_baja, fecha_baja, observaciones_baja,
         observaciones, notas, created_at, updated_at,
-        refacturacion:catalogos!refacturacion_id (id, nombre),
-        vigencia_tipo:catalogos!vigencia_tipo_id (id, nombre),
         asegurado:personas!asegurado_id (id, apellido, nombre, razon_social, dni_cuil, telefono, whatsapp, email),
         compania:catalogos!compania_id (id, nombre),
         ramo:catalogos!ramo_id (id, nombre, metadata),
@@ -529,12 +528,12 @@ export default function FichaPolizaPage() {
         </div>
         <div className="kpi-card bg-blue-50 border-blue-200">
           <span className="kpi-label flex items-center gap-1"><RefreshCw className="h-3 w-3 text-blue-500" /> Refacturación</span>
-          <span className="kpi-value text-blue-700">{poliza.refacturacion?.nombre ?? '—'}</span>
+          <span className="kpi-value text-blue-700">{formatearRefacturacion(poliza.refacturacion)}</span>
           <span className="kpi-sub">frecuencia de cobro</span>
         </div>
         <div className="kpi-card bg-violet-50 border-violet-200">
-          <span className="kpi-label flex items-center gap-1"><Calendar className="h-3 w-3 text-violet-500" /> Tipo de Vigencia</span>
-          <span className="kpi-value text-violet-700">{poliza.vigencia_tipo?.nombre ?? '—'}</span>
+          <span className="kpi-label flex items-center gap-1"><Calendar className="h-3 w-3 text-violet-500" /> Vigencia</span>
+          <span className="kpi-value text-violet-700">{vigenciaTextoDesdeFechas(poliza.fecha_inicio, poliza.fecha_fin)}</span>
           <span className="kpi-sub">&nbsp;</span>
         </div>
         <div className="kpi-card bg-amber-50 border-amber-200">
@@ -637,11 +636,11 @@ export default function FichaPolizaPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Refacturación</span>
-                <span className="text-slate-700 font-medium">{poliza.refacturacion?.nombre ?? '—'}</span>
+                <span className="text-slate-700 font-medium">{formatearRefacturacion(poliza.refacturacion)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Tipo de vigencia</span>
-                <span className="text-slate-700 font-medium">{poliza.vigencia_tipo?.nombre ?? '—'}</span>
+                <span className="text-slate-500">Duración</span>
+                <span className="text-slate-700 font-medium">{vigenciaTextoDesdeFechas(poliza.fecha_inicio, poliza.fecha_fin)}</span>
               </div>
               {poliza.numero_certificado && (
                 <div className="flex justify-between">

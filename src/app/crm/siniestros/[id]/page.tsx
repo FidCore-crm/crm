@@ -22,6 +22,7 @@ import { toast } from '@/lib/toast'
 import { formatFecha } from '@/lib/utils'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
+import { extraerCamposCustom, mapaLabelsPorKey, labelDeCampo } from '@/lib/siniestros-campos-custom'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface Siniestro {
@@ -744,24 +745,35 @@ export default function FichaSiniestroPage() {
             </div>
           </div>
 
-          {/* Detalle específico del ramo */}
-          {Object.keys(detalle).filter(k => k !== 'tipo_riesgo' && detalle[k]).length > 0 && (
-            <div className="bg-white border border-slate-200 rounded overflow-hidden">
-              <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-                <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Detalle del ramo</h3>
-              </div>
-              <div className="p-3 flex flex-col gap-2">
-                {Object.entries(detalle)
-                  .filter(([k, v]) => k !== 'tipo_riesgo' && v)
-                  .map(([k, v]) => (
+          {/* Detalle específico del ramo. Mostramos los campos en el orden del
+              catálogo del ramo (los que el PAS configuró en "Campos del siniestro")
+              y al final cualquier key extra que haya quedado en el JSONB pero que
+              ya no esté en el catálogo. */}
+          {(() => {
+            const camposCatalogo = extraerCamposCustom(siniestro.poliza?.ramo?.metadata as any)
+            const labelsMap = mapaLabelsPorKey(camposCatalogo)
+            const keysVisibles = Object.keys(detalle).filter(k => k !== 'tipo_riesgo' && detalle[k])
+            if (keysVisibles.length === 0) return null
+            const keysOrdenadas = [
+              ...camposCatalogo.map(c => c.key).filter(k => keysVisibles.includes(k)),
+              ...keysVisibles.filter(k => !labelsMap[k]),
+            ]
+            return (
+              <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
+                  <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Detalle del ramo</h3>
+                </div>
+                <div className="p-3 flex flex-col gap-2">
+                  {keysOrdenadas.map(k => (
                     <div key={k}>
-                      <p className="text-2xs text-slate-500 capitalize mb-0.5">{k.replace(/_/g, ' ')}</p>
-                      <p className="text-xs text-slate-700">{String(v)}</p>
+                      <p className="text-2xs text-slate-500 mb-0.5">{labelDeCampo(k, labelsMap)}</p>
+                      <p className="text-xs text-slate-700">{String(detalle[k])}</p>
                     </div>
                   ))}
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
         </div>
 

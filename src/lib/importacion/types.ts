@@ -145,9 +145,6 @@ export interface PolizaImportada {
   cobertura?: string | null;
   cobertura_id?: string | null;
   refacturacion?: string | null;
-  refacturacion_id?: string | null;
-  vigencia_tipo?: string | null;
-  vigencia_tipo_id?: string | null;
   fecha_inicio?: string | null;
   fecha_fin?: string | null;
   moneda?: string | null;
@@ -262,8 +259,6 @@ export interface ContextoCRM {
   companias: CompaniaCtx[];
   ramos: RamoCtx[];
   coberturas: CoberturaCtx[];
-  refacturaciones: CatalogoSimpleCtx[];
-  vigencias: CatalogoSimpleCtx[];
 }
 
 // ============================================================================

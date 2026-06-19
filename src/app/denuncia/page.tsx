@@ -218,6 +218,16 @@ function DenunciarPageContent() {
   const [docSlots, setDocSlots] = useState<DocSlots>({})
   const [archivosGenerales, setArchivosGenerales] = useState<File[]>([])
 
+  // Paso 3 — Campos custom configurados por el PAS en /crm/configuracion/catalogos
+  // (ramo > "Campos del siniestro"). Cada póliza puede tener su propia lista.
+  // Cuando viene por token: salen de polizaSeleccionada.campos_dinamicos.
+  // Sin token: salen de polizaValidada (cargada en validatePaso1).
+  const [valoresCustom, setValoresCustom] = useState<Record<string, string>>({})
+  const [polizaValidada, setPolizaValidada] = useState<{
+    tipo_riesgo: string
+    campos_dinamicos: any[]
+  } | null>(null)
+
   // Paso 4
   const [declaracion, setDeclaracion] = useState(false)
   const [aceptaTerminos, setAceptaTerminos] = useState(false)
@@ -230,6 +240,24 @@ function DenunciarPageContent() {
     if (!polizaIdSeleccionada) return null
     return polizasToken.find(p => p.id === polizaIdSeleccionada) || null
   }, [polizaIdSeleccionada, polizasToken])
+
+  // Lista de campos custom activos para la póliza seleccionada (con token) o la
+  // validada (sin token). Se calcula derivadamente para no duplicar la fuente
+  // de verdad.
+  const camposCustomActivos = useMemo(() => {
+    const raw = polizaSeleccionada?.campos_dinamicos ?? polizaValidada?.campos_dinamicos ?? []
+    if (!Array.isArray(raw)) return [] as Array<{ key: string; label: string; tipo: string; requerido?: boolean; placeholder?: string; opciones?: string }>
+    return raw
+      .filter((c: any) => c && typeof c === 'object' && typeof c.key === 'string' && typeof c.label === 'string')
+      .map((c: any) => ({
+        key: String(c.key),
+        label: String(c.label),
+        tipo: typeof c.tipo === 'string' ? c.tipo : 'text',
+        requerido: Boolean(c.requerido),
+        placeholder: typeof c.placeholder === 'string' ? c.placeholder : undefined,
+        opciones: typeof c.opciones === 'string' ? c.opciones : undefined,
+      }))
+  }, [polizaSeleccionada, polizaValidada])
 
   const tipoRiesgo: TipoRiesgoSiniestro = polizaSeleccionada?.tipo_riesgo ?? 'generico'
   const esAutoMoto = tipoRiesgo === 'automotor' || tipoRiesgo === 'moto'
@@ -265,6 +293,13 @@ function DenunciarPageContent() {
       document.documentElement.style.removeProperty('--color-marca')
     }
   }, [organizacion?.color_marca])
+
+  // Al cambiar la lista de campos custom (cambio de póliza o nueva validación),
+  // resetear los valores custom — así no queda un valor cargado para una key
+  // que ya no aplica.
+  useEffect(() => {
+    setValoresCustom({})
+  }, [polizaSeleccionada?.id, polizaValidada])
 
   // ── Pre-completar desde portal ──
   useEffect(() => {
@@ -418,6 +453,14 @@ function DenunciarPageContent() {
       if (den.length === 0) e.doc_denuncia_policial = 'Subí la denuncia policial'
     }
 
+    // Campos custom (configurados por el PAS en el catálogo del ramo).
+    // Solo validamos los `requerido: true`.
+    for (const c of camposCustomActivos) {
+      if (!c.requerido) continue
+      const v = (valoresCustom[c.key] || '').trim()
+      if (!v) e[`custom_${c.key}`] = `Completá "${c.label}"`
+    }
+
     setErrores(e)
     return Object.keys(e).length === 0
   }
@@ -450,6 +493,12 @@ function DenunciarPageContent() {
             setValidandoCliente(false)
             return
           }
+          // Guardar tipo_riesgo + campos_dinamicos para que el paso 3 pueda
+          // renderear los campos custom configurados por el PAS.
+          setPolizaValidada({
+            tipo_riesgo: data.poliza?.tipo_riesgo ?? '',
+            campos_dinamicos: Array.isArray(data.poliza?.campos_dinamicos) ? data.poliza.campos_dinamicos : [],
+          })
         } catch {
           setErrorGeneral('Error de conexión. Intentá nuevamente.')
           setValidandoCliente(false)
@@ -587,6 +636,13 @@ function DenunciarPageContent() {
       // Denuncia policial
       if (denunciaPolicial) fd.append('denuncia_policial', denunciaPolicial)
       if (actaPolicial)     fd.append('acta_policial', actaPolicial.trim())
+
+      // Campos custom configurados por el PAS — se mandan con prefijo `custom_`
+      // para que el backend los identifique y los meta en `detalle_siniestro`.
+      for (const c of camposCustomActivos) {
+        const v = (valoresCustom[c.key] || '').trim()
+        if (v) fd.append(`custom_${c.key}`, v)
+      }
 
       // Archivos: cada slot agrega su categoría como prefijo
       // (licencia_frente, licencia_dorso, cedula_frente, ..., denuncia_policial, generales)
@@ -846,6 +902,12 @@ function DenunciarPageContent() {
               actaPolicial={actaPolicial} setActaPolicial={setActaPolicial}
               docSlots={docSlots} setDocSlots={setDocSlots}
               archivosGenerales={archivosGenerales} setArchivosGenerales={setArchivosGenerales}
+              camposCustom={camposCustomActivos}
+              valoresCustom={valoresCustom}
+              setValorCustom={(key, v) => {
+                setValoresCustom(prev => ({ ...prev, [key]: v }))
+                clearError(`custom_${key}`)
+              }}
               errores={errores}
             />
           )}
@@ -1225,6 +1287,7 @@ function Paso3({
   hogar,
   denunciaPolicial, setDenunciaPolicial, actaPolicial, setActaPolicial,
   docSlots, setDocSlots, archivosGenerales, setArchivosGenerales,
+  camposCustom, valoresCustom, setValorCustom,
   errores,
 }: {
   tipoRiesgo: TipoRiesgoSiniestro
@@ -1244,6 +1307,9 @@ function Paso3({
   setDocSlots: (fn: (prev: DocSlots) => DocSlots) => void
   archivosGenerales: File[]
   setArchivosGenerales: (fn: (prev: File[]) => File[]) => void
+  camposCustom: Array<{ key: string; label: string; tipo: string; requerido?: boolean; placeholder?: string; opciones?: string }>
+  valoresCustom: Record<string, string>
+  setValorCustom: (key: string, v: string) => void
   errores: Record<string, string>
 }) {
   return (
@@ -1676,6 +1742,42 @@ function Paso3({
             </div>
           )}
         </>
+      )}
+
+      {/* Campos custom configurados por el PAS en el catálogo del ramo.
+          Aparecen solo si el PAS los definió. Cada campo respeta su tipo
+          (text/textarea/select/date), placeholder, opciones y requerido. */}
+      {camposCustom.length > 0 && (
+        <SectionCard icon="📋" title="Información adicional">
+          <div className="form-grid">
+            {camposCustom.map((c) => {
+              const valor = valoresCustom[c.key] || ''
+              const err = errores[`custom_${c.key}`]
+              const inputClass = `form-input${err ? ' error' : ''}`
+              return (
+                <FormField key={c.key} label={c.label} required={c.requerido} error={err}>
+                  {c.tipo === 'textarea' ? (
+                    <textarea className={inputClass} rows={3} value={valor} placeholder={c.placeholder}
+                      onChange={e => setValorCustom(c.key, e.target.value)} />
+                  ) : c.tipo === 'select' ? (
+                    <select className={inputClass} value={valor} onChange={e => setValorCustom(c.key, e.target.value)}>
+                      <option value="">— Seleccioná —</option>
+                      {(c.opciones || '').split(',').map(s => s.trim()).filter(Boolean).map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ) : c.tipo === 'date' ? (
+                    <input type="date" className={inputClass} value={valor}
+                      onChange={e => setValorCustom(c.key, e.target.value)} />
+                  ) : (
+                    <input type="text" className={inputClass} value={valor} placeholder={c.placeholder}
+                      onChange={e => setValorCustom(c.key, e.target.value)} />
+                  )}
+                </FormField>
+              )
+            })}
+          </div>
+        </SectionCard>
       )}
 
       {/* Subida libre — disponible para todos los ramos */}

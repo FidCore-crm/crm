@@ -235,17 +235,24 @@ export default function CatalogosPage() {
   const [formDescripcion,    setFormDescripcion]      = useState('')
   const [formCubre,          setFormCubre]            = useState<string[]>([])
 
-  const TIPOS_RELEVANTES = ['COMPANIA', 'RAMO', 'COBERTURA', 'VIGENCIA', 'REFACTURACION']
+  // VIGENCIA y REFACTURACION fueron eliminados como catálogos (migración 095).
+  // Ahora la vigencia se calcula desde fecha_inicio/fecha_fin y la refacturación
+  // es un enum hardcoded (ver src/lib/refacturaciones.ts).
+  const TIPOS_RELEVANTES = ['COMPANIA', 'RAMO', 'COBERTURA']
   const esRamo      = tipoActivo?.codigo === 'RAMO'
   const esCobertura = tipoActivo?.codigo === 'COBERTURA'
 
   useEffect(() => {
     async function cargarTipos() {
-      const { data } = await supabase.from('tipo_catalogo').select('id, codigo, descripcion').order('codigo')
+      const { data } = await supabase.from('tipo_catalogo').select('id, codigo, descripcion')
       if (data) {
-        const filtrados = (data as TipoCatalogo[]).filter(t => TIPOS_RELEVANTES.includes(t.codigo))
-        setTipos(filtrados)
-        if (filtrados.length > 0) setTipoActivo(filtrados[0])
+        // Ordenar según TIPOS_RELEVANTES (Compañías → Ramos → Coberturas),
+        // que es el orden de configuración esperado por el PAS.
+        const ordenados = (data as TipoCatalogo[])
+          .filter(t => TIPOS_RELEVANTES.includes(t.codigo))
+          .sort((a, b) => TIPOS_RELEVANTES.indexOf(a.codigo) - TIPOS_RELEVANTES.indexOf(b.codigo))
+        setTipos(ordenados)
+        if (ordenados.length > 0) setTipoActivo(ordenados[0])
       }
       setCargando(false)
     }

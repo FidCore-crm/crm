@@ -675,7 +675,7 @@ function ModalInstrucciones({ onCerrar }: { onCerrar: () => void }) {
             <p className="text-sm text-slate-700 mb-2">
               En <strong>Pólizas</strong>:{' '}
               <code className="px-1 py-0.5 bg-slate-100 rounded font-mono text-xs">
-                cobertura, refacturacion, vigencia_tipo, moneda, tipo_riesgo
+                cobertura, refacturacion, moneda, tipo_riesgo
               </code>
             </p>
             <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">

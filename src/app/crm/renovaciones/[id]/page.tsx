@@ -7,7 +7,7 @@ import {
   Car, Home, Heart, Package, Plus, Trash2
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { formatFecha, getPolizaBadgeColor, getLabelEstado, calcularFechaFinPorVigencia } from '@/lib/utils'
+import { formatFecha, getPolizaBadgeColor, getLabelEstado } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { registrarEventoBitacora } from '@/lib/bitacora-poliza'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
@@ -18,6 +18,8 @@ import { mensajeErrorAmigable } from '@/lib/utils'
 import { validarPatente } from '@/lib/importacion/validators'
 import { EstadoCarga } from '@/components/EstadoCarga'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
+import { opcionesRefacturacion } from '@/lib/refacturaciones'
+import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 
 interface Catalogo { id: string; nombre: string; metadata?: Record<string,any> | null }
 
@@ -33,8 +35,7 @@ interface PolizaOrigen {
   compania: { id: string; nombre: string } | null
   ramo: { id: string; nombre: string; metadata: Record<string,any> | null } | null
   cobertura: { id: string; nombre: string; metadata: Record<string,any> | null } | null
-  refacturacion: { id: string; nombre: string } | null
-  vigencia_tipo: { id: string; nombre: string } | null
+  refacturacion: string | null
   riesgos: { id: string; tipo_riesgo: string; detalle_tecnico: Record<string,any>; suma_asegurada: number | null }[]
 }
 
@@ -95,13 +96,12 @@ export default function RenovarPolizaPage() {
   const [fechaInicio,   setFechaInicio]   = useState('')
   const [fechaFin,      setFechaFin]      = useState('')
   const [sumaAsegurada, setSumaAsegurada] = useState('')
-  const [refacturacionId, setRefacturacionId] = useState('')
+  const [refacturacion, setRefacturacion] = useState('')
   const [observaciones, setObservaciones] = useState('')
 
   // Catálogos
   const [companias,      setCompanias]      = useState<Catalogo[]>([])
   const [coberturas,     setCoberturas]     = useState<Catalogo[]>([])
-  const [refacturaciones, setRefacturaciones] = useState<Catalogo[]>([])
 
   // Riesgos (soporte flotas mixtas: cada riesgo conserva su propio tipo).
   // tipoRiesgoRamo es el default que viene del ramo del origen — se usa para
@@ -138,22 +138,18 @@ export default function RenovarPolizaPage() {
     const { data: tipos } = await supabase.from('tipo_catalogo').select('id, codigo')
     const tipoComp   = tipos?.find((t:any) => t.codigo === 'COMPANIA')
     const tipoCobert = tipos?.find((t:any) => t.codigo === 'COBERTURA')
-    const tipoRefact = tipos?.find((t:any) => t.codigo === 'REFACTURACION')
 
-    const [{ data: pol }, { data: comps }, { data: cobs }, { data: refacts }] = await Promise.all([
+    const [{ data: pol }, { data: comps }, { data: cobs }] = await Promise.all([
       supabase.from('polizas').select(`
-        id, numero_poliza, fecha_inicio, fecha_fin, estado, suma_asegurada, moneda,
+        id, numero_poliza, fecha_inicio, fecha_fin, estado, suma_asegurada, moneda, refacturacion,
         asegurado:personas!asegurado_id (id, apellido, nombre, razon_social),
         compania:catalogos!compania_id (id, nombre),
         ramo:catalogos!ramo_id (id, nombre, metadata),
         cobertura:catalogos!cobertura_id (id, nombre, metadata),
-        refacturacion:catalogos!refacturacion_id (id, nombre),
-        vigencia_tipo:catalogos!vigencia_tipo_id (id, nombre),
         riesgos (id, tipo_riesgo, detalle_tecnico, suma_asegurada)
       `).eq('id', id).single(),
       tipoComp ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoComp.id).eq('activo', true).order('nombre') : Promise.resolve({ data: [] }),
       tipoCobert ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoCobert.id).eq('activo', true).order('nombre') : Promise.resolve({ data: [] }),
-      tipoRefact ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoRefact.id).eq('activo', true).order('orden') : Promise.resolve({ data: [] }),
     ])
 
     if (pol) {
@@ -202,7 +198,7 @@ export default function RenovarPolizaPage() {
       setCompaniaId(p.compania?.id ?? '')
       setCoberturaId(p.cobertura?.id ?? '')
       setSumaAsegurada(p.suma_asegurada ? String(p.suma_asegurada) : '')
-      setRefacturacionId(p.refacturacion?.id ?? '')
+      setRefacturacion(p.refacturacion ?? '')
 
       // Riesgos — copiamos TODOS los del origen, conservando el tipo de cada uno
       // (soporte flotas mixtas: una flota puede tener autos y motos).
@@ -243,23 +239,15 @@ export default function RenovarPolizaPage() {
 
     setCompanias((comps ?? []) as Catalogo[])
     setCoberturas((cobs ?? []) as Catalogo[])
-    setRefacturaciones((refacts ?? []) as Catalogo[])
     setCargando(false)
   }, [supabase, id, usuario, router])
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Si el usuario tocó manualmente fecha_fin, no la sobreescribimos
+  // Si el usuario tocó manualmente fecha_fin, no la sobreescribimos.
+  // (Por compatibilidad con onChange existente; ya no hay auto-cálculo.)
   const [fechaFinTocada, setFechaFinTocada] = useState(false)
-
-  // Auto-calcular fecha_fin según el tipo de vigencia heredado de la origen.
-  // Si es semestral suma 6 meses, trimestral 3, etc. Default 12 meses (compat).
-  useEffect(() => {
-    if (fechaInicio && !fechaFinTocada) {
-      const calculada = calcularFechaFinPorVigencia(fechaInicio, origen?.vigencia_tipo?.nombre ?? null)
-      if (calculada) setFechaFin(calculada)
-    }
-  }, [fechaInicio, fechaFinTocada, origen?.vigencia_tipo?.nombre])
+  void fechaFinTocada
 
   // Coberturas filtradas por ramo
   const coberturasFiltradas = origen?.ramo?.id
@@ -385,8 +373,7 @@ export default function RenovarPolizaPage() {
           fecha_inicio:     fechaInicio,
           fecha_fin:        fechaFin,
           suma_asegurada:   parseFloat(sumaAsegurada) || null,
-          refacturacion_id: refacturacionId || null,
-          vigencia_tipo_id: origen.vigencia_tipo?.id || null,
+          refacturacion:    refacturacion || null,
           estado:           'RENOVADA',
           poliza_origen_id: origen.id,
           observaciones:    observaciones || null,
@@ -592,10 +579,17 @@ export default function RenovarPolizaPage() {
               onChange={e => { setFechaFin(e.target.value); setFechaFinTocada(true); setErrores(er => ({...er, fecha_fin: ''})) }}/>
           </Campo>
           <Campo label="Refacturación">
-            <select className="form-input" value={refacturacionId} onChange={e => setRefacturacionId(e.target.value)}>
+            <select className="form-input" value={refacturacion} onChange={e => setRefacturacion(e.target.value)}>
               <option value="">— Seleccioná —</option>
-              {refacturaciones.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+              {opcionesRefacturacion().map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
+          </Campo>
+          <Campo label="Vigencia">
+            <div className="form-input bg-slate-50 text-slate-600 flex items-center">
+              {fechaInicio && fechaFin
+                ? vigenciaTextoDesdeFechas(fechaInicio, fechaFin)
+                : <span className="text-slate-400">Se calcula con las fechas</span>}
+            </div>
           </Campo>
           <Campo label="Suma asegurada">
             <div className="flex gap-1">

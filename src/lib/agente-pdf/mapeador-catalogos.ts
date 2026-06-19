@@ -1,11 +1,16 @@
 // ============================================================
 // Mapea los textos crudos extraídos por la IA a IDs reales del
-// catálogo del CRM (compañía, ramo, cobertura, refacturación,
-// vigencia). No hace llamadas a la IA — búsqueda determinística.
+// catálogo del CRM (compañía, ramo, cobertura) + normaliza
+// refacturación al enum REFACTURACIONES. No hace llamadas a la
+// IA — búsqueda determinística.
+//
+// VIGENCIA ya no se mapea: se deriva de fecha_inicio/fecha_fin
+// en runtime (migración 095).
 // ============================================================
 
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import type { DatosExtraidosPoliza, MapeosCatalogos, InfoCoberturaBloqueante } from './types'
+import { normalizarRefacturacion } from '@/lib/refacturaciones'
 
 function norm(s: string | null | undefined): string {
   return (s || '')
@@ -106,12 +111,10 @@ export async function mapearCatalogos(
 ): Promise<MapeosCatalogos> {
   const tipos = await cargarTiposCatalogo()
 
-  const [companias, ramos, coberturas, refacturaciones, vigencias] = await Promise.all([
+  const [companias, ramos, coberturas] = await Promise.all([
     tipos.COMPANIA ? cargarCatalogo(tipos.COMPANIA) : Promise.resolve([]),
     tipos.RAMO ? cargarCatalogo(tipos.RAMO) : Promise.resolve([]),
     tipos.COBERTURA ? cargarCatalogo(tipos.COBERTURA) : Promise.resolve([]),
-    tipos.REFACTURACION ? cargarCatalogo(tipos.REFACTURACION) : Promise.resolve([]),
-    tipos.VIGENCIA ? cargarCatalogo(tipos.VIGENCIA) : Promise.resolve([]),
   ])
 
   const compania = buscarPorNombreOEquivalencia(companias, datos.catalogos_pdf?.compania_texto)
@@ -179,14 +182,7 @@ export async function mapearCatalogos(
     }
   }
 
-  const refacturacion = buscarPorNombreOEquivalencia(
-    refacturaciones,
-    datos.catalogos_pdf?.refacturacion_texto
-  )
-  const vigencia = buscarPorNombreOEquivalencia(
-    vigencias,
-    datos.catalogos_pdf?.vigencia_tipo_texto
-  )
+  const refacturacionNormalizada = normalizarRefacturacion(datos.catalogos_pdf?.refacturacion_texto)
 
   return {
     compania_id: compania?.id || null,
@@ -197,7 +193,6 @@ export async function mapearCatalogos(
     cobertura_propuesta: coberturaMatch ? null : textoCobertura,
     cobertura_estado: coberturaEstado,
     cobertura_info_config: coberturaInfoConfig,
-    refacturacion_id: refacturacion?.id || null,
-    vigencia_tipo_id: vigencia?.id || null,
+    refacturacion: refacturacionNormalizada,
   }
 }

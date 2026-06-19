@@ -42,7 +42,6 @@ export const CAMPOS_POLIZA = [
   'ramo',
   'cobertura',
   'refacturacion',
-  'vigencia_tipo',
   'fecha_inicio',
   'fecha_fin',
   'moneda',

@@ -372,10 +372,10 @@ export default function PlanPage() {
                 No podés importar todavía — faltan {catalogosFaltantes.total} valor{catalogosFaltantes.total === 1 ? '' : 'es'} en tus catálogos
               </h2>
               <p className="text-xs text-red-800 mt-1">
-                El archivo trae valores de compañía, ramo, cobertura, refacturación o
-                tipo de vigencia que no existen en el CRM. Si importás igual te van a
-                quedar los campos en blanco. Configurá primero los catálogos, después
-                volvé acá y tocá <strong>Verificar de nuevo</strong>.
+                El archivo trae valores de compañía, ramo o cobertura que no existen
+                en el CRM. Si importás igual te van a quedar los campos en blanco.
+                Configurá primero los catálogos, después volvé acá y tocá
+                <strong> Verificar de nuevo</strong>.
               </p>
             </div>
           </div>
@@ -417,34 +417,6 @@ export default function PlanPage() {
                 <div className="flex flex-wrap gap-1.5">
                   {catalogosFaltantes.coberturas.map((v) => (
                     <span key={`cob-${v}`} className="text-xs bg-white border border-red-200 text-red-800 px-2 py-0.5 rounded">
-                      {v}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {catalogosFaltantes.refacturaciones.length > 0 && (
-              <div>
-                <p className="text-2xs font-semibold text-red-900 uppercase tracking-wide mb-1">
-                  Refacturaciones faltantes ({catalogosFaltantes.refacturaciones.length})
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {catalogosFaltantes.refacturaciones.map((v) => (
-                    <span key={`ref-${v}`} className="text-xs bg-white border border-red-200 text-red-800 px-2 py-0.5 rounded">
-                      {v}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {catalogosFaltantes.vigencias.length > 0 && (
-              <div>
-                <p className="text-2xs font-semibold text-red-900 uppercase tracking-wide mb-1">
-                  Tipos de vigencia faltantes ({catalogosFaltantes.vigencias.length})
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {catalogosFaltantes.vigencias.map((v) => (
-                    <span key={`v-${v}`} className="text-xs bg-white border border-red-200 text-red-800 px-2 py-0.5 rounded">
                       {v}
                     </span>
                   ))}

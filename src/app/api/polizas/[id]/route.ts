@@ -323,7 +323,7 @@ export const DELETE = manejarErrores(async (request: NextRequest, { params }: { 
 const CAMPOS_EDITABLES_POLIZA = [
   'asegurado_id', 'compania_id', 'ramo_id', 'cobertura_id',
   'numero_poliza', 'fecha_inicio', 'fecha_fin',
-  'refacturacion_id', 'vigencia_tipo_id',
+  'refacturacion',
   'observaciones', 'notas',
 ] as const
 
@@ -350,7 +350,7 @@ export const PATCH = manejarErrores(async (
   // Cargar póliza con datos de ownership + valores actuales (para diff de bitácora)
   const { data: poliza } = await supabase
     .from('polizas')
-    .select('id, asegurado_id, compania_id, ramo_id, cobertura_id, numero_poliza, fecha_inicio, fecha_fin, refacturacion_id, vigencia_tipo_id, observaciones, notas, estado, poliza_origen_id, origen_creacion, updated_at, asegurado:personas!asegurado_id (usuario_id)')
+    .select('id, asegurado_id, compania_id, ramo_id, cobertura_id, numero_poliza, fecha_inicio, fecha_fin, refacturacion, observaciones, notas, estado, poliza_origen_id, origen_creacion, updated_at, asegurado:personas!asegurado_id (usuario_id)')
     .eq('id', id)
     .maybeSingle()
 

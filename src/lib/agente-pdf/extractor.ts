@@ -188,8 +188,7 @@ Schema de salida (todos los campos pueden ser null si faltan):
     "compania_texto": string | null,
     "ramo_texto": string | null,
     "cobertura_texto": string | null,
-    "refacturacion_texto": string | null,
-    "vigencia_tipo_texto": string | null
+    "refacturacion_texto": string | null
   },
   "riesgo": {
     "tipo_riesgo": string,

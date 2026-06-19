@@ -90,8 +90,7 @@ export interface Poliza {
   compania_id: string | null
   ramo_id: string | null
   cobertura_id: string | null
-  refacturacion_id: string | null
-  vigencia_tipo_id: string | null
+  refacturacion: string | null
   fecha_inicio: string
   fecha_fin: string
   moneda: string

@@ -7,7 +7,7 @@ import {
   Car, Home, Heart, Package, Sparkles, Pencil, Plus, Trash2
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { hoyLocal, calcularFechaFinPorVigencia, mensajeErrorAmigable } from '@/lib/utils'
+import { hoyLocal, mensajeErrorAmigable } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import ModalUploadPDF from '@/components/agente-pdf/ModalUploadPDF'
@@ -16,6 +16,8 @@ import { registrarEventoBitacora } from '@/lib/bitacora-poliza'
 import { validarPatente } from '@/lib/importacion/validators'
 import BuscadorPersona from '@/components/BuscadorPersona'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
+import { opcionesRefacturacion } from '@/lib/refacturaciones'
+import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 
 interface Catalogo { id: string; nombre: string; metadata?: Record<string,any> | null }
 
@@ -23,7 +25,7 @@ interface FormPoliza {
   persona_id: string; compania_id: string; ramo_id: string; cobertura_id: string
   numero_poliza: string
   fecha_inicio: string; fecha_fin: string
-  refacturacion_id: string; vigencia_tipo_id: string
+  refacturacion: string
   observaciones: string
 }
 
@@ -40,7 +42,7 @@ const POLIZA_INICIAL: FormPoliza = {
   persona_id: '', compania_id: '', ramo_id: '', cobertura_id: '',
   numero_poliza: '',
   fecha_inicio: hoyLocal(), fecha_fin: '',
-  refacturacion_id: '', vigencia_tipo_id: '',
+  refacturacion: '',
   observaciones: '',
 }
 
@@ -105,8 +107,6 @@ function NuevaPolizaContent() {
   const [companias,      setCompanias]      = useState<Catalogo[]>([])
   const [ramos,          setRamos]          = useState<Catalogo[]>([])
   const [coberturas,     setCoberturas]     = useState<Catalogo[]>([])
-  const [refacturaciones, setRefacturaciones] = useState<Catalogo[]>([])
-  const [vigencias,      setVigencias]      = useState<Catalogo[]>([])
   const [tipoRiesgo, setTipoRiesgo] = useState('generico')
   // Mapea el tipo elegido en el ramo (puede ser uno de los 7 nuevos) al
   // render del formulario que ya existe (automotor/hogar/vida/generico).
@@ -124,13 +124,11 @@ function NuevaPolizaContent() {
 
       if (!tipos) return
 
-      const tipoComp     = tipos.find((t:any) => t.codigo === 'COMPANIA')
-      const tipoRamo     = tipos.find((t:any) => t.codigo === 'RAMO')
-      const tipoCobert   = tipos.find((t:any) => t.codigo === 'COBERTURA')
-      const tipoRefact   = tipos.find((t:any) => t.codigo === 'REFACTURACION')
-      const tipoVigencia = tipos.find((t:any) => t.codigo === 'VIGENCIA')
+      const tipoComp   = tipos.find((t:any) => t.codigo === 'COMPANIA')
+      const tipoRamo   = tipos.find((t:any) => t.codigo === 'RAMO')
+      const tipoCobert = tipos.find((t:any) => t.codigo === 'COBERTURA')
 
-      const [{ data: comps }, { data: rams }, { data: cobs }, { data: refacts }, { data: vigs }] = await Promise.all([
+      const [{ data: comps }, { data: rams }, { data: cobs }] = await Promise.all([
         tipoComp
           ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoComp.id).eq('activo', true).order('nombre')
           : Promise.resolve({ data: [] }),
@@ -140,19 +138,11 @@ function NuevaPolizaContent() {
         tipoCobert
           ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoCobert.id).eq('activo', true).order('nombre')
           : Promise.resolve({ data: [] }),
-        tipoRefact
-          ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoRefact.id).eq('activo', true).order('orden')
-          : Promise.resolve({ data: [] }),
-        tipoVigencia
-          ? supabase.from('catalogos').select('id,nombre,metadata').eq('tipo_id', tipoVigencia.id).eq('activo', true).order('nombre')
-          : Promise.resolve({ data: [] }),
       ])
 
       setCompanias((comps ?? []) as Catalogo[])
       setRamos((rams ?? []) as Catalogo[])
       setCoberturas((cobs ?? []) as Catalogo[])
-      setRefacturaciones((refacts ?? []) as Catalogo[])
-      setVigencias((vigs ?? []) as Catalogo[])
       // El BuscadorPersona resuelve la cartera por sí mismo: si llegó persona_id por
       // query string pero la persona es ajena al usuario, el componente limpia el value.
     }
@@ -224,23 +214,9 @@ function NuevaPolizaContent() {
       })
     : []
 
-  // Si el usuario tocó manualmente fecha_fin, no la sobreescribimos al cambiar fecha_inicio
-  const [fechaFinTocada, setFechaFinTocada] = useState(false)
-
-  // Calcular fecha_fin automática según el tipo de vigencia seleccionado.
-  // Solo si el usuario NO la editó aún (dirty flag).
-  useEffect(() => {
-    if (poliza.fecha_inicio && !fechaFinTocada) {
-      const vigenciaSeleccionada = vigencias.find(v => v.id === poliza.vigencia_tipo_id)
-      const calculada = calcularFechaFinPorVigencia(poliza.fecha_inicio, vigenciaSeleccionada?.nombre ?? null)
-      if (calculada) setPoliza(p => ({ ...p, fecha_fin: calculada }))
-    }
-  }, [poliza.fecha_inicio, poliza.vigencia_tipo_id, fechaFinTocada, vigencias])
-
   const setP = (k: keyof FormPoliza, v: string) => {
     setPoliza(p => ({ ...p, [k]: v }))
     setErrores(e => ({ ...e, [k]: '' }))
-    if (k === 'fecha_fin') setFechaFinTocada(true)
   }
   const setR = (k: keyof FormRiesgo, v: string | string[]) => {
     setRiesgos(prev => prev.map((r, i) => i === indiceActivo ? { ...r, [k]: v } : r))
@@ -319,8 +295,7 @@ function NuevaPolizaContent() {
           numero_poliza:     poliza.numero_poliza.trim(),
           fecha_inicio:      poliza.fecha_inicio,
           fecha_fin:         poliza.fecha_fin,
-          refacturacion_id:  poliza.refacturacion_id || null,
-          vigencia_tipo_id:  poliza.vigencia_tipo_id || null,
+          refacturacion:     poliza.refacturacion || null,
           estado:            estadoCalculado,
           observaciones:     poliza.observaciones || null,
         })
@@ -562,22 +537,17 @@ function NuevaPolizaContent() {
             <input type="date" className={ic('fecha_fin')} value={poliza.fecha_fin} onChange={e => setP('fecha_fin', e.target.value)}/>
           </Campo>
           <Campo label="Refacturación">
-            <select className="form-input" value={poliza.refacturacion_id} onChange={e => setP('refacturacion_id', e.target.value)}>
+            <select className="form-input" value={poliza.refacturacion} onChange={e => setP('refacturacion', e.target.value)}>
               <option value="">— Seleccioná —</option>
-              {refacturaciones.length === 0
-                ? <option disabled>⚠ Sin refacturaciones — cargalas en Configuración</option>
-                : refacturaciones.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)
-              }
+              {opcionesRefacturacion().map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Campo>
-          <Campo label="Tipo de Vigencia">
-            <select className="form-input" value={poliza.vigencia_tipo_id} onChange={e => setP('vigencia_tipo_id', e.target.value)}>
-              <option value="">— Seleccioná —</option>
-              {vigencias.length === 0
-                ? <option disabled>⚠ Sin tipos de vigencia — cargalos en Configuración</option>
-                : vigencias.map(v => <option key={v.id} value={v.id}>{v.nombre}</option>)
-              }
-            </select>
+          <Campo label="Vigencia">
+            <div className="form-input bg-slate-50 text-slate-600 flex items-center">
+              {poliza.fecha_inicio && poliza.fecha_fin
+                ? vigenciaTextoDesdeFechas(poliza.fecha_inicio, poliza.fecha_fin)
+                : <span className="text-slate-400">Se calcula con las fechas</span>}
+            </div>
           </Campo>
         </div>
       </div>

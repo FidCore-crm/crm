@@ -33,8 +33,6 @@ export interface CatalogosFaltantes {
   companias: string[]
   ramos: string[]
   coberturas: string[]
-  refacturaciones: string[]
-  vigencias: string[]
   total: number
   // Hay al menos un archivo que no se pudo leer (permisos, borrado, etc.)
   hubo_error_lectura: boolean
@@ -67,8 +65,6 @@ async function cargarCatalogos(): Promise<{
   companias: CatalogoMin[]
   ramos: CatalogoMin[]
   coberturas: CatalogoMin[]
-  refacturaciones: CatalogoMin[]
-  vigencias: CatalogoMin[]
 }> {
   const supa = getSupabaseAdmin()
   const { data: tipos } = await supa.from('tipo_catalogo').select('id, codigo')
@@ -77,7 +73,7 @@ async function cargarCatalogos(): Promise<{
     idPorCodigo[t.codigo] = t.id
   }
 
-  const tiposPedidos = ['COMPANIA', 'RAMO', 'COBERTURA', 'REFACTURACION', 'VIGENCIA']
+  const tiposPedidos = ['COMPANIA', 'RAMO', 'COBERTURA']
   const idsFiltro = tiposPedidos.map((c) => idPorCodigo[c]).filter(Boolean) as number[]
 
   const { data: catRows } = await supa
@@ -90,7 +86,7 @@ async function cargarCatalogos(): Promise<{
 
   const vacio: CatalogoMin[] = []
   const result: Record<string, CatalogoMin[]> = {
-    COMPANIA: [], RAMO: [], COBERTURA: [], REFACTURACION: [], VIGENCIA: [],
+    COMPANIA: [], RAMO: [], COBERTURA: [],
   }
 
   for (const row of ((catRows ?? []) as CatRow[])) {
@@ -111,8 +107,6 @@ async function cargarCatalogos(): Promise<{
     companias: result.COMPANIA ?? vacio,
     ramos: result.RAMO ?? vacio,
     coberturas: result.COBERTURA ?? vacio,
-    refacturaciones: result.REFACTURACION ?? vacio,
-    vigencias: result.VIGENCIA ?? vacio,
   }
 }
 
@@ -130,8 +124,6 @@ export async function chequearCatalogosFaltantes(
     companias: [],
     ramos: [],
     coberturas: [],
-    refacturaciones: [],
-    vigencias: [],
     total: 0,
     hubo_error_lectura: false,
   }
@@ -156,8 +148,6 @@ export async function chequearCatalogosFaltantes(
     compania: new Map<string, string>(),
     ramo: new Map<string, string>(),
     cobertura: new Map<string, string>(),
-    refacturacion: new Map<string, string>(),
-    vigencia_tipo: new Map<string, string>(),
   }
 
   // Cuando un xlsx multi-solapa se expande en hojas virtuales, los nombres
@@ -199,7 +189,7 @@ export async function chequearCatalogosFaltantes(
         const ent = aplicarMapeoAFila(fila, columnas)
         const pol = ent.poliza
         if (!pol) continue
-        for (const campo of ['compania', 'ramo', 'cobertura', 'refacturacion', 'vigencia_tipo'] as const) {
+        for (const campo of ['compania', 'ramo', 'cobertura'] as const) {
           const valor = (pol as Record<string, unknown>)[campo]
           if (valor == null || valor === '') continue
           const texto = String(valor).trim()
@@ -224,25 +214,15 @@ export async function chequearCatalogosFaltantes(
   vistos.cobertura.forEach((texto, clave) => {
     if (!matchea(clave, catalogos.coberturas)) faltantes.coberturas.push(texto)
   })
-  vistos.refacturacion.forEach((texto, clave) => {
-    if (!matchea(clave, catalogos.refacturaciones)) faltantes.refacturaciones.push(texto)
-  })
-  vistos.vigencia_tipo.forEach((texto, clave) => {
-    if (!matchea(clave, catalogos.vigencias)) faltantes.vigencias.push(texto)
-  })
 
   faltantes.companias.sort((a, b) => a.localeCompare(b, 'es'))
   faltantes.ramos.sort((a, b) => a.localeCompare(b, 'es'))
   faltantes.coberturas.sort((a, b) => a.localeCompare(b, 'es'))
-  faltantes.refacturaciones.sort((a, b) => a.localeCompare(b, 'es'))
-  faltantes.vigencias.sort((a, b) => a.localeCompare(b, 'es'))
 
   faltantes.total =
     faltantes.companias.length +
     faltantes.ramos.length +
-    faltantes.coberturas.length +
-    faltantes.refacturaciones.length +
-    faltantes.vigencias.length
+    faltantes.coberturas.length
 
   return faltantes
 }

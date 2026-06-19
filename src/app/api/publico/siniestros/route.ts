@@ -379,6 +379,22 @@ export async function POST(request: NextRequest) {
       detalleSiniestro.tercero_categoria = tercero_categoria
     }
 
+    // Campos custom configurados por el PAS en /crm/configuracion/catalogos.
+    // El form los manda con prefijo `custom_<key>`. Solo aceptamos los que
+    // están en la lista oficial del catálogo (ramoCat.metadata.campos_siniestro)
+    // para evitar que un cliente inyecte keys arbitrarias en el JSONB.
+    const camposCustomCatalogo = Array.isArray(ramoCat?.metadata?.campos_siniestro)
+      ? (ramoCat!.metadata!.campos_siniestro as Array<{ key?: unknown }>)
+        .map(c => (c && typeof c === 'object' && typeof c.key === 'string' ? c.key : null))
+        .filter((k): k is string => !!k)
+      : []
+    for (const key of camposCustomCatalogo) {
+      const raw = formData.get(`custom_${key}`)
+      if (typeof raw === 'string' && raw.trim()) {
+        detalleSiniestro[key] = raw.trim().slice(0, 2000)
+      }
+    }
+
     // Sanitizar todos los strings dentro de detalle_siniestro para evitar XSS.
     // IMPORTANTE: cortamos a 2000 ANTES de sanitizar — si el texto incluía un
     // `&`, `sanitizeText` lo expande a `&amp;` (5 chars) y un slice posterior

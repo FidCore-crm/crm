@@ -26,35 +26,6 @@ export function hoyAR(): string {
   }).format(new Date())
 }
 
-// Calcula fecha_fin a partir de fecha_inicio y el nombre del tipo de vigencia.
-// Normaliza el nombre y aplica la regla más obvia (anual=12 meses, semestral=6, etc.).
-// Si no matchea ningún patrón conocido, default a 12 meses (compatibilidad con el comportamiento previo).
-export function calcularFechaFinPorVigencia(fechaInicio: string, nombreVigencia: string | null | undefined): string {
-  if (!fechaInicio) return ''
-  const [anio, mes, dia] = fechaInicio.split('-').map(Number)
-  if (!anio || !mes || !dia) return ''
-
-  const nombre = (nombreVigencia ?? '').toLowerCase().trim()
-  let mesesASumar = 12
-  if (nombre.includes('mensual')) mesesASumar = 1
-  else if (nombre.includes('bimestral')) mesesASumar = 2
-  else if (nombre.includes('trimestral')) mesesASumar = 3
-  else if (nombre.includes('cuatrimestral')) mesesASumar = 4
-  else if (nombre.includes('semestral')) mesesASumar = 6
-  else if (nombre.includes('bianual') || nombre.includes('bienal')) mesesASumar = 24
-
-  // Construir fecha sumando meses sin drift de TZ
-  const totalMeses = (mes - 1) + mesesASumar
-  const nuevoAnio = anio + Math.floor(totalMeses / 12)
-  const nuevoMes = (totalMeses % 12) + 1
-
-  // Manejo de día inválido (ej: 31 + 1 mes en febrero) → último día del mes resultante
-  const ultimoDiaMes = new Date(nuevoAnio, nuevoMes, 0).getDate()
-  const nuevoDia = Math.min(dia, ultimoDiaMes)
-
-  return `${nuevoAnio}-${String(nuevoMes).padStart(2, '0')}-${String(nuevoDia).padStart(2, '0')}`
-}
-
 // Devuelve "ahora" en el formato que espera un <input type="datetime-local">
 // (`YYYY-MM-DDTHH:mm`) en TZ local, sin pasar por ISO/UTC. Útil como `max`
 // para impedir registrar interacciones con fecha futura sin que la TZ del

@@ -2369,12 +2369,11 @@ export type Database = {
           origen_creacion: string
           poliza_origen_id: string | null
           ramo_id: string | null
-          refacturacion_id: string | null
+          refacturacion: string | null
           suma_asegurada: number | null
           tomador_id: string | null
           updated_at: string
           url_poliza_pdf: string | null
-          vigencia_tipo_id: string | null
         }
         Insert: {
           asegurado_id: string
@@ -2397,12 +2396,11 @@ export type Database = {
           origen_creacion?: string
           poliza_origen_id?: string | null
           ramo_id?: string | null
-          refacturacion_id?: string | null
+          refacturacion?: string | null
           suma_asegurada?: number | null
           tomador_id?: string | null
           updated_at?: string
           url_poliza_pdf?: string | null
-          vigencia_tipo_id?: string | null
         }
         Update: {
           asegurado_id?: string
@@ -2425,12 +2423,11 @@ export type Database = {
           origen_creacion?: string
           poliza_origen_id?: string | null
           ramo_id?: string | null
-          refacturacion_id?: string | null
+          refacturacion?: string | null
           suma_asegurada?: number | null
           tomador_id?: string | null
           updated_at?: string
           url_poliza_pdf?: string | null
-          vigencia_tipo_id?: string | null
         }
         Relationships: [
           {
@@ -2499,20 +2496,6 @@ export type Database = {
           {
             foreignKeyName: "polizas_cobertura_id_fkey"
             columns: ["cobertura_id"]
-            isOneToOne: false
-            referencedRelation: "catalogos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "polizas_refacturacion_id_fkey"
-            columns: ["refacturacion_id"]
-            isOneToOne: false
-            referencedRelation: "catalogos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "polizas_vigencia_tipo_id_fkey"
-            columns: ["vigencia_tipo_id"]
             isOneToOne: false
             referencedRelation: "catalogos"
             referencedColumns: ["id"]
