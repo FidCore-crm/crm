@@ -215,5 +215,12 @@ export function normalizarTipoRiesgo(raw: string | null | undefined): TipoRiesgo
   if (s.startsWith('auto')) return 'automotor'
   if (s.startsWith('hogar') || s.includes('combinado familiar')) return 'hogar'
   if (s.startsWith('vida') || s.includes('salud') || s.includes('accidente')) return 'vida'
+  // Tipos nuevos del catálogo de ramos extendido — mapeo a los legacy
+  // para que las APIs públicas y los forms de denuncia sigan funcionando.
+  // Cuando se extienda el formulario público para soportar los nuevos
+  // tipos con UI propia, este mapeo se puede acotar o eliminar.
+  if (s === 'integrales') return 'hogar'
+  if (s === 'personas') return 'vida'
+  // transporte, embarcacion, caucion → generico (sin formulario específico todavía)
   return 'generico'
 }

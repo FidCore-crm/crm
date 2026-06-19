@@ -15,6 +15,7 @@ import { useModuloIAPDF } from '@/lib/hooks/useModuloIAPDF'
 import { registrarEventoBitacora } from '@/lib/bitacora-poliza'
 import { validarPatente } from '@/lib/importacion/validators'
 import BuscadorPersona from '@/components/BuscadorPersona'
+import { tipoRenderForm } from '@/lib/tipos-riesgo'
 
 interface Catalogo { id: string; nombre: string; metadata?: Record<string,any> | null }
 
@@ -107,6 +108,10 @@ function NuevaPolizaContent() {
   const [refacturaciones, setRefacturaciones] = useState<Catalogo[]>([])
   const [vigencias,      setVigencias]      = useState<Catalogo[]>([])
   const [tipoRiesgo, setTipoRiesgo] = useState('generico')
+  // Mapea el tipo elegido en el ramo (puede ser uno de los 7 nuevos) al
+  // render del formulario que ya existe (automotor/hogar/vida/generico).
+  // Ver `src/lib/tipos-riesgo.ts::tipoRenderForm`.
+  const renderTipo = tipoRenderForm(tipoRiesgo)
   const [ramoNombre, setRamoNombre] = useState('')
   const [cotizacionOrigen, setCotizacionOrigen] = useState<string | null>(null)
 
@@ -270,7 +275,7 @@ function NuevaPolizaContent() {
     for (let i = 0; i < riesgos.length; i++) {
       const r = riesgos[i]
       const errR: Record<string,string> = {}
-      if (tipoRiesgo === 'automotor') {
+      if (renderTipo === 'automotor') {
         if (!r.patente.trim()) errR.r_patente = 'La patente es obligatoria'
         else if (r.patente.trim().length >= 6) {
           const resPatente = validarPatente(r.patente)
@@ -279,7 +284,7 @@ function NuevaPolizaContent() {
         if (!r.marca.trim())   errR.r_marca   = 'La marca es obligatoria'
         if (!r.modelo.trim())  errR.r_modelo  = 'El modelo es obligatorio'
         if (!r.anio.trim())    errR.r_anio    = 'El año es obligatorio'
-      } else if (tipoRiesgo === 'hogar') {
+      } else if (renderTipo === 'hogar') {
         if (!r.calle.trim())     errR.r_calle     = 'La calle es obligatoria'
         if (!r.localidad.trim()) errR.r_localidad = 'La localidad es obligatoria'
       }
@@ -323,13 +328,13 @@ function NuevaPolizaContent() {
       if (pErr) throw new Error(pErr.message)
 
       const detalleDe = (r: FormRiesgo): Record<string,any> => {
-        if (tipoRiesgo === 'automotor') {
+        if (renderTipo === 'automotor') {
           return { patente: r.patente.toUpperCase().replace(/\s/g,''), marca: r.marca, modelo: r.modelo, anio: r.anio, motor: r.motor||null, chasis: r.chasis||null, color: r.color||null, uso: r.uso }
         }
-        if (tipoRiesgo === 'hogar') {
+        if (renderTipo === 'hogar') {
           return { calle: r.calle, numero: r.numero||null, localidad: r.localidad, provincia: r.provincia, tipo_construccion: r.tipo_construccion, superficie: r.superficie||null, medidas_seguridad: r.medidas_seguridad }
         }
-        if (tipoRiesgo === 'vida') {
+        if (renderTipo === 'vida') {
           return { capital_asegurado: r.capital_asegurado||null, beneficiarios: r.beneficiarios||null }
         }
         return { descripcion: r.descripcion||null }
@@ -599,9 +604,9 @@ function NuevaPolizaContent() {
             <div className="px-4 pt-3 flex flex-wrap gap-1.5 border-b border-slate-100 pb-3">
               {riesgos.map((r, i) => {
                 const activo = i === indiceActivo
-                const label = tipoRiesgo === 'automotor' && r.patente
+                const label = renderTipo === 'automotor' && r.patente
                   ? r.patente
-                  : tipoRiesgo === 'hogar' && r.calle
+                  : renderTipo === 'hogar' && r.calle
                     ? `${r.calle}${r.numero ? ' ' + r.numero : ''}`
                     : `Riesgo ${i + 1}`
                 return (
@@ -629,7 +634,7 @@ function NuevaPolizaContent() {
 
           <div className="p-4 grid grid-cols-2 gap-3">
 
-            {tipoRiesgo === 'automotor' && (<>
+            {renderTipo === 'automotor' && (<>
               <Campo label="Patente" required error={errores.r_patente}>
                 <input className={`${ic('r_patente')} font-mono uppercase`} value={riesgo.patente} onChange={e => setR('patente', e.target.value.toUpperCase())} placeholder="ABC123" maxLength={8}/>
                 {!errores.r_patente && avisos.r_patente && (
@@ -664,7 +669,7 @@ function NuevaPolizaContent() {
               </Campo>
             </>)}
 
-            {tipoRiesgo === 'hogar' && (<>
+            {renderTipo === 'hogar' && (<>
               <Campo label="Calle" required error={errores.r_calle} col={2}>
                 <input className={ic('r_calle')} value={riesgo.calle} onChange={e => setR('calle', e.target.value)} placeholder="Av. Rivadavia"/>
               </Campo>
@@ -703,7 +708,7 @@ function NuevaPolizaContent() {
               </div>
             </>)}
 
-            {tipoRiesgo === 'vida' && (<>
+            {renderTipo === 'vida' && (<>
               <Campo label="Capital asegurado">
                 <div className="flex gap-1">
                   <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
@@ -715,7 +720,7 @@ function NuevaPolizaContent() {
               </Campo>
             </>)}
 
-            {tipoRiesgo === 'generico' && (
+            {renderTipo === 'generico' && (
               <Campo label="Descripción del riesgo" col={2}>
                 <textarea className="form-input w-full resize-none" rows={3} value={riesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describí el bien o riesgo asegurado..."/>
               </Campo>

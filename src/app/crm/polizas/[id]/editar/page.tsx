@@ -13,6 +13,7 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { apiCall } from '@/lib/api-client'
 import BuscadorPersona from '@/components/BuscadorPersona'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { tipoRenderForm } from '@/lib/tipos-riesgo'
 
 interface Catalogo { id: string; nombre: string; metadata?: Record<string, any> | null }
 
@@ -83,6 +84,8 @@ export default function EditarPolizaPage() {
   const [refacturaciones, setRefacturaciones] = useState<Catalogo[]>([])
   const [vigencias,      setVigencias]      = useState<Catalogo[]>([])
   const [tipoRiesgo,     setTipoRiesgo]     = useState('generico')
+  // Render del form de póliza: mapea los 7 tipos a los 4 renders existentes.
+  const renderTipo = tipoRenderForm(tipoRiesgo)
   const [ramoNombre,     setRamoNombre]     = useState('')
 
   // Cargar catálogos
@@ -274,7 +277,7 @@ export default function EditarPolizaPage() {
     for (const r of visibles) {
       const datos = r.datos
       const errR: Record<string, string> = {}
-      if (tipoRiesgo === 'automotor') {
+      if (renderTipo === 'automotor') {
         if (!datos.patente.trim()) errR.r_patente = 'La patente es obligatoria'
         else if (datos.patente.trim().length >= 6) {
           const resPatente = validarPatente(datos.patente)
@@ -283,7 +286,7 @@ export default function EditarPolizaPage() {
         if (!datos.marca.trim())   errR.r_marca   = 'La marca es obligatoria'
         if (!datos.modelo.trim())  errR.r_modelo  = 'El modelo es obligatorio'
         if (!datos.anio.trim())    errR.r_anio    = 'El año es obligatorio'
-      } else if (tipoRiesgo === 'hogar') {
+      } else if (renderTipo === 'hogar') {
         if (!datos.calle.trim())     errR.r_calle     = 'La calle es obligatoria'
         if (!datos.localidad.trim()) errR.r_localidad = 'La localidad es obligatoria'
       }
@@ -327,7 +330,7 @@ export default function EditarPolizaPage() {
         .map(r => ({
           id: r.id ?? undefined,
           tipo_riesgo: tipoRiesgo.toUpperCase(),
-          detalle_tecnico: detalleDe(tipoRiesgo, r.datos),
+          detalle_tecnico: detalleDe(renderTipo, r.datos),
           _eliminado: r.eliminado || undefined,
         }))
 
@@ -529,9 +532,9 @@ export default function EditarPolizaPage() {
                 const visiblesAntes = riesgos.slice(0, i).filter(x => !x.eliminado).length
                 const numero = visiblesAntes + 1
                 const activo = i === indiceActivo
-                const label = tipoRiesgo === 'automotor' && r.datos.patente
+                const label = renderTipo === 'automotor' && r.datos.patente
                   ? r.datos.patente
-                  : tipoRiesgo === 'hogar' && r.datos.calle
+                  : renderTipo === 'hogar' && r.datos.calle
                     ? `${r.datos.calle} ${r.datos.numero}`.trim()
                     : `Riesgo ${numero}`
                 return (
@@ -559,7 +562,7 @@ export default function EditarPolizaPage() {
 
           <div className="p-4 grid grid-cols-2 gap-3">
 
-            {tipoRiesgo === 'automotor' && (<>
+            {renderTipo === 'automotor' && (<>
               <Campo label="Patente" required error={errores.r_patente}>
                 <input className={`${ic('r_patente')} font-mono uppercase`} value={datosRiesgo.patente} onChange={e => setR('patente', e.target.value.toUpperCase())} placeholder="ABC123" maxLength={8} />
                 {!errores.r_patente && avisos.r_patente && (
@@ -594,7 +597,7 @@ export default function EditarPolizaPage() {
               </Campo>
             </>)}
 
-            {tipoRiesgo === 'hogar' && (<>
+            {renderTipo === 'hogar' && (<>
               <Campo label="Calle" required error={errores.r_calle} col={2}>
                 <input className={ic('r_calle')} value={datosRiesgo.calle} onChange={e => setR('calle', e.target.value)} placeholder="Av. Rivadavia" />
               </Campo>
@@ -633,7 +636,7 @@ export default function EditarPolizaPage() {
               </div>
             </>)}
 
-            {tipoRiesgo === 'vida' && (<>
+            {renderTipo === 'vida' && (<>
               <Campo label="Capital asegurado">
                 <div className="flex gap-1">
                   <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
@@ -645,7 +648,7 @@ export default function EditarPolizaPage() {
               </Campo>
             </>)}
 
-            {tipoRiesgo === 'generico' && (
+            {renderTipo === 'generico' && (
               <Campo label="Descripción del riesgo" col={2}>
                 <textarea className="form-input w-full resize-none" rows={3} value={datosRiesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describí el bien o riesgo asegurado..." />
               </Campo>

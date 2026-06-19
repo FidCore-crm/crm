@@ -15,6 +15,7 @@ import { generarPDFCotizacion, generarPDFCotizacionBlob } from '@/lib/pdf-cotiza
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
+import { tipoRenderForm } from '@/lib/tipos-riesgo'
 
 // ── Tipos locales ────────────────────────────────────────────
 interface CotizacionDetalle {
@@ -93,22 +94,25 @@ function iconoRamo(tipo: string) {
 
 function renderDatosRiesgo(datos: Record<string, any>, tipoRiesgo: string) {
   const campos: { label: string; valor: string }[] = []
+  // Mapeo: los tipos nuevos del catálogo (integrales, personas, etc.) caen
+  // en el layout viejo correspondiente.
+  const tipoRender = tipoRenderForm(tipoRiesgo)
 
-  if (tipoRiesgo === 'automotor') {
+  if (tipoRender === 'automotor') {
     if (datos.marca)   campos.push({ label: 'Marca',   valor: datos.marca })
     if (datos.modelo)  campos.push({ label: 'Modelo',  valor: datos.modelo })
     if (datos.anio)    campos.push({ label: 'Anio',     valor: datos.anio })
     if (datos.patente) campos.push({ label: 'Patente', valor: datos.patente })
     if (datos.color)   campos.push({ label: 'Color',   valor: datos.color })
     if (datos.uso)     campos.push({ label: 'Uso',     valor: datos.uso })
-  } else if (tipoRiesgo === 'hogar') {
+  } else if (tipoRender === 'hogar') {
     const dir = [datos.calle, datos.numero].filter(Boolean).join(' ')
     if (dir)                    campos.push({ label: 'Direccion',    valor: dir })
     if (datos.localidad)        campos.push({ label: 'Localidad',    valor: datos.localidad })
     if (datos.provincia)        campos.push({ label: 'Provincia',    valor: datos.provincia })
     if (datos.tipo_construccion) campos.push({ label: 'Construccion', valor: datos.tipo_construccion })
     if (datos.superficie)       campos.push({ label: 'Superficie',   valor: `${datos.superficie} m2` })
-  } else if (tipoRiesgo === 'vida') {
+  } else if (tipoRender === 'vida') {
     if (datos.capital_asegurado) campos.push({ label: 'Capital asegurado', valor: formatMoneda(Number(datos.capital_asegurado)) })
     if (datos.beneficiarios)     campos.push({ label: 'Beneficiarios',     valor: datos.beneficiarios })
   } else {

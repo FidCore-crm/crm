@@ -17,6 +17,7 @@ import { toast } from '@/lib/toast'
 import { mensajeErrorAmigable } from '@/lib/utils'
 import { validarPatente } from '@/lib/importacion/validators'
 import { EstadoCarga } from '@/components/EstadoCarga'
+import { tipoRenderForm } from '@/lib/tipos-riesgo'
 
 interface Catalogo { id: string; nombre: string; metadata?: Record<string,any> | null }
 
@@ -120,6 +121,8 @@ export default function RenovarPolizaPage() {
   // Acceso al riesgo activo + su tipo (cada riesgo tiene su propio tipo en flotas mixtas)
   const riesgo = riesgos[indiceActivo] ?? RIESGO_VACIO
   const tipoRiesgo = tiposPorRiesgo[indiceActivo] ?? tipoRiesgoRamo
+  // Render del form: los 7 tipos del catálogo mapean a 4 layouts existentes.
+  const renderTipo = tipoRenderForm(tipoRiesgo)
 
   // ID de la póliza nueva (para GestorArchivos después de guardar... lo usamos previo)
   const [polizaNuevaId, setPolizaNuevaId] = useState<string | null>(null)
@@ -338,8 +341,9 @@ export default function RenovarPolizaPage() {
     for (let i = 0; i < riesgos.length; i++) {
       const r = riesgos[i]
       const tipoIndividual = tiposPorRiesgo[i] ?? tipoRiesgoRamo
+      const renderIndividual = tipoRenderForm(tipoIndividual)
       const errR: Record<string,string> = {}
-      if (tipoIndividual === 'automotor') {
+      if (renderIndividual === 'automotor') {
         if (!r.patente.trim()) errR.r_patente = 'La patente es obligatoria'
         else if (r.patente.trim().length >= 6) {
           const resPatente = validarPatente(r.patente)
@@ -348,7 +352,7 @@ export default function RenovarPolizaPage() {
         if (!r.marca.trim())   errR.r_marca   = 'La marca es obligatoria'
         if (!r.modelo.trim())  errR.r_modelo  = 'El modelo es obligatorio'
         if (!r.anio.trim())    errR.r_anio    = 'El año es obligatorio'
-      } else if (tipoIndividual === 'hogar') {
+      } else if (renderIndividual === 'hogar') {
         if (!r.calle.trim())     errR.r_calle     = 'La calle es obligatoria'
         if (!r.localidad.trim()) errR.r_localidad = 'La localidad es obligatoria'
       }
@@ -409,10 +413,13 @@ export default function RenovarPolizaPage() {
 
       const filasRiesgos = riesgos.map((r, i) => {
         const tipoIndividual = tiposPorRiesgo[i] ?? tipoRiesgoRamo
+        const renderIndividual = tipoRenderForm(tipoIndividual)
         return {
           poliza_id:       nuevaId,
+          // En DB guardamos el tipo original (puede ser nuevo: integrales,
+          // personas, etc.). El detalle_tecnico usa el render compatible.
           tipo_riesgo:     tipoIndividual.toUpperCase(),
-          detalle_tecnico: detalleDe(r, tipoIndividual),
+          detalle_tecnico: detalleDe(r, renderIndividual),
           numero_item:     i + 1, // respeta UNIQUE(poliza_id, numero_item)
         }
       })
@@ -623,9 +630,10 @@ export default function RenovarPolizaPage() {
             {riesgos.map((r, i) => {
               const activo = i === indiceActivo
               const tipoIndividual = tiposPorRiesgo[i] ?? tipoRiesgoRamo
-              const label = tipoIndividual === 'automotor' && r.patente
+              const renderIndividual = tipoRenderForm(tipoIndividual)
+              const label = renderIndividual === 'automotor' && r.patente
                 ? r.patente
-                : tipoIndividual === 'hogar' && r.calle
+                : renderIndividual === 'hogar' && r.calle
                   ? `${r.calle}${r.numero ? ' ' + r.numero : ''}`
                   : `Riesgo ${i + 1}`
               return (
@@ -653,7 +661,7 @@ export default function RenovarPolizaPage() {
 
         <div className="p-4 grid grid-cols-2 gap-3">
 
-          {tipoRiesgo === 'automotor' && (<>
+          {renderTipo === 'automotor' && (<>
             <Campo label="Patente" required error={errores.r_patente}>
               <input className={`${ic('r_patente')} font-mono uppercase`} value={riesgo.patente} onChange={e => setR('patente', e.target.value.toUpperCase())} placeholder="ABC123" maxLength={8}/>
               {!errores.r_patente && avisos.r_patente && (
@@ -688,7 +696,7 @@ export default function RenovarPolizaPage() {
             </Campo>
           </>)}
 
-          {tipoRiesgo === 'hogar' && (<>
+          {renderTipo === 'hogar' && (<>
             <Campo label="Calle" required error={errores.r_calle} col={2}>
               <input className={ic('r_calle')} value={riesgo.calle} onChange={e => setR('calle', e.target.value)} placeholder="Av. Rivadavia"/>
             </Campo>
@@ -727,7 +735,7 @@ export default function RenovarPolizaPage() {
             </div>
           </>)}
 
-          {tipoRiesgo === 'vida' && (<>
+          {renderTipo === 'vida' && (<>
             <Campo label="Capital asegurado">
               <div className="flex gap-1">
                 <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
@@ -739,7 +747,7 @@ export default function RenovarPolizaPage() {
             </Campo>
           </>)}
 
-          {tipoRiesgo === 'generico' && (
+          {renderTipo === 'generico' && (
             <Campo label="Descripción del riesgo" col={2}>
               <textarea className="form-input w-full resize-none" rows={3} value={riesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describí el bien o riesgo asegurado..."/>
             </Campo>

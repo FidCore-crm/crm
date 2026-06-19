@@ -7,9 +7,11 @@ import {
   Plus, Pencil, Trash2, Save, X, Loader2, AlertCircle,
   CheckCircle, ChevronRight, Settings, GripVertical,
   ToggleLeft, ToggleRight, Type, AlignLeft, List, Calendar,
-  ArrowLeft
+  ArrowLeft, Info
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
+import { TIPOS_RIESGO, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
+import { generarCodigoUnico } from '@/lib/catalogos-codigo'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface TipoCatalogo { id: string; codigo: string; descripcion: string | null }
@@ -33,32 +35,9 @@ const TIPOS_CAMPO = [
   { value: 'date',     label: 'Fecha',            icon: <Calendar   className="h-3 w-3" /> },
 ]
 
-const CAMPOS_DEFAULT: Record<string, CampoSiniestro[]> = {
-  automotor: [
-    { key: 'lugar_hecho',   label: 'Lugar del hecho',      tipo: 'text',     requerido: true,  placeholder: 'Av. Rivadavia y Carabobo' },
-    { key: 'terceros',      label: 'Datos del tercero',     tipo: 'textarea', requerido: false, placeholder: 'Nombre, DNI, patente, compañía...' },
-    { key: 'lesionados',    label: '¿Hay lesionados?',      tipo: 'select',   requerido: false, opciones: 'No,Sí - Leves,Sí - Graves' },
-    { key: 'acta_policial', label: 'Nro. Acta Policial',    tipo: 'text',     requerido: false, placeholder: 'Opcional' },
-    { key: 'taller',        label: 'Taller de reparación',  tipo: 'text',     requerido: false, placeholder: 'Nombre y dirección' },
-  ],
-  hogar: [
-    { key: 'descripcion_daños',  label: 'Descripción de los daños', tipo: 'textarea', requerido: true,  placeholder: 'Detallá los daños...' },
-    { key: 'ambiente_afectado',  label: 'Ambiente afectado',         tipo: 'text',     requerido: false, placeholder: 'Cocina, baño, living...' },
-    { key: 'causa',              label: 'Causa del siniestro',       tipo: 'text',     requerido: false, placeholder: 'Cañería rota, cortocircuito...' },
-    { key: 'acta_policial',      label: 'Nro. Acta Policial',        tipo: 'text',     requerido: false, placeholder: 'Solo en caso de robo' },
-  ],
-  vida: [
-    { key: 'prestador',         label: 'Prestador / Sanatorio', tipo: 'text',     requerido: true,  placeholder: 'Nombre del sanatorio' },
-    { key: 'diagnostico',       label: 'Diagnóstico',           tipo: 'textarea', requerido: false, placeholder: 'Descripción del diagnóstico' },
-    { key: 'fecha_internacion', label: 'Fecha de internación',  tipo: 'date',     requerido: false },
-    { key: 'beneficiario',      label: 'Beneficiario que cobra', tipo: 'text',    requerido: false, placeholder: 'Nombre del beneficiario' },
-  ],
-  generico: [
-    { key: 'descripcion_daños', label: 'Descripción del siniestro', tipo: 'textarea', requerido: true,  placeholder: 'Describí qué ocurrió...' },
-    { key: 'lugar_hecho',       label: 'Lugar del hecho',           tipo: 'text',     requerido: false, placeholder: 'Dirección o lugar' },
-    { key: 'acta_policial',     label: 'Nro. Acta Policial',        tipo: 'text',     requerido: false, placeholder: 'Opcional' },
-  ],
-}
+// Los campos por default del siniestro (y los campos del formulario de
+// póliza) viven en src/lib/tipos-riesgo.ts. Acá los leemos via
+// `obtenerTipoRiesgo()` para no duplicar el catálogo.
 
 // ── Componente editor de campos ──────────────────────────────
 function EditorCampos({ campos, onChange }: {
@@ -323,12 +302,13 @@ export default function CatalogosPage() {
     resetForm(); setAgregando(true)
   }
 
-  // Cuando cambia el tipo de riesgo, precargar campos default
+  // Cuando cambia el tipo de riesgo, precargar campos default del SINIESTRO
+  // (solo si el editor está vacío — no pisamos campos que el PAS ya configuró)
   const handleTipoRiesgoChange = (valor: string) => {
     setFormTipoRiesgo(valor)
     if (valor && formCampos.length === 0) {
-      const defaults = CAMPOS_DEFAULT[valor] ?? []
-      setFormCampos(defaults)
+      const defaults = obtenerTipoRiesgo(valor).campos_siniestro_default ?? []
+      setFormCampos(defaults as CampoSiniestro[])
     }
   }
 
@@ -337,7 +317,15 @@ export default function CatalogosPage() {
     if (!tipoActivo) return
     setGuardando(true); setError('')
 
-    const codigoAuto = formNombre.trim().toUpperCase().replace(/\s+/g, '_').slice(0, 20)
+    // Genera código único deduplicando contra otras entradas del mismo tipo.
+    // Para edición pasamos `editando` para que el slug propio no choque
+    // consigo mismo (si el nombre no cambió, el código queda igual).
+    const codigoFinal = await generarCodigoUnico(
+      supabase,
+      formNombre.trim(),
+      tipoActivo.id,
+      editando ?? undefined,
+    )
 
     // Construir metadata
     let metadata: Record<string, any> = {}
@@ -358,14 +346,18 @@ export default function CatalogosPage() {
     const payload = {
       tipo_id:  tipoActivo.id,
       nombre:   formNombre.trim(),
-      codigo:   codigoAuto,
+      codigo:   codigoFinal,
       metadata: metadata,
       activo:   true,
       orden:    catalogos.length + 1,
     }
 
+    // En edición regeneramos también el `codigo` — esto corrige casos
+    // históricos donde el nombre cambió pero el código quedó viejo
+    // (ej: ramo "Moto" con código "AUTO" porque originalmente se llamaba
+    // "Auto" antes de renombrarlo).
     const { error: e } = editando
-      ? await supabase.from('catalogos').update({ nombre: payload.nombre, metadata: payload.metadata }).eq('id', editando)
+      ? await supabase.from('catalogos').update({ nombre: payload.nombre, codigo: codigoFinal, metadata: payload.metadata }).eq('id', editando)
       : await supabase.from('catalogos').insert(payload)
 
     if (e) { setError(`Error: ${e.message}`) }
@@ -445,6 +437,31 @@ export default function CatalogosPage() {
 
         {/* Panel derecho */}
         <div className="flex-1 flex flex-col gap-2">
+          {/* Cartel explicativo según el tipo activo */}
+          {esRamo && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded p-3 flex gap-2.5">
+              <Info className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+              <div className="text-xs text-indigo-900 leading-relaxed">
+                <p className="font-semibold mb-1">¿Qué es un ramo?</p>
+                <p>Un ramo es una categoría comercial de seguro: Automotor, Hogar, Moto, Vida, etc. Cada póliza pertenece a un ramo.</p>
+                <p className="mt-1.5">Al crear un ramo definís 2 cosas:</p>
+                <ul className="mt-1 pl-4 list-disc">
+                  <li><strong>Datos del bien asegurado:</strong> qué datos pide el sistema al cargar una póliza de ese ramo (patente y marca para autos, dirección y superficie para hogar, etc.).</li>
+                  <li><strong>Datos del siniestro:</strong> qué información cargar cuando hay un siniestro de ese ramo (lugar del hecho, terceros, etc.).</li>
+                </ul>
+              </div>
+            </div>
+          )}
+          {esCobertura && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded p-3 flex gap-2.5">
+              <Info className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+              <div className="text-xs text-indigo-900 leading-relaxed">
+                <p className="font-semibold mb-1">¿Qué es una cobertura?</p>
+                <p>Una cobertura es el tipo de protección que ofrece una póliza (Todo Riesgo, Terceros Completos, etc.). Cada cobertura se asocia a uno o varios ramos — solo aparece en el formulario de póliza cuando el ramo seleccionado la incluye.</p>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between bg-white border border-slate-200 rounded px-3 py-2">
             <div>
               <span className="text-sm font-medium text-slate-700">{tipoActivo?.descripcion ?? tipoActivo?.codigo}</span>
@@ -594,27 +611,45 @@ export default function CatalogosPage() {
               {esRamo && (
                 <>
                   <div>
-                    <label className="text-xs text-slate-600 mb-0.5 block">
-                      Tipo de riesgo
-                      <span className="ml-1 text-slate-400">(define la lógica del formulario)</span>
+                    <label className="text-xs text-slate-600 mb-0.5 block font-medium">
+                      Datos del bien asegurado
+                      <span className="ml-1 text-slate-400 font-normal">(qué le pide el formulario al cargar una póliza de este ramo)</span>
                     </label>
                     <select className="form-input w-full" value={formTipoRiesgo}
                       onChange={e => handleTipoRiesgoChange(e.target.value)}>
                       <option value="">— Seleccioná —</option>
-                      <option value="automotor">🚗 Automotor</option>
-                      <option value="hogar">🏠 Hogar / Incendio</option>
-                      <option value="vida">❤️ Vida / AP</option>
-                      <option value="generico">📦 Otro / Genérico</option>
+                      {TIPOS_RIESGO.map(t => (
+                        <option key={t.key} value={t.key}>{t.emoji} {t.label}</option>
+                      ))}
                     </select>
-                    {formTipoRiesgo && formCampos.length === 0 && (
-                      <p className="text-2xs text-slate-400 mt-1">
-                        Se cargaron los campos base — podés editarlos abajo.
-                      </p>
-                    )}
+                    {formTipoRiesgo && (() => {
+                      const def = obtenerTipoRiesgo(formTipoRiesgo)
+                      return (
+                        <div className="mt-2 bg-white border border-blue-300 rounded p-3">
+                          <p className="text-2xs text-slate-600 mb-2">{def.resumen}</p>
+                          <p className="text-2xs font-medium text-slate-700 mb-1">El formulario de póliza va a pedir:</p>
+                          <ul className="text-2xs text-slate-600 grid grid-cols-2 gap-x-3 gap-y-0.5">
+                            {def.campos_poliza.map(c => (
+                              <li key={c.key} className="flex items-center gap-1">
+                                <span className="text-blue-500">•</span>
+                                <span>{c.label}{c.requerido && <span className="text-red-400">*</span>}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          {def.ejemplos.length > 0 && def.key !== 'generico' && (
+                            <p className="text-2xs text-slate-500 mt-2 italic">
+                              Ramos que suelen ir acá: {def.ejemplos.join(', ')}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   {/* Editor de campos del siniestro */}
                   <div className="border-t border-blue-200 pt-3">
+                    <p className="text-xs font-medium text-slate-700 mb-0.5">Datos a pedir al cargar un siniestro de este ramo</p>
+                    <p className="text-2xs text-slate-500 mb-2">Editá los campos que aparecen abajo. Estos campos solo aplican al formulario de siniestros, no al de pólizas.</p>
                     <EditorCampos campos={formCampos} onChange={setFormCampos} />
                   </div>
                 </>
@@ -657,8 +692,8 @@ export default function CatalogosPage() {
                 <thead>
                   <tr>
                     <th>Nombre</th>
-                    {esRamo && <th style={{ width: 130 }}>Tipo de riesgo</th>}
-                    {esRamo && <th style={{ width: 100 }}>Campos config.</th>}
+                    {esRamo && <th style={{ width: 200 }}>Datos del bien asegurado</th>}
+                    {esRamo && <th style={{ width: 130 }}>Campos del siniestro</th>}
                     {esCobertura && <th>Ramos asociados</th>}
                     {esCobertura && <th>Equivalencias</th>}
                     {esCobertura && <th style={{ width: 110 }}>Detalle PDF</th>}
@@ -673,8 +708,11 @@ export default function CatalogosPage() {
                       {esRamo && (
                         <td className="text-xs text-slate-500">
                           {c.metadata?.tipo_riesgo
-                            ? ({ automotor: '🚗 Automotor', hogar: '🏠 Hogar', vida: '❤️ Vida/AP', generico: '📦 Genérico' } as any)[c.metadata.tipo_riesgo] ?? c.metadata.tipo_riesgo
-                            : '—'}
+                            ? (() => {
+                                const d = obtenerTipoRiesgo(c.metadata.tipo_riesgo)
+                                return <span>{d.emoji} {d.label}</span>
+                              })()
+                            : <span className="text-amber-500">— Sin configurar</span>}
                         </td>
                       )}
                       {esRamo && (

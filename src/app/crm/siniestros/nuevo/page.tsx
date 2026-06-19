@@ -12,6 +12,7 @@ import { toast } from '@/lib/toast'
 import BuscadorPersona from '@/components/BuscadorPersona'
 import { construirDetalleSiniestro, MAX_TESTIGOS, type TestigoData } from '@/lib/siniestros-tipos'
 import { obtenerIdsPersonas } from '@/lib/cartera-filter'
+import { tipoRenderForm } from '@/lib/tipos-riesgo'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface CampoSiniestro {
@@ -152,8 +153,13 @@ function NuevoSiniestroContent() {
   const [exito,     setExito]     = useState(false)
   const [errorGral, setErrorGral] = useState('')
 
-  const esAutomotor = tipoRiesgo === 'automotor' || tipoRiesgo === 'moto'
-  const esHogar     = tipoRiesgo === 'hogar'
+  // Mapeo: los 7 tipos del catálogo más los legacy ('moto', 'auto') caen
+  // en los layouts existentes (automotor/hogar/vida/generico).
+  const renderTipo = tipoRiesgo === 'moto'
+    ? 'automotor'
+    : tipoRenderForm(tipoRiesgo)
+  const esAutomotor = renderTipo === 'automotor'
+  const esHogar     = renderTipo === 'hogar'
 
   // ── Cargar pólizas vigentes (filtradas por cartera) ────
   useEffect(() => {

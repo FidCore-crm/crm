@@ -10,6 +10,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { hoyLocal, formatMoneda, sanitizarBusquedaNormalizada } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
+import { tipoRenderForm } from '@/lib/tipos-riesgo'
 
 // ── Interfaces ──
 
@@ -111,6 +112,8 @@ function NuevaCotizacionContent() {
   // ── State: riesgo ──
   const [ramoId, setRamoId]           = useState('')
   const [tipoRiesgo, setTipoRiesgo]   = useState('generico')
+  // Render del form: mapea los 7 tipos del catálogo a los 4 layouts existentes.
+  const renderTipo = tipoRenderForm(tipoRiesgo)
   const [riesgo, setRiesgo]           = useState<DatosRiesgo>(RIESGO_INICIAL)
 
   // ── State: companias rows ──
@@ -349,13 +352,13 @@ function NuevaCotizacionContent() {
     }
 
     // Riesgo fields
-    if (tipoRiesgo === 'automotor') {
+    if (renderTipo === 'automotor') {
       if (!riesgo.patente.trim()) e.r_patente = 'La patente es obligatoria'
       if (!riesgo.marca.trim()) e.r_marca = 'La marca es obligatoria'
       if (!riesgo.modelo.trim()) e.r_modelo = 'El modelo es obligatorio'
       if (!riesgo.anio.trim()) e.r_anio = 'El año es obligatorio'
     }
-    if (tipoRiesgo === 'hogar') {
+    if (renderTipo === 'hogar') {
       if (!riesgo.calle.trim()) e.r_calle = 'La calle es obligatoria'
       if (!riesgo.localidad.trim()) e.r_localidad = 'La localidad es obligatoria'
     }
@@ -379,14 +382,14 @@ function NuevaCotizacionContent() {
     try {
       // Build datos_riesgo
       let datosRiesgo: Record<string, any> = {}
-      if (tipoRiesgo === 'automotor') {
+      if (renderTipo === 'automotor') {
         datosRiesgo = {
           patente: riesgo.patente.toUpperCase().replace(/\s/g, ''),
           marca: riesgo.marca, modelo: riesgo.modelo, anio: riesgo.anio,
           motor: riesgo.motor || null, chasis: riesgo.chasis || null,
           color: riesgo.color || null, uso: riesgo.uso,
         }
-      } else if (tipoRiesgo === 'hogar') {
+      } else if (renderTipo === 'hogar') {
         datosRiesgo = {
           calle: riesgo.calle, numero: riesgo.numero || null,
           localidad: riesgo.localidad, provincia: riesgo.provincia,
@@ -394,7 +397,7 @@ function NuevaCotizacionContent() {
           superficie: riesgo.superficie || null,
           medidas_seguridad: riesgo.medidas_seguridad || null,
         }
-      } else if (tipoRiesgo === 'vida') {
+      } else if (renderTipo === 'vida') {
         datosRiesgo = {
           capital_asegurado: riesgo.capital_asegurado || null,
           beneficiarios: riesgo.beneficiarios || null,
@@ -596,7 +599,7 @@ function NuevaCotizacionContent() {
             </select>
           </Campo>
 
-          {ramoId && tipoRiesgo === 'automotor' && (
+          {ramoId && renderTipo === 'automotor' && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
               <Campo label="Patente" required error={errores.r_patente}>
                 <input className="form-input w-full font-mono uppercase" value={riesgo.patente} onChange={e => setR('patente', e.target.value)} placeholder="AA 123 BB" />
@@ -628,7 +631,7 @@ function NuevaCotizacionContent() {
             </div>
           )}
 
-          {ramoId && tipoRiesgo === 'hogar' && (
+          {ramoId && renderTipo === 'hogar' && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
               <Campo label="Calle" required error={errores.r_calle} col={2}>
                 <input className="form-input w-full" value={riesgo.calle} onChange={e => setR('calle', e.target.value)} />
@@ -659,7 +662,7 @@ function NuevaCotizacionContent() {
             </div>
           )}
 
-          {ramoId && tipoRiesgo === 'vida' && (
+          {ramoId && renderTipo === 'vida' && (
             <div className="grid grid-cols-2 gap-4 pt-2">
               <Campo label="Capital asegurado">
                 <input className="form-input w-full font-mono" type="number" value={riesgo.capital_asegurado} onChange={e => setR('capital_asegurado', e.target.value)} />
@@ -670,7 +673,7 @@ function NuevaCotizacionContent() {
             </div>
           )}
 
-          {ramoId && tipoRiesgo === 'generico' && (
+          {ramoId && renderTipo === 'generico' && (
             <div className="pt-2">
               <Campo label="Descripción del riesgo">
                 <textarea className="form-input w-full" rows={3} value={riesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describir el bien o riesgo a asegurar..." />
