@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Loader2, CheckCircle, AlertTriangle, HardDrive,
   Download, RotateCcw, Trash2, RefreshCw, ChevronDown, ChevronUp,
-  X, Shield, Cloud, CloudOff,
+  X, Shield, Cloud, CloudOff, MessageCircle, Send,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Backup, ConfiguracionBackups } from '@/types/database'
@@ -313,33 +313,54 @@ export default function BackupsPage() {
           <h2 className="text-sm font-semibold text-slate-800">Sincronización con Google Drive</h2>
           <p className="text-xs text-slate-500 mt-0.5 mb-4">Mantené una copia de los backups en Google Drive. Recomendamos activar verificación en 2 pasos en la cuenta.</p>
 
-          {!rcloneEstado.instalado ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          {!rcloneEstado.instalado || !rcloneConfigurado ? (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-amber-800">rclone no está instalado</p>
-                  <p className="text-xs text-amber-600 mt-1">
-                    Para sincronizar backups con Google Drive necesitás instalar rclone en el servidor.
+                <Cloud className="h-5 w-5 text-slate-400 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-700">Sincronización con la nube no configurada</p>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Tus backups solo viven en este servidor. Para activar la copia automática en Google Drive
+                    contactanos y la configuramos por vos, lleva 5 minutos.
                   </p>
-                  <code className="block mt-2 text-2xs bg-amber-100 text-amber-800 rounded p-2 font-mono">
-                    curl https://rclone.org/install.sh | sudo bash
-                  </code>
-                </div>
-              </div>
-            </div>
-          ) : !rcloneConfigurado ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-amber-800">Google Drive no está conectado</p>
-                  <p className="text-xs text-amber-600 mt-1">
-                    rclone está instalado pero el remote &apos;{configuracion?.remote_nombre || 'gdrive'}&apos; no está configurado.
-                  </p>
-                  <code className="block mt-2 text-2xs bg-amber-100 text-amber-800 rounded p-2 font-mono">
-                    rclone config
-                  </code>
+                  <div className="flex flex-wrap gap-3 mt-3">
+                    <a
+                      href="https://wa.me/5491166794861?text=Hola%2C%20quiero%20activar%20la%20sincronizaci%C3%B3n%20de%20backups%20con%20Google%20Drive."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" /> WhatsApp soporte
+                    </a>
+                    <a
+                      href="mailto:pulzar.crm@gmail.com?subject=Activar%20backups%20en%20Google%20Drive"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-800"
+                    >
+                      <Send className="h-3.5 w-3.5" /> pulzar.crm@gmail.com
+                    </a>
+                  </div>
+                  <details className="mt-3">
+                    <summary className="text-2xs text-slate-400 cursor-pointer hover:text-slate-600">
+                      Detalles técnicos (uso interno)
+                    </summary>
+                    <div className="mt-2 text-2xs text-slate-500 space-y-1">
+                      {!rcloneEstado.instalado ? (
+                        <>
+                          <p>rclone no está instalado en el servidor.</p>
+                          <code className="block bg-slate-100 text-slate-700 rounded p-2 font-mono">
+                            curl https://rclone.org/install.sh | sudo bash
+                          </code>
+                        </>
+                      ) : (
+                        <>
+                          <p>rclone está instalado pero el remote <span className="font-mono">{configuracion?.remote_nombre || 'gdrive'}</span> no está configurado.</p>
+                          <code className="block bg-slate-100 text-slate-700 rounded p-2 font-mono">
+                            rclone config
+                          </code>
+                        </>
+                      )}
+                    </div>
+                  </details>
                 </div>
               </div>
             </div>
@@ -376,20 +397,34 @@ export default function BackupsPage() {
               </div>
 
               {configuracion?.sync_remoto_activo && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Carpeta de destino en Drive</label>
-                  <input
-                    type="text"
-                    className="form-input w-full text-xs"
-                    placeholder="Backups-CRM"
-                    value={configuracion?.carpeta_remota || ''}
-                    onChange={e => {
-                      setConfiguracion(prev => prev ? { ...prev, carpeta_remota: e.target.value } : prev)
-                      debouncedSave({ carpeta_remota: e.target.value })
-                    }}
-                  />
-                  <p className="text-2xs text-slate-400 mt-1">Los backups se subirán a esta carpeta en tu Google Drive.</p>
-                </div>
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Carpeta de destino en Drive</label>
+                    <input
+                      type="text"
+                      className="form-input w-full text-xs"
+                      placeholder="Backups-CRM"
+                      value={configuracion?.carpeta_remota || ''}
+                      onChange={e => {
+                        setConfiguracion(prev => prev ? { ...prev, carpeta_remota: e.target.value } : prev)
+                        debouncedSave({ carpeta_remota: e.target.value })
+                      }}
+                    />
+                    <p className="text-2xs text-slate-400 mt-1">Los backups se subirán a esta carpeta en tu Google Drive.</p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-2xs text-blue-800 leading-relaxed">
+                    <p className="font-medium mb-1">Cómo se gestionan los backups en Drive</p>
+                    <p>
+                      Google Drive es un <strong>espejo exacto</strong> de los backups del servidor. La política de retención
+                      (configurable abajo) aplica a las dos copias: cuando un backup viejo se elimina del servidor, también
+                      se elimina del Drive en el siguiente ciclo de sincronización.
+                    </p>
+                    <p className="mt-1">
+                      Si querés guardar un backup puntual para siempre (snapshot anual, por ejemplo), descargalo o copialo
+                      a otra carpeta de tu Drive antes de que la rotación lo borre.
+                    </p>
+                  </div>
+                </>
               )}
             </div>
           )}
