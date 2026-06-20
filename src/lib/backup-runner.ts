@@ -101,9 +101,13 @@ export async function ejecutarBackup(opciones: {
 
     if (config && (config as any).sync_remoto_activo) {
       try {
+        // La carpeta remota está hardcoded a `fidcore-backups` desde v1.0.29
+        // para evitar errores de tipeo del PAS. Cualquier valor que haya
+        // quedado en `carpeta_remota` se ignora — el técnico de soporte ya
+        // creó la carpeta `fidcore-backups` durante la instalación.
         const syncResult = await ejecutarSyncRemoto(
           (config as any).remote_nombre,
-          (config as any).carpeta_remota,
+          'fidcore-backups',
         )
         syncOk = syncResult.ok
         syncError = syncResult.error || null

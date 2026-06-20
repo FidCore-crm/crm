@@ -844,18 +844,32 @@ queda visible para el CRM.
 14. Yes this is OK? y
 15. q (Quit)
 
-## Verificar
+## Verificar conexión
 
     rclone lsd gdrive:
 
 Si lista las carpetas del Drive, está OK.
+
+## Crear la carpeta de destino (OBLIGATORIO)
+
+El sistema sube SIEMPRE a una carpeta llamada `fidcore-backups`. El nombre
+está fijado en código — el PAS no puede cambiarlo desde la UI. Antes de
+activar el sync, el técnico tiene que crear esa carpeta:
+
+    rclone mkdir gdrive:fidcore-backups
+
+Para confirmar que existe:
+
+    rclone lsd gdrive:
+
+Tiene que aparecer `fidcore-backups` en la lista.
 
 ## Cómo activarlo en el CRM
 
 1. Configuración → Backups → Sincronización con Google Drive
 2. Activar el toggle "Sincronizar a remoto"
 3. Remote name: `gdrive` (el mismo nombre que pusiste en rclone config)
-4. Carpeta remota: `fidcore-backups` (o vacío para la raíz del Drive)
+4. La carpeta `fidcore-backups` aparece fijada en la UI — no es editable.
 5. Guardar
 
 ## Importante

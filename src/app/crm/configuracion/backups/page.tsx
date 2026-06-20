@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Loader2, CheckCircle, AlertTriangle, HardDrive,
   Download, RotateCcw, Trash2, RefreshCw, ChevronDown, ChevronUp,
-  X, Shield, Cloud, CloudOff, MessageCircle, Send,
+  X, Shield, Cloud, CloudOff, MessageCircle, Send, FolderOpen,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Backup, ConfiguracionBackups } from '@/types/database'
@@ -424,17 +424,13 @@ export default function BackupsPage() {
                 <>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Carpeta de destino en Drive</label>
-                    <input
-                      type="text"
-                      className="form-input w-full text-xs"
-                      placeholder="Backups-CRM"
-                      value={configuracion?.carpeta_remota || ''}
-                      onChange={e => {
-                        setConfiguracion(prev => prev ? { ...prev, carpeta_remota: e.target.value } : prev)
-                        debouncedSave({ carpeta_remota: e.target.value })
-                      }}
-                    />
-                    <p className="text-2xs text-slate-400 mt-1">Los backups se subirán a esta carpeta en tu Google Drive.</p>
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
+                      <FolderOpen className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="text-xs font-mono text-slate-700">fidcore-backups</span>
+                    </div>
+                    <p className="text-2xs text-slate-400 mt-1">
+                      Los backups se suben siempre a la carpeta <code className="font-mono">fidcore-backups</code> de tu Drive. El nombre está fijado por el sistema para evitar errores de configuración.
+                    </p>
                   </div>
                   <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-2xs text-blue-800 leading-relaxed">
                     <p className="font-medium mb-1">Cómo se gestionan los backups en Drive</p>
