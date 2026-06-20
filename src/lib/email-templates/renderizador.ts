@@ -152,77 +152,83 @@ function armarHtml(params: {
 
   const tonos = derivarTonos(normalizarColorMarca(organizacion.color_marca ?? COLOR_MARCA_DEFAULT))
 
-  // Logo en círculo blanco — el logo ocupa casi todo el círculo.
-  // Usamos una tabla para centrar verticalmente con compatibilidad amplia
-  // en clientes de email (Outlook hace cosas raras con flex/inline-block).
+  // Logo en círculo blanco — más grande (96px) y con sombra interna sutil que
+  // le da más presencia. Usamos table para centrado compatible con Outlook.
   const logoHtml = organizacion.logo_url
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;background:#ffffff;border-radius:50%;width:80px;height:80px;box-shadow:0 2px 6px rgba(0,0,0,0.18);">
-         <tr><td align="center" valign="middle" style="padding:6px;width:80px;height:80px;">
-           <img src="${escapeHtml(organizacion.logo_url)}" alt="${escapeHtml(organizacion.nombre)}" style="max-width:68px;max-height:68px;display:inline-block;" />
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;background:#ffffff;border-radius:50%;width:96px;height:96px;box-shadow:0 4px 14px rgba(0,0,0,0.22);">
+         <tr><td align="center" valign="middle" style="padding:8px;width:96px;height:96px;">
+           <img src="${escapeHtml(organizacion.logo_url)}" alt="${escapeHtml(organizacion.nombre)}" style="max-width:80px;max-height:80px;display:inline-block;" />
          </td></tr>
-       </table>
-       <p style="margin:12px 0 0;font-size:14px;font-weight:600;color:${tonos.textoSobreColor};">${escapeHtml(organizacion.nombre)}</p>`
-    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;background:#ffffff;border-radius:50%;width:80px;height:80px;box-shadow:0 2px 6px rgba(0,0,0,0.18);">
-         <tr><td align="center" valign="middle" style="width:80px;height:80px;">
-           <span style="font-size:38px;font-weight:bold;color:${tonos.base};line-height:1;">${escapeHtml((organizacion.nombre || '?').charAt(0).toUpperCase())}</span>
+       </table>`
+    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;background:#ffffff;border-radius:50%;width:96px;height:96px;box-shadow:0 4px 14px rgba(0,0,0,0.22);">
+         <tr><td align="center" valign="middle" style="width:96px;height:96px;">
+           <span style="font-size:44px;font-weight:bold;color:${tonos.base};line-height:1;">${escapeHtml((organizacion.nombre || '?').charAt(0).toUpperCase())}</span>
          </td></tr>
-       </table>
-       <p style="margin:12px 0 0;font-size:18px;font-weight:bold;color:${tonos.textoSobreColor};">${escapeHtml(organizacion.nombre)}</p>`
+       </table>`
+
+  // Nombre de organización con jerarquía: más grande, con letter-spacing leve.
+  // Color textoSobreColor garantiza contraste WCAG AA sobre el header.
+  const nombreOrganizacionHtml = `<p style="margin:18px 0 0;font-size:22px;font-weight:bold;letter-spacing:0.3px;color:${tonos.textoSobreColor};line-height:1.2;">${escapeHtml(organizacion.nombre)}</p>`
 
   const bloqueExtra = bloqueExtraHtml
-    ? `<tr><td style="padding:0 32px 20px;">${bloqueExtraHtml}</td></tr>`
+    ? `<tr><td style="padding:0 36px 24px;">${bloqueExtraHtml}</td></tr>`
     : ''
 
   const unsubscribeLine = unsubscribeUrl
-    ? `<p style="margin:0;font-size:11px;color:#94a3b8;">Si no querés recibir más emails, <a href="${escapeHtml(unsubscribeUrl)}" style="color:#64748b;text-decoration:underline;">hacé clic acá para darte de baja</a>.</p>`
+    ? `<p style="margin:8px 0 0;font-size:11px;color:#94a3b8;line-height:1.5;">Si no querés recibir más emails, <a href="${escapeHtml(unsubscribeUrl)}" style="color:#64748b;text-decoration:underline;">hacé clic acá para darte de baja</a>.</p>`
     : ''
 
   const pixel = trackingPixelUrl
     ? `<img src="${escapeHtml(trackingPixelUrl)}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;border:0;" />`
     : ''
 
-  const telefonoHtml = organizacion.telefono
-    ? `<p style="margin:4px 0 0;font-size:13px;color:#64748b;">Tel: ${escapeHtml(organizacion.telefono)}</p>`
-    : ''
-  const emailHtml = organizacion.email
-    ? `<p style="margin:2px 0 0;font-size:13px;color:#64748b;">${escapeHtml(organizacion.email)}</p>`
+  // Datos de contacto en el cierre, separados por un divisor sutil.
+  const tieneDatosContacto = organizacion.telefono || organizacion.email
+  const contactoHtml = tieneDatosContacto
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:20px;border-top:1px solid #e2e8f0;">
+         <tr><td style="padding-top:16px;">
+           ${organizacion.telefono ? `<p style="margin:0;font-size:13px;color:#475569;line-height:1.5;"><span style="color:#94a3b8;">Tel:</span> <a href="tel:${escapeHtml(organizacion.telefono.replace(/\s+/g, ''))}" style="color:${tonos.base};text-decoration:none;">${escapeHtml(organizacion.telefono)}</a></p>` : ''}
+           ${organizacion.email ? `<p style="margin:4px 0 0;font-size:13px;color:#475569;line-height:1.5;"><span style="color:#94a3b8;">Email:</span> <a href="mailto:${escapeHtml(organizacion.email)}" style="color:${tonos.base};text-decoration:none;">${escapeHtml(organizacion.email)}</a></p>` : ''}
+         </td></tr>
+       </table>`
     : ''
 
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${escapeHtml(asuntoPlano)}</title></head>
-<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f1f5f9;">
-<tr><td align="center" style="padding:24px 16px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+<body style="margin:0;padding:0;background-color:#eef2f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#eef2f7;">
+<tr><td align="center" style="padding:32px 16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(15,23,42,0.08),0 2px 6px rgba(15,23,42,0.04);">
 
-<!-- Header -->
-<tr><td style="background-color:${tonos.base};padding:24px 32px;text-align:center;">
+<!-- Header con hero más alto y jerarquía -->
+<tr><td style="background-color:${tonos.base};padding:44px 32px 40px;text-align:center;">
 ${logoHtml}
+${nombreOrganizacionHtml}
 </td></tr>
 
-<!-- Saludo -->
-<tr><td style="padding:32px 32px 16px;">
-<p style="margin:0;font-size:16px;font-weight:bold;color:${tonos.base};line-height:1.4;">${saludoHtml}</p>
+<!-- Saludo con jerarquía de título -->
+<tr><td style="padding:36px 36px 12px;">
+<p style="margin:0;font-size:20px;font-weight:bold;color:${tonos.base};line-height:1.35;letter-spacing:-0.2px;">${saludoHtml}</p>
 </td></tr>
 
 <!-- Cuerpo -->
-<tr><td style="padding:0 32px 24px;">
-<div style="margin:0;font-size:15px;line-height:1.6;color:#334155;">${cuerpoHtml}</div>
+<tr><td style="padding:0 36px 28px;">
+<div style="margin:0;font-size:15px;line-height:1.7;color:#334155;">${cuerpoHtml}</div>
 </td></tr>
 
 ${bloqueExtra}
 
-<!-- Cierre -->
-<tr><td style="padding:0 32px 32px;">
-<div style="margin:0;font-size:15px;line-height:1.6;color:#334155;">${cierreHtml}</div>
-${telefonoHtml}
-${emailHtml}
+<!-- Cierre con datos de contacto separados visualmente -->
+<tr><td style="padding:0 36px 36px;">
+<div style="margin:0;font-size:15px;line-height:1.7;color:#334155;">${cierreHtml}</div>
+${contactoHtml}
 </td></tr>
 
-<!-- Footer -->
-<tr><td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center;">
-<p style="margin:0 0 8px;font-size:11px;color:#94a3b8;">Este email fue enviado por ${escapeHtml(organizacion.nombre)}.</p>
+<!-- Footer con estructura -->
+<tr><td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:24px 32px;text-align:center;">
+<p style="margin:0;font-size:12px;font-weight:600;color:#64748b;line-height:1.5;">${escapeHtml(organizacion.nombre)}</p>
+<p style="margin:4px 0 0;font-size:11px;color:#94a3b8;line-height:1.5;">Este es un email automático enviado desde el CRM de ${escapeHtml(organizacion.nombre)}.</p>
 ${unsubscribeLine}
 </td></tr>
 

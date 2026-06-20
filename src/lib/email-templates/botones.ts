@@ -33,9 +33,9 @@ export function generarBotonHtml({ url, texto, color_marca }: OpcionesBoton): st
   const urlSafe = escapeHtml(url)
   const textoSafe = escapeHtml(texto)
 
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:24px auto;">
-  <tr><td align="center" bgcolor="${tonos.base}" style="border-radius:6px;">
-    <a href="${urlSafe}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:${tonos.textoSobreColor};text-decoration:none;border-radius:6px;background-color:${tonos.base};">${textoSafe}</a>
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:28px auto;">
+  <tr><td align="center" bgcolor="${tonos.base}" style="border-radius:8px;box-shadow:0 4px 12px ${tonos.base}40;">
+    <a href="${urlSafe}" target="_blank" style="display:inline-block;padding:16px 40px;font-size:15px;font-weight:700;letter-spacing:0.3px;color:${tonos.textoSobreColor};text-decoration:none;border-radius:8px;background-color:${tonos.base};">${textoSafe}</a>
   </td></tr>
 </table>`
 }
