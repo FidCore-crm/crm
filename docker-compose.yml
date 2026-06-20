@@ -52,6 +52,14 @@ services:
       - ./storage:/app/storage
       - ./tmp:/app/tmp
       - /var/backups/crm-seguros:/var/backups/crm-seguros
+      # Config de rclone del host → container, read-only. El container ya tiene
+      # el binario de rclone instalado (ver Dockerfile), pero necesita ver el
+      # `rclone.conf` con el remote configurado por el PAS desde el host. El
+      # ${HOME} lo resuelve docker compose desde el shell del usuario que arranca
+      # los containers. Si la carpeta del host no existe, Docker la crea vacía
+      # y rclone seguirá viendo "no configurado" hasta que el PAS corra
+      # `rclone config` en el host.
+      - ${HOME}/.config/rclone:/home/node/.config/rclone:ro
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:3000/"]
       interval: 30s
@@ -78,6 +86,10 @@ services:
       - ./storage:/app/storage
       - ./tmp:/app/tmp
       - /var/backups/crm-seguros:/var/backups/crm-seguros
+      # Mismo bind mount del rclone.conf que en `crm`. El cron de backups
+      # (`backup-now.sh` + `backup-sync-remote.sh`) corre en este container
+      # y necesita acceder a la configuración del remote.
+      - ${HOME}/.config/rclone:/home/node/.config/rclone:ro
     command: ["bash", "/app/scripts/crons-loop.sh"]
 
   importacion-runner:
