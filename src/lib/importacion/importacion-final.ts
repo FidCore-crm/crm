@@ -357,30 +357,27 @@ function mapeoPoliza(
   return out;
 }
 
+// Claves estructurales del riesgo — van a columnas top-level de `riesgos`,
+// no al JSONB. Todo lo demás (campos del bien asegurado de cualquier tipo)
+// se mueve a `detalle_tecnico` con el patrón blacklist para que automáticamente
+// soporte cualquier tipo de riesgo definido en `tipos-riesgo.ts` sin tener
+// que mantener una lista sincronizada acá.
+const CLAVES_ESTRUCTURALES_RIESGO = new Set([
+  'tipo_riesgo',
+  'descripcion_corta',
+  'suma_asegurada',
+]);
+
 function mapeoRiesgo(
   r: RiesgoImportado,
   poliza_id: string
 ): Record<string, unknown> {
   const rr = r as Record<string, unknown>;
   const detalle_tecnico: Record<string, unknown> = {};
-  const campos_detalle = [
-    'patente',
-    'marca',
-    'modelo',
-    'anio',
-    'motor',
-    'chasis',
-    'color',
-    'uso',
-    'direccion_riesgo',
-    'tipo_construccion',
-    'superficie',
-    'capital_asegurado',
-    'beneficiarios',
-  ];
-  for (const k of campos_detalle) {
-    const v = rr[k];
-    if (v != null && v !== '') detalle_tecnico[k] = v;
+  for (const [k, v] of Object.entries(rr)) {
+    if (CLAVES_ESTRUCTURALES_RIESGO.has(k)) continue;
+    if (v == null || v === '') continue;
+    detalle_tecnico[k] = v;
   }
   return {
     poliza_id,

@@ -28,6 +28,7 @@ import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { formatearRefacturacion } from '@/lib/refacturaciones'
 import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
+import { obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 
 // ── Tipos locales ────────────────────────────────────────────
 interface PolizaDetalle {
@@ -673,6 +674,14 @@ export default function FichaPolizaPage() {
                     : dt.calle
                       ? `${dt.calle}${dt.numero ? ' ' + dt.numero : ''}`
                       : `Riesgo ${idx + 1}`
+                  // Mapa key→label desde la definición del tipo de riesgo para
+                  // mostrar los nombres "humanos" en vez de las keys feas
+                  // ("descripcion_objeto" → "Descripción del objeto asegurado").
+                  // Si la key no está en la definición (ej: datos legacy), cae
+                  // al fallback de capitalizar replace(/_/g, ' ').
+                  const defTipo = obtenerTipoRiesgo(r.tipo_riesgo)
+                  const mapaLabels: Record<string, string> = {}
+                  for (const c of defTipo.campos_poliza) mapaLabels[c.key] = c.label
                   return (
                     <div key={r.id} className="p-3 flex flex-col gap-2 text-xs">
                       {riesgosVisibles.length > 1 && (
@@ -684,7 +693,9 @@ export default function FichaPolizaPage() {
                         .filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && v.length === 0))
                         .map(([k, v]) => (
                           <div key={k} className="flex justify-between gap-2">
-                            <span className="text-slate-500 capitalize shrink-0">{k.replace(/_/g, ' ')}</span>
+                            <span className="text-slate-500 shrink-0">
+                              {mapaLabels[k] ?? (k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '))}
+                            </span>
                             <span className="text-slate-700 font-medium text-right font-mono truncate">
                               {Array.isArray(v) ? v.join(', ') : String(v)}
                             </span>

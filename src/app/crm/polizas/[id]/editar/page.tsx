@@ -14,6 +14,7 @@ import { apiCall } from '@/lib/api-client'
 import BuscadorPersona from '@/components/BuscadorPersona'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
+import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
 import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 
@@ -34,6 +35,7 @@ interface FormRiesgo {
   tipo_construccion: string; superficie: string; medidas_seguridad: string[]
   capital_asegurado: string; beneficiarios: string
   descripcion: string
+  detalle_dinamico: Record<string, any>
 }
 
 const ICONOS: Record<string, React.ReactNode> = {
@@ -169,12 +171,18 @@ export default function EditarPolizaPage() {
         medidas_seguridad: Array.isArray(dt?.medidas_seguridad) ? dt.medidas_seguridad : [],
         capital_asegurado: str(dt?.capital_asegurado), beneficiarios: str(dt?.beneficiarios),
         descripcion: str(dt?.descripcion),
+        // El bucket dinámico se pre-carga con el detalle completo del JSONB.
+        // Si el tipo de riesgo es uno con render dinámico, el componente sabe
+        // qué claves dibujar; el resto de las claves quedan persistidas sin
+        // pisarse para evitar perder datos cruzados.
+        detalle_dinamico: (dt && typeof dt === 'object') ? { ...dt } : {},
       })
       const RIESGO_VACIO_DATOS: FormRiesgo = {
         patente: '', marca: '', modelo: '', anio: '', motor: '', chasis: '', color: '', uso: 'PARTICULAR',
         calle: '', numero: '', localidad: '', provincia: 'Buenos Aires',
         tipo_construccion: 'MAMPOSTERIA', superficie: '', medidas_seguridad: [],
         capital_asegurado: '', beneficiarios: '', descripcion: '',
+        detalle_dinamico: {},
       }
       const lista: RiesgoItem[] = (p.riesgos ?? []).map((r: any) => ({
         id: r.id,
@@ -219,7 +227,7 @@ export default function EditarPolizaPage() {
   const riesgoActivo = riesgos[indiceActivo]
   const datosRiesgo = riesgoActivo?.datos ?? null
 
-  const setR = (k: keyof FormRiesgo, v: string | string[]) => {
+  const setR = (k: keyof FormRiesgo, v: any) => {
     setRiesgos(prev => prev.map((r, i) => i === indiceActivo ? { ...r, datos: { ...r.datos, [k]: v } } : r))
     setErrores(e => ({ ...e, [`r_${k}`]: '' }))
   }
@@ -229,6 +237,7 @@ export default function EditarPolizaPage() {
     calle: '', numero: '', localidad: '', provincia: 'Buenos Aires',
     tipo_construccion: 'MAMPOSTERIA', superficie: '', medidas_seguridad: [],
     capital_asegurado: '', beneficiarios: '', descripcion: '',
+    detalle_dinamico: {},
   }
 
   const agregarRiesgo = () => {
@@ -278,6 +287,8 @@ export default function EditarPolizaPage() {
       } else if (renderTipo === 'hogar') {
         if (!datos.calle.trim())     errR.r_calle     = 'La calle es obligatoria'
         if (!datos.localidad.trim()) errR.r_localidad = 'La localidad es obligatoria'
+      } else if (renderTipo === 'dinamico') {
+        Object.assign(errR, validarCamposDinamicos(tipoRiesgo, datos.detalle_dinamico))
       }
       if (Object.keys(errR).length > 0) {
         Object.assign(e, errR)
@@ -301,6 +312,9 @@ export default function EditarPolizaPage() {
     }
     if (tipo === 'vida') {
       return { capital_asegurado: datos.capital_asegurado || null, beneficiarios: datos.beneficiarios || null }
+    }
+    if (tipo === 'dinamico') {
+      return { ...datos.detalle_dinamico }
     }
     return { descripcion: datos.descripcion || null }
   }
@@ -636,6 +650,17 @@ export default function EditarPolizaPage() {
                 <input className="form-input" value={datosRiesgo.beneficiarios} onChange={e => setR('beneficiarios', e.target.value)} placeholder="Nombre y parentesco" />
               </Campo>
             </>)}
+
+            {renderTipo === 'dinamico' && (
+              <div className="col-span-2">
+                <CamposBienAseguradoDinamico
+                  tipoRiesgo={tipoRiesgo}
+                  valores={datosRiesgo.detalle_dinamico}
+                  onChange={(nuevo) => setR('detalle_dinamico' as any, nuevo as any)}
+                  errores={errores}
+                />
+              </div>
+            )}
 
             {renderTipo === 'generico' && (
               <Campo label="Descripción del riesgo" col={2}>

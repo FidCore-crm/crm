@@ -15,7 +15,7 @@ import { generarPDFCotizacion, generarPDFCotizacionBlob } from '@/lib/pdf-cotiza
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
-import { tipoRenderForm } from '@/lib/tipos-riesgo'
+import { tipoRenderForm, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 
 // ── Tipos locales ────────────────────────────────────────────
 interface CotizacionDetalle {
@@ -115,6 +115,16 @@ function renderDatosRiesgo(datos: Record<string, any>, tipoRiesgo: string) {
   } else if (tipoRender === 'vida') {
     if (datos.capital_asegurado) campos.push({ label: 'Capital asegurado', valor: formatMoneda(Number(datos.capital_asegurado)) })
     if (datos.beneficiarios)     campos.push({ label: 'Beneficiarios',     valor: datos.beneficiarios })
+  } else if (tipoRender === 'dinamico') {
+    // Para los tipos con render dinámico, leemos la definición del tipo de
+    // riesgo y mostramos los campos con sus labels reales del catálogo.
+    const def = obtenerTipoRiesgo(tipoRiesgo)
+    for (const c of def.campos_poliza) {
+      const v = datos[c.key]
+      if (v !== undefined && v !== null && String(v).trim() !== '') {
+        campos.push({ label: c.label, valor: String(v) })
+      }
+    }
   } else {
     if (datos.descripcion) campos.push({ label: 'Descripcion', valor: datos.descripcion })
   }

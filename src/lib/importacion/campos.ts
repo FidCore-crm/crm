@@ -6,6 +6,8 @@
 // desde `/crm/importar/[id]/plan/page.tsx` sin arrastrar nodemailer.
 // ============================================================================
 
+import { TIPOS_RIESGO } from '@/lib/tipos-riesgo'
+
 // NOTA: `cuil_formateado` NO está en esta lista intencionalmente — es una
 // GENERATED COLUMN en la DB que Postgres calcula sola desde `dni_cuil`.
 // Incluirla permitiría que la IA sugiera mapearla y generaría un error
@@ -50,20 +52,42 @@ export const CAMPOS_POLIZA = [
   'observaciones',
 ] as const
 
-export const CAMPOS_RIESGO = [
+/**
+ * Campos estructurales del riesgo — los que NO van al JSONB `detalle_tecnico`
+ * sino a columnas top-level de la tabla `riesgos`.
+ */
+export const CAMPOS_RIESGO_ESTRUCTURALES = [
   'tipo_riesgo',
   'descripcion_corta',
-  'patente',
-  'marca',
-  'modelo',
-  'anio',
-  'motor',
-  'chasis',
-  'color',
-  'uso',
-  'direccion_riesgo',
-  'tipo_construccion',
-  'superficie',
-  'capital_asegurado',
-  'beneficiarios',
+  'suma_asegurada',
 ] as const
+
+/**
+ * Campos del riesgo que la IA puede proponer al PAS para mapear columnas
+ * del archivo. Combina los 12 campos históricos (automotor + hogar + vida,
+ * mantienen retrocompat con importaciones viejas) con los `campos_poliza`
+ * de todos los tipos de riesgo definidos en `tipos-riesgo.ts`. La generación
+ * dinámica garantiza que agregar un tipo nuevo a la lib automáticamente lo
+ * exponga al importador sin tocar este archivo.
+ */
+function generarCamposRiesgo(): string[] {
+  const conjunto = new Set<string>([
+    // Estructurales
+    'tipo_riesgo',
+    'descripcion_corta',
+    // Históricos (mantienen compat con importaciones viejas + alias
+    // legibles para el PAS aunque algunos no estén en TIPOS_RIESGO actuales)
+    'patente', 'marca', 'modelo', 'anio', 'motor', 'chasis', 'color', 'uso',
+    'direccion_riesgo',
+    'tipo_construccion', 'superficie', 'capital_asegurado', 'beneficiarios',
+  ])
+  // Sumar campos_poliza de todos los tipos
+  for (const t of TIPOS_RIESGO) {
+    for (const c of t.campos_poliza) {
+      conjunto.add(c.key)
+    }
+  }
+  return Array.from(conjunto)
+}
+
+export const CAMPOS_RIESGO = generarCamposRiesgo()

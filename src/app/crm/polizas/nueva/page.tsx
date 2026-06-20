@@ -16,6 +16,7 @@ import { registrarEventoBitacora } from '@/lib/bitacora-poliza'
 import { validarPatente } from '@/lib/importacion/validators'
 import BuscadorPersona from '@/components/BuscadorPersona'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
+import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
 import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 
@@ -36,6 +37,9 @@ interface FormRiesgo {
   tipo_construccion: string; superficie: string; medidas_seguridad: string[]
   capital_asegurado: string; beneficiarios: string
   descripcion: string
+  /** Bucket genérico para los tipos de riesgo con render dinámico
+   *  (RC, incendio, robo, ART, agropecuario, transporte, embarcación). */
+  detalle_dinamico: Record<string, any>
 }
 
 const POLIZA_INICIAL: FormPoliza = {
@@ -52,6 +56,7 @@ const RIESGO_INICIAL: FormRiesgo = {
   tipo_construccion: 'MAMPOSTERIA', superficie: '', medidas_seguridad: [],
   capital_asegurado: '', beneficiarios: '',
   descripcion: '',
+  detalle_dinamico: {},
 }
 
 const ICONOS: Record<string, React.ReactNode> = {
@@ -218,7 +223,7 @@ function NuevaPolizaContent() {
     setPoliza(p => ({ ...p, [k]: v }))
     setErrores(e => ({ ...e, [k]: '' }))
   }
-  const setR = (k: keyof FormRiesgo, v: string | string[]) => {
+  const setR = (k: keyof FormRiesgo, v: any) => {
     setRiesgos(prev => prev.map((r, i) => i === indiceActivo ? { ...r, [k]: v } : r))
     setErrores(e => ({ ...e, [`r_${k}`]: '' }))
   }
@@ -263,6 +268,8 @@ function NuevaPolizaContent() {
       } else if (renderTipo === 'hogar') {
         if (!r.calle.trim())     errR.r_calle     = 'La calle es obligatoria'
         if (!r.localidad.trim()) errR.r_localidad = 'La localidad es obligatoria'
+      } else if (renderTipo === 'dinamico') {
+        Object.assign(errR, validarCamposDinamicos(tipoRiesgo, r.detalle_dinamico))
       }
       if (Object.keys(errR).length > 0) {
         Object.assign(e, errR)
@@ -311,6 +318,9 @@ function NuevaPolizaContent() {
         }
         if (renderTipo === 'vida') {
           return { capital_asegurado: r.capital_asegurado||null, beneficiarios: r.beneficiarios||null }
+        }
+        if (renderTipo === 'dinamico') {
+          return { ...r.detalle_dinamico }
         }
         return { descripcion: r.descripcion||null }
       }
@@ -689,6 +699,17 @@ function NuevaPolizaContent() {
                 <input className="form-input" value={riesgo.beneficiarios} onChange={e => setR('beneficiarios', e.target.value)} placeholder="Nombre y parentesco"/>
               </Campo>
             </>)}
+
+            {renderTipo === 'dinamico' && (
+              <div className="col-span-2">
+                <CamposBienAseguradoDinamico
+                  tipoRiesgo={tipoRiesgo}
+                  valores={riesgo.detalle_dinamico}
+                  onChange={(nuevo) => setR('detalle_dinamico' as any, nuevo as any)}
+                  errores={errores}
+                />
+              </div>
+            )}
 
             {renderTipo === 'generico' && (
               <Campo label="Descripción del riesgo" col={2}>

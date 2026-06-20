@@ -13,6 +13,7 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { actualizarConOptimistic } from '@/lib/optimistic-update'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
+import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 
 // ── Interfaces ──
 
@@ -36,6 +37,7 @@ interface DatosRiesgo {
   tipo_construccion: string; superficie: string; medidas_seguridad: string
   capital_asegurado: string; beneficiarios: string
   descripcion: string
+  detalle_dinamico: Record<string, any>
 }
 
 const RIESGO_INICIAL: DatosRiesgo = {
@@ -44,6 +46,7 @@ const RIESGO_INICIAL: DatosRiesgo = {
   tipo_construccion: 'MAMPOSTERIA', superficie: '', medidas_seguridad: '',
   capital_asegurado: '', beneficiarios: '',
   descripcion: '',
+  detalle_dinamico: {},
 }
 
 const ICONOS: Record<string, React.ReactNode> = {
@@ -206,6 +209,7 @@ export default function EditarCotizacionPage() {
         tipo_construccion: dr.tipo_construccion || 'MAMPOSTERIA', superficie: dr.superficie || '', medidas_seguridad: dr.medidas_seguridad || '',
         capital_asegurado: dr.capital_asegurado || '', beneficiarios: dr.beneficiarios || '',
         descripcion: dr.descripcion || '',
+        detalle_dinamico: { ...dr },
       })
 
       // Destinatario
@@ -366,7 +370,7 @@ export default function EditarCotizacionPage() {
   }
 
   // ── Set riesgo helper ──
-  const setR = (k: keyof DatosRiesgo, v: string) => {
+  const setR = (k: keyof DatosRiesgo, v: any) => {
     setRiesgo(r => ({ ...r, [k]: v }))
     setErrores(e => ({ ...e, [`r_${k}`]: '' }))
   }
@@ -407,6 +411,9 @@ export default function EditarCotizacionPage() {
       if (!riesgo.calle.trim()) e.r_calle = 'La calle es obligatoria'
       if (!riesgo.localidad.trim()) e.r_localidad = 'La localidad es obligatoria'
     }
+    if (renderTipo === 'dinamico') {
+      Object.assign(e, validarCamposDinamicos(tipoRiesgo, riesgo.detalle_dinamico))
+    }
 
     setErrores(e)
     return Object.keys(e).length === 0
@@ -441,6 +448,8 @@ export default function EditarCotizacionPage() {
           capital_asegurado: riesgo.capital_asegurado || null,
           beneficiarios: riesgo.beneficiarios || null,
         }
+      } else if (renderTipo === 'dinamico') {
+        datosRiesgo = { ...riesgo.detalle_dinamico }
       } else {
         datosRiesgo = { descripcion: riesgo.descripcion || null }
       }
@@ -735,6 +744,17 @@ export default function EditarCotizacionPage() {
               <Campo label="Beneficiarios">
                 <input className="form-input w-full" value={riesgo.beneficiarios} onChange={e => setR('beneficiarios', e.target.value)} placeholder="Nombre(s) de beneficiarios" />
               </Campo>
+            </div>
+          )}
+
+          {ramoId && renderTipo === 'dinamico' && (
+            <div className="pt-2">
+              <CamposBienAseguradoDinamico
+                tipoRiesgo={tipoRiesgo}
+                valores={riesgo.detalle_dinamico}
+                onChange={(nuevo) => setR('detalle_dinamico' as any, nuevo)}
+                errores={errores}
+              />
             </div>
           )}
 

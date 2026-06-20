@@ -93,15 +93,24 @@ async function resolverTipoRiesgo(
 function normalizarDetalleTecnico(
   detalle: Record<string, any> | null | undefined
 ): Record<string, any> {
-  const out = { ...(detalle || {}) }
-  if (typeof out.patente === 'string') {
-    out.patente = out.patente.trim().toUpperCase().replace(/[\s\-]/g, '') || null
+  const raw = { ...(detalle || {}) }
+  if (typeof raw.patente === 'string') {
+    raw.patente = raw.patente.trim().toUpperCase().replace(/[\s\-]/g, '') || null
   }
-  if (typeof out.motor === 'string') {
-    out.motor = out.motor.trim().toUpperCase() || null
+  if (typeof raw.motor === 'string') {
+    raw.motor = raw.motor.trim().toUpperCase() || null
   }
-  if (typeof out.chasis === 'string') {
-    out.chasis = out.chasis.trim().toUpperCase() || null
+  if (typeof raw.chasis === 'string') {
+    raw.chasis = raw.chasis.trim().toUpperCase() || null
+  }
+  // Filtrar keys vacías / null / undefined / strings con solo whitespace.
+  // La IA a veces igual mete null o "" en los campos que el PDF no traía,
+  // y los queremos fuera para que la ficha no muestre filas inútiles.
+  const out: Record<string, any> = {}
+  for (const [k, v] of Object.entries(raw)) {
+    if (v === null || v === undefined) continue
+    if (typeof v === 'string' && v.trim() === '') continue
+    out[k] = v
   }
   return out
 }

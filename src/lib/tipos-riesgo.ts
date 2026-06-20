@@ -27,7 +27,11 @@ export type TipoRiesgoKey =
   | 'personas'
   | 'transporte'
   | 'embarcacion'
-  | 'caucion'
+  | 'responsabilidad_civil'
+  | 'incendio'
+  | 'robo'
+  | 'art'
+  | 'agropecuario'
   | 'generico'
 
 export interface TipoRiesgoDef {
@@ -134,7 +138,7 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
     label: 'Personas (Vida, AP, Sepelio, Salud)',
     emoji: '❤️',
     resumen: 'Para seguros sobre la persona. El formulario pide capital asegurado y beneficiarios.',
-    ejemplos: ['Vida', 'Sepelio', 'Accidentes Personales', 'Salud', 'Mala praxis'],
+    ejemplos: ['Vida', 'Sepelio', 'Accidentes Personales', 'Salud'],
     campos_poliza: [
       { key: 'capital_asegurado', label: 'Capital asegurado', tipo: 'number', requerido: false, placeholder: '5000000', ancho: 'mitad' },
       { key: 'plan', label: 'Plan / Cobertura', tipo: 'text', requerido: false, placeholder: 'Plan 200, Premium, etc.', ancho: 'mitad' },
@@ -151,7 +155,7 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
 
   {
     key: 'transporte',
-    label: 'Mercadería en tránsito',
+    label: 'Transporte',
     emoji: '📦',
     resumen: 'Para seguros de mercadería en viaje. El formulario pide tipo de mercadería, valor y origen-destino.',
     ejemplos: ['Transporte de mercadería', 'Logística', 'Importación', 'Exportación'],
@@ -196,20 +200,131 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
   },
 
   {
-    key: 'caucion',
-    label: 'Sin bien físico (Caución, Fianza)',
-    emoji: '📄',
-    resumen: 'Para garantías financieras o coberturas que no involucran un bien físico. El formulario pide solo descripción y monto.',
-    ejemplos: ['Caución', 'Fianza', 'Garantía de alquiler', 'Garantía de obra', 'Aval'],
+    key: 'responsabilidad_civil',
+    label: 'Responsabilidad Civil',
+    emoji: '⚖️',
+    resumen: 'Para coberturas que protegen al asegurado frente a reclamos de terceros por daños o lesiones causadas por su actividad.',
+    ejemplos: ['RC profesional', 'RC hechos privados', 'RC comprensiva'],
     campos_poliza: [
-      { key: 'descripcion', label: 'Descripción del riesgo / objeto', tipo: 'textarea', requerido: true, placeholder: 'Caución de garantía por alquiler, obra, etc.', ancho: 'completo' },
-      { key: 'monto_garantizado', label: 'Monto garantizado', tipo: 'number', requerido: false, ancho: 'mitad' },
-      { key: 'beneficiario', label: 'Beneficiario de la garantía', tipo: 'text', requerido: false, placeholder: 'Quién cobra si la cobertura se ejecuta', ancho: 'mitad' },
+      { key: 'actividad_cubierta', label: 'Descripción de la actividad cubierta', tipo: 'textarea', requerido: true, placeholder: 'Ej: Servicios médicos de cardiología en consultorio privado', ancho: 'completo' },
+      { key: 'limite_por_persona', label: 'Límite por persona', tipo: 'number', requerido: false, ancho: 'mitad' },
+      { key: 'limite_por_evento', label: 'Límite por evento', tipo: 'number', requerido: false, ancho: 'mitad' },
+      { key: 'franquicia', label: 'Franquicia', tipo: 'number', requerido: false, ancho: 'mitad' },
+      { key: 'ambito_territorial', label: 'Ámbito territorial', tipo: 'text', requerido: false, placeholder: 'Ej: Argentina, MERCOSUR', ancho: 'mitad' },
     ],
     campos_siniestro_default: [
-      { key: 'descripcion_evento', label: 'Descripción del incumplimiento / ejecución', tipo: 'textarea', requerido: true },
-      { key: 'fecha_intimacion', label: 'Fecha de intimación', tipo: 'date', requerido: false },
-      { key: 'monto_reclamado', label: 'Monto reclamado', tipo: 'text', requerido: false, placeholder: 'Solo números' },
+      { key: 'descripcion_hecho', label: 'Descripción del hecho', tipo: 'textarea', requerido: true },
+      { key: 'lugar_fecha_hecho', label: 'Lugar y fecha del hecho', tipo: 'text', requerido: false },
+      { key: 'datos_reclamante', label: 'Datos del damnificado / reclamante', tipo: 'textarea', requerido: true, placeholder: 'Nombre, DNI, contacto' },
+      { key: 'danios_reclamados', label: 'Daños o lesiones reclamadas', tipo: 'textarea', requerido: false },
+      { key: 'monto_reclamado', label: 'Monto reclamado', tipo: 'text', requerido: false },
+      { key: 'acta_denuncia', label: 'Nro. de acta / denuncia policial', tipo: 'text', requerido: false },
+    ],
+  },
+
+  {
+    key: 'incendio',
+    label: 'Incendio',
+    emoji: '🔥',
+    resumen: 'Para coberturas específicas de incendio sobre inmuebles o contenido. El formulario pide ubicación, construcción y medidas de prevención.',
+    ejemplos: ['Incendio edificio', 'Incendio contenido', 'Incendio + adicionales'],
+    campos_poliza: [
+      { key: 'calle', label: 'Calle', tipo: 'text', requerido: true, placeholder: 'Av. Corrientes', ancho: 'mitad' },
+      { key: 'numero', label: 'Número', tipo: 'text', requerido: false, placeholder: '1234', ancho: 'mitad' },
+      { key: 'localidad', label: 'Localidad', tipo: 'text', requerido: true, placeholder: 'CABA', ancho: 'mitad' },
+      { key: 'provincia', label: 'Provincia', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'codigo_postal', label: 'Código postal', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'tipo_construccion', label: 'Tipo de construcción', tipo: 'select', requerido: false, opciones: ['Material', 'Mixta', 'Madera', 'Premoldeada', 'Otro'], ancho: 'mitad' },
+      { key: 'superficie', label: 'Superficie (m²)', tipo: 'number', requerido: false, placeholder: '120', ancho: 'mitad' },
+      { key: 'uso_inmueble', label: 'Uso del inmueble', tipo: 'select', requerido: false, opciones: ['Vivienda', 'Comercio', 'Oficina', 'Depósito', 'Industrial', 'Otro'], ancho: 'mitad' },
+      { key: 'actividad_contenido', label: 'Actividad o contenido asegurado', tipo: 'textarea', requerido: false, placeholder: 'Mercadería, maquinaria, etc.', ancho: 'completo' },
+      { key: 'medidas_prevencion', label: 'Medidas de prevención', tipo: 'textarea', requerido: false, placeholder: 'Extintores, detectores, hidrantes, etc.', ancho: 'completo' },
+    ],
+    campos_siniestro_default: [
+      { key: 'causa_siniestro', label: 'Causa del siniestro', tipo: 'text', requerido: false, placeholder: 'Cortocircuito, fuego externo, etc.' },
+      { key: 'sector_afectado', label: 'Sector / ambiente afectado', tipo: 'text', requerido: false },
+      { key: 'descripcion_danios', label: 'Descripción de los daños', tipo: 'textarea', requerido: true },
+      { key: 'bomberos_actuacion', label: 'Bomberos intervinientes / Nro. de actuación', tipo: 'text', requerido: false },
+      { key: 'acta_policial', label: 'Nro. de acta policial', tipo: 'text', requerido: false },
+    ],
+  },
+
+  {
+    key: 'robo',
+    label: 'Robo',
+    emoji: '🔒',
+    resumen: 'Para coberturas de robo sobre objetos puntuales (bicicletas, teléfonos, notebooks, etc.). No usar para locales o casas — eso va en Integrales.',
+    ejemplos: [],
+    campos_poliza: [
+      { key: 'descripcion_objeto', label: 'Descripción del objeto asegurado', tipo: 'textarea', requerido: true, placeholder: 'Ej: Bicicleta Trek Marlin 7 rodado 29 / iPhone 14 Pro 256GB', ancho: 'completo' },
+      { key: 'marca', label: 'Marca', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'modelo', label: 'Modelo', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'numero_serie', label: 'Nro. de serie / IMEI / chasis', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'anio', label: 'Año', tipo: 'number', requerido: false, ancho: 'mitad' },
+      { key: 'valor_asegurado', label: 'Valor asegurado', tipo: 'number', requerido: false, ancho: 'mitad' },
+      { key: 'lugar_guarda', label: 'Lugar habitual de guarda', tipo: 'text', requerido: false, placeholder: 'Ej: cochera del edificio, oficina, mochila', ancho: 'mitad' },
+    ],
+    campos_siniestro_default: [
+      { key: 'fecha_hora_hecho', label: 'Fecha y hora del hecho', tipo: 'text', requerido: false },
+      { key: 'lugar_hecho', label: 'Lugar del hecho', tipo: 'text', requerido: false },
+      { key: 'descripcion_hecho', label: 'Descripción del hecho', tipo: 'textarea', requerido: true },
+      { key: 'acta_policial', label: 'Nro. de acta policial', tipo: 'text', requerido: true },
+      { key: 'fiscalia_comisaria', label: 'Fiscalía / comisaría interviniente', tipo: 'text', requerido: false },
+      { key: 'otros_bienes', label: 'Otros bienes robados en el mismo hecho', tipo: 'textarea', requerido: false },
+    ],
+  },
+
+  {
+    key: 'art',
+    label: 'ART (Riesgos del Trabajo)',
+    emoji: '👷',
+    resumen: 'Para Aseguradoras de Riesgos del Trabajo. El formulario pide datos del empleador y dotación.',
+    ejemplos: ['ART', 'Riesgos del trabajo'],
+    campos_poliza: [
+      { key: 'cuit_empleador', label: 'CUIT del empleador', tipo: 'text', requerido: true, placeholder: '30-12345678-9', ancho: 'mitad' },
+      { key: 'razon_social', label: 'Razón social', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'actividad_ciiu', label: 'Actividad / CIIU', tipo: 'text', requerido: false, placeholder: 'Código CIIU o descripción', ancho: 'mitad' },
+      { key: 'cantidad_empleados', label: 'Cantidad de empleados', tipo: 'number', requerido: false, ancho: 'mitad' },
+      { key: 'masa_salarial', label: 'Masa salarial mensual estimada', tipo: 'number', requerido: false, ancho: 'mitad' },
+      { key: 'calle', label: 'Calle (establecimiento)', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'numero', label: 'Número', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'localidad', label: 'Localidad', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'provincia', label: 'Provincia', tipo: 'text', requerido: false, ancho: 'mitad' },
+    ],
+    campos_siniestro_default: [
+      { key: 'trabajador_nombre', label: 'Nombre y apellido del trabajador', tipo: 'text', requerido: true },
+      { key: 'trabajador_dni', label: 'DNI del trabajador', tipo: 'text', requerido: true },
+      { key: 'fecha_hora_accidente', label: 'Fecha y hora del accidente / inicio enfermedad', tipo: 'text', requerido: false },
+      { key: 'in_itinere', label: '¿In itinere?', tipo: 'select', requerido: false, opciones: 'Sí,No' },
+      { key: 'lugar_accidente', label: 'Lugar del accidente', tipo: 'text', requerido: false },
+      { key: 'descripcion_accidente', label: 'Descripción del accidente o enfermedad', tipo: 'textarea', requerido: true },
+      { key: 'diagnostico', label: 'Diagnóstico / lesión', tipo: 'textarea', requerido: false },
+      { key: 'centro_medico', label: 'Centro médico que atendió', tipo: 'text', requerido: false },
+    ],
+  },
+
+  {
+    key: 'agropecuario',
+    label: 'Agropecuario',
+    emoji: '🌾',
+    resumen: 'Para seguros del campo: cultivos, animales, maquinaria agrícola, granizo, multirriesgo.',
+    ejemplos: ['Granizo', 'Multirriesgo agrícola', 'Animales', 'Maquinaria agrícola'],
+    campos_poliza: [
+      { key: 'ubicacion', label: 'Ubicación (calle/ruta del establecimiento)', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'partido', label: 'Partido / departamento', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'provincia', label: 'Provincia', tipo: 'text', requerido: false, ancho: 'mitad' },
+      { key: 'tipo_cobertura', label: 'Tipo de cobertura específica', tipo: 'select', requerido: false, opciones: ['Granizo', 'Multirriesgo', 'Animales', 'Maquinaria', 'Otro'], ancho: 'mitad' },
+      { key: 'superficie_ha', label: 'Superficie (hectáreas)', tipo: 'number', requerido: false, ancho: 'mitad' },
+      { key: 'valor_asegurado', label: 'Valor asegurado', tipo: 'number', requerido: false, ancho: 'mitad' },
+      { key: 'cultivo_actividad', label: 'Cultivo / especie / actividad', tipo: 'textarea', requerido: false, placeholder: 'Ej: soja, trigo, ganado vacuno', ancho: 'completo' },
+    ],
+    campos_siniestro_default: [
+      { key: 'tipo_evento', label: 'Tipo de evento', tipo: 'select', requerido: true, opciones: 'Granizo,Inundación,Sequía,Helada,Incendio,Enfermedad animal,Otro' },
+      { key: 'fecha_evento', label: 'Fecha del evento', tipo: 'date', requerido: false },
+      { key: 'lote_afectado', label: 'Lote / sector afectado', tipo: 'text', requerido: false },
+      { key: 'hectareas_afectadas', label: 'Hectáreas afectadas', tipo: 'text', requerido: false },
+      { key: 'descripcion_danio', label: 'Descripción del daño', tipo: 'textarea', requerido: true },
+      { key: 'perdida_estimada', label: 'Pérdida estimada (%)', tipo: 'text', requerido: false },
     ],
   },
 
@@ -237,12 +352,16 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
 /** Devuelve la definición del tipo dado, o el genérico si no se encuentra. */
 export function obtenerTipoRiesgo(key: string | null | undefined): TipoRiesgoDef {
   if (!key) return TIPOS_RIESGO[TIPOS_RIESGO.length - 1] // generico
-  const found = TIPOS_RIESGO.find(t => t.key === key)
+  const k = String(key).toLowerCase()
+  const found = TIPOS_RIESGO.find(t => t.key === k)
   if (found) return found
   // Compatibilidad histórica: ramos viejos con tipo "hogar" o "vida" caen
   // en integrales / personas respectivamente.
-  if (key === 'hogar') return TIPOS_RIESGO.find(t => t.key === 'integrales')!
-  if (key === 'vida') return TIPOS_RIESGO.find(t => t.key === 'personas')!
+  if (k === 'hogar') return TIPOS_RIESGO.find(t => t.key === 'integrales')!
+  if (k === 'vida') return TIPOS_RIESGO.find(t => t.key === 'personas')!
+  // `caucion` se eliminó como tipo propio (v1.0.24); cualquier ramo viejo
+  // que lo tuviera apuntando cae a genérico.
+  if (k === 'caucion') return TIPOS_RIESGO.find(t => t.key === 'generico')!
   return TIPOS_RIESGO[TIPOS_RIESGO.length - 1] // generico fallback
 }
 
@@ -256,27 +375,39 @@ export function camposSiniestroDefault(key: TipoRiesgoKey | null): CampoSiniestr
 export const TIPO_RIESGO_KEYS: TipoRiesgoKey[] = TIPOS_RIESGO.map(t => t.key)
 
 /**
- * Mapea cualquier `tipo_riesgo` al render de formulario de póliza viejo
- * (los 4 que existían antes del catálogo ampliado). Es la compatibilidad
- * que evita tener que escribir 7 secciones distintas de UI:
+ * Mapea cualquier `tipo_riesgo` al render de formulario de póliza que se
+ * usa para dibujar los inputs del bien asegurado.
  *
- *   automotor                 → 'automotor'  (auto/moto/camión)
- *   integrales / hogar        → 'hogar'      (inmuebles)
- *   personas / vida           → 'vida'       (personas)
- *   transporte / embarcacion  → 'generico'   (descripción libre)
- *   caucion / generico / *    → 'generico'   (descripción libre)
+ *   automotor                                   → 'automotor'  (UI hardcoded)
+ *   integrales / hogar                          → 'hogar'      (UI hardcoded)
+ *   personas / vida                             → 'vida'       (UI hardcoded)
+ *   transporte / embarcacion / responsabilidad_civil
+ *   / incendio / robo / art / agropecuario      → 'dinamico'   (lee campos_poliza)
+ *   generico / caucion (legacy) / null          → 'generico'   (textarea libre)
  *
- * Los tipos nuevos (transporte, embarcacion, caucion) por ahora rendean
- * la UI genérica — el PAS los puede usar igual, pero los campos
- * específicos definidos en `campos_poliza` no se renderean todavía.
- * Mejora pendiente: refactorizar los 3 forms para que renderen
- * dinámicamente desde `campos_poliza`.
+ * Los 3 renders hardcoded (automotor/hogar/vida) tienen UI específica con
+ * inputs nombrados y validaciones. Los 7 que devuelven 'dinamico' rendean
+ * los inputs leyendo la definición `campos_poliza` del tipo — el form solo
+ * tiene que llamar a `<CamposBienAseguradoDinamico>` y pasarle un objeto
+ * de valores libre que se guarda en `riesgos.detalle_tecnico`.
+ *
+ * 'generico' queda como fallback de seguridad cuando no hay tipo seteado o
+ * el ramo viejo apuntaba a `caucion` (eliminado).
  */
-export function tipoRenderForm(key: string | null | undefined): 'automotor' | 'hogar' | 'vida' | 'generico' {
+export function tipoRenderForm(key: string | null | undefined): 'automotor' | 'hogar' | 'vida' | 'dinamico' | 'generico' {
   if (!key) return 'generico'
   const k = key.toLowerCase()
   if (k === 'automotor') return 'automotor'
   if (k === 'integrales' || k === 'hogar') return 'hogar'
   if (k === 'personas' || k === 'vida') return 'vida'
+  if (
+    k === 'transporte' ||
+    k === 'embarcacion' ||
+    k === 'responsabilidad_civil' ||
+    k === 'incendio' ||
+    k === 'robo' ||
+    k === 'art' ||
+    k === 'agropecuario'
+  ) return 'dinamico'
   return 'generico'
 }

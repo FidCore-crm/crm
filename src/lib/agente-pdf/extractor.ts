@@ -11,6 +11,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { readFile } from 'fs/promises'
 import { obtenerApiKey, obtenerModelo, registrarUso, autoSustituirModelo } from '@/lib/anthropic-client'
 import { logger } from '@/lib/errores'
+import { TIPOS_RIESGO } from '@/lib/tipos-riesgo'
 import type {
   TipoOperacionPDF,
   DatosExtraidosPoliza,
@@ -140,6 +141,27 @@ function traducirErrorExtractor(err: any): string {
 // Prompts
 // ────────────────────────────────────────────────────────────
 
+/**
+ * Construye dinámicamente la sección del prompt que describe los tipos de
+ * riesgo válidos y los campos esperados en `detalle_tecnico` para cada uno.
+ * Lee `TIPOS_RIESGO` para mantener una sola fuente de verdad — agregar un
+ * tipo nuevo a `tipos-riesgo.ts` lo hace aparecer automáticamente en este
+ * prompt sin tocar el extractor.
+ */
+function construirSeccionTiposRiesgo(): string {
+  return TIPOS_RIESGO.map(t => {
+    const camposLista = t.campos_poliza.map(c => {
+      const requerido = c.requerido ? ' (importante)' : ''
+      const detalle = c.placeholder ? `, ej: ${c.placeholder}` : ''
+      return `       • "${c.key}" (${c.label}${requerido}${detalle})`
+    }).join('\n')
+    const ejemplos = t.ejemplos.length > 0
+      ? ` — ej: ${t.ejemplos.join(', ')}`
+      : ''
+    return `   ${t.key.toUpperCase()}: ${t.resumen}${ejemplos}\n     Campos esperados en detalle_tecnico:\n${camposLista}`
+  }).join('\n\n')
+}
+
 const SYSTEM_POLIZA = `Sos un asistente especializado en interpretar PDFs de pólizas de compañías de seguros argentinas (Federación Patronal, San Cristóbal, Sancor, Mercantil Andina, Provincia, La Segunda, Allianz, Zurich, La Holando, etc.).
 
 Tu tarea es extraer datos estructurados del PDF que te van a mostrar y devolverlos en un JSON que cumpla exactamente el schema que se te pide abajo.
@@ -153,14 +175,17 @@ REGLAS DURAS:
 6. Moneda: solo "ARS" o "USD".
 7. DNI/CUIT: solo dígitos, sin puntos ni guiones.
 8. Para "catalogos_pdf" devolvé los textos tal como figuran en el PDF (ej: "San Cristóbal Seguros", "Automotores", "C+"), sin normalizar. El CRM hará el mapeo después.
-9. Para el riesgo, "tipo_riesgo" es un identificador en MAYÚSCULA que describe el tipo de bien/riesgo asegurado (ej: "AUTOMOTOR", "HOGAR", "COMERCIO", "VIDA", "MOTO", "EMBARCACION", "MASCOTAS", etc.). Usá el término que mejor describa el contenido del PDF. Sin espacios ni guiones — usá guión bajo si son varias palabras (ej: "ACCIDENTES_PERSONALES"). Si no podés inferirlo, devolvé "GENERICO".
-   Para "detalle_tecnico" usá los campos relevantes al tipo detectado:
-   - Automotor/Moto: { patente, marca, modelo, anio, motor, chasis, color, uso }
-   - Hogar/Comercio: { calle, numero, localidad, provincia, tipo_construccion, superficie, medidas_seguridad }
-   - Vida: { capital_asegurado, beneficiarios }
-   - Cualquier otro tipo: { descripcion } u otros campos que tengan sentido según el PDF.
-   Patente, motor y chasis siempre en MAYÚSCULA, sin espacios ni guiones en la patente.
-10. Si detectás inconsistencias (ej: fecha_fin antes de fecha_inicio), agregá advertencia a "advertencias_ia".
+9. CRÍTICO — "tipo_riesgo" debe ser EXACTAMENTE uno de estos identificadores en MAYÚSCULA. Elegí el que mejor describa el contenido del PDF. Si ninguno encaja claramente, usá GENERICO.
+
+${construirSeccionTiposRiesgo()}
+
+   GENERICO: Cualquier ramo que no encaje en los anteriores.
+     Campos esperados en detalle_tecnico:
+       • "descripcion" (Descripción libre del bien o riesgo asegurado)
+
+10. CRÍTICO — Para "detalle_tecnico" usá EXACTAMENTE las keys listadas arriba para el tipo identificado. NO inventes keys nuevas, NO uses sinónimos. Si un campo del listado no aparece en el PDF, omitilo del objeto (no lo pongas como null). Si el PDF tiene datos relevantes que no encajan en ninguna key del tipo, agregalos como una key "observaciones" con texto libre.
+11. Patente, motor y chasis siempre en MAYÚSCULA, sin espacios ni guiones en la patente.
+12. Si detectás inconsistencias (ej: fecha_fin antes de fecha_inicio), agregá advertencia a "advertencias_ia".
 
 Schema de salida (todos los campos pueden ser null si faltan):
 {

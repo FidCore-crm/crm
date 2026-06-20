@@ -27,6 +27,7 @@ import type {
 // importarlos sin arrastrar anthropic-client → nodemailer → fs.
 export { CAMPOS_PERSONA, CAMPOS_POLIZA, CAMPOS_RIESGO } from './campos'
 import { CAMPOS_PERSONA, CAMPOS_POLIZA, CAMPOS_RIESGO } from './campos'
+import { TIPOS_RIESGO } from '@/lib/tipos-riesgo'
 
 // ============================================================================
 // TIPOS
@@ -245,6 +246,15 @@ function construirPrompt(
   partes.push('');
   partes.push('### riesgo.*');
   partes.push(CAMPOS_RIESGO.map((c) => `riesgo.${c}`).join(', '));
+  partes.push('');
+  partes.push('### Campos del bien asegurado por tipo de riesgo');
+  partes.push('Cuando el ramo del archivo tiene un tipo de riesgo específico, mapeá las columnas a los campos esperados de ese tipo. Las keys exactas son las que figuran abajo:');
+  partes.push('');
+  for (const tipo of TIPOS_RIESGO) {
+    if (tipo.campos_poliza.length === 0) continue
+    const ejemplos = tipo.ejemplos.length > 0 ? ` (ej: ${tipo.ejemplos.slice(0, 3).join(', ')})` : ''
+    partes.push(`- **${tipo.label}** [${tipo.key}]${ejemplos}: ${tipo.campos_poliza.map((c) => `riesgo.${c.key}`).join(', ')}`);
+  }
   partes.push('');
 
   partes.push('## Formato de respuesta (JSON estricto)');
