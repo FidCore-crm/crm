@@ -8,13 +8,15 @@
  *
  *   1. El PAS NO debe editar lo que FidCore le escribe — el contenido y el
  *      contacto los define FidCore.
- *   2. El From / Reply-To apuntan a `pulzar.crm@gmail.com`, no al email del
- *      PAS. Si el PAS responde el aviso, le llega a FidCore (no a sí mismo).
- *   3. Los datos de contacto del footer son los de FidCore (1166794861 /
- *      pulzar.crm@gmail.com — el email de Gmail se mantiene del rebrand
- *      anterior para no romper continuidad histórica con clientes) para
- *      que el cliente sepa a quién contactar
- *      por temas de licencia.
+ *   2. El From apunta a `pulzar.crm@gmail.com` (Gmail real) para no romper
+ *      SPF — los emails salen via SMTP del PAS, no de Gmail, así que un From
+ *      con dominio @fidcore.com.ar sin SPF en CF haría que vayan a spam. El
+ *      Reply-To sí apunta al alias `info@fidcore.com.ar` (CF Email Routing
+ *      lo redirige al Gmail real). Resultado: cuando el cliente responde, le
+ *      llega a FidCore vía la marca correcta.
+ *   3. Los datos de contacto del footer son los de FidCore
+ *      (1166794861 / info@fidcore.com.ar) para que el cliente sepa a
+ *      quién contactar por temas de licencia.
  *
  * Implementación: SMTP del PAS (el que tiene configurado), pero override del
  * From, Reply-To y firma para que el email se vea como enviado por FidCore.
@@ -33,7 +35,18 @@ import { escapeHtml } from '@/lib/email-templates/renderizador'
 // ---------------------------------------------------------------------------
 
 export const FIDCORE_NOMBRE = 'FidCore'
-export const FIDCORE_EMAIL = 'pulzar.crm@gmail.com'
+/** Address de Gmail real — se usa SOLO como From de los emails de licencia
+ *  para que SPF/DKIM no falle (el envío viene del SMTP del PAS, que no está
+ *  autorizado a usar el dominio fidcore.com.ar). */
+export const FIDCORE_EMAIL_FROM = 'pulzar.crm@gmail.com'
+/** Alias del dominio FidCore configurado en Cloudflare Email Routing — al
+ *  recibir mails los redirige al Gmail real. Se usa como Reply-To de los
+ *  emails y como contacto visible en footers + UI de soporte. Cuando el
+ *  cliente aprieta "Responder" en su lector, escribe al alias y eso es lo
+ *  que queremos mostrar en todos los puntos de contacto. */
+export const FIDCORE_EMAIL_CONTACTO = 'info@fidcore.com.ar'
+/** @deprecated Usar `FIDCORE_EMAIL_FROM` o `FIDCORE_EMAIL_CONTACTO` según el caso. */
+export const FIDCORE_EMAIL = FIDCORE_EMAIL_FROM
 export const FIDCORE_TELEFONO_WHATSAPP = '1166794861'
 export const FIDCORE_TELEFONO_WHATSAPP_E164 = '5491166794861' // formato wa.me
 
@@ -101,7 +114,7 @@ function armarHtmlFidCore(params: {
 <tr><td style="padding:16px 20px;">
 <p style="margin:0 0 8px;font-size:13px;font-weight:bold;color:#0A1628;">¿Tenés dudas o querés renovar?</p>
 <p style="margin:0 0 4px;font-size:13px;color:#334155;">
-  📧 <a href="mailto:${FIDCORE_EMAIL}" style="color:#0A1628;text-decoration:none;">${FIDCORE_EMAIL}</a>
+  📧 <a href="mailto:${FIDCORE_EMAIL_CONTACTO}" style="color:#0A1628;text-decoration:none;">${FIDCORE_EMAIL_CONTACTO}</a>
 </p>
 <p style="margin:0;font-size:13px;color:#334155;">
   📱 WhatsApp: <a href="${waUrl}" style="color:#0A1628;text-decoration:none;">${FIDCORE_TELEFONO_WHATSAPP}</a>
@@ -230,8 +243,8 @@ export async function enviarEmailFidCore(
       subject: asunto,
       html,
       fromName: FIDCORE_NOMBRE,
-      fromEmail: FIDCORE_EMAIL,
-      replyTo: FIDCORE_EMAIL,
+      fromEmail: FIDCORE_EMAIL_FROM,
+      replyTo: FIDCORE_EMAIL_CONTACTO,
       omitirFirma: true,
     })
 

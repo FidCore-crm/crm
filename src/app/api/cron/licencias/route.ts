@@ -70,9 +70,11 @@ async function notificarAdminSiCorresponde(
  *
  * A diferencia del resto de eventos `sistema_*` (backup, PDF, error crítico),
  * los avisos de licencia NO los manda el CRM del PAS — los manda FidCore (la
- * empresa) usando un From `FidCore <pulzar.crm@gmail.com>` con datos de
- * contacto propios. El SMTP sigue siendo el del PAS por simplicidad, pero el
- * From/Reply-To/firma se sobreescriben en `enviarEmailFidCore()`.
+ * empresa) usando un From `FidCore <pulzar.crm@gmail.com>` (Gmail real, para
+ * que SPF no falle) y Reply-To `info@fidcore.com.ar` (alias que CF Email
+ * Routing redirige al Gmail real). El SMTP sigue siendo el del PAS por
+ * simplicidad, pero el From/Reply-To/firma se sobreescriben en
+ * `enviarEmailFidCore()`.
  *
  * Esto evita que el PAS pueda editar el contenido (las plantillas son
  * hardcoded en `src/lib/fidcore-emails.ts`) y deja claro al cliente con quién

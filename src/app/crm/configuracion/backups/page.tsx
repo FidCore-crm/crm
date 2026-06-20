@@ -333,10 +333,10 @@ export default function BackupsPage() {
                       <MessageCircle className="h-3.5 w-3.5" /> WhatsApp soporte
                     </a>
                     <a
-                      href="mailto:pulzar.crm@gmail.com?subject=Activar%20backups%20en%20Google%20Drive"
+                      href="mailto:info@fidcore.com.ar?subject=Activar%20backups%20en%20Google%20Drive"
                       className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-800"
                     >
-                      <Send className="h-3.5 w-3.5" /> pulzar.crm@gmail.com
+                      <Send className="h-3.5 w-3.5" /> info@fidcore.com.ar
                     </a>
                   </div>
                   <details className="mt-3">
