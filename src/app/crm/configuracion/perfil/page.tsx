@@ -620,6 +620,44 @@ export default function PerfilPage() {
             </div>
           </div>
 
+          {/* Color personalizado */}
+          <div>
+            <p className="text-2xs font-medium text-slate-600 uppercase tracking-wide mb-2">Personalizado</p>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={colorMarca}
+                onChange={e => setColorMarca(e.target.value)}
+                className="h-9 w-12 rounded border border-slate-300 cursor-pointer p-0.5 bg-white"
+                title="Elegí cualquier color"
+              />
+              <input
+                key={colorMarca}
+                type="text"
+                defaultValue={colorMarca}
+                onChange={e => {
+                  // Input uncontrolled: solo actualizamos el state global
+                  // cuando el usuario terminó de tipear un hex válido. Así
+                  // puede borrar/escribir caracteres parciales sin que React
+                  // pise el campo. El `key={colorMarca}` resincroniza el
+                  // defaultValue cuando el color cambia desde la paleta o
+                  // el picker visual.
+                  const v = e.target.value.trim().toLowerCase()
+                  if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                    setColorMarca(v)
+                  }
+                }}
+                placeholder="#0a1628"
+                maxLength={7}
+                className="form-input w-32 font-mono text-xs"
+                title="Pegá un código hex (ej: #0a1628)"
+              />
+              <p className="text-2xs text-slate-400">
+                Pegá el código exacto de tu marca o usá el selector visual.
+              </p>
+            </div>
+          </div>
+
           {/* Color elegido */}
           {(() => {
             const tonos = derivarTonos(colorMarca)

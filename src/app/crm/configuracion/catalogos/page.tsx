@@ -309,14 +309,27 @@ export default function CatalogosPage() {
     resetForm(); setAgregando(true)
   }
 
-  // Cuando cambia el tipo de riesgo, precargar campos default del SINIESTRO
-  // (solo si el editor está vacío — no pisamos campos que el PAS ya configuró)
+  // Cuando cambia el tipo de riesgo, ofrecer reemplazar los campos del SINIESTRO
+  // por los defaults del tipo nuevo. Si el editor está vacío, lo hace en silencio;
+  // si ya hay campos cargados, pide confirmación para no pisar lo que el PAS
+  // configuró por error.
   const handleTipoRiesgoChange = (valor: string) => {
     setFormTipoRiesgo(valor)
-    if (valor && formCampos.length === 0) {
-      const defaults = obtenerTipoRiesgo(valor).campos_siniestro_default ?? []
-      setFormCampos(defaults as CampoSiniestro[])
+    if (!valor) return
+
+    const defaults = (obtenerTipoRiesgo(valor).campos_siniestro_default ?? []) as CampoSiniestro[]
+
+    if (formCampos.length === 0) {
+      setFormCampos(defaults)
+      return
     }
+
+    const reemplazar = confirm(
+      'Cambiaste el tipo de riesgo. ¿Querés reemplazar los campos actuales del siniestro por los sugeridos para este tipo?\n\n' +
+      'Aceptar: cargo los campos sugeridos (perdés los actuales).\n' +
+      'Cancelar: mantengo los campos que tenías.'
+    )
+    if (reemplazar) setFormCampos(defaults)
   }
 
   const guardar = async () => {
