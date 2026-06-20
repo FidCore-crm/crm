@@ -343,19 +343,25 @@ export default function BackupsPage() {
                     <summary className="text-2xs text-slate-400 cursor-pointer hover:text-slate-600">
                       Detalles técnicos (uso interno)
                     </summary>
-                    <div className="mt-2 text-2xs text-slate-500 space-y-1">
+                    <div className="mt-2 text-2xs text-slate-500 space-y-1.5">
                       {!rcloneEstado.instalado ? (
                         <>
                           <p>rclone no está instalado en el servidor.</p>
                           <code className="block bg-slate-100 text-slate-700 rounded p-2 font-mono">
-                            curl https://rclone.org/install.sh | sudo bash
+                            sudo apt install -y rclone
                           </code>
+                          <p className="mt-1.5">Después seguir los pasos del <code className="font-mono">README.txt</code> en <code className="font-mono">~/.config/rclone/</code>.</p>
                         </>
                       ) : (
                         <>
                           <p>rclone está instalado pero el remote <span className="font-mono">{configuracion?.remote_nombre || 'gdrive'}</span> no está configurado.</p>
+                          <p className="mt-1.5">Configurarlo en el host con:</p>
                           <code className="block bg-slate-100 text-slate-700 rounded p-2 font-mono">
                             rclone config
+                          </code>
+                          <p className="mt-1.5">Pasos completos en <code className="font-mono">~/.config/rclone/README.txt</code> del usuario que instaló el CRM. Si el remote existe pero el token expiró:</p>
+                          <code className="block bg-slate-100 text-slate-700 rounded p-2 font-mono">
+                            rclone config reconnect {configuracion?.remote_nombre || 'gdrive'}:
                           </code>
                         </>
                       )}

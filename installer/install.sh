@@ -772,6 +772,123 @@ fase_setup_cron_updates() {
 }
 
 # =====================================================================
+# Setup de rclone para sync de backups a Google Drive
+# =====================================================================
+# El binario de rclone ya está dentro del container (Dockerfile lo instala
+# vía apt). Lo que falta resolver es:
+#
+# 1. La carpeta del host donde rclone guarda su config (~/.config/rclone)
+#    tiene que existir CON EL OWNERSHIP del usuario instalador antes de
+#    que docker-compose monte el volume. Sino Docker la crea como root y
+#    el `rclone config` interactivo después falla con permission denied.
+#
+# 2. La activación real del sync (correr `rclone config` y autenticarse
+#    contra Google) es interactiva y requiere un browser + cuenta del PAS,
+#    así que NO la hacemos acá. El instalador deja todo listo y el técnico
+#    de soporte (o el PAS técnico) corre `rclone config` cuando quiera.
+#
+# El instalador también instala rclone en el host. Eso es opcional pero
+# útil porque permite probar `rclone lsd gdrive:` desde el shell del host
+# sin tener que entrar al container.
+
+fase_setup_rclone() {
+  fase "Setup de rclone para backups a Google Drive"
+
+  local config_dir="/home/${USUARIO_INSTALACION}/.config/rclone"
+
+  paso "Instalando rclone en el host (si no está)"
+  if command -v rclone >/dev/null 2>&1; then
+    info "rclone ya instalado en el host: $(rclone version | head -1)"
+  else
+    apt-get install -y rclone >/dev/null 2>&1 || {
+      warn "No se pudo instalar rclone en el host. El sync de backups va a fallar hasta que se instale manualmente."
+      return 0
+    }
+    ok "rclone instalado en el host"
+  fi
+
+  paso "Pre-creando $config_dir con ownership de $USUARIO_INSTALACION"
+  install -d -m 0700 -o "$USUARIO_INSTALACION" -g "$USUARIO_INSTALACION" "$config_dir"
+  ok "Carpeta de config lista"
+
+  paso "Generando README de configuración"
+  local readme="${config_dir}/README.txt"
+  if [ ! -f "$readme" ]; then
+    cat > "$readme" <<'EOF'
+# Configuración de rclone para backups del CRM a Google Drive
+
+Esta carpeta se monta dentro del container del CRM como solo-lectura. Cuando
+ejecutes `rclone config` y crees un remote llamado `gdrive`, automáticamente
+queda visible para el CRM.
+
+## Cómo configurar (técnico)
+
+1. Ejecutar:
+
+       rclone config
+
+2. Elegir: n (New remote) → name `gdrive` → Storage: `drive` (Google Drive)
+3. client_id/client_secret: dejar vacíos (Enter en ambos)
+4. scope: 1 (Full access)
+5. service_account_file: vacío
+6. Edit advanced config? n
+7. Use auto config? n (estamos en server sin browser)
+8. Va a mostrar `rclone authorize "drive" "<token>"`. **NO CERRAR ESTA TERMINAL.**
+9. En otra computadora con browser (Windows/Mac), ejecutar ese comando completo
+   (instalar rclone primero si hace falta: https://rclone.org/downloads/).
+10. El browser se abre, login con la cuenta de Google del PAS, autorizar.
+11. La terminal de la otra computadora devuelve un JSON. **Copiar entero.**
+12. Volver a la terminal del server, pegar el JSON (clic derecho del mouse,
+    NO Ctrl+V) y Enter.
+13. Configure as team drive? n
+14. Yes this is OK? y
+15. q (Quit)
+
+## Verificar
+
+    rclone lsd gdrive:
+
+Si lista las carpetas del Drive, está OK.
+
+## Cómo activarlo en el CRM
+
+1. Configuración → Backups → Sincronización con Google Drive
+2. Activar el toggle "Sincronizar a remoto"
+3. Remote name: `gdrive` (el mismo nombre que pusiste en rclone config)
+4. Carpeta remota: `fidcore-backups` (o vacío para la raíz del Drive)
+5. Guardar
+
+## Importante
+
+- La cuenta de Google donde vas a guardar los backups **DEBE tener
+  verificación en 2 pasos activada**. Es la única protección real del
+  archivo en la nube (los .crmbak NO están cifrados).
+- Si el PAS perdió el archivo de config y querés reconectar la misma cuenta:
+      rclone config reconnect gdrive:
+EOF
+    chown "${USUARIO_INSTALACION}:${USUARIO_INSTALACION}" "$readme"
+    chmod 0600 "$readme"
+    ok "README dejado en $readme"
+  else
+    info "README ya existe — no se sobreescribió"
+  fi
+
+  paso "Verificando que el container ve el config"
+  if docker ps --filter "name=fidcore-crm" --filter "status=running" -q | grep -q .; then
+    if docker exec fidcore-crm test -d /home/node/.config/rclone 2>/dev/null; then
+      ok "El container fidcore-crm tiene acceso a la carpeta de config"
+    else
+      warn "El container está corriendo pero no ve la carpeta de rclone. Probablemente arrancó antes de este paso — reiniciar con: docker compose -f ${INSTALACION_DIR_CRM}/docker-compose.yml up -d --force-recreate crm crons"
+    fi
+  else
+    info "El container fidcore-crm aún no corre — se va a montar el config en el próximo arranque"
+  fi
+
+  info "rclone.conf todavía NO está creado (es esperado en una instalación nueva)."
+  info "Para activar sync a Drive: ver ${config_dir}/README.txt"
+}
+
+# =====================================================================
 # Tailscale (APPLIANCE + opcional)
 # =====================================================================
 
@@ -1015,6 +1132,7 @@ main() {
   fase_levantar_cloudflared
   fase_appliance_setup
   fase_setup_cron_updates
+  fase_setup_rclone
   fase_tailscale
   fase_smoke_test
   fase_resumen
