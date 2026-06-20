@@ -47,7 +47,14 @@ export async function GET(request: NextRequest) {
   })
 }
 
-// POST — Ejecutar backup manual
+// POST — Ejecutar backup manual (fire-and-forget para evitar timeouts del edge)
+//
+// El backup puede tardar varios minutos (pg_dump + tar de storage + verificación
+// + sync opcional a Drive). Si esperamos sincrónicamente, Cloudflare Tunnel
+// corta la conexión a los 100s con un 524 aunque el backup esté terminando OK
+// en el server. La solución: arrancamos el backup en background y devolvemos
+// 202 inmediatamente. El frontend hace polling al historial y muestra el
+// resultado cuando el `ejecutarBackup` deja el row en estado COMPLETADO/FALLIDO.
 export async function POST(request: NextRequest) {
   const usuario = await obtenerUsuarioDesdeRequest(request)
   if (!usuario) {
@@ -73,18 +80,23 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  const result = await ejecutarBackup({
+  // Disparar el backup en background sin await. Cualquier excepción se loggea
+  // pero no rompe la respuesta — el row de `backups` queda en FALLIDO si algo
+  // sale mal y el frontend lo detecta vía el polling normal del historial.
+  ejecutarBackup({
     tipo: 'MANUAL',
     usuario_id: usuario.id,
+  }).catch((err) => {
+    // Solo loggear — el error ya quedó persistido en la tabla `backups` por
+    // ejecutarBackup, así que el frontend lo va a ver.
+    console.error('[POST /api/backups] Error en ejecución background:', err)
   })
 
-  if (result.ok) {
-    return NextResponse.json({ ok: true, data: result })
-  }
-
-  // El backup falló realmente. 503 (servicio no disponible) es más preciso
-  // que 500 para un fallo de ejecución de script externo.
-  return respuestaError(ERRORES.EXT_STORAGE_NO_DISPONIBLE, {
-    detalle: result.error || 'Error ejecutando el backup',
-  })
+  return NextResponse.json(
+    {
+      ok: true,
+      data: { iniciado: true, mensaje: 'Backup iniciado. Va a aparecer en el historial en unos minutos.' },
+    },
+    { status: 202 }
+  )
 }

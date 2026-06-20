@@ -120,6 +120,32 @@ done
 declare -A A_MANTENER
 
 # ─── Política grandfather-father-son para NORMALES ─────────────────────
+#
+# Importante: la política se aplica sobre REPRESENTANTES DIARIOS, no sobre
+# backups individuales. Si en un mismo día hay varios backups (típico cuando
+# el PAS aprieta "Hacer backup ahora" varias veces, o cuando hay restores
+# que generan PRE_RESTORE), solo el más reciente del día entra al GFS — el
+# resto se elimina automáticamente.
+#
+# Sin esta agrupación, 5 backups del mismo día consumirían los 7 slots
+# diarios y la rotación quedaría "atascada" reteniendo mucho más de lo
+# previsto. El bug se manifestó en producción en junio 2026.
+
+declare -A REPRESENTANTE_DIA  # fecha -> archivo (el más reciente del día)
+REPRESENTANTES=()             # lista ordenada desc de representantes únicos por día
+
+for backup in "${BACKUPS_NORMALES[@]}"; do
+  FECHA=$(echo "$backup" | sed 's/backup-\([0-9-]*\)_.*/\1/')
+  [ -z "$FECHA" ] && continue
+
+  if [ -z "${REPRESENTANTE_DIA[$FECHA]+x}" ]; then
+    # Primer backup que vemos para esta fecha (iteramos desc, así que es el
+    # más reciente del día) — se vuelve el representante.
+    REPRESENTANTE_DIA[$FECHA]="$backup"
+    REPRESENTANTES+=("$backup")
+  fi
+  # Los demás backups del mismo día NO entran a A_MANTENER → se eliminan.
+done
 
 TOTAL_DIARIOS=0
 TOTAL_SEMANALES=0
@@ -127,7 +153,7 @@ TOTAL_MENSUALES=0
 ULTIMO_DIA_SEMANA=""
 ULTIMO_MES=""
 
-for backup in "${BACKUPS_NORMALES[@]}"; do
+for backup in "${REPRESENTANTES[@]}"; do
   FECHA=$(echo "$backup" | sed 's/backup-\([0-9-]*\)_.*/\1/')
   [ -z "$FECHA" ] && continue
 

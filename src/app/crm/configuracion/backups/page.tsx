@@ -150,14 +150,32 @@ export default function BackupsPage() {
     if (!confirm('¿Ejecutar backup manual ahora? Esto puede tardar varios minutos dependiendo del tamaño de los datos.')) return
     setEjecutandoBackup(true)
     setErrorGral('')
+    // El backup se dispara en background (fire-and-forget) — el endpoint
+    // devuelve 202 al instante. El polling del historial muestra cuando
+    // termina (estado pasa a COMPLETADO / FALLIDO). Esto evita el 524 del
+    // edge cuando el backup tarda más que el timeout de Cloudflare.
     const r = await apiCall('/api/backups', { method: 'POST' }, { mostrar_toast_en_error: false })
     if (r.ok) {
-      toast.exito('Backup ejecutado')
+      toast.exito('Backup iniciado — va a aparecer en el historial cuando termine')
+      // Empezar a refrescar el historial cada 5s para ver cuando aparece
+      // el nuevo backup en estado COMPLETADO/FALLIDO. Se detiene al detectar
+      // el primer cambio o tras 5 minutos.
+      const tInicio = Date.now()
+      const intervalo = window.setInterval(async () => {
+        await cargarBackups()
+        if (Date.now() - tInicio > 5 * 60 * 1000) {
+          window.clearInterval(intervalo)
+          setEjecutandoBackup(false)
+        }
+      }, 5000)
+      // El primer refresh inmediato para que el "EN_PROCESO" aparezca rápido
       await cargarBackups()
+      // Dejar el botón habilitado al toque — el polling se ocupa de actualizar
+      setEjecutandoBackup(false)
     } else {
       setErrorGral(r.error?.mensaje ?? 'Error al ejecutar el backup')
+      setEjecutandoBackup(false)
     }
-    setEjecutandoBackup(false)
   }
 
   function descargarBackup(backup: BackupConDisco) {
