@@ -152,83 +152,99 @@ function armarHtml(params: {
 
   const tonos = derivarTonos(normalizarColorMarca(organizacion.color_marca ?? COLOR_MARCA_DEFAULT))
 
-  // Logo en círculo blanco — más grande (96px) y con sombra interna sutil que
-  // le da más presencia. Usamos table para centrado compatible con Outlook.
+  // Logo en círculo blanco. Sombra fuerte para que "flote" sobre el gradient
+  // del header. Tabla para centrado compatible Outlook.
   const logoHtml = organizacion.logo_url
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;background:#ffffff;border-radius:50%;width:96px;height:96px;box-shadow:0 4px 14px rgba(0,0,0,0.22);">
-         <tr><td align="center" valign="middle" style="padding:8px;width:96px;height:96px;">
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;background:#ffffff;border-radius:50%;width:100px;height:100px;box-shadow:0 8px 24px rgba(0,0,0,0.28);">
+         <tr><td align="center" valign="middle" style="padding:10px;width:100px;height:100px;">
            <img src="${escapeHtml(organizacion.logo_url)}" alt="${escapeHtml(organizacion.nombre)}" style="max-width:80px;max-height:80px;display:inline-block;" />
          </td></tr>
        </table>`
-    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;background:#ffffff;border-radius:50%;width:96px;height:96px;box-shadow:0 4px 14px rgba(0,0,0,0.22);">
-         <tr><td align="center" valign="middle" style="width:96px;height:96px;">
-           <span style="font-size:44px;font-weight:bold;color:${tonos.base};line-height:1;">${escapeHtml((organizacion.nombre || '?').charAt(0).toUpperCase())}</span>
+    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;background:#ffffff;border-radius:50%;width:100px;height:100px;box-shadow:0 8px 24px rgba(0,0,0,0.28);">
+         <tr><td align="center" valign="middle" style="width:100px;height:100px;">
+           <span style="font-size:48px;font-weight:bold;color:${tonos.base};line-height:1;">${escapeHtml((organizacion.nombre || '?').charAt(0).toUpperCase())}</span>
          </td></tr>
        </table>`
 
-  // Nombre de organización con jerarquía: más grande, con letter-spacing leve.
-  // Color textoSobreColor garantiza contraste WCAG AA sobre el header.
-  const nombreOrganizacionHtml = `<p style="margin:18px 0 0;font-size:22px;font-weight:bold;letter-spacing:0.3px;color:${tonos.textoSobreColor};line-height:1.2;">${escapeHtml(organizacion.nombre)}</p>`
+  const nombreOrganizacionHtml = `<p style="margin:22px 0 0;font-size:24px;font-weight:bold;letter-spacing:0.5px;color:${tonos.textoSobreColor};line-height:1.2;">${escapeHtml(organizacion.nombre)}</p>`
+
+  // Barra decorativa de acento debajo del saludo — agrega personalidad visual
+  // sin cargar el diseño.
+  const acentoSaludoHtml = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 0;">
+    <tr><td style="background-color:${tonos.base};width:48px;height:3px;border-radius:2px;line-height:3px;font-size:0;">&nbsp;</td></tr>
+  </table>`
 
   const bloqueExtra = bloqueExtraHtml
-    ? `<tr><td style="padding:0 36px 24px;">${bloqueExtraHtml}</td></tr>`
+    ? `<tr><td style="padding:0 40px 24px;">${bloqueExtraHtml}</td></tr>`
     : ''
 
   const unsubscribeLine = unsubscribeUrl
-    ? `<p style="margin:8px 0 0;font-size:11px;color:#94a3b8;line-height:1.5;">Si no querés recibir más emails, <a href="${escapeHtml(unsubscribeUrl)}" style="color:#64748b;text-decoration:underline;">hacé clic acá para darte de baja</a>.</p>`
+    ? `<p style="margin:12px 0 0;font-size:11px;color:#94a3b8;line-height:1.5;">Si no querés recibir más emails, <a href="${escapeHtml(unsubscribeUrl)}" style="color:#64748b;text-decoration:underline;">hacé clic acá para darte de baja</a>.</p>`
     : ''
 
   const pixel = trackingPixelUrl
     ? `<img src="${escapeHtml(trackingPixelUrl)}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;border:0;" />`
     : ''
 
-  // Datos de contacto en el cierre, separados por un divisor sutil.
+  // Bloque de contacto destacado dentro del cierre — con fondo crema y barra
+  // lateral del color de marca, para que se sienta como una "tarjeta de
+  // negocio" inserta en el email.
   const tieneDatosContacto = organizacion.telefono || organizacion.email
   const contactoHtml = tieneDatosContacto
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:20px;border-top:1px solid #e2e8f0;">
-         <tr><td style="padding-top:16px;">
-           ${organizacion.telefono ? `<p style="margin:0;font-size:13px;color:#475569;line-height:1.5;"><span style="color:#94a3b8;">Tel:</span> <a href="tel:${escapeHtml(organizacion.telefono.replace(/\s+/g, ''))}" style="color:${tonos.base};text-decoration:none;">${escapeHtml(organizacion.telefono)}</a></p>` : ''}
-           ${organizacion.email ? `<p style="margin:4px 0 0;font-size:13px;color:#475569;line-height:1.5;"><span style="color:#94a3b8;">Email:</span> <a href="mailto:${escapeHtml(organizacion.email)}" style="color:${tonos.base};text-decoration:none;">${escapeHtml(organizacion.email)}</a></p>` : ''}
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:24px;background-color:#fafaf7;border-left:3px solid ${tonos.base};border-radius:4px;">
+         <tr><td style="padding:14px 18px;">
+           <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1px;color:${tonos.base};text-transform:uppercase;">Contacto</p>
+           ${organizacion.telefono ? `<p style="margin:2px 0;font-size:13px;color:#475569;line-height:1.6;">📞 <a href="tel:${escapeHtml(organizacion.telefono.replace(/\s+/g, ''))}" style="color:#334155;text-decoration:none;font-weight:600;">${escapeHtml(organizacion.telefono)}</a></p>` : ''}
+           ${organizacion.email ? `<p style="margin:2px 0;font-size:13px;color:#475569;line-height:1.6;">✉️ <a href="mailto:${escapeHtml(organizacion.email)}" style="color:#334155;text-decoration:none;font-weight:600;">${escapeHtml(organizacion.email)}</a></p>` : ''}
          </td></tr>
        </table>`
     : ''
 
+  // Gradient del header: del color base a su variante oscura. Compatible
+  // con Gmail, Apple Mail, iOS Mail. Outlook ignora gradient y cae al
+  // background-color sólido (que también seteamos como fallback).
+  const gradientHeader = `background-color:${tonos.base};background-image:linear-gradient(135deg,${tonos.base} 0%,${tonos.oscuro} 100%);`
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${escapeHtml(asuntoPlano)}</title></head>
-<body style="margin:0;padding:0;background-color:#eef2f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#eef2f7;">
-<tr><td align="center" style="padding:32px 16px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(15,23,42,0.08),0 2px 6px rgba(15,23,42,0.04);">
+<body style="margin:0;padding:0;background-color:#faf8f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#faf8f3;">
+<tr><td align="center" style="padding:40px 16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(15,23,42,0.10),0 4px 10px rgba(15,23,42,0.05);">
 
-<!-- Header con hero más alto y jerarquía -->
-<tr><td style="background-color:${tonos.base};padding:44px 32px 40px;text-align:center;">
+<!-- Header con gradient diagonal -->
+<tr><td style="${gradientHeader}padding:52px 32px 46px;text-align:center;">
 ${logoHtml}
 ${nombreOrganizacionHtml}
 </td></tr>
 
-<!-- Saludo con jerarquía de título -->
-<tr><td style="padding:36px 36px 12px;">
-<p style="margin:0;font-size:20px;font-weight:bold;color:${tonos.base};line-height:1.35;letter-spacing:-0.2px;">${saludoHtml}</p>
+<!-- Barra fina de acento bajo el header -->
+<tr><td style="background-color:${tonos.claro};height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>
+
+<!-- Saludo con jerarquía + barra decorativa de marca -->
+<tr><td style="padding:40px 40px 0;">
+<p style="margin:0;font-size:22px;font-weight:bold;color:${tonos.base};line-height:1.3;letter-spacing:-0.3px;">${saludoHtml}</p>
+${acentoSaludoHtml}
 </td></tr>
 
 <!-- Cuerpo -->
-<tr><td style="padding:0 36px 28px;">
-<div style="margin:0;font-size:15px;line-height:1.7;color:#334155;">${cuerpoHtml}</div>
+<tr><td style="padding:24px 40px 32px;">
+<div style="margin:0;font-size:15.5px;line-height:1.75;color:#334155;">${cuerpoHtml}</div>
 </td></tr>
 
 ${bloqueExtra}
 
-<!-- Cierre con datos de contacto separados visualmente -->
-<tr><td style="padding:0 36px 36px;">
-<div style="margin:0;font-size:15px;line-height:1.7;color:#334155;">${cierreHtml}</div>
+<!-- Cierre con tarjeta de contacto destacada -->
+<tr><td style="padding:0 40px 40px;">
+<div style="margin:0;font-size:15.5px;line-height:1.75;color:#334155;">${cierreHtml}</div>
 ${contactoHtml}
 </td></tr>
 
-<!-- Footer con estructura -->
-<tr><td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:24px 32px;text-align:center;">
-<p style="margin:0;font-size:12px;font-weight:600;color:#64748b;line-height:1.5;">${escapeHtml(organizacion.nombre)}</p>
-<p style="margin:4px 0 0;font-size:11px;color:#94a3b8;line-height:1.5;">Este es un email automático enviado desde el CRM de ${escapeHtml(organizacion.nombre)}.</p>
+<!-- Footer con jerarquía -->
+<tr><td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:28px 32px;text-align:center;">
+<p style="margin:0;font-size:13px;font-weight:700;color:${tonos.base};letter-spacing:0.3px;line-height:1.5;">${escapeHtml(organizacion.nombre)}</p>
+<p style="margin:6px 0 0;font-size:11px;color:#94a3b8;line-height:1.5;">Este email fue enviado automáticamente desde el sistema de gestión.</p>
 ${unsubscribeLine}
 </td></tr>
 
