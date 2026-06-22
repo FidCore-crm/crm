@@ -169,6 +169,111 @@ export function normalizarEmail(
 }
 
 /**
+ * Estado de persona. La DB tiene un CHECK constraint que solo acepta los
+ * 4 valores del enum: PROSPECTO/ACTIVO/INACTIVO/BLOQUEADO. Pero el PAS
+ * puede escribir "activo", "Activo", "ACTIVO", "Cliente", "Cliente activo",
+ * "Vigente", etc. — toleramos variantes razonables y caemos a ACTIVO si
+ * no matchea con nada.
+ */
+export function normalizarEstadoPersona(
+  valor: string | null | undefined
+): 'PROSPECTO' | 'ACTIVO' | 'INACTIVO' | 'BLOQUEADO' {
+  if (!valor) return 'ACTIVO'
+  const s = String(valor).trim().toUpperCase()
+  if (!s) return 'ACTIVO'
+  if (s.includes('PROSPECT')) return 'PROSPECTO'
+  if (s.includes('BLOQUE') || s.includes('SUSPEND')) return 'BLOQUEADO'
+  if (
+    s.includes('INACT') ||
+    s.includes('BAJA') ||
+    s === 'NO' ||
+    s.includes('SUSPENDIDO')
+  ) return 'INACTIVO'
+  // Default amplio: cliente, activo, vigente, asegurado, etc. → ACTIVO
+  return 'ACTIVO'
+}
+
+/**
+ * Estado de póliza. CHECK constraint acepta: PROGRAMADA/VIGENTE/NO_VIGENTE/
+ * CANCELADA/ANULADA. El PAS puede escribir "vigente", "Vigente", "VIGENTE",
+ * "Activa", "En vigor", etc. Si el valor es vacío o no matchea, devolvemos
+ * null para que el flujo de importación calcule el estado desde las fechas.
+ */
+export function normalizarEstadoPoliza(
+  valor: string | null | undefined
+): 'PROGRAMADA' | 'VIGENTE' | 'NO_VIGENTE' | 'CANCELADA' | 'ANULADA' | null {
+  if (!valor) return null
+  const s = String(valor).trim().toUpperCase()
+  if (!s) return null
+  if (s.includes('PROGRAM') || s.includes('FUTUR')) return 'PROGRAMADA'
+  if (s.includes('CANCEL')) return 'CANCELADA'
+  if (s.includes('ANUL')) return 'ANULADA'
+  if (
+    s.includes('NO_VIG') ||
+    s.includes('NO VIG') ||
+    s === 'VENCIDA' ||
+    s === 'VENCIDO' ||
+    s.includes('CADUC') ||
+    s === 'INACTIVA' ||
+    s === 'BAJA'
+  ) return 'NO_VIGENTE'
+  // Default amplio: vigente, activa, en vigor, en curso, asegurada → VIGENTE
+  return 'VIGENTE'
+}
+
+/**
+ * Tipo de persona. CHECK constraint acepta: FISICA/JURIDICA. Si el PAS
+ * no lo escribió o escribió algo raro, lo INFERIMOS desde el DNI/CUIT:
+ *  - CUIT empieza con 30/33/34 → JURIDICA.
+ *  - DNI de 7-8 dígitos → FISICA.
+ *  - CUIT con prefijo 20/23/24/25/26/27 → FISICA.
+ */
+export function normalizarTipoPersona(
+  valor: string | null | undefined,
+  dni_cuil?: string | null,
+): 'FISICA' | 'JURIDICA' {
+  if (valor) {
+    const s = String(valor).trim().toUpperCase()
+    if (s.startsWith('JUR') || s.startsWith('PJ') || s.startsWith('PERSONA J')) return 'JURIDICA'
+    if (s.startsWith('FIS') || s.startsWith('PF') || s.startsWith('PERSONA F')) return 'FISICA'
+  }
+  // Inferir del documento si está
+  if (dni_cuil) {
+    const digitos = String(dni_cuil).replace(/\D/g, '')
+    if (digitos.length === 11) {
+      const prefijo = digitos.slice(0, 2)
+      if (['30', '33', '34'].includes(prefijo)) return 'JURIDICA'
+      return 'FISICA' // 20/23/24/25/26/27 → física
+    }
+    // DNI corto (7-8 dígitos) → siempre persona física
+    return 'FISICA'
+  }
+  return 'FISICA'
+}
+
+/**
+ * Moneda. La DB no tiene CHECK formal pero todo el código asume ARS/USD.
+ * Aceptamos variantes: $, pesos, dolares, U$S, etc.
+ */
+export function normalizarMoneda(
+  valor: string | null | undefined
+): 'ARS' | 'USD' {
+  if (!valor) return 'ARS'
+  const s = String(valor).trim().toUpperCase().replace(/[\s.]/g, '')
+  if (!s) return 'ARS'
+  if (
+    s === 'USD' ||
+    s === 'US' ||
+    s === 'U$S' ||
+    s === 'U$' ||
+    s.includes('DOLAR') ||
+    s.includes('DOLLAR') ||
+    s === 'US$'
+  ) return 'USD'
+  return 'ARS'
+}
+
+/**
  * DNI/CUIT/CUIL → solo dígitos. Saca puntos, guiones, espacios y cualquier
  * otro separador que el PAS haya usado en el archivo. Caso típico:
  * "20.123.456-7" → "20123456" / "27-33445566-8" → "27334455668".
@@ -347,6 +452,16 @@ export function normalizarPersonaImportada(
     out.codigo_postal = normalizarCodigoPostal(out.codigo_postal) as any
   }
 
+  // ENUM: estado siempre normalizado a uno de los 4 válidos del CHECK constraint.
+  // Si vino vacío o algo raro, queda en ACTIVO.
+  out.estado = normalizarEstadoPersona(out.estado as string | null | undefined) as any
+
+  // ENUM: tipo_persona normalizado + inferido desde el DNI/CUIT.
+  out.tipo_persona = normalizarTipoPersona(
+    out.tipo_persona as string | null | undefined,
+    out.dni_cuil as string | null | undefined,
+  ) as any
+
   // Número de casa: se preserva tal cual (puede tener letras como "1234 bis")
   // pero se trimea (ya lo hizo el loop universal).
 
@@ -450,6 +565,14 @@ export function normalizarPolizaImportada(
       ;(out as any)[k] = trimmed === '' ? null : trimmed
     }
   }
+
+  // ENUM: estado de póliza tolerante. Si no matchea o vino vacío,
+  // queda en null y el importador deriva el estado desde las fechas.
+  const estadoNorm = normalizarEstadoPoliza(out.estado as string | null | undefined)
+  if (estadoNorm) out.estado = estadoNorm as any
+
+  // ENUM: moneda → ARS por default si vino algo raro o vacío.
+  out.moneda = normalizarMoneda(out.moneda as string | null | undefined) as any
 
   return out
 }

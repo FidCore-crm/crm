@@ -57,6 +57,10 @@ export async function POST(request: Request, context: { params: { id: string } }
       importacion_id: id,
       tipo: 'IMPORTACION_FINAL',
       payload: {},
+      // 1 intento: el IMPORTACION_FINAL toca INSERTs. Si falla, los reintentos
+      // automáticos pueden generar duplicados o estado inconsistente. Mejor
+      // fallar rápido y que el PAS reanude manualmente si lo necesita.
+      max_intentos: 1,
     })
   } catch (e) {
     const msg = (e as { message?: string })?.message || 'desconocido'
@@ -71,16 +75,25 @@ export async function POST(request: Request, context: { params: { id: string } }
     .update({ estado_proceso: 'IMPORTANDO' })
     .eq('id', id)
 
-  // Trigger inmediato del runner (fire-and-forget). El runner systemd podría
-  // no estar instalado; este trigger asegura que la importación final arranque.
+  // Trigger sincrónico del runner. Esperamos hasta 60s a que termine el job
+  // de IMPORTACION_FINAL — para importaciones chicas (< 200 registros) eso
+  // alcanza y el PAS ve el resultado en la misma response. Para importaciones
+  // grandes, devolvemos OK al cumplirse el timeout y el cron del host (cada
+  // 30s) toma el job pendiente si quedó algo.
   try {
     const { ejecutarJobsPendientes } = await import('@/lib/importacion/job-runner')
-    ejecutarJobsPendientes().catch((err) => {
-      logger.warn({ modulo: 'importar', mensaje: 'Error ejecutando jobs pendientes tras /confirmar', contexto: { importacion_id: id, error: String(err) } })
-    })
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, 60_000))
+    await Promise.race([
+      ejecutarJobsPendientes().catch((err) => {
+        logger.warn({ modulo: 'importar', mensaje: 'Error ejecutando jobs pendientes tras /confirmar', contexto: { importacion_id: id, error: String(err) } })
+      }),
+      timeout,
+    ])
   } catch (err) {
     logger.warn({ modulo: 'importar', mensaje: 'Error disparando runner tras /confirmar', contexto: { importacion_id: id, error: String(err) } })
   }
 
   return NextResponse.json({ ok: true, job_encolado: true })
 }
+
+export const maxDuration = 120

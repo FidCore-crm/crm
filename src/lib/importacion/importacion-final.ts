@@ -6,6 +6,12 @@
 import { getSupabaseAdmin } from '@/lib/supabase/server';
 import type { RegistroProcesado } from '@/lib/importacion/procesamiento-lote';
 import { notificarImportacion } from '@/lib/importacion/notificaciones-helper';
+import {
+  normalizarEstadoPersona,
+  normalizarEstadoPoliza,
+  normalizarTipoPersona,
+  normalizarMoneda,
+} from '@/lib/importacion/normalizadores';
 import type {
   DudosoRow,
   EstadisticasImportacion,
@@ -284,11 +290,18 @@ export async function crearCatalogosPendientes(
 function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
   const pr = p as Record<string, unknown>;
   const out: Record<string, unknown> = {
-    tipo_persona: pr.tipo_persona || 'FISICA',
+    // Los valores de enum ya vinieron normalizados por `normalizarPersonaImportada`
+    // (los 4 CHECK constraint válidos), pero re-aplicamos los normalizadores como
+    // red de seguridad antes del INSERT — sirve para callers que entren acá sin
+    // pasar por el normalizador (importaciones viejas o reanudaciones).
+    tipo_persona: normalizarTipoPersona(
+      pr.tipo_persona as string | null | undefined,
+      pr.dni_cuil as string | null | undefined,
+    ),
     dni_cuil: pr.dni_cuil,
     apellido: pr.apellido || pr.razon_social || 'S/D',
     pais: pr.pais || 'Argentina',
-    estado: pr.estado || 'ACTIVO',
+    estado: normalizarEstadoPersona(pr.estado as string | null | undefined),
     // Marca la persona como importada para que NO se le mande bienvenida
     // de cliente automática (los clientes importados vienen de otra cartera).
     origen_creacion: 'IMPORTACION',
@@ -299,6 +312,10 @@ function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
   // NO incluir 'cuil_formateado' — es una GENERATED COLUMN que Postgres
   // calcula sola desde dni_cuil. Intentar insertarla tira
   // "cannot insert a non-DEFAULT value into column cuil_formateado".
+  //
+  // OJO: `estado` y `tipo_persona` NO van en esta lista porque ya se setean
+  // arriba con su normalizador. Si los pusiéramos acá, el loop los sobreescribiría
+  // con el valor crudo y volvería el bug del CHECK constraint.
   const keys = [
     'nombre',
     'razon_social',
@@ -314,7 +331,6 @@ function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
     'localidad',
     'provincia',
     'codigo_postal',
-    'estado',
     'origen',
     'segmento',
     'canal_preferido',
@@ -331,13 +347,17 @@ function mapeoPoliza(
   asegurado_id: string
 ): Record<string, unknown> {
   const pr = pol as Record<string, unknown>;
+  const estadoNorm = normalizarEstadoPoliza(pr.estado as string | null | undefined);
   const out: Record<string, unknown> = {
     numero_poliza: pr.numero_poliza,
     asegurado_id,
     fecha_inicio: pr.fecha_inicio,
     fecha_fin: pr.fecha_fin,
-    estado: pr.estado || 'VIGENTE',
-    moneda: pr.moneda || 'ARS',
+    // Si el normalizador devolvió null, dejamos VIGENTE como fallback amplio.
+    // En la práctica `normalizarPolizaImportada` ya pasó por acá y el valor
+    // queda en uno de los 5 válidos. Pero defensive contra callers directos.
+    estado: estadoNorm || 'VIGENTE',
+    moneda: normalizarMoneda(pr.moneda as string | null | undefined),
     // Marca la póliza como importada para que el cron de bienvenida la excluya
     // (las pólizas importadas vienen de otra cartera, no son altas reales).
     origen_creacion: 'IMPORTACION',
