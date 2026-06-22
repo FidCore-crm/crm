@@ -640,13 +640,19 @@ export async function ejecutarJobsPendientes(
   let fallidos = 0;
 
   // 1. Candidatos
+  // Subido de 5 a 10 jobs por tick: combinado con el dispatch inmediato
+  // post-encolar (en /iniciar, /procesar, /confirmar), reduce a la mitad
+  // los ticks necesarios para drenar la cola de una importación grande.
+  // Los handlers de lote son IO-bound (queries + IA), no CPU, así que
+  // procesar 10 seguidos en un tick no satura nada — la latencia de cada
+  // uno es ~10-20s, el endpoint cron tolera hasta 300s.
   const { data: candidatos, error } = await supa
     .from('importacion_jobs')
     .select('*')
     .eq('estado', 'PENDIENTE')
     .order('prioridad', { ascending: false })
     .order('fecha_creacion', { ascending: true })
-    .limit(5);
+    .limit(10);
 
   if (error) {
     return { procesados: 0, fallidos: 0, en_cola: 0 };

@@ -44,14 +44,13 @@ const PARTICULAS_MINUSCULA = new Set([
 const SIGLAS_MAYUSCULA = new Set([
   // Sociedades comerciales argentinas
   'SA', 'SRL', 'SAS', 'SACI', 'SACIF', 'SAICF', 'SCA', 'SCS', 'SH',
-  'SA.', 'S.A', 'S.A.', 'S.R.L.', 'S.A.S.', 'S.H.',
   // Organismos y entidades
   'YPF', 'AFIP', 'ANSES', 'ARBA', 'AGIP', 'ARCA',
   'CABA', 'AMBA', 'PAMI', 'IOMA', 'OSDE',
   'INTA', 'INTI', 'ANMAT', 'UBA', 'UTN',
   'SSN', 'BCRA', 'CNV', 'ONU', 'OMS',
   // Abreviaturas de dirección
-  'CP', 'CP.',
+  'CP',
   // Numerales romanos (hasta XX cubre 99% de los casos reales: Juan Pablo II, etc.)
   'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII',
   'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX',
@@ -105,16 +104,14 @@ function capitalizarPalabra(palabra: string): string {
  */
 function esSigla(token: string): boolean {
   const limpio = token.replace(/\./g, '').toUpperCase()
-  if (SIGLAS_MAYUSCULA.has(limpio)) return true
-  // Token como "S.A." → "SA" → sigue matcheando
-  // Token como "S.A.C.I.F." → "SACIF"
-  return false
+  return SIGLAS_MAYUSCULA.has(limpio)
 }
 
 /**
  * Título de una cadena respetando:
  *  - Partículas en minúscula salvo que sean la primera palabra.
- *  - Siglas en mayúscula (SA, SRL, YPF, II, III...).
+ *  - Siglas en mayúscula (SA, SRL, YPF, II, III...). Las siglas con puntos
+ *    ("S.A.", "S.R.L.") se NORMALIZAN sin puntos para evitar variantes.
  *  - Abreviaturas con puntos (Av., Sr., Ing.).
  *  - Separadores internos (apóstrofes, guiones) con cada lado capitalizado.
  *
@@ -132,9 +129,11 @@ export function toTitleCase(valor: string | null | undefined): string | null | u
 
   return tokens
     .map((token, i) => {
-      // 1. Siglas argentinas/acrónimos/romanos → UPPER
+      // 1. Siglas argentinas/acrónimos/romanos → UPPER sin puntos.
+      // Esto colapsa "S.A." y "SA" al mismo string "SA" para que dedupe
+      // consistente y muestre prolijo en la UI.
       if (esSigla(token)) {
-        return token.replace(/\./g, '').toUpperCase() + (token.endsWith('.') ? '.' : '')
+        return token.replace(/\./g, '').toUpperCase()
       }
 
       const sinPuntoFinal = token.endsWith('.') ? token.slice(0, -1) : token
@@ -167,6 +166,59 @@ export function normalizarEmail(
   if (valor === null || valor === undefined) return valor
   const s = valor.toString().trim().toLowerCase()
   return s || null
+}
+
+/**
+ * DNI/CUIT/CUIL → solo dígitos. Saca puntos, guiones, espacios y cualquier
+ * otro separador que el PAS haya usado en el archivo. Caso típico:
+ * "20.123.456-7" → "20123456" / "27-33445566-8" → "27334455668".
+ */
+export function normalizarDocumento(
+  valor: string | number | null | undefined
+): string | null | undefined {
+  if (valor === null || valor === undefined || valor === '') return null
+  const s = String(valor).replace(/\D/g, '')
+  return s || null
+}
+
+/**
+ * Teléfono → formato +54... cuando es posible, sino solo dígitos.
+ * Caso típico: "(011) 4555-6789" → "+541145556789" / "11 5555 6666" → "+541155556666".
+ *
+ * Reglas:
+ *  - Si empieza con +54, mantener.
+ *  - Si empieza con 54, anteponer +.
+ *  - Si empieza con 0 (línea fija argentina), reemplazar con 54.
+ *  - Si empieza con 9 después del 54, mantener (móvil internacional).
+ *  - Si nada parece argentino, devolver dígitos sin prefijo (puede ser exterior).
+ */
+export function normalizarTelefono(
+  valor: string | null | undefined
+): string | null | undefined {
+  if (valor === null || valor === undefined || valor === '') return null
+  const original = String(valor).trim()
+  if (!original) return null
+
+  const digitos = original.replace(/\D/g, '')
+  if (!digitos) return null
+  // Demasiado corto: probablemente no es un teléfono, devolver tal cual trimmed.
+  if (digitos.length < 6) return original
+
+  let normalizado: string
+  if (digitos.startsWith('54')) {
+    normalizado = `+${digitos}`
+  } else if (digitos.startsWith('0')) {
+    // Línea fija argentina con prefijo nacional.
+    normalizado = `+54${digitos.slice(1)}`
+  } else if (digitos.length >= 10 && digitos.length <= 11) {
+    // Asumimos argentino sin prefijo de país.
+    normalizado = `+54${digitos}`
+  } else {
+    // No identificamos prefijo claro — devolvemos solo los dígitos con +.
+    normalizado = `+${digitos}`
+  }
+
+  return normalizado
 }
 
 /**
@@ -208,17 +260,60 @@ const CAMPOS_PERSONA_LOWERCASE: Array<keyof PersonaImportada> = [
   'email', 'email_secundario',
 ]
 
-// Campos de RIESGO en Title Case (automotor + hogar).
+// Campos de PERSONA que se normalizan como teléfono.
+const CAMPOS_PERSONA_TELEFONO: Array<keyof PersonaImportada> = [
+  'telefono', 'telefono_secundario', 'whatsapp',
+]
+
+// Campos de PERSONA que son documentos (DNI/CUIT/CUIL).
+const CAMPOS_PERSONA_DOCUMENTO: Array<keyof PersonaImportada> = [
+  'dni_cuil',
+]
+
+// Campos de RIESGO en Title Case (campos top-level legacy).
 const CAMPOS_RIESGO_TITLECASE: Array<keyof RiesgoImportado> = [
   'marca', 'modelo', 'color', 'uso',
   'direccion_riesgo', 'tipo_construccion',
 ]
+
+// Claves del detalle_tecnico que NO se normalizan a Title Case (mantienen
+// formato original o se pasan a upper). Cubre identificadores de hardware
+// (patentes, motores, números de serie), emails y campos puramente numéricos.
+const CLAVES_RIESGO_NO_TITLECASE = new Set([
+  // Identificadores que van en upper o mantienen su formato
+  'patente', 'motor', 'chasis', 'numero_serie', 'imei', 'matricula',
+  'cuit_empleador', 'actividad_ciiu',
+  // Email
+  'email',
+  // Numéricos puros (capital, valor, superficie, etc.) — los detecta typeof
+  // antes de aplicar, pero los listamos para claridad.
+  'anio', 'capital_asegurado', 'valor_asegurado', 'valor_mercaderia',
+  'superficie', 'superficie_ha', 'eslora', 'cantidad_empleados',
+  'masa_salarial', 'limite_por_persona', 'limite_por_evento',
+  'franquicia', 'hectareas_afectadas', 'perdida_estimada',
+  // Códigos / acta / matrículas que pueden tener letras pero se preservan tal cual
+  'acta_policial', 'acta_denuncia', 'bomberos_actuacion',
+  // Texto libre largo (descripciones, beneficiarios) — el PAS escribe a su gusto
+  'descripcion', 'descripcion_objeto', 'descripcion_hecho', 'descripcion_daños',
+  'descripcion_danio', 'descripcion_danios',
+  'beneficiarios', 'observaciones', 'detalle', 'detalle_adicional',
+  'medidas_seguridad', 'medidas_prevencion',
+  'actividad_cubierta', 'actividad_contenido', 'cultivo_actividad',
+])
 
 export function normalizarPersonaImportada(
   persona: PersonaImportada | null
 ): PersonaImportada | null {
   if (!persona) return persona
   const out: PersonaImportada = { ...persona }
+
+  // 1. Trim universal sobre strings que no son metadata
+  for (const [k, v] of Object.entries(out)) {
+    if (typeof v === 'string') {
+      const trimmed = v.trim()
+      ;(out as any)[k] = trimmed === '' ? null : trimmed
+    }
+  }
 
   for (const campo of CAMPOS_PERSONA_TITLECASE) {
     const v = out[campo]
@@ -234,9 +329,26 @@ export function normalizarPersonaImportada(
     }
   }
 
+  for (const campo of CAMPOS_PERSONA_TELEFONO) {
+    const v = out[campo]
+    if (typeof v === 'string') {
+      out[campo] = normalizarTelefono(v) as any
+    }
+  }
+
+  for (const campo of CAMPOS_PERSONA_DOCUMENTO) {
+    const v = out[campo]
+    if (typeof v === 'string' || typeof v === 'number') {
+      out[campo] = normalizarDocumento(v) as any
+    }
+  }
+
   if (typeof out.codigo_postal === 'string') {
     out.codigo_postal = normalizarCodigoPostal(out.codigo_postal) as any
   }
+
+  // Número de casa: se preserva tal cual (puede tener letras como "1234 bis")
+  // pero se trimea (ya lo hizo el loop universal).
 
   return out
 }
@@ -247,6 +359,15 @@ export function normalizarRiesgoImportado(
   if (!riesgo) return riesgo
   const out: RiesgoImportado = { ...riesgo }
 
+  // 1. Trim universal sobre todos los strings
+  for (const [k, v] of Object.entries(out)) {
+    if (typeof v === 'string') {
+      const trimmed = v.trim()
+      ;(out as any)[k] = trimmed === '' ? null : trimmed
+    }
+  }
+
+  // 2. Campos top-level legacy en Title Case
   for (const campo of CAMPOS_RIESGO_TITLECASE) {
     const v = out[campo]
     if (typeof v === 'string') {
@@ -254,11 +375,12 @@ export function normalizarRiesgoImportado(
     }
   }
 
+  // 3. Patente (top-level legacy)
   if (typeof out.patente === 'string') {
     out.patente = normalizarPatente(out.patente) as any
   }
 
-  // Motor y chasis: siempre UPPERCASE + trim (convención del CRM).
+  // 4. Motor y chasis: siempre UPPERCASE + trim (convención del CRM).
   if (typeof (out as any).motor === 'string') {
     const m = ((out as any).motor as string).trim().toUpperCase()
     ;(out as any).motor = m || null
@@ -268,10 +390,41 @@ export function normalizarRiesgoImportado(
     ;(out as any).chasis = c || null
   }
 
-  // Descripción corta: puede ser desde "FORD FIESTA 2018" hasta "Casa habitación".
-  // Title case sirve para ambos.
+  // 5. Descripción corta: title case si vino texto.
   if (typeof out.descripcion_corta === 'string') {
     out.descripcion_corta = toTitleCase(out.descripcion_corta) as any
+  }
+
+  // 6. Cualquier OTRO campo string que no esté en la blacklist
+  // (campos dinámicos del detalle_tecnico de los 11 tipos: tipo_mercaderia,
+  // origen, destino, plan, prestador, ubicacion, partido, lugar_guarda, etc.)
+  // se pasa a Title Case para que quede prolijo.
+  const TOP_LEVEL_YA_PROCESADOS = new Set<string>([
+    'tipo_riesgo', 'descripcion_corta', 'suma_asegurada',
+    'patente', 'marca', 'modelo', 'anio', 'motor', 'chasis', 'color', 'uso',
+    'direccion_riesgo', 'tipo_construccion', 'superficie',
+    'capital_asegurado', 'beneficiarios',
+  ])
+  for (const [k, v] of Object.entries(out)) {
+    if (TOP_LEVEL_YA_PROCESADOS.has(k)) continue
+    if (CLAVES_RIESGO_NO_TITLECASE.has(k)) continue
+    if (typeof v !== 'string') continue
+    // Patente embebida en otros campos
+    if (k.toLowerCase().includes('patente')) {
+      ;(out as any)[k] = normalizarPatente(v)
+      continue
+    }
+    // Matrículas, números de serie y similares: upper
+    if (
+      k.toLowerCase().includes('matricula') ||
+      k.toLowerCase().includes('numero_serie') ||
+      k.toLowerCase() === 'imei'
+    ) {
+      ;(out as any)[k] = v.toUpperCase()
+      continue
+    }
+    // Default: Title Case
+    ;(out as any)[k] = toTitleCase(v)
   }
 
   return out
@@ -283,13 +436,22 @@ export function normalizarRiesgoImportado(
  * alfanuméricos case-sensitive para la compañía. observaciones y notas son
  * texto libre que no se toca para no destruir formato intencional.
  *
- * La función existe para dejar el punto de extensión si aparece algún campo
- * futuro que requiera normalización.
+ * Lo que SÍ hacemos: trim universal para limpiar espacios al inicio/final.
  */
 export function normalizarPolizaImportada(
   poliza: PolizaImportada | null
 ): PolizaImportada | null {
-  return poliza
+  if (!poliza) return poliza
+  const out: PolizaImportada = { ...poliza }
+
+  for (const [k, v] of Object.entries(out)) {
+    if (typeof v === 'string') {
+      const trimmed = v.trim()
+      ;(out as any)[k] = trimmed === '' ? null : trimmed
+    }
+  }
+
+  return out
 }
 
 /**

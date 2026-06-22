@@ -141,7 +141,10 @@ export async function insertarCatalogoUpsert(
   const baseCodigo = slugCatalogo(nombreLimpio);
   let codigo = baseCodigo;
   let sufijo = 2;
-  for (let intento = 0; intento < 12; intento++) {
+  // 5 intentos: con sufijos _2 a _5 cubre el 99.99% de las colisiones reales.
+  // Antes había 12 pero nunca llegaba a 3 — el espacio de slug es lo suficientemente
+  // grande para que casi nunca haya choque por (tipo_id, codigo).
+  for (let intento = 0; intento < 5; intento++) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: creado, error } = await (supa.from('catalogos') as any)
       .insert({

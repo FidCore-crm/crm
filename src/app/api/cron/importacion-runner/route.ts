@@ -4,6 +4,10 @@ import { ejecutarJobsPendientes } from '@/lib/importacion/job-runner'
 
 export const dynamic = 'force-dynamic'
 
+// Procesar hasta 10 jobs en un tick puede tardar varios minutos si los lotes
+// hacen llamadas a Claude. Damos 5 min de margen.
+export const maxDuration = 300
+
 export async function GET(request: Request) {
   const authError = await validarCronSecret(request)
   if (authError) return authError
