@@ -32,6 +32,22 @@ export async function POST(request: Request, context: { params: { id: string } }
       { status: 400 }
     )
   }
+  // Durante IMPORTACION_FINAL (estado IMPORTANDO) el handler async corre en
+  // background y no se puede interrumpir limpiamente. Si marcáramos el job
+  // CANCELADO, el handler seguiría haciendo INSERTs y dejaría datos parciales
+  // con la importación marcada como cancelada — peor que no permitir cancelar.
+  // El PAS tiene "Deshacer" en el historial (24h) para revertir.
+  if (estado === 'IMPORTANDO') {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          'La importación ya está creando registros y no se puede cancelar a mitad. ' +
+          'Esperá a que termine y usá "Deshacer" en el historial (disponible 24h).',
+      },
+      { status: 400 }
+    )
+  }
 
   // Cancelar jobs pendientes/ejecutando
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

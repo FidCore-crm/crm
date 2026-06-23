@@ -1160,37 +1160,81 @@ async function procesarBloque(
     }
   }
 
-  // Riesgos para pólizas UPDATE (incremental): sólo insertar si la póliza NO
-  // tiene riesgos activos todavía. Antes, re-importar cualquier archivo que
-  // incluyera datos de riesgo explotaba con `uq_riesgo_poliza_item` (default
-  // numero_item=1 colisiona con el riesgo ya cargado).
+  // Riesgos para pólizas UPDATE (incremental). Hasta v1.0.37 sólo se
+  // insertaba el riesgo si la póliza NO tenía uno activo (para evitar el
+  // UNIQUE `uq_riesgo_poliza_item` con numero_item=1). Eso dejaba pólizas
+  // re-importadas con riesgos obsoletos (ej: patente vieja, marca sin actualizar).
   //
-  // Nota: esto no actualiza datos del riesgo existente si el archivo trae
-  // información distinta (ej: nueva patente). Es deuda conocida —
-  // ver CLAUDE.md "Riesgos sobre pólizas UPDATE".
+  // Desde v1.0.38: si ya hay riesgo activo, hacemos UPDATE in-place del
+  // existente con los datos del archivo, mergeando el JSONB `detalle_tecnico`
+  // para conservar campos que no vinieron en el archivo (ej: número de
+  // motor cargado a mano antes). El UPDATE respeta `tipo_riesgo` original
+  // — sólo se cambia con un alta nueva de riesgo desde la ficha.
   const polizasUpdateConRiesgo = bloque
     .filter((f) => f.accion_poliza === 'UPDATE' && f.match_poliza_id && f.riesgo)
     .map((f) => f.match_poliza_id as string);
 
-  const polizasConRiesgoExistente = new Set<string>();
+  // Map poliza_id → { id_riesgo, detalle_tecnico_actual }
+  const riesgoExistentePorPoliza = new Map<
+    string,
+    { id: string; detalle_tecnico: Record<string, unknown> }
+  >();
   if (polizasUpdateConRiesgo.length > 0) {
     const { data: riesgosExistentes } = await supa
       .from('riesgos')
-      .select('poliza_id')
+      .select('id, poliza_id, detalle_tecnico')
       .in('poliza_id', polizasUpdateConRiesgo)
       .eq('activo', true);
-    for (const r of (riesgosExistentes || []) as Array<{ poliza_id: string }>) {
-      polizasConRiesgoExistente.add(r.poliza_id);
+    for (const r of (riesgosExistentes || []) as Array<{
+      id: string;
+      poliza_id: string;
+      detalle_tecnico: Record<string, unknown> | null;
+    }>) {
+      // Si una póliza tiene >1 riesgo activo, gana el primero leído.
+      // En la práctica esto no pasa (el importador siempre crea uno) y la
+      // ficha de póliza tampoco permite múltiples activos por defecto.
+      if (!riesgoExistentePorPoliza.has(r.poliza_id)) {
+        riesgoExistentePorPoliza.set(r.poliza_id, {
+          id: r.id,
+          detalle_tecnico: r.detalle_tecnico ?? {},
+        });
+      }
     }
   }
 
+  // Acumulamos UPDATEs por id_riesgo y los aplicamos después del INSERT batch.
+  const riesgosUpdate: Array<{
+    riesgo_id: string;
+    patch: Record<string, unknown>;
+    registro: RegistroFinal;
+  }> = [];
+
   for (const f of bloque) {
     if (f.accion_poliza !== 'UPDATE' || !f.match_poliza_id || !f.riesgo) continue;
-    if (polizasConRiesgoExistente.has(f.match_poliza_id)) continue;
-    riesgosInsert.push({
-      row: mapeoRiesgo(f.riesgo, f.match_poliza_id),
-      registro: f,
-    });
+    const existente = riesgoExistentePorPoliza.get(f.match_poliza_id);
+    if (!existente) {
+      // No hay riesgo activo todavía — INSERT normal.
+      riesgosInsert.push({
+        row: mapeoRiesgo(f.riesgo, f.match_poliza_id),
+        registro: f,
+      });
+      continue;
+    }
+    // UPDATE in-place: mergeamos detalle_tecnico para preservar campos que
+    // no vinieron en el archivo.
+    const nuevoMapeo = mapeoRiesgo(f.riesgo, f.match_poliza_id) as Record<string, unknown>;
+    const nuevoDT = (nuevoMapeo.detalle_tecnico as Record<string, unknown>) ?? {};
+    const dtMerged: Record<string, unknown> = { ...existente.detalle_tecnico };
+    for (const [k, v] of Object.entries(nuevoDT)) {
+      if (v !== null && v !== undefined && v !== '') {
+        dtMerged[k] = v;
+      }
+    }
+    const patch: Record<string, unknown> = {};
+    if (nuevoMapeo.descripcion_corta != null) patch.descripcion_corta = nuevoMapeo.descripcion_corta;
+    if (nuevoMapeo.suma_asegurada != null) patch.suma_asegurada = nuevoMapeo.suma_asegurada;
+    patch.detalle_tecnico = dtMerged;
+    riesgosUpdate.push({ riesgo_id: existente.id, patch, registro: f });
   }
 
   if (riesgosInsert.length > 0) {
@@ -1223,6 +1267,21 @@ async function procesarBloque(
       for (const c of creadasRows) {
         acc.ids_creados.riesgos.push(c.id);
       }
+    }
+  }
+
+  // Aplicar UPDATEs in-place de riesgos existentes (flujo INCREMENTAL).
+  for (const u of riesgosUpdate) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: errUpd } = await (supa.from('riesgos') as any)
+      .update(u.patch)
+      .eq('id', u.riesgo_id);
+    if (errUpd) {
+      acc.errores.push({
+        fila: u.registro.numero_fila_archivo,
+        archivo: u.registro.archivo_origen,
+        error: `Update riesgo: ${errUpd.message}`,
+      });
     }
   }
 }

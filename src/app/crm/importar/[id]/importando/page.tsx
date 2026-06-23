@@ -9,11 +9,9 @@ import {
   Users,
   FileText,
   Shield,
-  X,
 } from 'lucide-react';
 import { useImportacionPolling } from '@/lib/hooks/useImportacionPolling';
 import { apiCall } from '@/lib/api-client';
-import { toast } from '@/lib/toast';
 import type { IdsCreadosActualizados } from '@/lib/importacion/types';
 
 interface ResumenParcial {
@@ -28,25 +26,6 @@ export default function ImportandoPage() {
   const id = (params?.id as string) || '';
   const { estado, error } = useImportacionPolling(id, { intervaloMs: 1000 });
   const [resumen, setResumen] = useState<ResumenParcial | null>(null);
-  const [cancelando, setCancelando] = useState(false);
-
-  async function cancelar() {
-    const msg =
-      '¿Cancelar la importación?\n\n' +
-      'ATENCIÓN: los registros que ya se insertaron en la base quedarán. ' +
-      'Para revertir toda la importación desde cero usá "Deshacer" en el ' +
-      'historial (disponible dentro de las 24h posteriores).';
-    if (!window.confirm(msg)) return;
-    setCancelando(true);
-    const r = await apiCall(`/api/importar/${id}/cancelar`, { method: 'POST' }, { mostrar_toast_en_error: false });
-    if (r.ok) {
-      toast.info('Importación cancelada');
-      router.push('/crm/importar');
-    } else {
-      toast.error(r.error?.mensaje ?? 'No se pudo cancelar');
-      setCancelando(false);
-    }
-  }
 
   // Poll resumen en paralelo para contadores parciales
   useEffect(() => {
@@ -223,15 +202,11 @@ export default function ImportandoPage() {
           <ArrowLeft className="w-4 h-4" />
           Volver al dashboard
         </button>
-        <button
-          className="btn-danger flex items-center justify-center gap-2"
-          onClick={cancelar}
-          disabled={cancelando}
-        >
-          {cancelando ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
-          {cancelando ? 'Cancelando...' : 'Cancelar importación'}
-        </button>
       </div>
+      <p className="text-2xs text-slate-500 text-center mt-3">
+        Esta etapa no se puede cancelar — para revertir todo usá &quot;Deshacer&quot;
+        en el historial cuando termine (disponible 24h).
+      </p>
     </div>
   );
 }
