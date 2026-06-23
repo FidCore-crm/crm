@@ -28,6 +28,7 @@ import type {
   VinculacionEntreArchivos,
 } from '@/lib/importacion/types'
 import type { ArchivoImportacion } from '@/lib/importacion/analisis-estructural'
+import { getSupabaseAdmin } from '@/lib/supabase/server'
 
 // ----------------------------------------------------------------------------
 // Headers de las 2 hojas del template (espejo de `/api/importar/modelo-excel`).
@@ -167,7 +168,10 @@ function identificarHojaTemplate(
 function construirArchivoAnalizado(
   archivo: ArchivoImportacion,
   tipoHoja: 'CLIENTES' | 'POLIZAS',
-): ArchivoAnalizado {
+): {
+  analizado: ArchivoAnalizado & { muestra_datos?: unknown[] }
+  companias: string[]
+} {
   const mapeo = tipoHoja === 'CLIENTES' ? MAPEO_CLIENTES : MAPEO_POLIZAS
 
   const columnas: ColumnaAnalizada[] = archivo.headers_detectados.map(
@@ -203,14 +207,66 @@ function construirArchivoAnalizado(
     }
   }
 
+  // Si hay UNA sola compañía en el archivo, la marcamos como compania_detectada
+  // — la UI lo usa para no preguntar al PAS. Si hay varias, dejamos null.
+  const companiasArr = Array.from(companiasSet)
+  const companiaUnica = companiasArr.length === 1 ? companiasArr[0] : null
+
+  // Muestra: las primeras 3 filas crudas del archivo. La UI del plan las usa
+  // para mostrar ejemplos al lado de cada columna mapeada.
+  const muestra_datos = archivo.filas.slice(0, 3)
+
   return {
-    nombre: archivo.nombre,
-    tipo_contenido: tipoHoja as TipoContenidoArchivo,
-    columnas,
-    compania_detectada: null, // múltiples en mismo archivo
-    ramos_detectados: Array.from(ramosSet),
-    advertencias: [],
+    analizado: {
+      nombre: archivo.nombre,
+      tipo_contenido: tipoHoja as TipoContenidoArchivo,
+      columnas,
+      compania_detectada: companiaUnica,
+      ramos_detectados: Array.from(ramosSet),
+      advertencias: [],
+      muestra_datos,
+    },
+    companias: companiasArr,
   }
+}
+
+/**
+ * Cargar lista de compañías del catálogo del CRM. Falla silencioso a [] si
+ * hay error de DB (preferimos seguir con el flujo que bloquear).
+ */
+async function cargarCompaniasCatalogo(): Promise<string[]> {
+  try {
+    const supa = getSupabaseAdmin()
+    const { data: tipos } = await supa.from('tipo_catalogo').select('id, codigo')
+    const tiposRows = (tipos || []) as Array<{ id: number; codigo: string }>
+    const idCompania = tiposRows.find((t) => t.codigo === 'COMPANIA')?.id
+    if (!idCompania) return []
+
+    const { data } = await supa
+      .from('catalogos')
+      .select('nombre, metadata')
+      .eq('tipo_id', idCompania)
+      .eq('activo', true)
+    const rows = (data || []) as Array<{ nombre: string; metadata: Record<string, unknown> | null }>
+    const out: string[] = []
+    for (const c of rows) {
+      out.push(c.nombre)
+      const meta = c.metadata ?? {}
+      const eq = (meta as { equivalencias?: unknown }).equivalencias
+      if (Array.isArray(eq)) {
+        for (const v of eq) out.push(String(v))
+      } else if (eq && typeof eq === 'object') {
+        for (const v of Object.values(eq as Record<string, unknown>)) out.push(String(v))
+      }
+    }
+    return out
+  } catch {
+    return []
+  }
+}
+
+function existeEnCatalogo(nombre: string, catalogoNorm: Set<string>): boolean {
+  return catalogoNorm.has(nombre.trim().toLowerCase())
 }
 
 function detectarVinculacion(
@@ -245,15 +301,20 @@ export interface ResultadoFastPath {
  * Intenta construir el `PlanImportacion` sin llamar a la IA.
  * Devuelve `{ aplica: false, razon_descarte }` si los archivos no encajan
  * con el template; en ese caso el caller debe usar el flujo IA tradicional.
+ *
+ * Es async porque consulta el catálogo de compañías del CRM para marcar
+ * cuáles del archivo ya existen y cuáles serían nuevas. Esa info la usa
+ * la UI del paso de confirmación para mostrar "(nueva)" o ✓.
  */
-export function intentarFastPathTemplate(
+export async function intentarFastPathTemplate(
   archivos: ArchivoImportacion[],
-): ResultadoFastPath {
+): Promise<ResultadoFastPath> {
   if (archivos.length === 0) {
     return { aplica: false, razon_descarte: 'Sin archivos' }
   }
 
-  const archivosAnalizados: ArchivoAnalizado[] = []
+  const archivosAnalizados: Array<ArchivoAnalizado & { muestra_datos?: unknown[] }> = []
+  const companiasDetectadas = new Set<string>()
   let totalRegistros = 0
 
   for (const archivo of archivos) {
@@ -264,7 +325,9 @@ export function intentarFastPathTemplate(
         razon_descarte: `Archivo "${archivo.nombre}" no matchea el template del CRM`,
       }
     }
-    archivosAnalizados.push(construirArchivoAnalizado(archivo, tipo))
+    const { analizado, companias } = construirArchivoAnalizado(archivo, tipo)
+    archivosAnalizados.push(analizado)
+    for (const c of companias) companiasDetectadas.add(c)
     totalRegistros += archivo.filas.length
   }
 
@@ -274,9 +337,23 @@ export function intentarFastPathTemplate(
   }
   const mapeo_propuesto: MapeoColumnas = { por_archivo: mapeoPorArchivo }
 
-  const companiasDetectadas = new Set<string>()
-  for (const a of archivosAnalizados) {
-    for (const r of a.ramos_detectados) companiasDetectadas.add(r)
+  // Resolver `existe` de cada compañía contra el catálogo del CRM.
+  const catalogo = await cargarCompaniasCatalogo()
+  const catalogoNorm = new Set(catalogo.map((n) => n.trim().toLowerCase()))
+  const companiasObj = Array.from(companiasDetectadas).map((nombre) => ({
+    nombre,
+    existe: existeEnCatalogo(nombre, catalogoNorm),
+  }))
+
+  const nuevas = companiasObj.filter((c) => !c.existe).map((c) => c.nombre)
+  const advertencias = [
+    'Mapeo automático sin IA (archivo matchea el modelo del CRM).',
+  ]
+  if (nuevas.length > 0) {
+    advertencias.push(
+      `Compañías no encontradas en tu catálogo: ${nuevas.join(', ')}. ` +
+        `Cargálas en /crm/configuracion/catalogos antes de confirmar la importación.`,
+    )
   }
 
   const plan: PlanImportacion = {
@@ -285,11 +362,14 @@ export function intentarFastPathTemplate(
     mapeo_propuesto,
     campos_a_ignorar: [],
     total_registros_estimado: totalRegistros,
+    // Siempre EXCELENTE: el mapeo es 1:1 sin ambigüedad. Que falten catálogos
+    // (compañías nuevas) no degrada la calidad del mapeo — eso lo bloquea
+    // específicamente el banner de "catálogos faltantes" en la UI del plan.
     calidad_estimada: 'EXCELENTE' as CalidadEstimada,
-    advertencias: [
-      'Mapeo automático sin IA (archivo matchea el modelo del CRM).',
-    ],
-    companias_detectadas: Array.from(companiasDetectadas),
+    advertencias,
+    // companias_detectadas como objetos {nombre, existe} para que la UI
+    // muestre "✓ nombre" si existe o "⚠ nombre (nueva)" si no.
+    companias_detectadas: companiasObj as unknown as string[],
     tipo_importacion_sugerida: 'INICIAL',
     tokens_usados: 0,
     costo_usd: 0,

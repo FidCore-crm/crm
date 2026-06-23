@@ -400,7 +400,7 @@ export async function analizarEstructuraArchivos(
 
   // Fast-path: si todos los archivos matchean el template del CRM, no llamamos
   // a Claude. El mapeo es 1:1 trivial y no tiene sentido gastar 60-90s + tokens.
-  const fastPath = intentarFastPathTemplate(archivos);
+  const fastPath = await intentarFastPathTemplate(archivos);
   if (fastPath.aplica && fastPath.plan) {
     return { ok: true, resultado: fastPath.plan };
   }
