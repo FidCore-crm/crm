@@ -22,7 +22,10 @@ import {
   normalizarEmail,
   normalizarTelefono,
   normalizarCodigoPostal,
+  normalizarPatente,
+  CLAVES_RIESGO_NO_TITLECASE,
 } from '@/lib/importacion/normalizadores'
+import { normalizarRefacturacion } from '@/lib/refacturaciones'
 import type {
   DatosExtraidosPoliza,
   DatosExtraidosEndoso,
@@ -97,15 +100,24 @@ async function resolverTipoRiesgo(
 }
 
 /**
- * Patente/motor/chasis siempre UPPERCASE en la DB, sin espacios ni guiones
- * para patente (convención argentina). Idempotente.
+ * Aplica los mismos normalizadores que el importador masivo
+ * (`normalizarRiesgoImportado`):
+ *   - patente / motor / chasis → UPPERCASE (sin espacios/guiones en patente).
+ *   - email dentro del JSONB → lowercase.
+ *   - matrículas / números de serie / IMEI → UPPERCASE.
+ *   - campos cuya key contenga "patente" → patente normalizada.
+ *   - todo lo demás string → Title Case, excepto la blacklist
+ *     (descripciones largas, beneficiarios, campos numéricos puros).
+ * Idempotente.
  */
 function normalizarDetalleTecnico(
   detalle: Record<string, any> | null | undefined
 ): Record<string, any> {
   const raw = { ...(detalle || {}) }
+
+  // 1. Identificadores hardcoded (top-level del riesgo automotor):
   if (typeof raw.patente === 'string') {
-    raw.patente = raw.patente.trim().toUpperCase().replace(/[\s\-]/g, '') || null
+    raw.patente = normalizarPatente(raw.patente) || null
   }
   if (typeof raw.motor === 'string') {
     raw.motor = raw.motor.trim().toUpperCase() || null
@@ -113,9 +125,34 @@ function normalizarDetalleTecnico(
   if (typeof raw.chasis === 'string') {
     raw.chasis = raw.chasis.trim().toUpperCase() || null
   }
-  // Filtrar keys vacías / null / undefined / strings con solo whitespace.
-  // La IA a veces igual mete null o "" en los campos que el PDF no traía,
-  // y los queremos fuera para que la ficha no muestre filas inútiles.
+  if (typeof raw.email === 'string') {
+    raw.email = normalizarEmail(raw.email) || null
+  }
+
+  // 2. Para el resto de campos string, aplicar Title Case excepto blacklist.
+  // El importador hace exactamente esto en `normalizarRiesgoImportado`.
+  const YA_PROCESADAS = new Set(['patente', 'motor', 'chasis', 'email'])
+  for (const [k, v] of Object.entries(raw)) {
+    if (YA_PROCESADAS.has(k)) continue
+    if (CLAVES_RIESGO_NO_TITLECASE.has(k)) continue
+    if (typeof v !== 'string') continue
+    const lower = k.toLowerCase()
+    if (lower.includes('patente')) {
+      raw[k] = normalizarPatente(v)
+    } else if (
+      lower.includes('matricula') ||
+      lower.includes('numero_serie') ||
+      lower === 'imei'
+    ) {
+      raw[k] = v.trim().toUpperCase() || null
+    } else {
+      raw[k] = toTitleCase(v)
+    }
+  }
+
+  // 3. Filtrar keys vacías / null / undefined / strings con solo whitespace.
+  // La IA a veces mete null o "" en los campos que el PDF no traía, y los
+  // queremos fuera para que la ficha no muestre filas inútiles.
   const out: Record<string, any> = {}
   for (const [k, v] of Object.entries(raw)) {
     if (v === null || v === undefined) continue
@@ -394,7 +431,7 @@ export async function aplicarPolizaNueva(params: {
       compania_id: mapeos.compania_id,
       ramo_id: mapeos.ramo_id,
       cobertura_id: mapeos.cobertura_id,
-      refacturacion: mapeos.refacturacion || null,
+      refacturacion: normalizarRefacturacion(mapeos.refacturacion as string | null) || null,
       fecha_inicio: datos.poliza.fecha_inicio,
       fecha_fin: datos.poliza.fecha_fin,
       // Si el PDF trajo "U$S" o "Pesos" en vez de "USD"/"ARS", normalizamos
@@ -623,10 +660,16 @@ export async function aplicarRenovacion(params: {
       compania_id: mapeos.compania_id || (origen as any).compania_id,
       ramo_id: mapeos.ramo_id || (origen as any).ramo_id,
       cobertura_id: mapeos.cobertura_id || (origen as any).cobertura_id,
-      refacturacion: mapeos.refacturacion || (origen as any).refacturacion,
+      // Normalizar igual que aplicarPolizaNueva: si la IA del PDF trae
+      // "Mensual"/"U$S" o el origen los guardó crudos antes de v1.0.36,
+      // los pasamos por los normalizadores antes del INSERT.
+      refacturacion:
+        normalizarRefacturacion(
+          (mapeos.refacturacion || (origen as any).refacturacion) as string | null,
+        ) || (origen as any).refacturacion,
       fecha_inicio: datos.poliza.fecha_inicio,
       fecha_fin: datos.poliza.fecha_fin,
-      moneda: datos.poliza.moneda || 'ARS',
+      moneda: normalizarMoneda(datos.poliza.moneda),
       suma_asegurada: datos.poliza.suma_asegurada || null,
       estado: 'RENOVADA',
       poliza_origen_id,

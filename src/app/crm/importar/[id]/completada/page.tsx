@@ -409,7 +409,8 @@ export default function CompletadaPage() {
         const cc = imp.estadisticas?.catalogos_creados;
         const comps: string[] = Array.isArray(cc?.companias) ? cc.companias : [];
         const rams: string[] = Array.isArray(cc?.ramos) ? cc.ramos : [];
-        if (comps.length === 0 && rams.length === 0) return null;
+        const cobs: string[] = Array.isArray(cc?.coberturas) ? cc.coberturas : [];
+        if (comps.length === 0 && rams.length === 0 && cobs.length === 0) return null;
         return (
           <div className="bg-violet-50 border border-violet-200 rounded-xl p-5 mb-6">
             <div className="flex items-start gap-3">
@@ -440,6 +441,21 @@ export default function CompletadaPage() {
                     </p>
                     <ul className="text-xs text-violet-800 space-y-0.5">
                       {rams.map((n, i) => (
+                        <li key={i} className="flex items-center gap-1.5">
+                          <CheckCircle className="w-3 h-3 text-violet-600" />
+                          <span className="capitalize">{n}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {cobs.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-xs font-medium text-violet-900 mb-1">
+                      Coberturas ({cobs.length})
+                    </p>
+                    <ul className="text-xs text-violet-800 space-y-0.5">
+                      {cobs.map((n, i) => (
                         <li key={i} className="flex items-center gap-1.5">
                           <CheckCircle className="w-3 h-3 text-violet-600" />
                           <span className="capitalize">{n}</span>

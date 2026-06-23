@@ -401,7 +401,8 @@ const CAMPOS_RIESGO_TITLECASE: Array<keyof RiesgoImportado> = [
 // Claves del detalle_tecnico que NO se normalizan a Title Case (mantienen
 // formato original o se pasan a upper). Cubre identificadores de hardware
 // (patentes, motores, números de serie), emails y campos puramente numéricos.
-const CLAVES_RIESGO_NO_TITLECASE = new Set([
+// Exportado para que `aplicador.ts` (agente PDF) use el MISMO criterio.
+export const CLAVES_RIESGO_NO_TITLECASE = new Set([
   // Identificadores que van en upper o mantienen su formato
   'patente', 'motor', 'chasis', 'numero_serie', 'imei', 'matricula',
   'cuit_empleador', 'actividad_ciiu',
