@@ -5,6 +5,7 @@
 
 import { llamarClaude, esErrorPermanente, marcarErrorFatal } from '@/lib/anthropic-client';
 import { getSupabaseAdmin } from '@/lib/supabase/server';
+import { intentarFastPathTemplate } from '@/lib/importacion/fast-path-template';
 import type {
   ArchivoAnalizado as ArchivoAnalizadoType,
   CalidadEstimada,
@@ -395,6 +396,13 @@ export async function analizarEstructuraArchivos(
 }> {
   if (!archivos || archivos.length === 0) {
     return { ok: false, error: 'No se recibieron archivos para analizar' };
+  }
+
+  // Fast-path: si todos los archivos matchean el template del CRM, no llamamos
+  // a Claude. El mapeo es 1:1 trivial y no tiene sentido gastar 60-90s + tokens.
+  const fastPath = intentarFastPathTemplate(archivos);
+  if (fastPath.aplica && fastPath.plan) {
+    return { ok: true, resultado: fastPath.plan };
   }
 
   const ctx = await cargarCatalogosContexto();
