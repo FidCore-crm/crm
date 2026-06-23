@@ -834,8 +834,20 @@ function matchearRamo(
 ): { id: string; nombre: string; tipo_riesgo: string } | null {
   const norm = normalizar(nombre);
   if (!norm) return null;
+  // Pasada 1: match por NOMBRE. El nombre es lo que el PAS ve en la UI y es
+  // la fuente de verdad. El código es un slug interno que puede tener sufijos
+  // (`AUTO_2`, etc.) cuando hay colisiones — usar código como primer criterio
+  // confunde casos donde "Auto" (cod AUTO_2) y "Moto" (cod AUTO) coexisten y
+  // el archivo dice "Auto" → terminaría matcheando Moto.
   for (const r of ctx.ramos) {
-    if (normalizar(r.nombre) === norm || normalizar(r.codigo) === norm) {
+    if (normalizar(r.nombre) === norm) {
+      return { id: r.id, nombre: r.nombre, tipo_riesgo: r.tipo_riesgo };
+    }
+  }
+  // Pasada 2: match por CÓDIGO (fallback para casos donde el archivo trae
+  // el slug en vez del nombre comercial).
+  for (const r of ctx.ramos) {
+    if (normalizar(r.codigo) === norm) {
       return { id: r.id, nombre: r.nombre, tipo_riesgo: r.tipo_riesgo };
     }
   }
@@ -858,25 +870,35 @@ function matchearCobertura(
   const norm = normalizar(nombre);
   if (!norm) return null;
 
-  const coincide = (c: (typeof ctx.coberturas)[number]): boolean => {
-    if (normalizar(c.nombre) === norm) return true;
-    if (normalizar(c.codigo) === norm) return true;
-    if (c.equivalencias?.some((e) => normalizar(e) === norm)) return true;
-    return false;
-  };
+  // Misma lógica de prioridad que matchearRamo: NOMBRE primero, después
+  // equivalencias, después código (para evitar colisiones tipo "Auto"→cod
+  // AUTO_2 vs "Moto"→cod AUTO).
+  const coincidePorNombre = (c: (typeof ctx.coberturas)[number]) =>
+    normalizar(c.nombre) === norm;
+  const coincidePorEquivalencia = (c: (typeof ctx.coberturas)[number]) =>
+    c.equivalencias?.some((e) => normalizar(e) === norm) ?? false;
+  const coincidePorCodigo = (c: (typeof ctx.coberturas)[number]) =>
+    normalizar(c.codigo) === norm;
 
-  // Primera pasada: sólo las del ramo actual
-  if (ramoId) {
-    for (const c of ctx.coberturas) {
-      if (!c.ramo_ids.includes(ramoId)) continue;
-      if (coincide(c)) return { id: c.id, nombre: c.nombre };
+  // Acumulamos las pasadas para ejecutarlas en orden de prioridad.
+  // Para cada criterio probamos primero contra las del ramo (si hay ramoId)
+  // y luego match global.
+  const criterios: Array<(c: (typeof ctx.coberturas)[number]) => boolean> = [
+    coincidePorNombre,
+    coincidePorEquivalencia,
+    coincidePorCodigo,
+  ];
+
+  for (const criterio of criterios) {
+    if (ramoId) {
+      for (const c of ctx.coberturas) {
+        if (!c.ramo_ids.includes(ramoId)) continue;
+        if (criterio(c)) return { id: c.id, nombre: c.nombre };
+      }
     }
-  }
-  // Segunda pasada: match global (si no pasa la del ramo). Útil cuando la
-  // cobertura existe pero le falta metadata.ramo_ids; preferimos cargarla
-  // antes que dejar el campo vacío.
-  for (const c of ctx.coberturas) {
-    if (coincide(c)) return { id: c.id, nombre: c.nombre };
+    for (const c of ctx.coberturas) {
+      if (criterio(c)) return { id: c.id, nombre: c.nombre };
+    }
   }
   return null;
 }
@@ -887,8 +909,14 @@ function matchearCatalogoSimple(
 ): { id: string; nombre: string } | null {
   const norm = normalizar(nombre);
   if (!norm) return null;
+  // Nombre primero, después código (mismo principio que matchearRamo).
   for (const x of lista) {
-    if (normalizar(x.nombre) === norm || normalizar(x.codigo) === norm) {
+    if (normalizar(x.nombre) === norm) {
+      return { id: x.id, nombre: x.nombre };
+    }
+  }
+  for (const x of lista) {
+    if (normalizar(x.codigo) === norm) {
       return { id: x.id, nombre: x.nombre };
     }
   }

@@ -13,6 +13,12 @@ import { logger } from '@/lib/errores'
 import { activarRenovadaSiCorresponde } from '@/lib/polizas-transiciones'
 import { encolarEmailAutomaticoPoliza } from '@/lib/polizas-emails'
 import { encolarBienvenidaCliente } from '@/lib/personas-emails'
+import {
+  normalizarEstadoPersona,
+  normalizarTipoPersona,
+  normalizarEstadoPoliza,
+  normalizarMoneda,
+} from '@/lib/importacion/normalizadores'
 import type {
   DatosExtraidosPoliza,
   DatosExtraidosEndoso,
@@ -139,10 +145,16 @@ async function insertarPersona(
   if (!dni) throw new Error('No se puede crear persona sin DNI/CUIT')
 
   const apellido = datos.apellido || datos.nombre_completo || datos.razon_social || 'Sin apellido'
+  // Normalizadores tolerantes igual que el importador: si la IA extrae
+  // `tipo_persona='Física'` o `estado='Activo'` (capitalizado), no choca
+  // contra el CHECK constraint de personas.
   const { data: creada, error } = await supabase
     .from('personas')
     .insert({
-      tipo_persona: datos.tipo_persona || 'FISICA',
+      tipo_persona: normalizarTipoPersona(
+        (datos as unknown as Record<string, unknown>).tipo_persona as string | null | undefined,
+        dni,
+      ),
       dni_cuil: dni,
       apellido,
       nombre: datos.nombre || null,
@@ -155,7 +167,9 @@ async function insertarPersona(
       provincia: datos.domicilio?.provincia || null,
       codigo_postal: datos.domicilio?.codigo_postal || null,
       pais: 'Argentina',
-      estado: 'ACTIVO',
+      estado: normalizarEstadoPersona(
+        (datos as unknown as Record<string, unknown>).estado as string | null | undefined,
+      ),
       origen: 'AGENTE_PDF',
       // Distingue altas reales (AGENTE_PDF y MANUAL) de importadas
       // a los fines de disparar bienvenida del cliente.
@@ -362,9 +376,13 @@ export async function aplicarPolizaNueva(params: {
       refacturacion: mapeos.refacturacion || null,
       fecha_inicio: datos.poliza.fecha_inicio,
       fecha_fin: datos.poliza.fecha_fin,
-      moneda: datos.poliza.moneda || 'ARS',
+      // Si el PDF trajo "U$S" o "Pesos" en vez de "USD"/"ARS", normalizamos
+      // para que no choque contra ningún check downstream.
+      moneda: normalizarMoneda(datos.poliza.moneda),
       suma_asegurada: datos.poliza.suma_asegurada || null,
-      estado,
+      // estado ya viene calculado por `calcularEstadoPoliza`, pero pasamos
+      // por el normalizador por seguridad si alguien edita la función.
+      estado: normalizarEstadoPoliza(estado) || estado,
       origen_creacion: 'AGENTE_PDF',
     } as any)
     .select('id')

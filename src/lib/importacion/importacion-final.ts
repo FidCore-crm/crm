@@ -670,6 +670,27 @@ export async function ejecutarImportacionFinal(
   // bloque N, el bloque N+1 debe poder resolverla por DNI sin re-insertarla.
   const dniToIdAcum = new Map<string, string>();
 
+  // Cache ramo_id → tipo_riesgo. Lo usamos para crear riesgos placeholder
+  // cuando el archivo no trae datos del bien asegurado (típico: ramos como
+  // Robo o RC que no tienen columnas dedicadas en el template del CRM).
+  const ramosUsados = new Set<string>();
+  for (const f of finales) {
+    const ramoId = (f.poliza as Record<string, unknown> | null)?.ramo_id as string | null | undefined;
+    if (ramoId) ramosUsados.add(ramoId);
+  }
+  const ramoIdATipoRiesgo = new Map<string, string>();
+  if (ramosUsados.size > 0) {
+    const { data: ramos } = await supa
+      .from('catalogos')
+      .select('id, metadata')
+      .in('id', Array.from(ramosUsados));
+    for (const r of ((ramos || []) as Array<{ id: string; metadata: Record<string, unknown> | null }>)) {
+      const meta = r.metadata ?? {};
+      const tipo = (meta as { tipo_riesgo?: string }).tipo_riesgo || 'generico';
+      ramoIdATipoRiesgo.set(r.id, tipo);
+    }
+  }
+
   for (let offset = 0; offset < finales.length; offset += BLOQUE) {
     const bloque = finales.slice(offset, offset + BLOQUE);
     await procesarBloque(bloque, {
@@ -677,6 +698,7 @@ export async function ejecutarImportacionFinal(
       ids_actualizados,
       errores,
       dniToIdAcum,
+      ramoIdATipoRiesgo,
     });
   }
 
@@ -758,6 +780,13 @@ async function procesarBloque(
      * X sin re-insertar. Se mantiene vivo a través de todos los bloques.
      */
     dniToIdAcum?: Map<string, string>;
+    /**
+     * Cache ramo_id → tipo_riesgo. Lo usamos cuando una póliza nueva no
+     * tiene entidad riesgo (archivo no trajo datos del bien): creamos un
+     * riesgo placeholder con el tipo derivado del ramo en lugar de dejar
+     * la póliza sin ningún riesgo asociado.
+     */
+    ramoIdATipoRiesgo?: Map<string, string>;
   }
 ): Promise<void> {
   const supa = getSupabaseAdmin();
@@ -1021,14 +1050,55 @@ async function procesarBloque(
   type RiesgoInsertRow = Record<string, unknown>;
   const riesgosInsert: Array<{ row: RiesgoInsertRow; registro: RegistroFinal }> = [];
 
+  // Resolver tipo_riesgo desde el cache de ramos (precargado en la fase
+  // anterior). Si el ramo no está en el cache o no tiene tipo definido,
+  // caemos a 'generico' para no romper el INSERT por CHECK constraint.
+  const obtenerTipoRiesgoDeRamo = (ramoId: string | null | undefined): string => {
+    if (!ramoId) return 'generico';
+    return acc.ramoIdATipoRiesgo?.get(ramoId) || 'generico';
+  };
+
+  // Si el ramo de la póliza tiene tipo_riesgo conocido, lo cacheamos para
+  // crear placeholders cuando el archivo no trae datos del bien asegurado.
+  // Caso típico: ramo "Robo" no tiene columnas dedicadas en el template del
+  // CRM (no patente, no marca, no calle), entonces `entidades.riesgo` queda
+  // null. Sin esto, la póliza quedaba sin ningún riesgo asociado en la DB y
+  // la ficha de la póliza en la UI se veía "vacía" en el panel de riesgos.
   for (const p of polizasInsert) {
-    if (!p.registro.riesgo) continue;
     const polizaId = polizaRowToId.get(p.row);
     if (!polizaId) continue;
-    riesgosInsert.push({
-      row: mapeoRiesgo(p.registro.riesgo, polizaId),
-      registro: p.registro,
-    });
+
+    if (p.registro.riesgo) {
+      // Caso normal: el archivo trajo datos del bien (patente, marca, etc.).
+      // Si el riesgo no trae tipo_riesgo explícito, lo derivamos del ramo.
+      const r = { ...p.registro.riesgo };
+      if (!r.tipo_riesgo) {
+        const rowPol = p.row as Record<string, unknown>;
+        r.tipo_riesgo = obtenerTipoRiesgoDeRamo(rowPol.ramo_id as string | null);
+      }
+      riesgosInsert.push({
+        row: mapeoRiesgo(r, polizaId),
+        registro: p.registro,
+      });
+    } else {
+      // Caso placeholder: derivamos tipo_riesgo del ramo de la póliza si lo
+      // hay y guardamos las observaciones del archivo como `descripcion_corta`
+      // para que el PAS pueda completar después desde la ficha de póliza.
+      const rowPol = p.row as Record<string, unknown>;
+      const tipoRiesgo = obtenerTipoRiesgoDeRamo(rowPol.ramo_id as string | null);
+      const observaciones = (rowPol.observaciones as string | null) || null;
+      riesgosInsert.push({
+        row: {
+          poliza_id: polizaId,
+          tipo_riesgo: tipoRiesgo,
+          descripcion_corta: observaciones,
+          suma_asegurada: null,
+          detalle_tecnico: {},
+          activo: true,
+        },
+        registro: p.registro,
+      });
+    }
   }
 
   // Riesgos para pólizas UPDATE (incremental): sólo insertar si la póliza NO
@@ -1070,12 +1140,24 @@ async function procesarBloque(
       .insert(riesgosInsert.map((r) => r.row))
       .select('id');
     if (error) {
+      // Fallback fila-por-fila: si UNA viola CHECK constraint o constraint
+      // único, el batch entero falla y perdemos todos los demás. Reintentamos
+      // de a uno para conservar lo que se pueda y reportar errores por fila.
       for (const r of riesgosInsert) {
-        acc.errores.push({
-          fila: r.registro.numero_fila_archivo,
-          archivo: r.registro.archivo_origen,
-          error: `Insert riesgo: ${error.message}`,
-        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: creadaIndiv, error: errIndiv } = await (supa.from('riesgos') as any)
+          .insert(r.row)
+          .select('id')
+          .single();
+        if (!errIndiv && creadaIndiv) {
+          acc.ids_creados.riesgos.push((creadaIndiv as { id: string }).id);
+        } else {
+          acc.errores.push({
+            fila: r.registro.numero_fila_archivo,
+            archivo: r.registro.archivo_origen,
+            error: `Insert riesgo: ${errIndiv?.message || error.message}`,
+          });
+        }
       }
     } else {
       const creadasRows = (creadas || []) as Array<{ id: string }>;
