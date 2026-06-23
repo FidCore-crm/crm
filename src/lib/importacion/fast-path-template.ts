@@ -367,9 +367,9 @@ export async function intentarFastPathTemplate(
     // específicamente el banner de "catálogos faltantes" en la UI del plan.
     calidad_estimada: 'EXCELENTE' as CalidadEstimada,
     advertencias,
-    // companias_detectadas como objetos {nombre, existe} para que la UI
-    // muestre "✓ nombre" si existe o "⚠ nombre (nueva)" si no.
-    companias_detectadas: companiasObj as unknown as string[],
+    // Objetos {nombre, existe} para que la UI muestre "✓ nombre" si existe
+    // o "⚠ nombre (nueva)" si no. El tipo soporta esta variante desde v1.0.33.
+    companias_detectadas: companiasObj,
     tipo_importacion_sugerida: 'INICIAL',
     tokens_usados: 0,
     costo_usd: 0,

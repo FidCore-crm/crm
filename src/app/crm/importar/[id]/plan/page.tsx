@@ -345,7 +345,20 @@ export default function PlanPage() {
 
   const calidad = plan.calidad_estimada || 'REGULAR';
   const vinculacion = plan.vinculacion_detectada;
-  const companiasDetectadas: string[] = plan.companias_detectadas || [];
+  // `companias_detectadas` puede venir como strings (flujo IA tradicional) o
+  // como objetos { nombre, existe } (fast-path del template). Normalizamos a
+  // un shape común para el render.
+  const companiasDetectadasRaw = (plan.companias_detectadas || []) as Array<
+    string | { nombre?: string; codigo?: string; existe?: boolean }
+  >;
+  const companiasDetectadas: Array<{ nombre: string; existe: boolean }> =
+    companiasDetectadasRaw.map((c) => {
+      if (typeof c === 'string') return { nombre: c, existe: true };
+      return {
+        nombre: c?.nombre || c?.codigo || 'Sin nombre',
+        existe: c?.existe !== false,
+      };
+    });
   const hayCatalogosFaltantes = (catalogosFaltantes?.total ?? 0) > 0;
 
   return (
@@ -511,8 +524,11 @@ export default function PlanPage() {
             ) : (
               <ul className="space-y-1 text-sm">
                 {companiasDetectadas.map((c) => (
-                  <li key={c} className="text-slate-700">
-                    • {c}
+                  <li key={c.nombre} className="text-slate-700">
+                    • {c.nombre}
+                    {!c.existe && (
+                      <span className="text-2xs text-amber-700 ml-1">(nueva)</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -722,10 +738,15 @@ export default function PlanPage() {
           <ul className="space-y-2">
             {companiasDetectadas.map((c) => (
               <li
-                key={c}
+                key={c.nombre}
                 className="flex items-center justify-between p-2 border border-slate-100 rounded-lg"
               >
-                <span className="text-sm text-slate-700">{c}</span>
+                <span className="text-sm text-slate-700">
+                  {c.nombre}
+                  {!c.existe && (
+                    <span className="text-2xs text-amber-700 ml-1">(nueva)</span>
+                  )}
+                </span>
                 <span className="text-2xs text-slate-500 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3 text-amber-500" />
                   Verificar en catálogos del CRM

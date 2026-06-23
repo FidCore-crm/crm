@@ -327,7 +327,10 @@ export interface PlanImportacion {
   total_registros_estimado: number;
   calidad_estimada: CalidadEstimada;
   advertencias: string[];
-  companias_detectadas: string[];
+  // string[] = formato histórico (compat con planes generados antes de v1.0.33).
+  // Array<{nombre,existe}> = formato del fast-path desde v1.0.33, marca cuáles
+  // están en el catálogo del PAS. La UI debe normalizar ambos shapes.
+  companias_detectadas: string[] | Array<{ nombre: string; existe: boolean }>;
   tipo_importacion_sugerida: TipoImportacion;
   tokens_usados: number;
   costo_usd: number;

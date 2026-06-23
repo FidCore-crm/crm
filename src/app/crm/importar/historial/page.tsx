@@ -252,6 +252,28 @@ function HistorialContent() {
     setDeshaciendoId(null);
   }
 
+  // Una importación se puede cancelar si está en un estado intermedio
+  // (todavía no se completó). Los estados terminales son COMPLETADA,
+  // FALLIDA y CANCELADA.
+  function puedeCancelar(estado: string): boolean {
+    return ['PENDIENTE', 'ANALIZANDO', 'ANALIZADO', 'REVISANDO', 'IMPORTANDO', 'PAUSADA'].includes(estado);
+  }
+
+  async function cancelarImp(e: React.MouseEvent, imp: Importacion) {
+    e.stopPropagation();
+    if (
+      !window.confirm(
+        '¿Seguro que querés cancelar esta importación? Se borra el progreso pero los archivos quedan en el servidor.'
+      )
+    )
+      return;
+    const r = await apiCall(`/api/importar/${imp.id}/cancelar`, { method: 'POST' });
+    if (r.ok) {
+      toast.exito('Importación cancelada');
+      await cargarListado();
+    }
+  }
+
   function nombreUsuario(usuarioId: string | null): string {
     if (!usuarioId) return '—';
     const u = usuariosMap[usuarioId];
@@ -571,6 +593,16 @@ function HistorialContent() {
                                 <RotateCcw className="w-3 h-3" />
                               )}
                               Deshacer
+                            </button>
+                          )}
+                          {puedeCancelar(imp.estado_proceso) && (
+                            <button
+                              className="text-2xs text-red-700 hover:text-red-900 inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-red-50"
+                              onClick={(e) => cancelarImp(e, imp)}
+                              title="Cancelar importación"
+                            >
+                              <X className="w-3 h-3" />
+                              Cancelar
                             </button>
                           )}
                         </div>
