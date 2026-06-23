@@ -14,6 +14,7 @@ import {
   Edit3,
 } from 'lucide-react';
 import { apiCall } from '@/lib/api-client';
+import { obtenerTipoRiesgo } from '@/lib/tipos-riesgo';
 import type {
   ArchivoMetadata,
   EstadisticasImportacion,
@@ -606,14 +607,23 @@ function CampoDump({
         <p className="text-slate-400 italic">sin datos</p>
       ) : (
         <dl className="space-y-0.5">
-          {entries.map(([k, v]) => (
-            <div key={k} className="flex gap-1">
-              <dt className="text-slate-500 min-w-[90px] flex-shrink-0">{k}</dt>
-              <dd className="font-mono text-slate-800 break-all">
-                {typeof v === 'object' ? JSON.stringify(v) : String(v)}
-              </dd>
-            </div>
-          ))}
+          {entries.map(([k, v]) => {
+            // El valor crudo de `tipo_riesgo` es un identificador interno
+            // ('automotor', 'integrales', etc). Lo mostramos como label
+            // legible para el PAS ("Automotor", "Integrales", ...).
+            const display =
+              k === 'tipo_riesgo' && typeof v === 'string'
+                ? obtenerTipoRiesgo(v).label
+                : typeof v === 'object'
+                  ? JSON.stringify(v)
+                  : String(v);
+            return (
+              <div key={k} className="flex gap-1">
+                <dt className="text-slate-500 min-w-[90px] flex-shrink-0">{k}</dt>
+                <dd className="font-mono text-slate-800 break-all">{display}</dd>
+              </div>
+            );
+          })}
         </dl>
       )}
     </div>

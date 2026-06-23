@@ -22,7 +22,7 @@ import {
 } from '@/lib/importacion/validators'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
-import { TIPOS_RIESGO } from '@/lib/tipos-riesgo'
+import { TIPOS_RIESGO, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -143,17 +143,26 @@ function tituloEntidad(d: Dudoso): string {
     return `Póliza ${ent.poliza.numero_poliza ?? '—'}`
   }
   if (d.tipo_entidad === 'RIESGO' && ent.riesgo) {
-    return `Riesgo ${ent.riesgo.tipo_riesgo ?? ''} ${ent.riesgo.descripcion_corta ?? ''}`.trim()
+    const tr = ent.riesgo.tipo_riesgo
+      ? obtenerTipoRiesgo(ent.riesgo.tipo_riesgo).label
+      : ''
+    return `Riesgo ${tr} ${ent.riesgo.descripcion_corta ?? ''}`.trim()
   }
   return d.tipo_entidad
 }
 
 function DlItem({ k, v }: { k: string; v: unknown }) {
   if (v === null || v === undefined || v === '') return null
+  // El valor de `tipo_riesgo` es un identificador interno ('automotor', etc).
+  // Mostramos el label legible del catálogo TIPOS_RIESGO.
+  const display =
+    k === 'tipo_riesgo' && typeof v === 'string'
+      ? obtenerTipoRiesgo(v).label
+      : String(v)
   return (
     <div className="flex gap-2 text-xs">
       <dt className="text-slate-500 min-w-[120px]">{k}</dt>
-      <dd className="font-mono text-slate-800 break-all">{String(v)}</dd>
+      <dd className="font-mono text-slate-800 break-all">{display}</dd>
     </div>
   )
 }
