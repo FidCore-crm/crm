@@ -350,6 +350,23 @@ export function normalizarCodigoPostal(
   return s || null
 }
 
+/**
+ * Canal preferido de contacto → uno de los 4 valores válidos del CHECK
+ * constraint de `personas.canal_preferido`. Si el archivo trae "email",
+ * "Email", "e-mail" se mapea a EMAIL. Default: EMAIL.
+ */
+export function normalizarCanalPreferido(
+  valor: string | null | undefined
+): 'EMAIL' | 'WHATSAPP' | 'TELEFONO' | 'CORREO' {
+  if (valor === null || valor === undefined || valor === '') return 'EMAIL'
+  const v = String(valor).trim().toUpperCase().replace(/[\s\-_]+/g, '')
+  if (v === 'EMAIL' || v === 'MAIL' || v === 'EMAIL' || v === 'CORREOELECTRONICO') return 'EMAIL'
+  if (v === 'WHATSAPP' || v === 'WSP' || v === 'WP' || v === 'WA') return 'WHATSAPP'
+  if (v === 'TELEFONO' || v === 'TEL' || v === 'PHONE' || v === 'CELULAR' || v === 'CEL') return 'TELEFONO'
+  if (v === 'CORREO' || v === 'POSTAL') return 'CORREO'
+  return 'EMAIL'
+}
+
 // ---------------------------------------------------------------------------
 // Normalización por entidad
 // ---------------------------------------------------------------------------

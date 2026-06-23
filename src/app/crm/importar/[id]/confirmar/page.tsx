@@ -391,7 +391,10 @@ export default function ConfirmarPage() {
             {companiasDetectadas.map((c, i: number) => {
               const nombre =
                 typeof c === 'string' ? c : c?.nombre || c?.codigo || 'Sin nombre';
-              const existe = typeof c === 'object' && c?.existe !== false;
+              // Estricto: solo "existe" si el flag viene true explícito. Si es
+              // string (formato legacy del análisis IA) asumimos que existe;
+              // si es objeto con existe undefined, asumimos NUEVA (conservador).
+              const existe = typeof c === 'string' ? true : c?.existe === true;
               return (
                 <li
                   key={i}

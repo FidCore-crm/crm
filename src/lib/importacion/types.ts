@@ -369,6 +369,7 @@ export interface EstadisticasImportacion {
   catalogos_creados?: {
     companias: string[];
     ramos: string[];
+    coberturas?: string[];
   };
   clientes_actualizados?: number;
   polizas_actualizadas?: number;

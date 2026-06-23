@@ -354,9 +354,11 @@ export default function PlanPage() {
   const companiasDetectadas: Array<{ nombre: string; existe: boolean }> =
     companiasDetectadasRaw.map((c) => {
       if (typeof c === 'string') return { nombre: c, existe: true };
+      // Estricto: solo verde si `existe === true` explícito. Defensa contra
+      // shape inesperado donde existe podría venir undefined.
       return {
         nombre: c?.nombre || c?.codigo || 'Sin nombre',
-        existe: c?.existe !== false,
+        existe: c?.existe === true,
       };
     });
   const hayCatalogosFaltantes = (catalogosFaltantes?.total ?? 0) > 0;

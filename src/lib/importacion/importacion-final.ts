@@ -11,6 +11,7 @@ import {
   normalizarEstadoPoliza,
   normalizarTipoPersona,
   normalizarMoneda,
+  normalizarCanalPreferido,
 } from '@/lib/importacion/normalizadores';
 import type {
   DudosoRow,
@@ -124,6 +125,7 @@ function slugCatalogo(nombre: string): string {
 export async function insertarCatalogoUpsert(
   tipo_id: number,
   nombre: string,
+  metadata?: Record<string, unknown>,
 ): Promise<string | null> {
   const supa = getSupabaseAdmin();
   const nombreLimpio = nombre.trim();
@@ -158,7 +160,7 @@ export async function insertarCatalogoUpsert(
         nombre: nombreLimpio,
         codigo,
         activo: true,
-        metadata: {},
+        metadata: metadata ?? {},
       })
       .select('id')
       .single();
@@ -206,11 +208,13 @@ export async function crearCatalogosPendientes(
 ): Promise<{
   companias_creadas: Map<string, string>;
   ramos_creados: Map<string, string>;
+  coberturas_creadas: Map<string, string>;
   errores: string[];
 }> {
   const supa = getSupabaseAdmin();
   const companias_creadas = new Map<string, string>();
   const ramos_creados = new Map<string, string>();
+  const coberturas_creadas = new Map<string, string>();
   const errores: string[] = [];
 
   const { data: dudosos, error: errD } = await supa
@@ -222,11 +226,18 @@ export async function crearCatalogosPendientes(
 
   if (errD) {
     errores.push(`No se pudieron leer resoluciones: ${errD.message}`);
-    return { companias_creadas, ramos_creados, errores };
+    return { companias_creadas, ramos_creados, coberturas_creadas, errores };
   }
 
-  // Extraer (tipo → set de nombres únicos)
-  const porTipo = { compania: new Set<string>(), ramo: new Set<string>() };
+  // Extraer (tipo → Map<nombre, metadata>). El metadata permite que el PAS
+  // haya elegido un `tipo_riesgo` al crear un ramo nuevo desde la pantalla de
+  // dudosos — sin eso el ramo quedaba con metadata={} y todos los riesgos
+  // asociados caían en 'generico' (placeholder vacío en el form).
+  const porTipo = {
+    compania: new Map<string, Record<string, unknown>>(),
+    ramo: new Map<string, Record<string, unknown>>(),
+    cobertura: new Map<string, Record<string, unknown>>(),
+  };
   type DudosoResolucion = Pick<DudosoRow, 'resolucion_datos' | 'resolucion_accion' | 'estado_resolucion'>;
   for (const d of ((dudosos || []) as DudosoResolucion[])) {
     const datos = d?.resolucion_datos as JSONObject | null | undefined;
@@ -234,36 +245,56 @@ export async function crearCatalogosPendientes(
     const nombre = String(datos.nombre || '').trim();
     const tipoRaw = String(datos.tipo || '').toLowerCase();
     if (!nombre) continue;
+    const clave = nombre.toLowerCase().trim();
     if (tipoRaw === 'compania' || tipoRaw === 'compañia' || tipoRaw === 'compañía') {
-      porTipo.compania.add(nombre);
+      if (!porTipo.compania.has(clave)) porTipo.compania.set(clave, {});
     } else if (tipoRaw === 'ramo') {
-      porTipo.ramo.add(nombre);
+      const tipoRiesgo = String(datos.tipo_riesgo || '').trim().toLowerCase();
+      const metaPrev = porTipo.ramo.get(clave) ?? {};
+      // Si dos dudosos de ramo coinciden en el nombre pero traen tipo_riesgo
+      // distinto, el primero gana (no debería pasar en la práctica).
+      if (tipoRiesgo && !metaPrev.tipo_riesgo) {
+        metaPrev.tipo_riesgo = tipoRiesgo;
+      }
+      metaPrev.__nombre_original = nombre;
+      porTipo.ramo.set(clave, metaPrev);
+    } else if (tipoRaw === 'cobertura') {
+      const metaPrev = porTipo.cobertura.get(clave) ?? {};
+      metaPrev.__nombre_original = nombre;
+      porTipo.cobertura.set(clave, metaPrev);
     }
   }
 
-  if (porTipo.compania.size === 0 && porTipo.ramo.size === 0) {
-    return { companias_creadas, ramos_creados, errores };
+  if (porTipo.compania.size === 0 && porTipo.ramo.size === 0 && porTipo.cobertura.size === 0) {
+    return { companias_creadas, ramos_creados, coberturas_creadas, errores };
   }
 
   // Obtener tipo_ids
   const { data: tipos } = await supa
     .from('tipo_catalogo')
     .select('id, codigo')
-    .in('codigo', ['COMPANIA', 'RAMO']);
+    .in('codigo', ['COMPANIA', 'RAMO', 'COBERTURA']);
   const tiposRows = (tipos || []) as TipoCatalogoRow[];
   const tipoCompaniaId = tiposRows.find((t) => t.codigo === 'COMPANIA')?.id;
   const tipoRamoId = tiposRows.find((t) => t.codigo === 'RAMO')?.id;
+  const tipoCoberturaId = tiposRows.find((t) => t.codigo === 'COBERTURA')?.id;
 
   async function crearEnCatalogo(
     tipo_id: number,
-    nombres: Set<string>,
-    destino: Map<string, string>
+    entradas: Map<string, Record<string, unknown>>,
+    destino: Map<string, string>,
+    incluirMetadata: boolean,
   ) {
-    for (const nombre of Array.from(nombres)) {
-      const clave = nombre.toLowerCase().trim();
+    for (const [clave, meta] of Array.from(entradas.entries())) {
       if (destino.has(clave)) continue;
+      const nombre = String(meta.__nombre_original ?? clave);
       try {
-        const id = await insertarCatalogoUpsert(tipo_id, nombre);
+        const metadata = incluirMetadata
+          ? Object.fromEntries(
+              Object.entries(meta).filter(([k]) => !k.startsWith('__')),
+            )
+          : undefined;
+        const id = await insertarCatalogoUpsert(tipo_id, nombre, metadata);
         if (id) destino.set(clave, id);
       } catch (e) {
         const err = e as { message?: string } | string;
@@ -274,17 +305,26 @@ export async function crearCatalogosPendientes(
   }
 
   if (tipoCompaniaId && porTipo.compania.size > 0) {
-    await crearEnCatalogo(tipoCompaniaId, porTipo.compania, companias_creadas);
+    await crearEnCatalogo(tipoCompaniaId, porTipo.compania, companias_creadas, false);
   } else if (porTipo.compania.size > 0) {
     errores.push('No se encontró tipo_catalogo COMPANIA');
   }
   if (tipoRamoId && porTipo.ramo.size > 0) {
-    await crearEnCatalogo(tipoRamoId, porTipo.ramo, ramos_creados);
+    await crearEnCatalogo(tipoRamoId, porTipo.ramo, ramos_creados, true);
   } else if (porTipo.ramo.size > 0) {
     errores.push('No se encontró tipo_catalogo RAMO');
   }
+  if (tipoCoberturaId && porTipo.cobertura.size > 0) {
+    // Coberturas se crean SIN metadata.ramo_ids — el PAS las verá disponibles
+    // en el catálogo pero no aparecen filtradas por ramo en el form de pólizas
+    // hasta que él complete la metadata desde /crm/configuracion/catalogos.
+    // Es deuda menor a cambio de desbloquear la importación.
+    await crearEnCatalogo(tipoCoberturaId, porTipo.cobertura, coberturas_creadas, false);
+  } else if (porTipo.cobertura.size > 0) {
+    errores.push('No se encontró tipo_catalogo COBERTURA');
+  }
 
-  return { companias_creadas, ramos_creados, errores };
+  return { companias_creadas, ramos_creados, coberturas_creadas, errores };
 }
 
 function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
@@ -302,6 +342,12 @@ function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
     apellido: pr.apellido || pr.razon_social || 'S/D',
     pais: pr.pais || 'Argentina',
     estado: normalizarEstadoPersona(pr.estado as string | null | undefined),
+    // canal_preferido tiene CHECK constraint (EMAIL/WHATSAPP/TELEFONO/CORREO).
+    // Si el archivo trae "email", "Email", "WhatsApp" lo mapeamos al enum.
+    // Si no viene, queda en default 'EMAIL'.
+    canal_preferido: normalizarCanalPreferido(
+      pr.canal_preferido as string | null | undefined,
+    ),
     // Marca la persona como importada para que NO se le mande bienvenida
     // de cliente automática (los clientes importados vienen de otra cartera).
     origen_creacion: 'IMPORTACION',
@@ -316,6 +362,9 @@ function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
   // OJO: `estado` y `tipo_persona` NO van en esta lista porque ya se setean
   // arriba con su normalizador. Si los pusiéramos acá, el loop los sobreescribiría
   // con el valor crudo y volvería el bug del CHECK constraint.
+  // OJO: `canal_preferido` NO va acá porque ya se setea arriba con su
+  // normalizador. Si lo pusiéramos en el loop, sobreescribiría con el valor
+  // crudo y podría violar el CHECK constraint.
   const keys = [
     'nombre',
     'razon_social',
@@ -333,7 +382,6 @@ function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
     'codigo_postal',
     'origen',
     'segmento',
-    'canal_preferido',
   ];
   for (const k of keys) {
     const v = pr[k];
@@ -595,7 +643,7 @@ export async function ejecutarImportacionFinal(
         const datos = (res.resolucion_datos ?? {}) as JSONObject;
 
         if (accion === 'ACEPTAR_PROPUESTA' || accion === 'EDITAR') {
-          // Caso especial: crear nuevo catálogo (compañía o ramo)
+          // Caso especial: crear nuevo catálogo (compañía, ramo o cobertura)
           if (datos && datos.crear_nuevo === true && typeof datos.nombre === 'string') {
             const clave = String(datos.nombre).toLowerCase().trim();
             const tipoRaw = String(datos.tipo || '').toLowerCase();
@@ -617,6 +665,16 @@ export async function ejecutarImportacionFinal(
                   fila: r.numero_fila_archivo,
                   archivo: r.archivo_origen,
                   error: `No se pudo resolver ramo nuevo "${datos.nombre}"`,
+                });
+              }
+            } else if (tipoRaw === 'cobertura') {
+              const id = catalogosCreados.coberturas_creadas.get(clave);
+              if (id && poliza) poliza.cobertura_id = id;
+              else if (!id) {
+                errores.push({
+                  fila: r.numero_fila_archivo,
+                  archivo: r.archivo_origen,
+                  error: `No se pudo resolver cobertura nueva "${datos.nombre}"`,
                 });
               }
             }
@@ -721,6 +779,7 @@ export async function ejecutarImportacionFinal(
     catalogos_creados: {
       companias: Array.from(catalogosCreados.companias_creadas.keys()),
       ramos: Array.from(catalogosCreados.ramos_creados.keys()),
+      coberturas: Array.from(catalogosCreados.coberturas_creadas.keys()),
     },
     clientes_actualizados: ids_actualizados.personas.length,
     polizas_actualizadas: ids_actualizados.polizas.length,

@@ -22,6 +22,7 @@ import {
 } from '@/lib/importacion/validators'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
+import { TIPOS_RIESGO } from '@/lib/tipos-riesgo'
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -38,6 +39,7 @@ type TipoProblema =
   | 'DATOS_FALTANTES'
   | 'COMPANIA_NO_RECONOCIDA'
   | 'RAMO_NO_RECONOCIDO'
+  | 'COBERTURA_NO_RECONOCIDA'
   | 'RIESGO_INCOMPLETO'
   | 'INCONSISTENCIA_LOGICA'
   | 'OTROS'
@@ -111,6 +113,7 @@ const LABEL_TIPO_PROBLEMA: Record<TipoProblema, string> = {
   DATOS_FALTANTES: 'Datos faltantes',
   COMPANIA_NO_RECONOCIDA: 'Compañía no reconocida',
   RAMO_NO_RECONOCIDO: 'Ramo no reconocido',
+  COBERTURA_NO_RECONOCIDA: 'Cobertura no reconocida',
   RIESGO_INCOMPLETO: 'Riesgo incompleto',
   INCONSISTENCIA_LOGICA: 'Inconsistencia',
   OTROS: 'Otros',
@@ -123,7 +126,7 @@ function colorTipo(t: TipoProblema): string {
   if (t === 'DUPLICADO_EN_CRM' || t === 'DUPLICADO_EN_ARCHIVO') {
     return 'bg-amber-50 text-amber-700 border-amber-200'
   }
-  if (t === 'INCONSISTENCIA_LOGICA' || t === 'COMPANIA_NO_RECONOCIDA' || t === 'RAMO_NO_RECONOCIDO') {
+  if (t === 'INCONSISTENCIA_LOGICA' || t === 'COMPANIA_NO_RECONOCIDA' || t === 'RAMO_NO_RECONOCIDO' || t === 'COBERTURA_NO_RECONOCIDA') {
     return 'bg-blue-50 text-blue-700 border-blue-200'
   }
   return 'bg-slate-100 text-slate-700 border-slate-200'
@@ -206,6 +209,7 @@ export default function RevisarDudososPage() {
   // Catálogos para dropdowns
   const [companias, setCompanias] = useState<Catalogo[]>([])
   const [ramos, setRamos] = useState<Catalogo[]>([])
+  const [coberturas, setCoberturas] = useState<Catalogo[]>([])
 
   // Cargar catálogos
   useEffect(() => {
@@ -216,17 +220,22 @@ export default function RevisarDudososPage() {
       type TipoRow = { id: number; codigo: string }
       const tComp = (tipos as TipoRow[]).find((t) => t.codigo === 'COMPANIA')
       const tRamo = (tipos as TipoRow[]).find((t) => t.codigo === 'RAMO')
-      const [{ data: comps }, { data: rams }] = await Promise.all([
+      const tCob = (tipos as TipoRow[]).find((t) => t.codigo === 'COBERTURA')
+      const [{ data: comps }, { data: rams }, { data: cobs }] = await Promise.all([
         tComp
           ? supabase.from('catalogos').select('id, nombre, metadata').eq('tipo_id', tComp.id).eq('activo', true).order('nombre')
           : Promise.resolve({ data: [] }),
         tRamo
           ? supabase.from('catalogos').select('id, nombre, metadata').eq('tipo_id', tRamo.id).eq('activo', true).order('nombre')
           : Promise.resolve({ data: [] }),
+        tCob
+          ? supabase.from('catalogos').select('id, nombre, metadata').eq('tipo_id', tCob.id).eq('activo', true).order('nombre')
+          : Promise.resolve({ data: [] }),
       ])
       if (cancel) return
       setCompanias((comps ?? []) as unknown as Catalogo[])
       setRamos((rams ?? []) as unknown as Catalogo[])
+      setCoberturas((cobs ?? []) as unknown as Catalogo[])
     }
     cargar()
     return () => {
@@ -590,6 +599,7 @@ export default function RevisarDudososPage() {
               resolving={resolvingId === d.id}
               companias={companias}
               ramos={ramos}
+              coberturas={coberturas}
             />
           ))}
         </div>
@@ -664,6 +674,7 @@ interface CardProps {
   resolving: boolean
   companias: Catalogo[]
   ramos: Catalogo[]
+  coberturas: Catalogo[]
 }
 
 function CardDudoso({
@@ -674,6 +685,7 @@ function CardDudoso({
   resolving,
   companias,
   ramos,
+  coberturas,
 }: CardProps) {
   const ent = dudoso.datos_originales?.entidades || {}
 
@@ -750,6 +762,7 @@ function CardDudoso({
             onCancelar={onToggle}
             companias={companias}
             ramos={ramos}
+            coberturas={coberturas}
           />
         </div>
       )}
@@ -772,6 +785,7 @@ interface ResolutorProps {
   resolving: boolean
   companias: Catalogo[]
   ramos: Catalogo[]
+  coberturas: Catalogo[]
 }
 
 function ResolutorPorTipo(props: ResolutorProps) {
@@ -796,6 +810,8 @@ function ResolutorPorTipo(props: ResolutorProps) {
       return <ResolutorCatalogo {...props} tipo="compania" />
     case 'RAMO_NO_RECONOCIDO':
       return <ResolutorCatalogo {...props} tipo="ramo" />
+    case 'COBERTURA_NO_RECONOCIDA':
+      return <ResolutorCatalogo {...props} tipo="cobertura" />
     case 'RIESGO_INCOMPLETO':
       return <ResolutorRiesgo {...props} />
     case 'INCONSISTENCIA_LOGICA':
@@ -1207,13 +1223,18 @@ function ResolutorCatalogo({
   resolving,
   companias,
   ramos,
+  coberturas,
   tipo,
-}: ResolutorProps & { tipo: 'compania' | 'ramo' }) {
-  const lista = tipo === 'compania' ? companias : ramos
+}: ResolutorProps & { tipo: 'compania' | 'ramo' | 'cobertura' }) {
+  const lista = tipo === 'compania' ? companias : tipo === 'ramo' ? ramos : coberturas
+  const etiqueta = tipo === 'compania' ? 'compañía' : tipo === 'ramo' ? 'ramo' : 'cobertura'
   const original = String(dudoso.datos_originales?.valor_original ?? '')
   const [opt, setOpt] = useState<'mapear' | 'crear' | 'ignorar'>('mapear')
   const [catalogoId, setCatalogoId] = useState('')
   const [nombreNuevo, setNombreNuevo] = useState(original)
+  // Solo aplica cuando se crea un ramo nuevo: el PAS elige qué tipo de riesgo
+  // controla el formulario de carga de pólizas/siniestros para este ramo.
+  const [tipoRiesgo, setTipoRiesgo] = useState<string>('generico')
 
   const valido =
     opt === 'mapear' ? catalogoId !== '' : opt === 'crear' ? nombreNuevo.trim() !== '' : true
@@ -1222,7 +1243,13 @@ function ResolutorCatalogo({
     if (opt === 'mapear') {
       onResolver('EDITAR', { [`${tipo}_id`]: catalogoId }, { siguiente })
     } else if (opt === 'crear') {
-      onResolver('EDITAR', { crear_nuevo: true, nombre: nombreNuevo.trim(), tipo }, { siguiente })
+      const payload: Record<string, unknown> = {
+        crear_nuevo: true,
+        nombre: nombreNuevo.trim(),
+        tipo,
+      }
+      if (tipo === 'ramo') payload.tipo_riesgo = tipoRiesgo
+      onResolver('EDITAR', payload, { siguiente })
     } else {
       onResolver('IGNORAR_REGISTRO', undefined, { siguiente })
     }
@@ -1252,19 +1279,42 @@ function ResolutorCatalogo({
       <RadioOption
         checked={opt === 'crear'}
         onChange={() => setOpt('crear')}
-        label={`Crear nueva ${tipo === 'compania' ? 'compañía' : 'ramo'}`}
+        label={`Crear nueva ${etiqueta}`}
       >
-        <input
-          type="text"
-          className="form-input text-xs py-1 w-72"
-          value={nombreNuevo}
-          onChange={(e) => setNombreNuevo(e.target.value)}
-        />
+        <div className="space-y-2">
+          <input
+            type="text"
+            className="form-input text-xs py-1 w-72"
+            value={nombreNuevo}
+            onChange={(e) => setNombreNuevo(e.target.value)}
+          />
+          {tipo === 'ramo' && (
+            <div className="flex items-center gap-2">
+              <label className="text-2xs text-slate-600 min-w-[110px]">Tipo de riesgo:</label>
+              <select
+                className="form-input text-xs py-1 flex-1 max-w-[280px]"
+                value={tipoRiesgo}
+                onChange={(e) => setTipoRiesgo(e.target.value)}
+              >
+                {TIPOS_RIESGO.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.emoji} {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {tipo === 'ramo' && (
+            <p className="text-2xs text-slate-500">
+              El tipo de riesgo define qué campos pide el formulario de pólizas/siniestros para este ramo.
+            </p>
+          )}
+        </div>
       </RadioOption>
       <RadioOption
         checked={opt === 'ignorar'}
         onChange={() => setOpt('ignorar')}
-        label={`Ignorar registros con esta ${tipo === 'compania' ? 'compañía' : 'ramo'}`}
+        label={`Ignorar registros con esta ${etiqueta}`}
       />
       <FooterAcciones aplicar={aplicar} onCancelar={onCancelar} resolving={resolving} valido={valido} />
     </div>

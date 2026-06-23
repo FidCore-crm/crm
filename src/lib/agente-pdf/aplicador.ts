@@ -18,6 +18,10 @@ import {
   normalizarTipoPersona,
   normalizarEstadoPoliza,
   normalizarMoneda,
+  toTitleCase,
+  normalizarEmail,
+  normalizarTelefono,
+  normalizarCodigoPostal,
 } from '@/lib/importacion/normalizadores'
 import type {
   DatosExtraidosPoliza,
@@ -144,10 +148,14 @@ async function insertarPersona(
   const dni = normalizarDNI(datos.dni_cuil)
   if (!dni) throw new Error('No se puede crear persona sin DNI/CUIT')
 
-  const apellido = datos.apellido || datos.nombre_completo || datos.razon_social || 'Sin apellido'
+  const apellidoRaw = datos.apellido || datos.nombre_completo || datos.razon_social || 'Sin apellido'
   // Normalizadores tolerantes igual que el importador: si la IA extrae
   // `tipo_persona='Física'` o `estado='Activo'` (capitalizado), no choca
-  // contra el CHECK constraint de personas.
+  // contra el CHECK constraint de personas. Adicionalmente, toTitleCase /
+  // normalizarEmail / normalizarTelefono / normalizarCodigoPostal limpian
+  // mayúsculas crudas o formatos raros del PDF.
+  const emailNorm = normalizarEmail(datos.email)
+  const telNorm = normalizarTelefono(datos.telefono)
   const { data: creada, error } = await supabase
     .from('personas')
     .insert({
@@ -156,16 +164,16 @@ async function insertarPersona(
         dni,
       ),
       dni_cuil: dni,
-      apellido,
-      nombre: datos.nombre || null,
-      razon_social: datos.razon_social || null,
-      email: datos.email || null,
-      telefono: datos.telefono || null,
-      calle: datos.domicilio?.calle || null,
+      apellido: toTitleCase(apellidoRaw) || apellidoRaw,
+      nombre: toTitleCase(datos.nombre) || null,
+      razon_social: toTitleCase(datos.razon_social) || null,
+      email: emailNorm || null,
+      telefono: telNorm || null,
+      calle: toTitleCase(datos.domicilio?.calle) || null,
       numero: datos.domicilio?.numero || null,
-      localidad: datos.domicilio?.localidad || null,
-      provincia: datos.domicilio?.provincia || null,
-      codigo_postal: datos.domicilio?.codigo_postal || null,
+      localidad: toTitleCase(datos.domicilio?.localidad) || null,
+      provincia: toTitleCase(datos.domicilio?.provincia) || null,
+      codigo_postal: normalizarCodigoPostal(datos.domicilio?.codigo_postal) || null,
       pais: 'Argentina',
       estado: normalizarEstadoPersona(
         (datos as unknown as Record<string, unknown>).estado as string | null | undefined,
@@ -196,17 +204,22 @@ async function actualizarPersonaConDatosPDF(
   datos: DatosExtraidosPoliza['asegurado']
 ): Promise<void> {
   const patch: Record<string, any> = {}
-  if (datos.email) patch.email = datos.email
-  if (datos.telefono) patch.telefono = datos.telefono
-  if (datos.domicilio?.calle) patch.calle = datos.domicilio.calle
+  const emailNorm = normalizarEmail(datos.email)
+  if (emailNorm) patch.email = emailNorm
+  const telNorm = normalizarTelefono(datos.telefono)
+  if (telNorm) patch.telefono = telNorm
+  if (datos.domicilio?.calle) patch.calle = toTitleCase(datos.domicilio.calle)
   if (datos.domicilio?.numero) patch.numero = datos.domicilio.numero
-  if (datos.domicilio?.localidad) patch.localidad = datos.domicilio.localidad
-  if (datos.domicilio?.provincia) patch.provincia = datos.domicilio.provincia
-  if (datos.domicilio?.codigo_postal) patch.codigo_postal = datos.domicilio.codigo_postal
+  if (datos.domicilio?.localidad) patch.localidad = toTitleCase(datos.domicilio.localidad)
+  if (datos.domicilio?.provincia) patch.provincia = toTitleCase(datos.domicilio.provincia)
+  if (datos.domicilio?.codigo_postal) {
+    patch.codigo_postal = normalizarCodigoPostal(datos.domicilio.codigo_postal)
+  }
 
   if (Object.keys(patch).length === 0) return
 
-  patch.updated_at = new Date().toISOString()
+  // `updated_at` se setea automáticamente por trigger tg_actualizar_updated_at
+  // (migración 052). NO setearlo manualmente.
   await supabase.from('personas').update(patch).eq('id', persona_id)
 }
 
@@ -352,6 +365,14 @@ export async function aplicarPolizaNueva(params: {
   if (!datos.poliza?.numero_poliza) throw new Error('Falta número de póliza')
   if (!datos.poliza?.fecha_inicio || !datos.poliza?.fecha_fin) {
     throw new Error('Faltan fechas de vigencia')
+  }
+  // Validación que el importador ya hace en `validarEntidades`: si la IA
+  // extrajo fechas invertidas del PDF, abortamos antes del INSERT en vez
+  // de crear una póliza con vigencia imposible.
+  if (datos.poliza.fecha_inicio > datos.poliza.fecha_fin) {
+    throw new Error(
+      `Fecha de inicio (${datos.poliza.fecha_inicio}) posterior a fecha de fin (${datos.poliza.fecha_fin})`,
+    )
   }
 
   const { persona_id: aseguradoId, accion_ejecutada } = await resolverPersonaAsegurado(
@@ -541,6 +562,11 @@ export async function aplicarRenovacion(params: {
 
   if (!datos.poliza?.numero_poliza) throw new Error('Falta número de póliza')
   if (!datos.poliza?.fecha_inicio || !datos.poliza?.fecha_fin) throw new Error('Faltan fechas')
+  if (datos.poliza.fecha_inicio > datos.poliza.fecha_fin) {
+    throw new Error(
+      `Fecha de inicio (${datos.poliza.fecha_inicio}) posterior a fecha de fin (${datos.poliza.fecha_fin})`,
+    )
+  }
 
   const { data: origen } = await supabase
     .from('polizas')

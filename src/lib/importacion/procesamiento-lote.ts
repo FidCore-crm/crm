@@ -1119,7 +1119,7 @@ function detectarCeldasComplejas(
     if (persona && persona.telefono) {
       const v = String(persona.telefono).trim();
       const validoTel = validarTelefono(v);
-      if (!validoTel && contarDigitos(v) >= 7) {
+      if (!validoTel.valido && contarDigitos(v) >= 7) {
         // Siempre en NORMAL y AGRESIVO: si el validador no lo acepta pero tiene
         // suficientes dígitos, probablemente sea un formato raro (prefijo país,
         // guiones, espacios, paréntesis) que la IA puede normalizar.
@@ -1135,7 +1135,7 @@ function detectarCeldasComplejas(
         const v = String(raw).trim();
         if (!v) continue;
         const valida = validarFecha(v);
-        if (!valida && contieneDigitos(v) && v.length >= 6) {
+        if (!valida.valido && contieneDigitos(v) && v.length >= 6) {
           pushear(i, 'POLIZA', campo, v);
         }
       }
@@ -1144,7 +1144,7 @@ function detectarCeldasComplejas(
       if (poliza.suma_asegurada != null && poliza.suma_asegurada !== '') {
         const v = String(poliza.suma_asegurada).trim();
         const valido = validarMonto(v);
-        if (!valido && contieneDigitos(v)) {
+        if (!valido.valido && contieneDigitos(v)) {
           pushear(i, 'POLIZA', 'suma_asegurada', v);
         }
       }
@@ -1176,7 +1176,7 @@ function detectarCeldasComplejas(
       if (riesgo.suma_asegurada != null && riesgo.suma_asegurada !== '') {
         const v = String(riesgo.suma_asegurada).trim();
         const valido = validarMonto(v);
-        if (!valido && contieneDigitos(v)) {
+        if (!valido.valido && contieneDigitos(v)) {
           pushear(i, 'RIESGO', 'suma_asegurada', v);
         }
       }
