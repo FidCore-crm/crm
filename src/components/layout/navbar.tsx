@@ -15,6 +15,7 @@ import { tieneAccesoTotal, obtenerIdsPersonas } from '@/lib/cartera-filter'
 import { apiCall } from '@/lib/api-client'
 import { emitirBroadcastNotificaciones, useBroadcastNotificaciones } from '@/lib/broadcast-notificaciones'
 import { PresenciaNavbar } from './PresenciaNavbar'
+import { AvisoActualizacion } from './AvisoActualizacion'
 
 // ── Tipos búsqueda global ──
 interface PersonaResult { id: string; nombre: string | null; apellido: string; dni_cuil: string; telefono: string | null; estado: string }
@@ -599,6 +600,9 @@ export function Navbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        {/* Aviso de actualización disponible (solo admin, solo si hay update) */}
+        <AvisoActualizacion />
+
         {/* Presencia: usuarios conectados (solo admin) */}
         <PresenciaNavbar />
 
