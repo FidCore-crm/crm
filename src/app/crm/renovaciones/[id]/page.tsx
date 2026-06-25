@@ -365,6 +365,22 @@ export default function RenovarPolizaPage() {
     if (!validar() || !origen) return
     setGuardando(true); setErrorGral('')
     try {
+      // Chequeo de duplicado: no permitir mismo numero_poliza en la misma compañía.
+      // Está permitido que dos compañías usen el mismo número.
+      if (companiaId) {
+        const { data: existente } = await supabase
+          .from('polizas')
+          .select('id')
+          .eq('compania_id', companiaId)
+          .eq('numero_poliza', numeroPoliza.trim())
+          .maybeSingle()
+        if (existente) {
+          setErrores(e => ({ ...e, numero_poliza: 'Ya existe una póliza con este número en esta compañía' }))
+          setGuardando(false)
+          return
+        }
+      }
+
       // Siempre insertamos como RENOVADA latente. Después delegamos la activación
       // al endpoint /activar-renovacion, que internamente decide si corresponde
       // pasarla a VIGENTE (idempotente, mismo helper que usa el cron).

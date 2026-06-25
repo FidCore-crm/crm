@@ -323,6 +323,21 @@ export default function EditarPolizaPage() {
     if (!poliza || !validar()) return
     setGuardando(true); setErrorGral('')
     try {
+      // Chequeo de duplicado: no permitir mismo numero_poliza en la misma compañía
+      // (excluyendo la propia póliza). Está permitido que dos compañías usen el mismo número.
+      const { data: existente } = await supabase
+        .from('polizas')
+        .select('id')
+        .eq('compania_id', poliza.compania_id)
+        .eq('numero_poliza', poliza.numero_poliza.trim())
+        .neq('id', id)
+        .maybeSingle()
+      if (existente) {
+        setErrores(e => ({ ...e, numero_poliza: 'Ya existe una póliza con este número en esta compañía' }))
+        setGuardando(false)
+        return
+      }
+
       // Construir array de riesgos a enviar al endpoint:
       //  - Items con id + eliminado=true → DELETE en backend.
       //  - Items con id + no eliminado  → UPDATE.
@@ -368,8 +383,9 @@ export default function EditarPolizaPage() {
         }
         const msg = err?.mensaje || 'Error al guardar'
         // Detalle específico para violación del UNIQUE compuesto compañía+nro
+        // (defensa por si pasa por una carrera entre nuestro chequeo previo y el INSERT).
         if ((err?.detalle ?? '').includes('uq_poliza_compania_numero')) {
-          setErrorGral('Ya existe una póliza con ese número para la compañía seleccionada.')
+          setErrores(e => ({ ...e, numero_poliza: 'Ya existe una póliza con este número en esta compañía' }))
         } else {
           setErrorGral(msg)
         }

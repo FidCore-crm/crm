@@ -286,6 +286,20 @@ function NuevaPolizaContent() {
     if (!validar()) return
     setGuardando(true); setErrorGral('')
     try {
+      // Chequeo de duplicado: no permitir mismo numero_poliza en la misma compañía.
+      // Está permitido que dos compañías usen el mismo número.
+      const { data: existente } = await supabase
+        .from('polizas')
+        .select('id')
+        .eq('compania_id', poliza.compania_id)
+        .eq('numero_poliza', poliza.numero_poliza.trim())
+        .maybeSingle()
+      if (existente) {
+        setErrores(e => ({ ...e, numero_poliza: 'Ya existe una póliza con este número en esta compañía' }))
+        setGuardando(false)
+        return
+      }
+
       // Calcular estado automáticamente
       const esFutura = poliza.fecha_inicio > hoyLocal()
       // Por ahora, al crear desde este formulario no se asigna poliza_origen_id
