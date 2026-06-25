@@ -238,19 +238,31 @@ export function validarMonto(
   return { valido: true, valor }
 }
 
-const PATENTE_VIEJA = /^[A-Z]{3}\d{3}$/
-const PATENTE_NUEVA = /^[A-Z]{2}\d{3}[A-Z]{2}$/
+const PATENTE_AUTO_VIEJA = /^[A-Z]{3}\d{3}$/
+const PATENTE_AUTO_NUEVA = /^[A-Z]{2}\d{3}[A-Z]{2}$/
+const PATENTE_MOTO_VIEJA = /^\d{3}[A-Z]{3}$/
+const PATENTE_MOTO_NUEVA = /^[A-Z]\d{3}[A-Z]{3}$/
 
 export function validarPatente(
   p: string | null | undefined
-): { valido: boolean; normalizado?: string; tipo?: 'VIEJA' | 'NUEVA' } {
+): {
+  valido: boolean
+  normalizado?: string
+  tipo?: 'AUTO_VIEJA' | 'AUTO_NUEVA' | 'MOTO_VIEJA' | 'MOTO_NUEVA'
+} {
   if (!p) return { valido: false }
   const limpio = String(p).replace(/[\s\-]/g, '').toUpperCase()
-  if (PATENTE_NUEVA.test(limpio)) {
-    return { valido: true, normalizado: limpio, tipo: 'NUEVA' }
+  if (PATENTE_AUTO_NUEVA.test(limpio)) {
+    return { valido: true, normalizado: limpio, tipo: 'AUTO_NUEVA' }
   }
-  if (PATENTE_VIEJA.test(limpio)) {
-    return { valido: true, normalizado: limpio, tipo: 'VIEJA' }
+  if (PATENTE_AUTO_VIEJA.test(limpio)) {
+    return { valido: true, normalizado: limpio, tipo: 'AUTO_VIEJA' }
+  }
+  if (PATENTE_MOTO_NUEVA.test(limpio)) {
+    return { valido: true, normalizado: limpio, tipo: 'MOTO_NUEVA' }
+  }
+  if (PATENTE_MOTO_VIEJA.test(limpio)) {
+    return { valido: true, normalizado: limpio, tipo: 'MOTO_VIEJA' }
   }
   return { valido: false }
 }
