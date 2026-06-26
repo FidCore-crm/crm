@@ -784,12 +784,16 @@ export default function FichaPolizaPage() {
             titulo="Inspección previa"
           />
 
-          {/* Documentación */}
+          {/* Documentación
+              Una póliza RENOVADA es latente: los archivos viven en
+              documentacion_renovada/ hasta que el cron la active y los mueva
+              a documentacion/. Mostramos esa carpeta para que el PAS vea y
+              pueda agregar archivos mientras tanto. */}
           <GestorArchivos
             polizaId={poliza.id}
             numeroPoliza={poliza.numero_poliza}
-            categoria="documentacion"
-            titulo="Documentación"
+            categoria={poliza.estado === 'RENOVADA' ? 'documentacion_renovada' : 'documentacion'}
+            titulo={poliza.estado === 'RENOVADA' ? 'Documentación (pendiente de activarse)' : 'Documentación'}
           />
 
           {/* Siniestros relacionados */}
