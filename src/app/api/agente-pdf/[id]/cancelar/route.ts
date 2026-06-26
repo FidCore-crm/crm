@@ -28,14 +28,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ ok: true, noop: true })
   }
 
-  // Transición atómica: sólo cancelar si seguimos en PENDIENTE o PROCESANDO.
-  // Si el procesador ya llegó a EXTRAIDO o APROBADO mientras el user apretaba
-  // "cancelar", respetamos el resultado final.
+  // Transición atómica: cancelar mientras no esté APROBADO/CANCELADO/FALLIDO.
+  // EXTRAIDO también se puede cancelar — es el estado en el que el PAS está
+  // revisando los datos y puede querer abandonar el flujo (ej: cobertura
+  // bloqueada que no quiere configurar ahora).
   const { data: updated, error: errUpd } = await (supabase
     .from('pdf_procesamientos') as any)
     .update({ estado: 'CANCELADO' })
     .eq('id', id)
-    .in('estado', ['PENDIENTE', 'PROCESANDO'])
+    .in('estado', ['PENDIENTE', 'PROCESANDO', 'EXTRAIDO'])
     .select('id')
 
   if (errUpd) {

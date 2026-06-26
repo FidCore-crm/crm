@@ -273,7 +273,7 @@ export default function RevisarPDFPage() {
   async function cancelar() {
     if (!confirm('¿Cancelar? Los datos extraídos se pierden.')) return
     await apiCall(`/api/agente-pdf/${id}/cancelar`, { method: 'POST' }, { mostrar_toast_en_error: false })
-    router.back()
+    router.push('/crm/dashboard')
   }
 
   // ────────────────────────────────────────────────────────────

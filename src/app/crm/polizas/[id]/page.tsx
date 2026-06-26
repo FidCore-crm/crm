@@ -696,7 +696,7 @@ export default function FichaPolizaPage() {
                             <span className="text-slate-500 shrink-0">
                               {mapaLabels[k] ?? (k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '))}
                             </span>
-                            <span className="text-slate-700 font-medium text-right font-mono truncate">
+                            <span className="text-slate-700 font-medium text-right font-mono break-words min-w-0">
                               {Array.isArray(v) ? v.join(', ') : String(v)}
                             </span>
                           </div>
