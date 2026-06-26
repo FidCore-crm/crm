@@ -592,6 +592,7 @@ export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boo
       email: variables.organizacion_email,
       logo_url: variables.organizacion_logo ? `${baseUrl}/api/storage/${variables.organizacion_logo}` : undefined,
       color_marca: variables.organizacion_color_marca || undefined,
+      email_header_estilo: (variables.organizacion_email_header_estilo as 'banda' | 'compacto' | 'lateral' | undefined) || undefined,
     }
 
     // URLs de tracking

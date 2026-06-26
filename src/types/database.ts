@@ -807,6 +807,8 @@ export interface Configuracion {
   color_marca: string | null
   // Toggle de mostrar logo (vs solo nombre) en emails
   usar_logo: boolean | null
+  // Estilo del encabezado de los emails (migración 097)
+  email_header_estilo: 'banda' | 'compacto' | 'lateral' | null
   // Onboarding wizard (migración 063)
   onboarding_completado: boolean | null
   onboarding_paso_actual: number | null

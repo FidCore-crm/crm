@@ -69,6 +69,7 @@ export default function PerfilPage() {
   const [prefijoCasos, setPrefijoCasos] = useState('CASO')
   const [urlCrm,       setUrlCrm]       = useState('')
   const [colorMarca,   setColorMarca]   = useState(COLOR_MARCA_DEFAULT)
+  const [emailHeaderEstilo, setEmailHeaderEstilo] = useState<'banda' | 'compacto' | 'lateral'>('banda')
 
   // Mensajes predefinidos al enviar cotizaciones (WhatsApp + email)
   const [cotWspTemplate, setCotWspTemplate] = useState('')
@@ -103,6 +104,10 @@ export default function PerfilPage() {
         setPrefijoCasos(data.prefijo_casos ?? 'CASO')
         setUrlCrm(data.url_crm ?? '')
         setColorMarca(normalizarColorMarca(data.color_marca))
+        const estiloGuardado = (data as any).email_header_estilo
+        if (estiloGuardado === 'compacto' || estiloGuardado === 'lateral' || estiloGuardado === 'banda') {
+          setEmailHeaderEstilo(estiloGuardado)
+        }
         setCotWspTemplate(data.cotizacion_whatsapp_template ?? '')
         setCotEmailAsuntoTemplate(data.cotizacion_email_asunto_template ?? '')
         setCotEmailCuerpoTemplate(data.cotizacion_email_cuerpo_template ?? '')
@@ -191,6 +196,7 @@ export default function PerfilPage() {
         prefijo_casos:  prefijoCasos.trim().toUpperCase() || 'CASO',
         url_crm:        urlCrmTrim ? urlCrmTrim.replace(/\/+$/, '') : null,
         color_marca:    normalizarColorMarca(colorMarca),
+        email_header_estilo: emailHeaderEstilo,
         cotizacion_whatsapp_template:     cotWspTemplate.trim() || null,
         cotizacion_email_asunto_template: cotEmailAsuntoTemplate.trim() || null,
         cotizacion_email_cuerpo_template: cotEmailCuerpoTemplate.trim() || null,
@@ -704,6 +710,148 @@ export default function PerfilPage() {
                     <p className="text-2xs text-slate-500 pt-2">Saludos cordiales.</p>
                   </div>
                 </div>
+              </div>
+            )
+          })()}
+        </div>
+      </div>
+
+      {/* ── Estilo de encabezado de emails ──────────────────── */}
+      <div className="bg-white border border-slate-200 rounded overflow-hidden">
+        <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+          <Palette className="h-3.5 w-3.5 text-slate-500" />
+          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+            Estilo de encabezado de emails
+          </h3>
+        </div>
+        <div className="p-4 flex flex-col gap-3">
+          <p className="text-2xs text-slate-500">
+            Elegí cómo se ve el encabezado de los emails que enviás a tus clientes.
+            El color y el logo son los que ya configuraste arriba — solo cambia el bloque del encabezado.
+          </p>
+          {(() => {
+            const tonos = derivarTonos(colorMarca)
+            const nombreOrg = (tipoOperacion === 'SOCIEDAD' ? razonSocial : nombre) || 'Mi Organización'
+            const inicial = (nombreOrg.charAt(0) || '?').toUpperCase()
+            const mostrarLogo = usarLogo && !!logoPreview
+            const opciones: Array<{
+              valor: 'banda' | 'compacto' | 'lateral'
+              titulo: string
+              descripcion: string
+              preview: React.ReactNode
+            }> = [
+              {
+                valor: 'banda',
+                titulo: 'Banda con logo',
+                descripcion: 'Encabezado destacado con logo a la izquierda.',
+                preview: (
+                  <div className="rounded overflow-hidden bg-white">
+                    <div
+                      className="px-3 py-3 flex items-center gap-2"
+                      style={{ background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.oscuro} 100%)` }}
+                    >
+                      <div
+                        className="h-7 w-7 rounded bg-white flex items-center justify-center shrink-0"
+                        style={{ borderRadius: 6 }}
+                      >
+                        {mostrarLogo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={logoPreview!} alt="" className="max-h-5 max-w-5 object-contain" />
+                        ) : (
+                          <span className="text-xs font-bold" style={{ color: tonos.base }}>{inicial}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-white truncate leading-tight">{nombreOrg}</p>
+                        <p className="text-[9px] text-white/70 uppercase tracking-widest mt-0.5">Productor Asesor de Seguros</p>
+                      </div>
+                    </div>
+                    <div className="h-[3px]" style={{ backgroundColor: '#D4DDE8' }}></div>
+                  </div>
+                ),
+              },
+              {
+                valor: 'compacto',
+                titulo: 'Compacto',
+                descripcion: 'Encabezado fino, protagonismo al cuerpo del email.',
+                preview: (
+                  <div className="rounded overflow-hidden bg-white">
+                    <div
+                      className="px-3 py-2 flex items-center justify-between gap-2"
+                      style={{ background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.oscuro} 100%)` }}
+                    >
+                      <p className="text-[11px] font-bold text-white truncate">{nombreOrg}</p>
+                      <div
+                        className="h-5 w-5 rounded bg-white flex items-center justify-center shrink-0"
+                        style={{ borderRadius: 4 }}
+                      >
+                        {mostrarLogo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={logoPreview!} alt="" className="max-h-3.5 max-w-3.5 object-contain" />
+                        ) : (
+                          <span className="text-[9px] font-bold" style={{ color: tonos.base }}>{inicial}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="h-[2px]" style={{ backgroundColor: '#D4DDE8' }}></div>
+                  </div>
+                ),
+              },
+              {
+                valor: 'lateral',
+                titulo: 'Borde lateral',
+                descripcion: 'Sin bloque de color, borde superior fino.',
+                preview: (
+                  <div className="rounded overflow-hidden bg-white border-t-[3px]" style={{ borderTopColor: tonos.base }}>
+                    <div className="px-3 py-3 flex items-center gap-2 bg-white">
+                      <div
+                        className="h-6 w-6 rounded flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: tonos.base, borderRadius: 5 }}
+                      >
+                        {mostrarLogo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={logoPreview!} alt="" className="max-h-4 max-w-4 object-contain brightness-0 invert" />
+                        ) : (
+                          <span className="text-[10px] font-bold text-white">{inicial}</span>
+                        )}
+                      </div>
+                      <p className="text-xs font-bold truncate" style={{ color: tonos.base }}>{nombreOrg}</p>
+                    </div>
+                  </div>
+                ),
+              },
+            ]
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {opciones.map(op => {
+                  const seleccionada = emailHeaderEstilo === op.valor
+                  return (
+                    <button
+                      key={op.valor}
+                      type="button"
+                      onClick={() => setEmailHeaderEstilo(op.valor)}
+                      className={`flex flex-col gap-2 rounded border-2 p-2.5 text-left transition-all ${
+                        seleccionada
+                          ? 'border-slate-800 ring-2 ring-slate-300 bg-slate-50'
+                          : 'border-slate-200 hover:border-slate-400 bg-white'
+                      }`}
+                    >
+                      <div className="border border-slate-200 rounded overflow-hidden">
+                        {op.preview}
+                        <div className="h-6 bg-slate-50 border-t border-slate-100"></div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 mt-0.5 ${seleccionada ? 'border-slate-800 bg-slate-800' : 'border-slate-300 bg-white'}`}>
+                          {seleccionada && <div className="h-1.5 w-1.5 rounded-full bg-white m-auto mt-0.5"></div>}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-slate-700">{op.titulo}</p>
+                          <p className="text-2xs text-slate-500 mt-0.5 leading-snug">{op.descripcion}</p>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             )
           })()}

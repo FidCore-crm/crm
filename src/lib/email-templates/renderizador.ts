@@ -36,6 +36,12 @@ export interface OrganizacionInfo {
   // Color hex de marca elegido por el PAS ('#RRGGBB'). Si no viene,
   // se usa el navy por defecto. Aplica al header, saludo y nombre.
   color_marca?: string | null
+  // Variante del encabezado del email (migración 097):
+  //   - 'banda'   (default): banda con gradient + logo a la izquierda + nombre + subtítulo.
+  //   - 'compacto': header bajo con nombre a la izquierda y cuadrito de logo a la derecha.
+  //   - 'lateral': sin bloque de color; logo en cuadro de marca, nombre en marca,
+  //                el contenedor de 600px recibe un border-top de 5px en marca.
+  email_header_estilo?: 'banda' | 'compacto' | 'lateral' | null
 }
 
 export interface RenderOptions {
@@ -129,6 +135,121 @@ export async function obtenerPlantilla(codigo: string): Promise<PlantillaEmail |
 // HTML fijo de wrapper
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Header del email — 3 variantes seleccionables por el PAS
+// ---------------------------------------------------------------------------
+
+type EstiloHeader = 'banda' | 'compacto' | 'lateral'
+
+/**
+ * Devuelve el bloque `<tr>` del header (más la barra de acento si aplica)
+ * según la variante elegida. Cuerpo, contacto, footer son idénticos en las
+ * tres — solo cambia este bloque.
+ *
+ * El border-top del contenedor de 600px (solo en 'lateral') NO lo arma esta
+ * función — lo aplica `armarHtml()` directamente sobre el style de la tabla
+ * exterior.
+ */
+function generarHeaderHtml(
+  estilo: EstiloHeader,
+  tonos: ReturnType<typeof derivarTonos>,
+  organizacion: OrganizacionInfo,
+): string {
+  const nombreEscapado = escapeHtml(organizacion.nombre)
+  const inicial = escapeHtml((organizacion.nombre || '?').charAt(0).toUpperCase())
+  const logoUrlEscapado = organizacion.logo_url ? escapeHtml(organizacion.logo_url) : ''
+  const stack = `-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif`
+
+  // Gradient del header (banda y compacto): de color base a oscuro.
+  // Outlook ignora gradient y cae al background-color plano (fallback).
+  const gradient = `background-color:${tonos.base};background-image:linear-gradient(135deg,${tonos.base} 0%,${tonos.oscuro} 100%);`
+
+  if (estilo === 'compacto') {
+    // Compacto: header bajo, nombre a la izquierda, cuadrito logo a la derecha.
+    const cuadroLogo = organizacion.logo_url
+      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="24" style="max-width:24px;max-height:24px;display:block;" />`
+      : `<span style="color:${tonos.base};font-weight:bold;font-size:14px;font-family:${stack};">${inicial}</span>`
+    return `
+<!-- HEADER: compacto -->
+<tr><td style="${gradient}padding:14px 22px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+      <td valign="middle">
+        <span style="font-size:13px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;font-family:${stack};">${nombreEscapado}</span>
+      </td>
+      <td width="30" align="right" valign="middle" style="width:30px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:7px;width:30px;height:30px;">
+          <tr><td align="center" valign="middle" style="width:30px;height:30px;padding:3px;">
+            ${cuadroLogo}
+          </td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+
+<!-- Barra de acento fina -->
+<tr><td style="background-color:#D4DDE8;height:3px;line-height:3px;font-size:0;">&nbsp;</td></tr>`
+  }
+
+  if (estilo === 'lateral') {
+    // Lateral: sin bloque de color (fondo blanco). El border-top de 5px en
+    // marca lo aplica el contenedor de 600px (no acá). Logo en cuadro con
+    // color de marca. No lleva barra de acento.
+    const cuadroLogo = organizacion.logo_url
+      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="34" style="max-width:34px;max-height:34px;display:block;" />`
+      : `<span style="color:#ffffff;font-weight:bold;font-size:17px;font-family:${stack};">${inicial}</span>`
+    return `
+<!-- HEADER: lateral (fondo blanco; el border-top de marca va en el contenedor de 600px) -->
+<tr><td style="background-color:#ffffff;padding:18px 22px 0;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td width="40" valign="middle" style="width:40px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:${tonos.base};border-radius:9px;width:40px;height:40px;">
+          <tr><td align="center" valign="middle" style="width:40px;height:40px;padding:4px;">
+            ${cuadroLogo}
+          </td></tr>
+        </table>
+      </td>
+      <td width="11" style="width:11px;font-size:0;line-height:0;">&nbsp;</td>
+      <td valign="middle">
+        <span style="font-size:14px;font-weight:bold;color:${tonos.base};font-family:${stack};">${nombreEscapado}</span>
+      </td>
+    </tr>
+  </table>
+</td></tr>`
+  }
+
+  // Default — banda (predeterminado): banda con gradient, logo a la izquierda
+  // en cuadro blanco, nombre + subtítulo a la derecha, barra de acento debajo.
+  const cuadroLogo = organizacion.logo_url
+    ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="40" style="max-width:40px;max-height:40px;display:block;" />`
+    : `<span style="color:${tonos.base};font-weight:bold;font-size:20px;font-family:${stack};">${inicial}</span>`
+  return `
+<!-- HEADER: banda horizontal -->
+<tr><td style="${gradient}padding:20px 22px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+      <td width="46" valign="middle" style="width:46px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:10px;width:46px;height:46px;">
+          <tr><td align="center" valign="middle" style="width:46px;height:46px;padding:5px;">
+            ${cuadroLogo}
+          </td></tr>
+        </table>
+      </td>
+      <td width="13" style="width:13px;font-size:0;line-height:0;">&nbsp;</td>
+      <td valign="middle">
+        <p style="margin:0;font-size:16px;font-weight:bold;color:#ffffff;line-height:1.15;font-family:${stack};">${nombreEscapado}</p>
+        <p style="margin:3px 0 0;font-size:10px;color:#9fb3c8;letter-spacing:1px;text-transform:uppercase;font-family:${stack};">Productor Asesor de Seguros</p>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+
+<!-- Barra de acento fina -->
+<tr><td style="background-color:#D4DDE8;height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>`
+}
+
 function armarHtml(params: {
   asuntoPlano: string
   saludoHtml: string
@@ -152,21 +273,20 @@ function armarHtml(params: {
 
   const tonos = derivarTonos(normalizarColorMarca(organizacion.color_marca ?? COLOR_MARCA_DEFAULT))
 
-  // Logo en círculo blanco. Sombra fuerte para que "flote" sobre el gradient
-  // del header. Tabla para centrado compatible Outlook.
-  const logoHtml = organizacion.logo_url
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;background:#ffffff;border-radius:50%;width:100px;height:100px;box-shadow:0 8px 24px rgba(0,0,0,0.28);">
-         <tr><td align="center" valign="middle" style="padding:10px;width:100px;height:100px;">
-           <img src="${escapeHtml(organizacion.logo_url)}" alt="${escapeHtml(organizacion.nombre)}" style="max-width:80px;max-height:80px;display:inline-block;" />
-         </td></tr>
-       </table>`
-    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;background:#ffffff;border-radius:50%;width:100px;height:100px;box-shadow:0 8px 24px rgba(0,0,0,0.28);">
-         <tr><td align="center" valign="middle" style="width:100px;height:100px;">
-           <span style="font-size:48px;font-weight:bold;color:${tonos.base};line-height:1;">${escapeHtml((organizacion.nombre || '?').charAt(0).toUpperCase())}</span>
-         </td></tr>
-       </table>`
+  // Estilo de header: default 'banda' si no viene seteado (preserva look
+  // de instalaciones previas a la migración 097).
+  const estiloHeader: EstiloHeader =
+    organizacion.email_header_estilo === 'compacto' ? 'compacto'
+    : organizacion.email_header_estilo === 'lateral' ? 'lateral'
+    : 'banda'
 
-  const nombreOrganizacionHtml = `<p style="margin:22px 0 0;font-size:24px;font-weight:bold;letter-spacing:0.5px;color:${tonos.textoSobreColor};line-height:1.2;">${escapeHtml(organizacion.nombre)}</p>`
+  const headerHtml = generarHeaderHtml(estiloHeader, tonos, organizacion)
+
+  // Solo 'lateral' agrega un border-top de 5px en color de marca al contenedor
+  // de 600px. 'banda' y 'compacto' no.
+  const borderTopContenedor = estiloHeader === 'lateral'
+    ? `border-top:5px solid ${tonos.base};`
+    : ''
 
   // Barra decorativa de acento debajo del saludo — agrega personalidad visual
   // sin cargar el diseño.
@@ -200,27 +320,15 @@ function armarHtml(params: {
        </table>`
     : ''
 
-  // Gradient del header: del color base a su variante oscura. Compatible
-  // con Gmail, Apple Mail, iOS Mail. Outlook ignora gradient y cae al
-  // background-color sólido (que también seteamos como fallback).
-  const gradientHeader = `background-color:${tonos.base};background-image:linear-gradient(135deg,${tonos.base} 0%,${tonos.oscuro} 100%);`
-
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${escapeHtml(asuntoPlano)}</title></head>
 <body style="margin:0;padding:0;background-color:#faf8f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#faf8f3;">
 <tr><td align="center" style="padding:40px 16px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(15,23,42,0.10),0 4px 10px rgba(15,23,42,0.05);">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(15,23,42,0.10),0 4px 10px rgba(15,23,42,0.05);${borderTopContenedor}">
 
-<!-- Header con gradient diagonal -->
-<tr><td style="${gradientHeader}padding:52px 32px 46px;text-align:center;">
-${logoHtml}
-${nombreOrganizacionHtml}
-</td></tr>
-
-<!-- Barra fina de acento bajo el header -->
-<tr><td style="background-color:${tonos.claro};height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>
+${headerHtml}
 
 <!-- Saludo con jerarquía + barra decorativa de marca -->
 <tr><td style="padding:40px 40px 0;">

@@ -68,6 +68,7 @@ export async function POST(
       email: variables.organizacion_email,
       logo_url: logoDataUrl,
       color_marca: variables.organizacion_color_marca || undefined,
+      email_header_estilo: (variables.organizacion_email_header_estilo as 'banda' | 'compacto' | 'lateral' | undefined) || undefined,
     })
     return NextResponse.json({ ok: true, html: cuerpo_html, asunto })
   } catch (err: any) {
