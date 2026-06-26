@@ -42,6 +42,9 @@ export interface OrganizacionInfo {
   //   - 'lateral': sin bloque de color; logo en cuadro de marca, nombre en marca,
   //                el contenedor de 600px recibe un border-top de 5px en marca.
   email_header_estilo?: 'banda' | 'compacto' | 'lateral' | null
+  // Subtítulo editable que aparece debajo del nombre solo en variante 'banda'
+  // (migración 098). Si está vacío, no se muestra el <p> del subtítulo.
+  email_header_subtitulo?: string | null
 }
 
 export interface RenderOptions {
@@ -159,6 +162,8 @@ function generarHeaderHtml(
   const inicial = escapeHtml((organizacion.nombre || '?').charAt(0).toUpperCase())
   const logoUrlEscapado = organizacion.logo_url ? escapeHtml(organizacion.logo_url) : ''
   const stack = `-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif`
+  // Subtítulo solo se muestra en variante 'banda' y solo si tiene texto.
+  const subtituloBanda = (organizacion.email_header_subtitulo ?? '').trim()
 
   // Gradient del header (banda y compacto): de color base a oscuro.
   // Outlook ignora gradient y cae al background-color plano (fallback).
@@ -240,7 +245,7 @@ function generarHeaderHtml(
       <td width="13" style="width:13px;font-size:0;line-height:0;">&nbsp;</td>
       <td valign="middle">
         <p style="margin:0;font-size:16px;font-weight:bold;color:#ffffff;line-height:1.15;font-family:${stack};">${nombreEscapado}</p>
-        <p style="margin:3px 0 0;font-size:10px;color:#9fb3c8;letter-spacing:1px;text-transform:uppercase;font-family:${stack};">Productor Asesor de Seguros</p>
+        ${subtituloBanda ? `<p style="margin:3px 0 0;font-size:10px;color:#9fb3c8;letter-spacing:1px;text-transform:uppercase;font-family:${stack};">${escapeHtml(subtituloBanda)}</p>` : ''}
       </td>
     </tr>
   </table>

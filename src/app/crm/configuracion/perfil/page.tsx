@@ -70,6 +70,7 @@ export default function PerfilPage() {
   const [urlCrm,       setUrlCrm]       = useState('')
   const [colorMarca,   setColorMarca]   = useState(COLOR_MARCA_DEFAULT)
   const [emailHeaderEstilo, setEmailHeaderEstilo] = useState<'banda' | 'compacto' | 'lateral'>('banda')
+  const [emailHeaderSubtitulo, setEmailHeaderSubtitulo] = useState('')
 
   // Mensajes predefinidos al enviar cotizaciones (WhatsApp + email)
   const [cotWspTemplate, setCotWspTemplate] = useState('')
@@ -108,6 +109,7 @@ export default function PerfilPage() {
         if (estiloGuardado === 'compacto' || estiloGuardado === 'lateral' || estiloGuardado === 'banda') {
           setEmailHeaderEstilo(estiloGuardado)
         }
+        setEmailHeaderSubtitulo((data as any).email_header_subtitulo ?? '')
         setCotWspTemplate(data.cotizacion_whatsapp_template ?? '')
         setCotEmailAsuntoTemplate(data.cotizacion_email_asunto_template ?? '')
         setCotEmailCuerpoTemplate(data.cotizacion_email_cuerpo_template ?? '')
@@ -197,6 +199,7 @@ export default function PerfilPage() {
         url_crm:        urlCrmTrim ? urlCrmTrim.replace(/\/+$/, '') : null,
         color_marca:    normalizarColorMarca(colorMarca),
         email_header_estilo: emailHeaderEstilo,
+        email_header_subtitulo: emailHeaderSubtitulo.trim().slice(0, 80),
         cotizacion_whatsapp_template:     cotWspTemplate.trim() || null,
         cotizacion_email_asunto_template: cotEmailAsuntoTemplate.trim() || null,
         cotizacion_email_cuerpo_template: cotEmailCuerpoTemplate.trim() || null,
@@ -763,7 +766,9 @@ export default function PerfilPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-white truncate leading-tight">{nombreOrg}</p>
-                        <p className="text-[9px] text-white/70 uppercase tracking-widest mt-0.5">Productor Asesor de Seguros</p>
+                        {emailHeaderSubtitulo.trim() && (
+                          <p className="text-[9px] text-white/70 uppercase tracking-widest mt-0.5 truncate">{emailHeaderSubtitulo.trim()}</p>
+                        )}
                       </div>
                     </div>
                     <div className="h-[3px]" style={{ backgroundColor: '#D4DDE8' }}></div>
@@ -821,38 +826,62 @@ export default function PerfilPage() {
                 ),
               },
             ]
+            const placeholderSubtitulo = tipoOperacion === 'SOCIEDAD'
+              ? 'Sociedad de Productores Asesores de Seguros'
+              : 'Productor Asesor de Seguros'
             return (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {opciones.map(op => {
-                  const seleccionada = emailHeaderEstilo === op.valor
-                  return (
-                    <button
-                      key={op.valor}
-                      type="button"
-                      onClick={() => setEmailHeaderEstilo(op.valor)}
-                      className={`flex flex-col gap-2 rounded border-2 p-2.5 text-left transition-all ${
-                        seleccionada
-                          ? 'border-slate-800 ring-2 ring-slate-300 bg-slate-50'
-                          : 'border-slate-200 hover:border-slate-400 bg-white'
-                      }`}
-                    >
-                      <div className="border border-slate-200 rounded overflow-hidden">
-                        {op.preview}
-                        <div className="h-6 bg-slate-50 border-t border-slate-100"></div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 mt-0.5 ${seleccionada ? 'border-slate-800 bg-slate-800' : 'border-slate-300 bg-white'}`}>
-                          {seleccionada && <div className="h-1.5 w-1.5 rounded-full bg-white m-auto mt-0.5"></div>}
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {opciones.map(op => {
+                    const seleccionada = emailHeaderEstilo === op.valor
+                    return (
+                      <button
+                        key={op.valor}
+                        type="button"
+                        onClick={() => setEmailHeaderEstilo(op.valor)}
+                        className={`flex flex-col gap-2 rounded border-2 p-2.5 text-left transition-all ${
+                          seleccionada
+                            ? 'border-slate-800 ring-2 ring-slate-300 bg-slate-50'
+                            : 'border-slate-200 hover:border-slate-400 bg-white'
+                        }`}
+                      >
+                        <div className="border border-slate-200 rounded overflow-hidden">
+                          {op.preview}
+                          <div className="h-6 bg-slate-50 border-t border-slate-100"></div>
                         </div>
-                        <div className="flex-1">
-                          <p className="text-xs font-semibold text-slate-700">{op.titulo}</p>
-                          <p className="text-2xs text-slate-500 mt-0.5 leading-snug">{op.descripcion}</p>
+                        <div className="flex items-start gap-2">
+                          <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 mt-0.5 ${seleccionada ? 'border-slate-800 bg-slate-800' : 'border-slate-300 bg-white'}`}>
+                            {seleccionada && <div className="h-1.5 w-1.5 rounded-full bg-white m-auto mt-0.5"></div>}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs font-semibold text-slate-700">{op.titulo}</p>
+                            <p className="text-2xs text-slate-500 mt-0.5 leading-snug">{op.descripcion}</p>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Subtítulo editable de la variante banda */}
+                <div className="pt-2 border-t border-slate-100">
+                  <label className="block text-2xs font-medium text-slate-600 uppercase tracking-wide mb-1.5">
+                    Subtítulo del encabezado
+                  </label>
+                  <input
+                    type="text"
+                    value={emailHeaderSubtitulo}
+                    onChange={e => setEmailHeaderSubtitulo(e.target.value.slice(0, 80))}
+                    placeholder={placeholderSubtitulo}
+                    maxLength={80}
+                    className="form-input w-full text-xs"
+                  />
+                  <p className="text-2xs text-slate-500 mt-1">
+                    Aparece debajo del nombre <strong>solo en la variante "Banda con logo"</strong>.
+                    Dejá vacío si no querés que se muestre.
+                  </p>
+                </div>
+              </>
             )
           })()}
         </div>

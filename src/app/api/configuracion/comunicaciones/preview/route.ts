@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
           logo_url: logoDataUrl,
           color_marca: variables.organizacion_color_marca || undefined,
           email_header_estilo: (variables.organizacion_email_header_estilo as 'banda' | 'compacto' | 'lateral' | undefined) || undefined,
+          email_header_subtitulo: variables.organizacion_email_header_subtitulo || undefined,
         },
       )
       return NextResponse.json({ ok: true, html: cuerpo_html })

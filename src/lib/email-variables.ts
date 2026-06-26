@@ -99,7 +99,7 @@ export async function obtenerVariablesOrganizacion(): Promise<Record<string, str
   const supabase = getSupabaseAdmin()
   const { data } = await supabase
     .from('configuracion')
-    .select('nombre, telefono, email, logo_path, color_marca, usar_logo, email_header_estilo')
+    .select('nombre, telefono, email, logo_path, color_marca, usar_logo, email_header_estilo, email_header_subtitulo')
     .limit(1)
     .maybeSingle()
 
@@ -118,6 +118,7 @@ export async function obtenerVariablesOrganizacion(): Promise<Record<string, str
   const logo = mostrarLogo ? (data.logo_path || '') : ''
   const colorMarca = data.color_marca || ''
   const headerEstilo = (data as any).email_header_estilo || 'banda'
+  const headerSubtitulo = (data as any).email_header_subtitulo ?? ''
 
   const vars = {
     organizacion_nombre: nombre,
@@ -126,6 +127,7 @@ export async function obtenerVariablesOrganizacion(): Promise<Record<string, str
     organizacion_logo: logo,
     organizacion_color_marca: colorMarca,
     organizacion_email_header_estilo: headerEstilo,
+    organizacion_email_header_subtitulo: headerSubtitulo,
   }
   _cacheOrganizacion = { data: vars, expira: Date.now() + TTL_ORGANIZACION_MS }
   return vars

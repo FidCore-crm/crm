@@ -43,6 +43,7 @@ export async function POST(
     logo_url: variables.organizacion_logo ? `${baseUrl}/api/storage/${variables.organizacion_logo}` : '',
     color_marca: variables.organizacion_color_marca || undefined,
     email_header_estilo: (variables.organizacion_email_header_estilo as 'banda' | 'compacto' | 'lateral' | undefined) || undefined,
+    email_header_subtitulo: variables.organizacion_email_header_subtitulo || undefined,
   }
 
   try {
