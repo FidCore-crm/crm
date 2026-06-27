@@ -11,6 +11,7 @@ import {
 } from '@/lib/anthropic-client';
 import { normalizarEntidadesRegistro } from '@/lib/importacion/normalizadores';
 import { normalizarRefacturacion } from '@/lib/refacturaciones';
+import { normalizarMedioPago } from '@/lib/medios-pago';
 import { getSupabaseAdmin } from '@/lib/supabase/server';
 import {
   validarDNI,
@@ -1006,6 +1007,13 @@ function resolverCatalogos(
         // Limpiamos para no insertar un valor inválido y romper el CHECK constraint.
         pol.refacturacion = null;
       }
+    }
+
+    // medio_pago: enum hardcoded (EFECTIVO/DEBITO_CUENTA/TARJETA_CREDITO).
+    // Si el texto no matchea, lo limpiamos en silencio (no es bloqueante).
+    if ((pol as any).medio_pago) {
+      const norm = normalizarMedioPago(String((pol as any).medio_pago));
+      (pol as any).medio_pago = norm; // null si no matchea
     }
   }
 }

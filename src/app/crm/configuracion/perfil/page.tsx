@@ -214,6 +214,10 @@ export default function PerfilPage() {
         setRegistroId(data.id)
       }
 
+      // Invalidar cache server-side de variables de organización para que
+      // los previews de plantillas reflejen el cambio recién guardado.
+      fetch('/api/configuracion/invalidar-cache', { method: 'POST' }).catch(() => {})
+
       // Guardar en localStorage para sidebar y otros componentes (cache anti-flash)
       const displayName = tipoOperacion === 'SOCIEDAD' ? razonSocial.trim() : nombre.trim()
       localStorage.setItem('crm_perfil_nombre', displayName)

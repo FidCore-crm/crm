@@ -13,6 +13,7 @@ interface FormData {
   nombre:         string
   razon_social:   string
   dni_cuil:       string
+  fecha_nacimiento: string
   email:          string
   email_secundario: string
   telefono:       string
@@ -37,6 +38,7 @@ const FORM_INICIAL: FormData = {
   nombre:          '',
   razon_social:    '',
   dni_cuil:        '',
+  fecha_nacimiento:'',
   email:           '',
   email_secundario:'',
   telefono:        '',
@@ -198,6 +200,7 @@ export default function NuevaPersonaPage() {
       nombre:           form.tipo_persona === 'FISICA' ? form.nombre : null,
       razon_social:     form.tipo_persona === 'JURIDICA' ? form.razon_social : null,
       dni_cuil:         form.dni_cuil,
+      fecha_nacimiento: form.tipo_persona === 'FISICA' && form.fecha_nacimiento ? form.fecha_nacimiento : null,
       email:            form.email,
       email_secundario: form.email_secundario,
       telefono:         form.telefono,
@@ -368,6 +371,18 @@ export default function NuevaPersonaPage() {
               maxLength={13}
             />
           </Campo>
+
+          {form.tipo_persona === 'FISICA' && (
+            <Campo label="Fecha de nacimiento">
+              <input
+                type="date"
+                className="form-input"
+                value={form.fecha_nacimiento}
+                onChange={(e) => set('fecha_nacimiento', e.target.value)}
+                max={new Date().toISOString().slice(0, 10)}
+              />
+            </Campo>
+          )}
 
           <Campo label="Estado" required>
             <select

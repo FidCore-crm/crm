@@ -326,6 +326,7 @@ export const PATCH = manejarErrores(async (request: NextRequest, { params }: { p
   const payload: Record<string, any> = {}
   const camposPosibles: Array<keyof typeof datos> = [
     'tipo_persona', 'apellido', 'nombre', 'razon_social', 'dni_cuil',
+    'fecha_nacimiento',
     'email', 'email_secundario', 'telefono', 'telefono_secundario', 'whatsapp',
     'estado', 'origen', 'segmento', 'canal_preferido', 'acepta_marketing',
     'calle', 'numero', 'piso_depto', 'barrio', 'localidad', 'provincia',

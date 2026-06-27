@@ -70,6 +70,7 @@ export interface Persona {
   segmento: string | null
   fecha_alta: string
   fecha_baja: string | null
+  fecha_nacimiento: string | null
   datos_extra: Record<string, unknown>
   acepta_marketing: boolean
   canal_preferido: string | null
@@ -91,6 +92,7 @@ export interface Poliza {
   ramo_id: string | null
   cobertura_id: string | null
   refacturacion: string | null
+  medio_pago: 'EFECTIVO' | 'DEBITO_CUENTA' | 'TARJETA_CREDITO' | null
   fecha_inicio: string
   fecha_fin: string
   moneda: string

@@ -17,6 +17,7 @@ export interface PersonaInput {
   nombre?: string | null
   razon_social?: string | null
   dni_cuil?: string | null
+  fecha_nacimiento?: string | null
   email?: string | null
   email_secundario?: string | null
   telefono?: string | null
@@ -43,6 +44,7 @@ export interface PersonaNormalizada {
   nombre: string | null
   razon_social: string | null
   dni_cuil: string
+  fecha_nacimiento: string | null
   email: string | null
   email_secundario: string | null
   telefono: string | null
@@ -185,6 +187,12 @@ export function validarYNormalizarPersona(
     nombre: nombreNorm,
     razon_social: razonNorm,
     dni_cuil: dniDigitos,
+    fecha_nacimiento:
+      tipo_persona === 'JURIDICA'
+        ? null
+        : input.fecha_nacimiento === undefined
+          ? (undefined as any)
+          : trimOrNull(input.fecha_nacimiento),
     email: emailNormalizado ?? (input.email !== undefined ? null : ''),
     email_secundario: emailSecNormalizado ?? (input.email_secundario !== undefined ? null : ''),
     telefono: trimOrNull(input.telefono),

@@ -323,7 +323,7 @@ export const DELETE = manejarErrores(async (request: NextRequest, { params }: { 
 const CAMPOS_EDITABLES_POLIZA = [
   'asegurado_id', 'compania_id', 'ramo_id', 'cobertura_id',
   'numero_poliza', 'fecha_inicio', 'fecha_fin',
-  'refacturacion',
+  'refacturacion', 'medio_pago',
   'observaciones', 'notas',
 ] as const
 

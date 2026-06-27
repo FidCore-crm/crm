@@ -26,6 +26,7 @@ import {
   CLAVES_RIESGO_NO_TITLECASE,
 } from '@/lib/importacion/normalizadores'
 import { normalizarRefacturacion } from '@/lib/refacturaciones'
+import { normalizarMedioPago } from '@/lib/medios-pago'
 import type {
   DatosExtraidosPoliza,
   DatosExtraidosEndoso,
@@ -432,6 +433,7 @@ export async function aplicarPolizaNueva(params: {
       ramo_id: mapeos.ramo_id,
       cobertura_id: mapeos.cobertura_id,
       refacturacion: normalizarRefacturacion(mapeos.refacturacion as string | null) || null,
+      medio_pago: normalizarMedioPago((mapeos as any).medio_pago as string | null) || null,
       fecha_inicio: datos.poliza.fecha_inicio,
       fecha_fin: datos.poliza.fecha_fin,
       // Si el PDF trajo "U$S" o "Pesos" en vez de "USD"/"ARS", normalizamos
@@ -607,7 +609,7 @@ export async function aplicarRenovacion(params: {
 
   const { data: origen } = await supabase
     .from('polizas')
-    .select('id, numero_poliza, fecha_fin, estado, asegurado_id, tomador_id, compania_id, ramo_id, cobertura_id, refacturacion, riesgos(id, tipo_riesgo, descripcion_corta, detalle_tecnico, suma_asegurada, numero_item)')
+    .select('id, numero_poliza, fecha_fin, estado, asegurado_id, tomador_id, compania_id, ramo_id, cobertura_id, refacturacion, medio_pago, riesgos(id, tipo_riesgo, descripcion_corta, detalle_tecnico, suma_asegurada, numero_item)')
     .eq('id', poliza_origen_id)
     .maybeSingle()
 
@@ -667,6 +669,10 @@ export async function aplicarRenovacion(params: {
         normalizarRefacturacion(
           (mapeos.refacturacion || (origen as any).refacturacion) as string | null,
         ) || (origen as any).refacturacion,
+      medio_pago:
+        normalizarMedioPago(
+          ((mapeos as any).medio_pago || (origen as any).medio_pago) as string | null,
+        ) || (origen as any).medio_pago || null,
       fecha_inicio: datos.poliza.fecha_inicio,
       fecha_fin: datos.poliza.fecha_fin,
       moneda: normalizarMoneda(datos.poliza.moneda),

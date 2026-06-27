@@ -20,6 +20,7 @@ import { EstadoCarga } from '@/components/EstadoCarga'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
+import { opcionesMedioPago } from '@/lib/medios-pago'
 import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 
 interface Catalogo { id: string; nombre: string; metadata?: Record<string,any> | null }
@@ -37,6 +38,7 @@ interface PolizaOrigen {
   ramo: { id: string; nombre: string; metadata: Record<string,any> | null } | null
   cobertura: { id: string; nombre: string; metadata: Record<string,any> | null } | null
   refacturacion: string | null
+  medio_pago: string | null
   riesgos: { id: string; tipo_riesgo: string; detalle_tecnico: Record<string,any>; suma_asegurada: number | null }[]
 }
 
@@ -99,6 +101,7 @@ export default function RenovarPolizaPage() {
   const [fechaFin,      setFechaFin]      = useState('')
   const [sumaAsegurada, setSumaAsegurada] = useState('')
   const [refacturacion, setRefacturacion] = useState('')
+  const [medioPago, setMedioPago] = useState('')
   const [observaciones, setObservaciones] = useState('')
 
   // Catálogos
@@ -144,7 +147,7 @@ export default function RenovarPolizaPage() {
 
     const [{ data: pol }, { data: comps }, { data: cobs }] = await Promise.all([
       supabase.from('polizas').select(`
-        id, numero_poliza, fecha_inicio, fecha_fin, estado, suma_asegurada, moneda, refacturacion,
+        id, numero_poliza, fecha_inicio, fecha_fin, estado, suma_asegurada, moneda, refacturacion, medio_pago,
         asegurado:personas!asegurado_id (id, apellido, nombre, razon_social),
         compania:catalogos!compania_id (id, nombre),
         ramo:catalogos!ramo_id (id, nombre, metadata),
@@ -202,6 +205,7 @@ export default function RenovarPolizaPage() {
       setCoberturaId(p.cobertura?.id ?? '')
       setSumaAsegurada(p.suma_asegurada ? String(p.suma_asegurada) : '')
       setRefacturacion(p.refacturacion ?? '')
+      setMedioPago((p as any).medio_pago ?? '')
 
       // Riesgos — copiamos TODOS los del origen, conservando el tipo de cada uno
       // (soporte flotas mixtas: una flota puede tener autos y motos).
@@ -396,6 +400,7 @@ export default function RenovarPolizaPage() {
           fecha_fin:        fechaFin,
           suma_asegurada:   parseFloat(sumaAsegurada) || null,
           refacturacion:    refacturacion || null,
+          medio_pago:       medioPago || null,
           estado:           'RENOVADA',
           poliza_origen_id: origen.id,
           observaciones:    observaciones || null,
@@ -607,6 +612,12 @@ export default function RenovarPolizaPage() {
             <select className="form-input" value={refacturacion} onChange={e => setRefacturacion(e.target.value)}>
               <option value="">— Seleccioná —</option>
               {opcionesRefacturacion().map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Campo>
+          <Campo label="Medio de pago">
+            <select className="form-input" value={medioPago} onChange={e => setMedioPago(e.target.value)}>
+              <option value="">— Seleccioná —</option>
+              {opcionesMedioPago().map(o => <option key={o.valor} value={o.valor}>{o.label}</option>)}
             </select>
           </Campo>
           <Campo label="Vigencia">

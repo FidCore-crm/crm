@@ -409,11 +409,23 @@ export default function FichaPersonaPage() {
                 {getLabelEstado(persona.estado)}
               </span>
             </div>
-            <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+            <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 flex-wrap">
               {persona.tipo_persona === 'JURIDICA'
                 ? <><Building2 className="h-3 w-3" /> Persona Jurídica</>
                 : <><User className="h-3 w-3" /> Persona Física</>}
-              {persona.dni_cuil && <> · <span className="font-mono">{persona.cuil_formateado ?? persona.dni_cuil}</span></>}
+              {persona.dni_cuil && (
+                <> · <span>
+                  <span className="text-slate-400 mr-1">
+                    {persona.tipo_persona === 'JURIDICA'
+                      ? 'CUIT'
+                      : (persona.dni_cuil.replace(/\D/g, '').length === 11 ? 'CUIL' : 'DNI')}
+                  </span>
+                  <span className="font-mono">{persona.cuil_formateado ?? persona.dni_cuil}</span>
+                </span></>
+              )}
+              {persona.tipo_persona === 'FISICA' && (persona as any).fecha_nacimiento && (
+                <> · <span className="text-slate-400">Nacimiento:</span> <span className="font-mono">{new Date((persona as any).fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR')}</span></>
+              )}
             </p>
           </div>
         </div>

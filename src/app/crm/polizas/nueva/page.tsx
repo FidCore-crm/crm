@@ -18,6 +18,7 @@ import BuscadorPersona from '@/components/BuscadorPersona'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
+import { opcionesMedioPago } from '@/lib/medios-pago'
 import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 
 interface Catalogo { id: string; nombre: string; metadata?: Record<string,any> | null }
@@ -27,6 +28,7 @@ interface FormPoliza {
   numero_poliza: string
   fecha_inicio: string; fecha_fin: string
   refacturacion: string
+  medio_pago: string
   observaciones: string
 }
 
@@ -47,6 +49,7 @@ const POLIZA_INICIAL: FormPoliza = {
   numero_poliza: '',
   fecha_inicio: hoyLocal(), fecha_fin: '',
   refacturacion: '',
+  medio_pago: '',
   observaciones: '',
 }
 
@@ -317,6 +320,7 @@ function NuevaPolizaContent() {
           fecha_inicio:      poliza.fecha_inicio,
           fecha_fin:         poliza.fecha_fin,
           refacturacion:     poliza.refacturacion || null,
+          medio_pago:        poliza.medio_pago || null,
           estado:            estadoCalculado,
           observaciones:     poliza.observaciones || null,
         })
@@ -564,6 +568,12 @@ function NuevaPolizaContent() {
             <select className="form-input" value={poliza.refacturacion} onChange={e => setP('refacturacion', e.target.value)}>
               <option value="">— Seleccioná —</option>
               {opcionesRefacturacion().map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Campo>
+          <Campo label="Medio de pago">
+            <select className="form-input" value={poliza.medio_pago} onChange={e => setP('medio_pago', e.target.value)}>
+              <option value="">— Seleccioná —</option>
+              {opcionesMedioPago().map(o => <option key={o.valor} value={o.valor}>{o.label}</option>)}
             </select>
           </Campo>
           <Campo label="Vigencia">

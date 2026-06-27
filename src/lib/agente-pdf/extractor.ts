@@ -175,6 +175,7 @@ REGLAS DURAS:
 6. Moneda: solo "ARS" o "USD".
 7. DNI/CUIT: solo dígitos, sin puntos ni guiones.
 8. Para "catalogos_pdf" devolvé los textos tal como figuran en el PDF (ej: "San Cristóbal Seguros", "Automotores", "C+"), sin normalizar. El CRM hará el mapeo después.
+   • "medio_pago_texto": forma en que el cliente paga (ej: "Tarjeta VISA", "Débito en cuenta", "CBU", "Efectivo", "Contado"). Si el PDF no lo dice, devolvé null.
 9. CRÍTICO — "tipo_riesgo" debe ser EXACTAMENTE uno de estos identificadores en MAYÚSCULA. Elegí el que mejor describa el contenido del PDF. Si ninguno encaja claramente, usá GENERICO.
 
 ${construirSeccionTiposRiesgo()}
@@ -213,7 +214,8 @@ Schema de salida (todos los campos pueden ser null si faltan):
     "compania_texto": string | null,
     "ramo_texto": string | null,
     "cobertura_texto": string | null,
-    "refacturacion_texto": string | null
+    "refacturacion_texto": string | null,
+    "medio_pago_texto": string | null
   },
   "riesgo": {
     "tipo_riesgo": string,

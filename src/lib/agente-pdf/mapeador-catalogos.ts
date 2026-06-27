@@ -11,6 +11,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import type { DatosExtraidosPoliza, MapeosCatalogos, InfoCoberturaBloqueante } from './types'
 import { normalizarRefacturacion } from '@/lib/refacturaciones'
+import { normalizarMedioPago } from '@/lib/medios-pago'
 
 function norm(s: string | null | undefined): string {
   return (s || '')
@@ -183,6 +184,7 @@ export async function mapearCatalogos(
   }
 
   const refacturacionNormalizada = normalizarRefacturacion(datos.catalogos_pdf?.refacturacion_texto)
+  const medioPagoNormalizado = normalizarMedioPago(datos.catalogos_pdf?.medio_pago_texto)
 
   return {
     compania_id: compania?.id || null,
@@ -194,5 +196,6 @@ export async function mapearCatalogos(
     cobertura_estado: coberturaEstado,
     cobertura_info_config: coberturaInfoConfig,
     refacturacion: refacturacionNormalizada,
+    medio_pago: medioPagoNormalizado,
   }
 }

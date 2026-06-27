@@ -200,6 +200,7 @@ function construirHojaInstrucciones(wb: ExcelJS.Workbook) {
     ['estado (póliza)', 'PROGRAMADA / VIGENTE / NO_VIGENTE / CANCELADA / ANULADA', 'Si no completás, el sistema lo calcula desde las fechas.'],
     ['moneda', 'ARS / USD', 'Si no completás, queda como ARS.'],
     ['refacturacion', REFACTURACIONES.join(' / '), 'Frecuencia de cobro de la cuota.'],
+    ['medio_pago', 'EFECTIVO / DEBITO_CUENTA / TARJETA_CREDITO', 'Medio al que el cliente adhirió. Si no corresponde, dejá vacío.'],
   ]
   for (const [col, valores, nota] of valoresValidos) {
     sheet.getCell(`A${fila}`).value = col
@@ -303,6 +304,7 @@ function construirHojaClientes(wb: ExcelJS.Workbook) {
     'apellido',
     'nombre',
     'razon_social',
+    'fecha_nacimiento',
     'email',
     'email_secundario',
     'telefono',
@@ -326,6 +328,7 @@ function construirHojaClientes(wb: ExcelJS.Workbook) {
     apellido: 20,
     nombre: 20,
     razon_social: 26,
+    fecha_nacimiento: 16,
     email: 28,
     email_secundario: 28,
     telefono: 18,
@@ -366,6 +369,7 @@ function construirHojaClientes(wb: ExcelJS.Workbook) {
       'PEREZ',
       'Juan Carlos',
       null,
+      '1985-06-15',
       'juan.perez@mail.com',
       null,
       '+541155551234',
@@ -389,6 +393,7 @@ function construirHojaClientes(wb: ExcelJS.Workbook) {
       'GONZALEZ',
       'María Elena',
       null,
+      '1990-03-22',
       'mgonzalez@mail.com',
       null,
       '+541166667777',
@@ -412,6 +417,7 @@ function construirHojaClientes(wb: ExcelJS.Workbook) {
       null,
       null,
       'Transportes del Sur SRL',
+      null,
       'contacto@transportes.com',
       null,
       '+541144445555',
@@ -481,14 +487,13 @@ function construirHojaPolizas(wb: ExcelJS.Workbook) {
     // Identificación
     'dni_cuil',
     'numero_poliza',
-    'numero_certificado',
-    'numero_endoso',
     // Catálogos
     'compania',
     'ramo',
     'cobertura',
     // Datos comerciales
     'refacturacion',
+    'medio_pago',
     'fecha_inicio',
     'fecha_fin',
     'moneda',
@@ -555,12 +560,11 @@ function construirHojaPolizas(wb: ExcelJS.Workbook) {
     [
       '20123456781',
       'POL-AUTO-001234',
-      null, // numero_certificado
-      null, // numero_endoso
       'La Caja',
       'Automotor',
       'Todo Riesgo',
       'MENSUAL',
+      'TARJETA_CREDITO',
       '2026-01-15',
       '2027-01-15',
       'ARS',
@@ -582,12 +586,11 @@ function construirHojaPolizas(wb: ExcelJS.Workbook) {
     [
       '27334455668',
       'POL-HOG-567',
-      null,
-      null,
       'Sancor Seguros',
       'Integral de Hogar',
       'Cobertura B',
       'TRIMESTRAL',
+      'DEBITO_CUENTA',
       '2026-03-01',
       '2027-03-01',
       'ARS',
@@ -609,12 +612,11 @@ function construirHojaPolizas(wb: ExcelJS.Workbook) {
     [
       '30701234567',
       'POL-VIDA-9001',
-      null,
-      null,
       'Galeno Vida',
       'Vida',
       'Vida Individual',
       'ANUAL',
+      'EFECTIVO',
       '2026-02-10',
       '2027-02-10',
       'USD',
@@ -641,6 +643,7 @@ function construirHojaPolizas(wb: ExcelJS.Workbook) {
 
   // Data validation: refacturacion, moneda, estado
   const colRefac = letraColumna(headers.indexOf('refacturacion') + 1)
+  const colMedioPago = letraColumna(headers.indexOf('medio_pago') + 1)
   const colMoneda = letraColumna(headers.indexOf('moneda') + 1)
   const colEstado = letraColumna(headers.indexOf('estado') + 1)
 
@@ -649,6 +652,13 @@ function construirHojaPolizas(wb: ExcelJS.Workbook) {
     type: 'list',
     allowBlank: true,
     formulae: [`"${REFACTURACIONES.join(',')}"`],
+    showErrorMessage: false,
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(sheet as any).dataValidations.add(`${colMedioPago}4:${colMedioPago}1000`, {
+    type: 'list',
+    allowBlank: true,
+    formulae: ['"EFECTIVO,DEBITO_CUENTA,TARJETA_CREDITO"'],
     showErrorMessage: false,
   })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

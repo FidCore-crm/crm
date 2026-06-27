@@ -55,6 +55,7 @@ export interface DatosExtraidosPoliza {
     ramo_texto: string | null
     cobertura_texto: string | null
     refacturacion_texto?: string | null
+    medio_pago_texto?: string | null
   }
 
   riesgo: {
@@ -101,6 +102,7 @@ export interface MapeosCatalogos {
   cobertura_estado?: EstadoCobertura
   cobertura_info_config?: InfoCoberturaBloqueante | null
   refacturacion?: string | null // Valor normalizado del enum REFACTURACIONES (no es FK)
+  medio_pago?: string | null // Valor normalizado del enum MEDIOS_PAGO (no es FK)
 }
 
 // ────────────────────────────────────────────────────────────

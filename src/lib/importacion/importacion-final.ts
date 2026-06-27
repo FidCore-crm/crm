@@ -13,6 +13,7 @@ import {
   normalizarMoneda,
   normalizarCanalPreferido,
 } from '@/lib/importacion/normalizadores';
+import { normalizarMedioPago } from '@/lib/medios-pago';
 import type {
   DudosoRow,
   EstadisticasImportacion,
@@ -368,6 +369,7 @@ function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
   const keys = [
     'nombre',
     'razon_social',
+    'fecha_nacimiento',
     'email',
     'email_secundario',
     'telefono',
@@ -410,6 +412,10 @@ function mapeoPoliza(
     // (las pólizas importadas vienen de otra cartera, no son altas reales).
     origen_creacion: 'IMPORTACION',
   };
+  // Medio de pago: normalizar a uno de los 3 enums válidos. Si el texto no
+  // matchea ninguno, queda en null (CHECK permite null).
+  const medioPagoNorm = normalizarMedioPago(pr.medio_pago as string | null | undefined);
+  if (medioPagoNorm) out.medio_pago = medioPagoNorm;
   const keys = [
     'numero_certificado',
     'numero_endoso',

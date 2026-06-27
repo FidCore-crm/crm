@@ -16,6 +16,7 @@ import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
+import { opcionesMedioPago } from '@/lib/medios-pago'
 import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 
 interface Catalogo { id: string; nombre: string; metadata?: Record<string, any> | null }
@@ -25,6 +26,7 @@ interface FormPoliza {
   numero_poliza: string
   fecha_inicio: string; fecha_fin: string
   refacturacion: string
+  medio_pago: string
   observaciones: string; notas: string
 }
 
@@ -124,7 +126,7 @@ export default function EditarPolizaPage() {
     setCargando(true)
     const { data: pol } = await supabase.from('polizas').select(`
       id, numero_poliza, asegurado_id, compania_id, ramo_id, cobertura_id,
-      fecha_inicio, fecha_fin, refacturacion,
+      fecha_inicio, fecha_fin, refacturacion, medio_pago,
       observaciones, notas, updated_at,
       ramo:catalogos!ramo_id (id, nombre, metadata),
       riesgos (id, tipo_riesgo, detalle_tecnico)
@@ -149,6 +151,7 @@ export default function EditarPolizaPage() {
         fecha_inicio: p.fecha_inicio ?? '',
         fecha_fin: p.fecha_fin ?? '',
         refacturacion: p.refacturacion ?? '',
+        medio_pago: p.medio_pago ?? '',
         observaciones: p.observaciones ?? '',
         notas: p.notas ?? '',
       })
@@ -361,6 +364,7 @@ export default function EditarPolizaPage() {
         fecha_inicio:     poliza.fecha_inicio,
         fecha_fin:        poliza.fecha_fin,
         refacturacion:    poliza.refacturacion || null,
+        medio_pago:       poliza.medio_pago || null,
         observaciones:    poliza.observaciones || null,
         notas:            poliza.notas || null,
         riesgos: riesgosPayload,
@@ -511,6 +515,12 @@ export default function EditarPolizaPage() {
             <select className="form-input" value={poliza.refacturacion} onChange={e => setP('refacturacion', e.target.value)}>
               <option value="">— Seleccioná —</option>
               {opcionesRefacturacion().map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Campo>
+          <Campo label="Medio de pago">
+            <select className="form-input" value={poliza.medio_pago} onChange={e => setP('medio_pago', e.target.value)}>
+              <option value="">— Seleccioná —</option>
+              {opcionesMedioPago().map(o => <option key={o.valor} value={o.valor}>{o.label}</option>)}
             </select>
           </Campo>
           <Campo label="Vigencia">
@@ -725,13 +735,14 @@ export default function EditarPolizaPage() {
             numero_poliza: 'N° de póliza',
             fecha_inicio: 'Vigencia desde',
             fecha_fin: 'Vigencia hasta',
-            refacturacion: 'Forma de pago',
+            refacturacion: 'Refacturación',
+            medio_pago: 'Medio de pago',
             observaciones: 'Observaciones',
             notas: 'Notas',
           }}
           campos={[
             'asegurado_id', 'compania_id', 'ramo_id', 'cobertura_id', 'numero_poliza',
-            'fecha_inicio', 'fecha_fin', 'refacturacion',
+            'fecha_inicio', 'fecha_fin', 'refacturacion', 'medio_pago',
             'observaciones', 'notas',
           ]}
           onCerrar={() => setConflicto(null)}

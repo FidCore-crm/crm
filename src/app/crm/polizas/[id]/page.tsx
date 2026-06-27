@@ -27,6 +27,7 @@ import { toast } from '@/lib/toast'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { formatearRefacturacion } from '@/lib/refacturaciones'
+import { formatearMedioPago } from '@/lib/medios-pago'
 import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 import { obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 
@@ -38,6 +39,7 @@ interface PolizaDetalle {
   fecha_inicio: string
   fecha_fin: string
   refacturacion: string | null
+  medio_pago: string | null
   moneda: string
   estado: string
   motivo_baja: string | null
@@ -150,7 +152,7 @@ export default function FichaPolizaPage() {
     const [{ data: pol }, { data: sin }] = await Promise.all([
       supabase.from('polizas').select(`
         id, numero_poliza, numero_certificado,
-        fecha_inicio, fecha_fin, refacturacion,
+        fecha_inicio, fecha_fin, refacturacion, medio_pago,
         moneda, estado, motivo_baja, fecha_baja, observaciones_baja,
         observaciones, notas, created_at, updated_at,
         asegurado:personas!asegurado_id (id, apellido, nombre, razon_social, dni_cuil, telefono, whatsapp, email),
@@ -639,6 +641,12 @@ export default function FichaPolizaPage() {
                 <span className="text-slate-500">Refacturación</span>
                 <span className="text-slate-700 font-medium">{formatearRefacturacion(poliza.refacturacion)}</span>
               </div>
+              {poliza.medio_pago && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Medio de pago</span>
+                  <span className="text-slate-700 font-medium">{formatearMedioPago(poliza.medio_pago)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-500">Duración</span>
                 <span className="text-slate-700 font-medium">{vigenciaTextoDesdeFechas(poliza.fecha_inicio, poliza.fecha_fin)}</span>
