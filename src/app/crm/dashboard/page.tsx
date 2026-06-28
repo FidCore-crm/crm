@@ -7,7 +7,7 @@ import {
   TrendingUp, TrendingDown, Minus, CalendarCheck, XCircle,
   ClipboardList, Shield, CheckCircle2, AlertOctagon, RefreshCw,
   StickyNote, Plus, Edit2, Palette, Trash2, User, Users as UsersIcon,
-  Building2, Layers, ShieldCheck, CreditCard, DollarSign, Trophy,
+  Building2, Layers, ShieldCheck, CreditCard,
   CalendarDays, Activity, Percent, Hourglass, LineChart as LineChartIcon
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
@@ -75,8 +75,8 @@ function rotacionPostit(id: string): number {
   return (num % 5) - 2
 }
 
-// Paleta de gradientes — cada chart embebe sus stops via <ChartGradients />.
-// Los IDs son únicos para evitar colisión cuando varios charts conviven en la misma página.
+// Paleta de gradientes — cada chart embebe sus stops via `<defs>{gradientStops(...)}</defs>`
+// inline. Los IDs son únicos para que no colisionen entre charts en la misma página.
 const GRADIENTES = {
   blue:    { id: 'grad-blue',    from: '#1e40af', to: '#60a5fa' },
   emerald: { id: 'grad-emerald', from: '#047857', to: '#34d399' },
@@ -92,26 +92,23 @@ const GRADIENTES = {
 
 type GradKey = keyof typeof GRADIENTES
 
-// SVG defs reutilizable — recharts permite hijos arbitrarios dentro del chart.
-function ChartGradients({ keys, horizontal }: { keys: GradKey[]; horizontal?: boolean }) {
-  return (
-    <defs>
-      {keys.map((k) => {
-        const g = GRADIENTES[k]
-        // horizontal=true → eje x va de from→to (barras horizontales).
-        // horizontal=false → eje y va de from→to top-bottom (barras verticales).
-        const coords = horizontal
-          ? { x1: '0%', y1: '0%', x2: '100%', y2: '0%' }
-          : { x1: '0%', y1: '0%', x2: '0%', y2: '100%' }
-        return (
-          <linearGradient key={k} id={g.id} {...coords}>
-            <stop offset="0%" stopColor={g.from} stopOpacity={0.95} />
-            <stop offset="100%" stopColor={g.to} stopOpacity={0.85} />
-          </linearGradient>
-        )
-      })}
-    </defs>
-  )
+// Helper que devuelve los `<linearGradient>` para meter directo dentro de
+// un `<defs>` inline del chart. NO se puede envolver en un componente custom
+// porque recharts solo procesa sus propios componentes como hijos: cualquier
+// wrapper queda fuera del SVG y los `fill="url(#xxx)"` no resuelven.
+function gradientStops(keys: GradKey[], horizontal?: boolean) {
+  return keys.map((k) => {
+    const g = GRADIENTES[k]
+    const coords = horizontal
+      ? { x1: '0%', y1: '0%', x2: '100%', y2: '0%' }
+      : { x1: '0%', y1: '0%', x2: '0%', y2: '100%' }
+    return (
+      <linearGradient key={k} id={g.id} {...coords}>
+        <stop offset="0%" stopColor={g.from} stopOpacity={0.95} />
+        <stop offset="100%" stopColor={g.to} stopOpacity={0.85} />
+      </linearGradient>
+    )
+  })
 }
 
 // Tooltip estilizado compartido — fondo blanco, sombra, sin border duro.
@@ -263,8 +260,6 @@ export default function DashboardPage() {
   // ── Charts nuevos (v1.0.49) ──
   const [chartCobertura, setChartCobertura] = useState<{ name: string; value: number }[]>([])
   const [chartMedioPago, setChartMedioPago] = useState<{ name: string; value: number }[]>([])
-  const [chartMoneda, setChartMoneda] = useState<{ name: string; value: number }[]>([])
-  const [chartTopClientesPolizas, setChartTopClientesPolizas] = useState<{ name: string; value: number }[]>([])
   const [chartAntiguedad, setChartAntiguedad] = useState<{ name: string; value: number }[]>([])
   const [chartTasaSiniestralidad, setChartTasaSiniestralidad] = useState<{ name: string; value: number }[]>([])
   const [chartTiempoResolucion, setChartTiempoResolucion] = useState<{ name: string; value: number }[]>([])
@@ -683,34 +678,6 @@ export default function DashboardPage() {
         }
         setChartMedioPago(
           Array.from(m.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
-        )
-      }
-
-      // ── Distribución por moneda ──
-      {
-        const m = new Map<string, number>()
-        for (const p of polizasCartera) {
-          const k = p.moneda || 'ARS'
-          m.set(k, (m.get(k) ?? 0) + 1)
-        }
-        setChartMoneda(
-          Array.from(m.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
-        )
-      }
-
-      // ── Top 10 clientes por cantidad de pólizas (solo VIGENTES) ──
-      {
-        const m = new Map<string, number>()
-        for (const p of polizasVigentesAhora) {
-          if (!p.asegurado) continue
-          const nom = nombrePersona(p.asegurado)
-          m.set(nom, (m.get(nom) ?? 0) + 1)
-        }
-        setChartTopClientesPolizas(
-          Array.from(m.entries())
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 10),
         )
       }
 
@@ -1353,8 +1320,8 @@ export default function DashboardPage() {
             // Si todo está apagado, mostrar mensaje guía
             const algunoVisible = [
               'evolucion','distribucion_compania','distribucion_ramo','distribucion_cobertura',
-              'distribucion_medio_pago','distribucion_moneda',
-              'top_clientes_polizas','antiguedad_cartera',
+              'distribucion_medio_pago',
+              'antiguedad_cartera',
               'siniestralidad_compania','tasa_siniestralidad_compania','tiempo_resolucion_siniestros',
               'facturacion_anual',
             ].some(Vis)
@@ -1412,7 +1379,7 @@ export default function DashboardPage() {
                       {chartCompanias.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartCompanias.length)}>
                           <BarChart data={chartCompanias} layout="vertical" margin={{ left: 0 }}>
-                            <ChartGradients keys={['blue']} horizontal />
+                            <defs>{gradientStops(['blue'], true)}</defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                             <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
                             <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" width={140} tickLine={false} axisLine={false} />
@@ -1434,7 +1401,7 @@ export default function DashboardPage() {
                       {chartRamos.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartRamos.length)}>
                           <BarChart data={chartRamos} layout="vertical" margin={{ left: 0 }}>
-                            <ChartGradients keys={['emerald']} horizontal />
+                            <defs>{gradientStops(['emerald'], true)}</defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                             <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
                             <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" width={140} tickLine={false} axisLine={false} />
@@ -1456,7 +1423,7 @@ export default function DashboardPage() {
                       {chartCobertura.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartCobertura.length)}>
                           <BarChart data={chartCobertura} layout="vertical" margin={{ left: 0 }}>
-                            <ChartGradients keys={['violet']} horizontal />
+                            <defs>{gradientStops(['violet'], true)}</defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                             <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
                             <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" width={140} tickLine={false} axisLine={false} />
@@ -1480,40 +1447,8 @@ export default function DashboardPage() {
                     </ChartCard>
                   )}
 
-                  {Vis('distribucion_moneda') && (
-                    <ChartCard
-                      icono={<DollarSign className="h-3.5 w-3.5" />}
-                      titulo="Distribución por moneda"
-                      tono="amber"
-                    >
-                      {chartMoneda.length === 0 ? <SinDatos /> : (
-                        <DonutCard data={chartMoneda} colors={['#b45309', '#f59e0b', '#fbbf24']} />
-                      )}
-                    </ChartCard>
-                  )}
 
                   {/* ── Clientes ──────────────────────────────────────── */}
-                  {Vis('top_clientes_polizas') && (
-                    <ChartCard
-                      icono={<Trophy className="h-3.5 w-3.5" />}
-                      titulo="Top 10 clientes por cantidad de pólizas"
-                      tono="indigo"
-                    >
-                      {chartTopClientesPolizas.length === 0 ? <SinDatos /> : (
-                        <ResponsiveContainer width="100%" height={heightBarH(chartTopClientesPolizas.length)}>
-                          <BarChart data={chartTopClientesPolizas} layout="vertical" margin={{ left: 0 }}>
-                            <ChartGradients keys={['indigo']} horizontal />
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} stroke="#475569" width={160} tickLine={false} axisLine={false} />
-                            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(99, 102, 241, 0.06)' }} />
-                            <Bar dataKey="value" fill="url(#grad-indigo)" radius={[0, 6, 6, 0]} barSize={16} name="Pólizas" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )}
-                    </ChartCard>
-                  )}
-
                   {Vis('antiguedad_cartera') && (
                     <ChartCard
                       icono={<CalendarDays className="h-3.5 w-3.5" />}
@@ -1523,7 +1458,7 @@ export default function DashboardPage() {
                       {chartAntiguedad.every(d => d.value === 0) ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={220}>
                           <BarChart data={chartAntiguedad} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                            <ChartGradients keys={['fuchsia']} />
+                            <defs>{gradientStops(['fuchsia'])}</defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                             <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
                             <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} tickLine={false} axisLine={false} />
@@ -1545,7 +1480,7 @@ export default function DashboardPage() {
                       {chartSiniestralidad.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={240}>
                           <BarChart data={chartSiniestralidad} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                            <ChartGradients keys={['rose', 'emerald']} />
+                            <defs>{gradientStops(['rose', 'emerald'])}</defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                             <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#475569" interval={0} angle={-20} textAnchor="end" height={50} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
                             <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickLine={false} axisLine={false} />
@@ -1569,7 +1504,7 @@ export default function DashboardPage() {
                       {chartTasaSiniestralidad.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartTasaSiniestralidad.length)}>
                           <BarChart data={chartTasaSiniestralidad} layout="vertical" margin={{ left: 0 }}>
-                            <ChartGradients keys={['rose']} horizontal />
+                            <defs>{gradientStops(['rose'], true)}</defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                             <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v: number) => `${v}%`} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
                             <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" width={140} tickLine={false} axisLine={false} />
@@ -1591,7 +1526,7 @@ export default function DashboardPage() {
                       {chartTiempoResolucion.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartTiempoResolucion.length)}>
                           <BarChart data={chartTiempoResolucion} layout="vertical" margin={{ left: 0 }}>
-                            <ChartGradients keys={['violet']} horizontal />
+                            <defs>{gradientStops(['violet'], true)}</defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                             <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
                             <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" width={140} tickLine={false} axisLine={false} />
@@ -1626,7 +1561,7 @@ export default function DashboardPage() {
                         </div>
                         <ResponsiveContainer width="100%" height={280}>
                           <BarChart data={chartFacturacion} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                            <ChartGradients keys={['navy', 'slate']} />
+                            <defs>{gradientStops(['navy', 'slate'])}</defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                             <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#475569" tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
                             <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tickLine={false} axisLine={false} />

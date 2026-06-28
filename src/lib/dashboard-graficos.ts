@@ -62,20 +62,8 @@ export const GRAFICOS_DASHBOARD: GraficoDashboard[] = [
     descripcion: 'Cómo paga el cliente: efectivo, débito en cuenta o tarjeta.',
     categoria: 'cartera',
   },
-  {
-    id: 'distribucion_moneda',
-    nombre: 'Distribución por moneda',
-    descripcion: 'Pólizas en ARS vs USD.',
-    categoria: 'cartera',
-  },
 
   // ─── Clientes ─────────────────────────────────────────────────────────
-  {
-    id: 'top_clientes_polizas',
-    nombre: 'Top 10 clientes por cantidad de pólizas',
-    descripcion: 'Clientes más fidelizados por volumen de pólizas activas.',
-    categoria: 'clientes',
-  },
   {
     id: 'antiguedad_cartera',
     nombre: 'Antigüedad de la cartera',
