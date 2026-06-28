@@ -171,20 +171,21 @@ function generarHeaderHtml(
 
   if (estilo === 'compacto') {
     // Compacto: header bajo, nombre a la izquierda, cuadrito logo a la derecha.
+    // Tamaños subidos ~40% (v1.0.53) — antes el logo era apenas perceptible.
     const cuadroLogo = organizacion.logo_url
-      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="24" style="max-width:24px;max-height:24px;display:block;" />`
-      : `<span style="color:${tonos.base};font-weight:bold;font-size:14px;font-family:${stack};">${inicial}</span>`
+      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="34" style="max-width:34px;max-height:34px;display:block;" />`
+      : `<span style="color:${tonos.base};font-weight:bold;font-size:18px;font-family:${stack};">${inicial}</span>`
     return `
 <!-- HEADER: compacto -->
-<tr><td style="${gradient}padding:14px 22px;">
+<tr><td style="${gradient}padding:18px 24px;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
     <tr>
       <td valign="middle">
-        <span style="font-size:13px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;font-family:${stack};">${nombreEscapado}</span>
+        <span style="font-size:16px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;font-family:${stack};">${nombreEscapado}</span>
       </td>
-      <td width="30" align="right" valign="middle" style="width:30px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:7px;width:30px;height:30px;">
-          <tr><td align="center" valign="middle" style="width:30px;height:30px;padding:3px;">
+      <td width="42" align="right" valign="middle" style="width:42px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:9px;width:42px;height:42px;">
+          <tr><td align="center" valign="middle" style="width:42px;height:42px;padding:4px;">
             ${cuadroLogo}
           </td></tr>
         </table>
@@ -194,7 +195,7 @@ function generarHeaderHtml(
 </td></tr>
 
 <!-- Barra de acento fina -->
-<tr><td style="background-color:#D4DDE8;height:3px;line-height:3px;font-size:0;">&nbsp;</td></tr>`
+<tr><td style="background-color:#D4DDE8;height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>`
   }
 
   if (estilo === 'lateral') {
@@ -202,23 +203,23 @@ function generarHeaderHtml(
     // marca lo aplica el contenedor de 600px (no acá). Logo en cuadro con
     // color de marca. No lleva barra de acento.
     const cuadroLogo = organizacion.logo_url
-      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="34" style="max-width:34px;max-height:34px;display:block;" />`
-      : `<span style="color:#ffffff;font-weight:bold;font-size:17px;font-family:${stack};">${inicial}</span>`
+      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="48" style="max-width:48px;max-height:48px;display:block;" />`
+      : `<span style="color:#ffffff;font-weight:bold;font-size:22px;font-family:${stack};">${inicial}</span>`
     return `
 <!-- HEADER: lateral (fondo blanco; el border-top de marca va en el contenedor de 600px) -->
-<tr><td style="background-color:#ffffff;padding:18px 22px 0;">
+<tr><td style="background-color:#ffffff;padding:22px 24px 0;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
     <tr>
-      <td width="40" valign="middle" style="width:40px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:${tonos.base};border-radius:9px;width:40px;height:40px;">
-          <tr><td align="center" valign="middle" style="width:40px;height:40px;padding:4px;">
+      <td width="56" valign="middle" style="width:56px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:${tonos.base};border-radius:11px;width:56px;height:56px;">
+          <tr><td align="center" valign="middle" style="width:56px;height:56px;padding:4px;">
             ${cuadroLogo}
           </td></tr>
         </table>
       </td>
-      <td width="11" style="width:11px;font-size:0;line-height:0;">&nbsp;</td>
+      <td width="14" style="width:14px;font-size:0;line-height:0;">&nbsp;</td>
       <td valign="middle">
-        <span style="font-size:14px;font-weight:bold;color:${tonos.base};font-family:${stack};">${nombreEscapado}</span>
+        <span style="font-size:17px;font-weight:bold;color:${tonos.base};font-family:${stack};">${nombreEscapado}</span>
       </td>
     </tr>
   </table>
@@ -228,31 +229,31 @@ function generarHeaderHtml(
   // Default — banda (predeterminado): banda con gradient, logo a la izquierda
   // en cuadro blanco, nombre + subtítulo a la derecha, barra de acento debajo.
   const cuadroLogo = organizacion.logo_url
-    ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="40" style="max-width:40px;max-height:40px;display:block;" />`
-    : `<span style="color:${tonos.base};font-weight:bold;font-size:20px;font-family:${stack};">${inicial}</span>`
+    ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="56" style="max-width:56px;max-height:56px;display:block;" />`
+    : `<span style="color:${tonos.base};font-weight:bold;font-size:26px;font-family:${stack};">${inicial}</span>`
   return `
 <!-- HEADER: banda horizontal -->
-<tr><td style="${gradient}padding:20px 22px;">
+<tr><td style="${gradient}padding:26px 26px;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
     <tr>
-      <td width="46" valign="middle" style="width:46px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:10px;width:46px;height:46px;">
-          <tr><td align="center" valign="middle" style="width:46px;height:46px;padding:5px;">
+      <td width="64" valign="middle" style="width:64px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:12px;width:64px;height:64px;">
+          <tr><td align="center" valign="middle" style="width:64px;height:64px;padding:5px;">
             ${cuadroLogo}
           </td></tr>
         </table>
       </td>
-      <td width="13" style="width:13px;font-size:0;line-height:0;">&nbsp;</td>
+      <td width="16" style="width:16px;font-size:0;line-height:0;">&nbsp;</td>
       <td valign="middle">
-        <p style="margin:0;font-size:16px;font-weight:bold;color:#ffffff;line-height:1.15;font-family:${stack};">${nombreEscapado}</p>
-        ${subtituloBanda ? `<p style="margin:3px 0 0;font-size:10px;color:#9fb3c8;letter-spacing:1px;text-transform:uppercase;font-family:${stack};">${escapeHtml(subtituloBanda)}</p>` : ''}
+        <p style="margin:0;font-size:20px;font-weight:bold;color:#ffffff;line-height:1.15;font-family:${stack};">${nombreEscapado}</p>
+        ${subtituloBanda ? `<p style="margin:4px 0 0;font-size:11px;color:#cbd5e1;letter-spacing:1px;text-transform:uppercase;font-family:${stack};">${escapeHtml(subtituloBanda)}</p>` : ''}
       </td>
     </tr>
   </table>
 </td></tr>
 
 <!-- Barra de acento fina -->
-<tr><td style="background-color:#D4DDE8;height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>`
+<tr><td style="background-color:#D4DDE8;height:5px;line-height:5px;font-size:0;">&nbsp;</td></tr>`
 }
 
 function armarHtml(params: {
