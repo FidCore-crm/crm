@@ -12,7 +12,6 @@
 
 export type CategoriaGrafico =
   | 'cartera'
-  | 'vencimientos'
   | 'clientes'
   | 'siniestros'
   | 'comercial'
@@ -26,7 +25,6 @@ export interface GraficoDashboard {
 
 export const CATEGORIAS_LABEL: Record<CategoriaGrafico, string> = {
   cartera: 'Cartera y composición',
-  vencimientos: 'Vencimientos y renovaciones',
   clientes: 'Clientes',
   siniestros: 'Siniestros',
   comercial: 'Comercial y facturación',
@@ -70,44 +68,12 @@ export const GRAFICOS_DASHBOARD: GraficoDashboard[] = [
     descripcion: 'Pólizas en ARS vs USD.',
     categoria: 'cartera',
   },
-  {
-    id: 'ticket_promedio_compania',
-    nombre: 'Ticket promedio por compañía',
-    descripcion: 'Suma asegurada promedio por compañía (solo pólizas con suma cargada).',
-    categoria: 'cartera',
-  },
-
-  // ─── Vencimientos y renovaciones ──────────────────────────────────────
-  {
-    id: 'vencimientos_6_meses',
-    nombre: 'Calendario de vencimientos (6 meses)',
-    descripcion: 'Cantidad de pólizas que vencen en cada uno de los próximos 6 meses.',
-    categoria: 'vencimientos',
-  },
-  {
-    id: 'vencimientos_compania',
-    nombre: 'Vencimientos próximos por compañía',
-    descripcion: 'Pólizas que vencen en los próximos 90 días agrupadas por compañía.',
-    categoria: 'vencimientos',
-  },
-  {
-    id: 'tasa_renovacion',
-    nombre: 'Tasa de renovación',
-    descripcion: 'Por mes: % de pólizas que vencieron y se renovaron vs las que se perdieron.',
-    categoria: 'vencimientos',
-  },
 
   // ─── Clientes ─────────────────────────────────────────────────────────
   {
     id: 'top_clientes_polizas',
     nombre: 'Top 10 clientes por cantidad de pólizas',
     descripcion: 'Clientes más fidelizados por volumen de pólizas activas.',
-    categoria: 'clientes',
-  },
-  {
-    id: 'top_clientes_suma',
-    nombre: 'Top 10 clientes por suma asegurada',
-    descripcion: 'Clientes que concentran más volumen de suma asegurada.',
     categoria: 'clientes',
   },
   {
@@ -175,7 +141,6 @@ export function agruparPorCategoria(): Array<{
 }> {
   const orden: CategoriaGrafico[] = [
     'cartera',
-    'vencimientos',
     'clientes',
     'siniestros',
     'comercial',

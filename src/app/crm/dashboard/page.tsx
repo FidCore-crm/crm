@@ -6,7 +6,9 @@ import {
   Users, FileText, AlertTriangle, Clock, ArrowRight, Loader2,
   TrendingUp, TrendingDown, Minus, CalendarCheck, XCircle,
   ClipboardList, Shield, CheckCircle2, AlertOctagon, RefreshCw,
-  StickyNote, Plus, Edit2, Palette, Trash2, User, Users as UsersIcon
+  StickyNote, Plus, Edit2, Palette, Trash2, User, Users as UsersIcon,
+  Building2, Layers, ShieldCheck, CreditCard, DollarSign, Trophy,
+  CalendarDays, Activity, Percent, Hourglass, LineChart as LineChartIcon
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -14,8 +16,9 @@ import { formatFechaLocal, formatMoneda, hoyLocal } from '@/lib/utils'
 import { getEstadoBadge } from '@/lib/siniestros-config'
 import { obtenerIdsPersonas, filtrarPorPersonas, tieneAccesoTotal, aplicarFiltroCartera } from '@/lib/cartera-filter'
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip,
-  PieChart, Pie, Cell, Legend, BarChart, Bar, CartesianGrid
+  ResponsiveContainer, XAxis, YAxis, Tooltip,
+  PieChart, Pie, Cell, Legend, BarChart, Bar, CartesianGrid,
+  AreaChart, Area
 } from 'recharts'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
@@ -72,7 +75,54 @@ function rotacionPostit(id: string): number {
   return (num % 5) - 2
 }
 
-const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b']
+// Paleta de gradientes — cada chart embebe sus stops via <ChartGradients />.
+// Los IDs son únicos para evitar colisión cuando varios charts conviven en la misma página.
+const GRADIENTES = {
+  blue:    { id: 'grad-blue',    from: '#1e40af', to: '#60a5fa' },
+  emerald: { id: 'grad-emerald', from: '#047857', to: '#34d399' },
+  amber:   { id: 'grad-amber',   from: '#b45309', to: '#fbbf24' },
+  violet:  { id: 'grad-violet',  from: '#6d28d9', to: '#a78bfa' },
+  rose:    { id: 'grad-rose',    from: '#9f1239', to: '#fb7185' },
+  cyan:    { id: 'grad-cyan',    from: '#0e7490', to: '#22d3ee' },
+  indigo:  { id: 'grad-indigo',  from: '#3730a3', to: '#818cf8' },
+  fuchsia: { id: 'grad-fuchsia', from: '#86198f', to: '#e879f9' },
+  navy:    { id: 'grad-navy',    from: '#0f172a', to: '#334155' },
+  slate:   { id: 'grad-slate',   from: '#475569', to: '#94a3b8' },
+} as const
+
+type GradKey = keyof typeof GRADIENTES
+
+// SVG defs reutilizable — recharts permite hijos arbitrarios dentro del chart.
+function ChartGradients({ keys, horizontal }: { keys: GradKey[]; horizontal?: boolean }) {
+  return (
+    <defs>
+      {keys.map((k) => {
+        const g = GRADIENTES[k]
+        // horizontal=true → eje x va de from→to (barras horizontales).
+        // horizontal=false → eje y va de from→to top-bottom (barras verticales).
+        const coords = horizontal
+          ? { x1: '0%', y1: '0%', x2: '100%', y2: '0%' }
+          : { x1: '0%', y1: '0%', x2: '0%', y2: '100%' }
+        return (
+          <linearGradient key={k} id={g.id} {...coords}>
+            <stop offset="0%" stopColor={g.from} stopOpacity={0.95} />
+            <stop offset="100%" stopColor={g.to} stopOpacity={0.85} />
+          </linearGradient>
+        )
+      })}
+    </defs>
+  )
+}
+
+// Tooltip estilizado compartido — fondo blanco, sombra, sin border duro.
+const TOOLTIP_STYLE: React.CSSProperties = {
+  fontSize: 12,
+  borderRadius: 8,
+  border: '1px solid rgba(226, 232, 240, 0.8)',
+  boxShadow: '0 8px 24px -8px rgba(15, 23, 42, 0.18)',
+  padding: '8px 12px',
+  background: 'rgba(255, 255, 255, 0.98)',
+}
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
@@ -214,12 +264,7 @@ export default function DashboardPage() {
   const [chartCobertura, setChartCobertura] = useState<{ name: string; value: number }[]>([])
   const [chartMedioPago, setChartMedioPago] = useState<{ name: string; value: number }[]>([])
   const [chartMoneda, setChartMoneda] = useState<{ name: string; value: number }[]>([])
-  const [chartTicketCompania, setChartTicketCompania] = useState<{ name: string; value: number }[]>([])
-  const [chartVencimientos6m, setChartVencimientos6m] = useState<{ mes: string; cantidad: number }[]>([])
-  const [chartVencimientosCompania, setChartVencimientosCompania] = useState<{ name: string; value: number }[]>([])
-  const [chartTasaRenovacion, setChartTasaRenovacion] = useState<{ mes: string; renovadas: number; perdidas: number; tasa: number }[]>([])
   const [chartTopClientesPolizas, setChartTopClientesPolizas] = useState<{ name: string; value: number }[]>([])
-  const [chartTopClientesSuma, setChartTopClientesSuma] = useState<{ name: string; value: number }[]>([])
   const [chartAntiguedad, setChartAntiguedad] = useState<{ name: string; value: number }[]>([])
   const [chartTasaSiniestralidad, setChartTasaSiniestralidad] = useState<{ name: string; value: number }[]>([])
   const [chartTiempoResolucion, setChartTiempoResolucion] = useState<{ name: string; value: number }[]>([])
@@ -653,94 +698,6 @@ export default function DashboardPage() {
         )
       }
 
-      // ── Ticket promedio por compañía (solo VIGENTE con suma > 0) ──
-      {
-        const acumPorComp = new Map<string, { suma: number; n: number }>()
-        for (const p of polizasVigentesAhora) {
-          const nom = p.compania?.nombre ?? 'Sin compañía'
-          const sa = Number(p.suma_asegurada) || 0
-          if (sa <= 0) continue
-          const e = acumPorComp.get(nom) ?? { suma: 0, n: 0 }
-          e.suma += sa
-          e.n++
-          acumPorComp.set(nom, e)
-        }
-        setChartTicketCompania(
-          Array.from(acumPorComp.entries())
-            .map(([name, v]) => ({ name, value: Math.round(v.suma / v.n) }))
-            .sort((a, b) => b.value - a.value),
-        )
-      }
-
-      // ── Calendario de vencimientos (próximos 6 meses) ──
-      {
-        const data: { mes: string; cantidad: number }[] = []
-        for (let i = 0; i < 6; i++) {
-          const d = new Date(ahora.getFullYear(), ahora.getMonth() + i, 1)
-          const primer = primerDiaMes(d)
-          const ultimo = ultimoDiaMes(d)
-          const cant = polizasVigentesAhora.filter((p) => {
-            const ff = String(p.fecha_fin || '').slice(0, 10)
-            return ff >= primer && ff <= ultimo
-          }).length
-          data.push({ mes: nombreMesCorto(d.getMonth()), cantidad: cant })
-        }
-        setChartVencimientos6m(data)
-      }
-
-      // ── Vencimientos próximos 90 días por compañía ──
-      {
-        const hoyStr = hoyLocal()
-        const limite = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 90)
-        const limStr = `${limite.getFullYear()}-${String(limite.getMonth() + 1).padStart(2, '0')}-${String(limite.getDate()).padStart(2, '0')}`
-        const m = new Map<string, number>()
-        for (const p of polizasVigentesAhora) {
-          const ff = String(p.fecha_fin || '').slice(0, 10)
-          if (ff >= hoyStr && ff <= limStr) {
-            const nom = p.compania?.nombre ?? 'Sin compañía'
-            m.set(nom, (m.get(nom) ?? 0) + 1)
-          }
-        }
-        setChartVencimientosCompania(
-          Array.from(m.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
-        )
-      }
-
-      // ── Tasa de renovación (por mes, 12 últimos meses) ──
-      // Para cada mes M: tomamos las pólizas que vencieron en M (fecha_fin en M).
-      // Renovada = existe otra póliza con poliza_origen_id apuntando a esta (y nueva).
-      // Perdida = la póliza original quedó sin hija o terminó NO_VIGENTE/CANCELADA/ANULADA
-      // sin renovación dentro de 60 días.
-      {
-        const ids = polizasCartera.map((p) => p.id)
-        const { data: hijasData } = ids.length
-          ? await supabase.from('polizas').select('id, poliza_origen_id').in('poliza_origen_id', ids)
-          : { data: [] as any[] }
-        const hijasPorOrigen = new Set<string>()
-        for (const h of (hijasData ?? []) as any[]) {
-          if (h.poliza_origen_id) hijasPorOrigen.add(h.poliza_origen_id)
-        }
-
-        const data: { mes: string; renovadas: number; perdidas: number; tasa: number }[] = []
-        for (let i = 11; i >= 0; i--) {
-          const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1)
-          const primer = primerDiaMes(d)
-          const ultimo = ultimoDiaMes(d)
-          let renov = 0
-          let perd = 0
-          for (const p of polizasCartera) {
-            const ff = String(p.fecha_fin || '').slice(0, 10)
-            if (ff < primer || ff > ultimo) continue
-            if (hijasPorOrigen.has(p.id)) renov++
-            else perd++
-          }
-          const total = renov + perd
-          const tasa = total === 0 ? 0 : Math.round((renov / total) * 100)
-          data.push({ mes: nombreMesCorto(d.getMonth()), renovadas: renov, perdidas: perd, tasa })
-        }
-        setChartTasaRenovacion(data)
-      }
-
       // ── Top 10 clientes por cantidad de pólizas (solo VIGENTES) ──
       {
         const m = new Map<string, number>()
@@ -752,24 +709,6 @@ export default function DashboardPage() {
         setChartTopClientesPolizas(
           Array.from(m.entries())
             .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 10),
-        )
-      }
-
-      // ── Top 10 clientes por suma asegurada (solo VIGENTES) ──
-      {
-        const m = new Map<string, number>()
-        for (const p of polizasVigentesAhora) {
-          if (!p.asegurado) continue
-          const nom = nombrePersona(p.asegurado)
-          const sa = Number(p.suma_asegurada) || 0
-          m.set(nom, (m.get(nom) ?? 0) + sa)
-        }
-        setChartTopClientesSuma(
-          Array.from(m.entries())
-            .map(([name, value]) => ({ name, value: Math.round(value) }))
-            .filter((x) => x.value > 0)
             .sort((a, b) => b.value - a.value)
             .slice(0, 10),
         )
@@ -1414,9 +1353,8 @@ export default function DashboardPage() {
             // Si todo está apagado, mostrar mensaje guía
             const algunoVisible = [
               'evolucion','distribucion_compania','distribucion_ramo','distribucion_cobertura',
-              'distribucion_medio_pago','distribucion_moneda','ticket_promedio_compania',
-              'vencimientos_6_meses','vencimientos_compania','tasa_renovacion',
-              'top_clientes_polizas','top_clientes_suma','antiguedad_cartera',
+              'distribucion_medio_pago','distribucion_moneda',
+              'top_clientes_polizas','antiguedad_cartera',
               'siniestralidad_compania','tasa_siniestralidad_compania','tiempo_resolucion_siniestros',
               'facturacion_anual',
             ].some(Vis)
@@ -1440,291 +1378,240 @@ export default function DashboardPage() {
 
                   {/* ── Cartera ───────────────────────────────────────── */}
                   {Vis('evolucion') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Evolución de cartera (últimos 12 meses)</h3>
+                    <ChartCard
+                      icono={<LineChartIcon className="h-3.5 w-3.5" />}
+                      titulo="Evolución de cartera (últimos 12 meses)"
+                      tono="blue"
+                      badge={chartEvolucion.length > 0 ? chartEvolucion[chartEvolucion.length - 1].cantidad : undefined}
+                    >
                       <ResponsiveContainer width="100%" height={220}>
-                        <LineChart data={chartEvolucion}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                          <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                          <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [v, 'Pólizas']} />
-                          <Line type="monotone" dataKey="cantidad" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                        </LineChart>
+                        <AreaChart data={chartEvolucion} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="grad-evol-area" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.32} />
+                              <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.02} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                          <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                          <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickLine={false} axisLine={false} />
+                          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [v, 'Pólizas']} cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }} />
+                          <Area type="monotone" dataKey="cantidad" stroke="#1e40af" strokeWidth={2.5} fill="url(#grad-evol-area)" dot={{ r: 3, fill: '#1e40af' }} activeDot={{ r: 6, fill: '#1e40af', stroke: '#fff', strokeWidth: 2 }} />
+                        </AreaChart>
                       </ResponsiveContainer>
-                    </div>
+                    </ChartCard>
                   )}
 
                   {Vis('distribucion_compania') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por compañía ({chartCompanias.length})</h3>
+                    <ChartCard
+                      icono={<Building2 className="h-3.5 w-3.5" />}
+                      titulo="Distribución por compañía"
+                      tono="blue"
+                      badge={chartCompanias.length}
+                    >
                       {chartCompanias.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartCompanias.length)}>
                           <BarChart data={chartCompanias} layout="vertical" margin={{ left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                            <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={18} name="Pólizas" />
+                            <ChartGradients keys={['blue']} horizontal />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" width={140} tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(59, 130, 246, 0.06)' }} />
+                            <Bar dataKey="value" fill="url(#grad-blue)" radius={[0, 6, 6, 0]} barSize={16} name="Pólizas" />
                           </BarChart>
                         </ResponsiveContainer>
                       )}
-                    </div>
+                    </ChartCard>
                   )}
 
                   {Vis('distribucion_ramo') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por ramo ({chartRamos.length})</h3>
+                    <ChartCard
+                      icono={<Layers className="h-3.5 w-3.5" />}
+                      titulo="Distribución por ramo"
+                      tono="emerald"
+                      badge={chartRamos.length}
+                    >
                       {chartRamos.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartRamos.length)}>
                           <BarChart data={chartRamos} layout="vertical" margin={{ left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                            <Bar dataKey="value" fill="#10b981" radius={[0, 4, 4, 0]} barSize={18} name="Pólizas" />
+                            <ChartGradients keys={['emerald']} horizontal />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" width={140} tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(16, 185, 129, 0.06)' }} />
+                            <Bar dataKey="value" fill="url(#grad-emerald)" radius={[0, 6, 6, 0]} barSize={16} name="Pólizas" />
                           </BarChart>
                         </ResponsiveContainer>
                       )}
-                    </div>
+                    </ChartCard>
                   )}
 
                   {Vis('distribucion_cobertura') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por cobertura ({chartCobertura.length})</h3>
+                    <ChartCard
+                      icono={<ShieldCheck className="h-3.5 w-3.5" />}
+                      titulo="Distribución por cobertura"
+                      tono="violet"
+                      badge={chartCobertura.length}
+                    >
                       {chartCobertura.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartCobertura.length)}>
                           <BarChart data={chartCobertura} layout="vertical" margin={{ left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                            <Bar dataKey="value" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={18} name="Pólizas" />
+                            <ChartGradients keys={['violet']} horizontal />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" width={140} tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(139, 92, 246, 0.06)' }} />
+                            <Bar dataKey="value" fill="url(#grad-violet)" radius={[0, 6, 6, 0]} barSize={16} name="Pólizas" />
                           </BarChart>
                         </ResponsiveContainer>
                       )}
-                    </div>
+                    </ChartCard>
                   )}
 
                   {Vis('distribucion_medio_pago') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por medio de pago</h3>
+                    <ChartCard
+                      icono={<CreditCard className="h-3.5 w-3.5" />}
+                      titulo="Distribución por medio de pago"
+                      tono="cyan"
+                    >
                       {chartMedioPago.length === 0 ? <SinDatos /> : (
-                        <ResponsiveContainer width="100%" height={220}>
-                          <PieChart>
-                            <Pie data={chartMedioPago} cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
-                              {chartMedioPago.map((_, i) => (
-                                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                            <Legend verticalAlign="bottom" iconSize={8} formatter={(v: string) => <span className="text-2xs text-slate-600">{v}</span>} />
-                          </PieChart>
-                        </ResponsiveContainer>
+                        <DonutCard data={chartMedioPago} colors={['#0e7490', '#06b6d4', '#67e8f9', '#cffafe']} />
                       )}
-                    </div>
+                    </ChartCard>
                   )}
 
                   {Vis('distribucion_moneda') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por moneda</h3>
+                    <ChartCard
+                      icono={<DollarSign className="h-3.5 w-3.5" />}
+                      titulo="Distribución por moneda"
+                      tono="amber"
+                    >
                       {chartMoneda.length === 0 ? <SinDatos /> : (
-                        <ResponsiveContainer width="100%" height={220}>
-                          <PieChart>
-                            <Pie data={chartMoneda} cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
-                              {chartMoneda.map((_, i) => (
-                                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                            <Legend verticalAlign="bottom" iconSize={8} formatter={(v: string) => <span className="text-2xs text-slate-600">{v}</span>} />
-                          </PieChart>
-                        </ResponsiveContainer>
+                        <DonutCard data={chartMoneda} colors={['#b45309', '#f59e0b', '#fbbf24']} />
                       )}
-                    </div>
-                  )}
-
-                  {Vis('ticket_promedio_compania') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Ticket promedio por compañía</h3>
-                      {chartTicketCompania.length === 0 ? <SinDatos /> : (
-                        <ResponsiveContainer width="100%" height={heightBarH(chartTicketCompania.length)}>
-                          <BarChart data={chartTicketCompania} layout="vertical" margin={{ left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis type="number" tick={{ fontSize: 10 }} stroke="#94a3b8" tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [formatMoneda(v), 'Promedio']} />
-                            <Bar dataKey="value" fill="#06b6d4" radius={[0, 4, 4, 0]} barSize={18} name="Promedio" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ── Vencimientos ───────────────────────────────────── */}
-                  {Vis('vencimientos_6_meses') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Vencimientos próximos (6 meses)</h3>
-                      {chartVencimientos6m.every(d => d.cantidad === 0) ? <SinDatos /> : (
-                        <ResponsiveContainer width="100%" height={220}>
-                          <BarChart data={chartVencimientos6m}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [v, 'Pólizas']} />
-                            <Bar dataKey="cantidad" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={28} name="Pólizas" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
-                  )}
-
-                  {Vis('vencimientos_compania') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Vencimientos próximos 90 días — por compañía</h3>
-                      {chartVencimientosCompania.length === 0 ? <SinDatos /> : (
-                        <ResponsiveContainer width="100%" height={heightBarH(chartVencimientosCompania.length)}>
-                          <BarChart data={chartVencimientosCompania} layout="vertical" margin={{ left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                            <Bar dataKey="value" fill="#f97316" radius={[0, 4, 4, 0]} barSize={18} name="Pólizas" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
-                  )}
-
-                  {Vis('tasa_renovacion') && (
-                    <div className="bg-white border border-slate-200 rounded p-4 lg:col-span-2">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Tasa de renovación (últimos 12 meses)</h3>
-                      {chartTasaRenovacion.every(d => d.renovadas === 0 && d.perdidas === 0) ? <SinDatos /> : (
-                        <ResponsiveContainer width="100%" height={260}>
-                          <BarChart data={chartTasaRenovacion}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number, n: string) => [v, n === 'renovadas' ? 'Renovadas' : n === 'perdidas' ? 'Perdidas' : `Tasa ${v}%`]} />
-                            <Bar dataKey="renovadas" stackId="r" fill="#10b981" radius={[0, 0, 0, 0]} barSize={20} name="Renovadas" />
-                            <Bar dataKey="perdidas" stackId="r" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} name="Perdidas" />
-                            <Legend iconSize={8} formatter={(v: string) => <span className="text-2xs text-slate-600">{v}</span>} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
+                    </ChartCard>
                   )}
 
                   {/* ── Clientes ──────────────────────────────────────── */}
                   {Vis('top_clientes_polizas') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Top 10 clientes por cantidad de pólizas</h3>
+                    <ChartCard
+                      icono={<Trophy className="h-3.5 w-3.5" />}
+                      titulo="Top 10 clientes por cantidad de pólizas"
+                      tono="indigo"
+                    >
                       {chartTopClientesPolizas.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartTopClientesPolizas.length)}>
                           <BarChart data={chartTopClientesPolizas} layout="vertical" margin={{ left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" width={160} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                            <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={18} name="Pólizas" />
+                            <ChartGradients keys={['indigo']} horizontal />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} stroke="#475569" width={160} tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(99, 102, 241, 0.06)' }} />
+                            <Bar dataKey="value" fill="url(#grad-indigo)" radius={[0, 6, 6, 0]} barSize={16} name="Pólizas" />
                           </BarChart>
                         </ResponsiveContainer>
                       )}
-                    </div>
-                  )}
-
-                  {Vis('top_clientes_suma') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Top 10 clientes por suma asegurada</h3>
-                      {chartTopClientesSuma.length === 0 ? <SinDatos /> : (
-                        <ResponsiveContainer width="100%" height={heightBarH(chartTopClientesSuma.length)}>
-                          <BarChart data={chartTopClientesSuma} layout="vertical" margin={{ left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis type="number" tick={{ fontSize: 10 }} stroke="#94a3b8" tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" width={160} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [formatMoneda(v), 'Suma asegurada']} />
-                            <Bar dataKey="value" fill="#0ea5e9" radius={[0, 4, 4, 0]} barSize={18} name="Suma" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
+                    </ChartCard>
                   )}
 
                   {Vis('antiguedad_cartera') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Antigüedad de la cartera</h3>
+                    <ChartCard
+                      icono={<CalendarDays className="h-3.5 w-3.5" />}
+                      titulo="Antigüedad de la cartera"
+                      tono="fuchsia"
+                    >
                       {chartAntiguedad.every(d => d.value === 0) ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={220}>
-                          <BarChart data={chartAntiguedad}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [v, 'Clientes']} />
-                            <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={32} name="Clientes" />
+                          <BarChart data={chartAntiguedad} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                            <ChartGradients keys={['fuchsia']} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                            <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [v, 'Clientes']} cursor={{ fill: 'rgba(217, 70, 239, 0.06)' }} />
+                            <Bar dataKey="value" fill="url(#grad-fuchsia)" radius={[8, 8, 0, 0]} barSize={42} name="Clientes" />
                           </BarChart>
                         </ResponsiveContainer>
                       )}
-                    </div>
+                    </ChartCard>
                   )}
 
                   {/* ── Siniestros ────────────────────────────────────── */}
                   {Vis('siniestralidad_compania') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Siniestralidad por compañía (12 meses)</h3>
+                    <ChartCard
+                      icono={<Activity className="h-3.5 w-3.5" />}
+                      titulo="Siniestralidad por compañía (12 meses)"
+                      tono="rose"
+                    >
                       {chartSiniestralidad.length === 0 ? <SinDatos /> : (
-                        <ResponsiveContainer width="100%" height={220}>
-                          <BarChart data={chartSiniestralidad}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" interval={0} angle={-20} textAnchor="end" height={50} />
-                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                            <Bar dataKey="abiertos" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={16} name="Abiertos" />
-                            <Bar dataKey="cerrados" fill="#10b981" radius={[4, 4, 0, 0]} barSize={16} name="Cerrados" />
+                        <ResponsiveContainer width="100%" height={240}>
+                          <BarChart data={chartSiniestralidad} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                            <ChartGradients keys={['rose', 'emerald']} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                            <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#475569" interval={0} angle={-20} textAnchor="end" height={50} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(244, 63, 94, 0.06)' }} />
+                            <Bar dataKey="abiertos" fill="url(#grad-rose)" radius={[6, 6, 0, 0]} barSize={16} name="Abiertos" />
+                            <Bar dataKey="cerrados" fill="url(#grad-emerald)" radius={[6, 6, 0, 0]} barSize={16} name="Cerrados" />
                             <Legend iconSize={8} formatter={(v: string) => <span className="text-2xs text-slate-600">{v}</span>} />
                           </BarChart>
                         </ResponsiveContainer>
                       )}
-                    </div>
+                    </ChartCard>
                   )}
 
                   {Vis('tasa_siniestralidad_compania') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Tasa de siniestralidad por compañía (% pólizas con siniestro, 12 meses)</h3>
+                    <ChartCard
+                      icono={<Percent className="h-3.5 w-3.5" />}
+                      titulo="Tasa de siniestralidad por compañía"
+                      tono="rose"
+                    >
+                      <p className="text-2xs text-slate-500 -mt-2 mb-2">% de pólizas con al menos un siniestro en los últimos 12 meses</p>
                       {chartTasaSiniestralidad.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartTasaSiniestralidad.length)}>
                           <BarChart data={chartTasaSiniestralidad} layout="vertical" margin={{ left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v: number) => `${v}%`} />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [`${v}%`, 'Tasa']} />
-                            <Bar dataKey="value" fill="#dc2626" radius={[0, 4, 4, 0]} barSize={18} name="Tasa" />
+                            <ChartGradients keys={['rose']} horizontal />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v: number) => `${v}%`} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" width={140} tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [`${v}%`, 'Tasa']} cursor={{ fill: 'rgba(244, 63, 94, 0.06)' }} />
+                            <Bar dataKey="value" fill="url(#grad-rose)" radius={[0, 6, 6, 0]} barSize={16} name="Tasa" />
                           </BarChart>
                         </ResponsiveContainer>
                       )}
-                    </div>
+                    </ChartCard>
                   )}
 
                   {Vis('tiempo_resolucion_siniestros') && (
-                    <div className="bg-white border border-slate-200 rounded p-4">
-                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Tiempo promedio de resolución (días, 12 meses)</h3>
+                    <ChartCard
+                      icono={<Hourglass className="h-3.5 w-3.5" />}
+                      titulo="Tiempo promedio de resolución"
+                      tono="violet"
+                    >
+                      <p className="text-2xs text-slate-500 -mt-2 mb-2">Días promedio entre denuncia y cierre (FINALIZADOS, últimos 12 meses)</p>
                       {chartTiempoResolucion.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartTiempoResolucion.length)}>
                           <BarChart data={chartTiempoResolucion} layout="vertical" margin={{ left: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [`${v} días`, 'Promedio']} />
-                            <Bar dataKey="value" fill="#a855f7" radius={[0, 4, 4, 0]} barSize={18} name="Días" />
+                            <ChartGradients keys={['violet']} horizontal />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#475569" width={140} tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [`${v} días`, 'Promedio']} cursor={{ fill: 'rgba(139, 92, 246, 0.06)' }} />
+                            <Bar dataKey="value" fill="url(#grad-violet)" radius={[0, 6, 6, 0]} barSize={16} name="Días" />
                           </BarChart>
                         </ResponsiveContainer>
                       )}
-                    </div>
+                    </ChartCard>
                   )}
                 </div>
 
                 {/* ── Comercial / Facturación ─────────────────────────── */}
                 {Vis('facturacion_anual') && (
-                  <div className="bg-white border border-slate-200 rounded p-4">
-                    <h3 className="text-xs font-semibold text-slate-600 mb-3">Facturación anual comparativa</h3>
+                  <ChartCard
+                    icono={<TrendingUp className="h-3.5 w-3.5" />}
+                    titulo="Facturación anual comparativa"
+                    tono="navy"
+                    fullWidth
+                  >
                     {chartFacturacion.every(d => d.actual === 0 && d.anterior === 0) ? (
                       <div className="flex flex-col items-center justify-center h-[280px] text-slate-400">
                         <TrendingUp className="h-8 w-8 text-slate-200 mb-2" />
@@ -1734,17 +1621,18 @@ export default function DashboardPage() {
                     ) : (
                       <>
                         <div className="flex items-center gap-4 mb-3 text-2xs text-slate-500">
-                          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#1e3a5f' }} /> {anioActual}</span>
-                          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-300" /> {anioAnterior}</span>
+                          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: `linear-gradient(180deg, ${GRADIENTES.navy.from}, ${GRADIENTES.navy.to})` }} /> {anioActual}</span>
+                          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: `linear-gradient(180deg, ${GRADIENTES.slate.from}, ${GRADIENTES.slate.to})` }} /> {anioAnterior}</span>
                         </div>
                         <ResponsiveContainer width="100%" height={280}>
-                          <BarChart data={chartFacturacion}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number, name: string) => [formatMoneda(v), name === 'actual' ? anioActual : anioAnterior]} />
-                            <Bar dataKey="actual" fill="#1e3a5f" radius={[4, 4, 0, 0]} barSize={18} name={String(anioActual)} />
-                            <Bar dataKey="anterior" fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={18} name={String(anioAnterior)} />
+                          <BarChart data={chartFacturacion} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                            <ChartGradients keys={['navy', 'slate']} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                            <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#475569" tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tickLine={false} axisLine={false} />
+                            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, name: string) => [formatMoneda(v), name === 'actual' ? anioActual : anioAnterior]} cursor={{ fill: 'rgba(30, 58, 95, 0.05)' }} />
+                            <Bar dataKey="actual" fill="url(#grad-navy)" radius={[6, 6, 0, 0]} barSize={16} name={String(anioActual)} />
+                            <Bar dataKey="anterior" fill="url(#grad-slate)" radius={[6, 6, 0, 0]} barSize={16} name={String(anioAnterior)} />
                           </BarChart>
                         </ResponsiveContainer>
                         <div className="mt-3 text-xs text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
@@ -1760,7 +1648,7 @@ export default function DashboardPage() {
                         </div>
                       </>
                     )}
-                  </div>
+                  </ChartCard>
                 )}
               </>
             )
@@ -1835,6 +1723,80 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Donut con total al centro + leyenda lateral ─────────────
+function DonutCard({ data, colors }: { data: { name: string; value: number }[]; colors: string[] }) {
+  const total = data.reduce((a, b) => a + b.value, 0)
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative" style={{ width: 150, height: 150 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} cx="50%" cy="50%" innerRadius={48} outerRadius={70} paddingAngle={3} dataKey="value" stroke="#fff" strokeWidth={2}>
+              {data.map((_, i) => (
+                <Cell key={i} fill={colors[i % colors.length]} />
+              ))}
+            </Pie>
+            <Tooltip contentStyle={TOOLTIP_STYLE} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-base font-bold text-slate-800 leading-none">{total}</span>
+          <span className="text-2xs text-slate-500 mt-0.5">Total</span>
+        </div>
+      </div>
+      <div className="flex-1 min-w-0 flex flex-col gap-1.5 max-h-[150px] overflow-y-auto">
+        {data.map((d, i) => {
+          const pct = total > 0 ? Math.round((d.value / total) * 100) : 0
+          return (
+            <div key={d.name} className="flex items-center gap-2 text-2xs">
+              <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: colors[i % colors.length] }} />
+              <span className="text-slate-700 truncate flex-1">{d.name}</span>
+              <span className="text-slate-500 tabular-nums shrink-0">{d.value} · {pct}%</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Card de gráfico con header colorido ─────────────────────
+function ChartCard({
+  icono, titulo, badge, tono = 'blue', fullWidth, children,
+}: {
+  icono: React.ReactNode
+  titulo: string
+  badge?: string | number
+  tono?: GradKey
+  fullWidth?: boolean
+  children: React.ReactNode
+}) {
+  const g = GRADIENTES[tono]
+  return (
+    <div
+      className={`bg-white border border-slate-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${fullWidth ? 'lg:col-span-2' : ''}`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div
+            className="flex items-center justify-center h-7 w-7 rounded-md shrink-0 text-white"
+            style={{ background: `linear-gradient(135deg, ${g.from}, ${g.to})` }}
+          >
+            {icono}
+          </div>
+          <h3 className="text-xs font-semibold text-slate-700 truncate">{titulo}</h3>
+        </div>
+        {badge !== undefined && (
+          <span className="text-2xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-700 shrink-0">
+            {badge}
+          </span>
+        )}
+      </div>
+      {children}
     </div>
   )
 }
