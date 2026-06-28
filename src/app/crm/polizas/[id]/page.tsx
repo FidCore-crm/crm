@@ -49,7 +49,7 @@ interface PolizaDetalle {
   notas: string | null
   created_at: string
   updated_at: string
-  asegurado: { id: string; apellido: string; nombre: string | null; razon_social: string | null; dni_cuil: string; telefono: string | null; whatsapp: string | null; email: string | null }
+  asegurado: { id: string; apellido: string; nombre: string | null; razon_social: string | null; dni_cuil: string; telefono: string | null; whatsapp: string | null; email: string | null; usuario_id: string | null }
   compania: { id: string; nombre: string } | null
   ramo: { id: string; nombre: string; metadata: Record<string, any> | null } | null
   cobertura: { id: string; nombre: string; metadata: Record<string, any> | null } | null
@@ -106,7 +106,8 @@ export default function FichaPolizaPage() {
   const params   = useParams()
   const id       = params.id as string
   const supabase = getSupabaseClient()
-  const { usuario } = useAuth()
+  const { usuario, isAdmin } = useAuth()
+  const [usuariosLista, setUsuariosLista] = useState<Array<{ id: string; nombre: string; apellido: string }>>([])
 
   const [poliza,     setPoliza]     = useState<PolizaDetalle | null>(null)
   const [siniestros, setSiniestros] = useState<SiniestroResumen[]>([])
@@ -155,7 +156,7 @@ export default function FichaPolizaPage() {
         fecha_inicio, fecha_fin, refacturacion, medio_pago,
         moneda, estado, motivo_baja, fecha_baja, observaciones_baja,
         observaciones, notas, created_at, updated_at,
-        asegurado:personas!asegurado_id (id, apellido, nombre, razon_social, dni_cuil, telefono, whatsapp, email),
+        asegurado:personas!asegurado_id (id, apellido, nombre, razon_social, dni_cuil, telefono, whatsapp, email, usuario_id),
         compania:catalogos!compania_id (id, nombre),
         ramo:catalogos!ramo_id (id, nombre, metadata),
         cobertura:catalogos!cobertura_id (id, nombre, metadata),
@@ -243,9 +244,21 @@ export default function FichaPolizaPage() {
   useEffect(() => { cargar() }, [cargar])
 
   useEffect(() => {
+    if (isAdmin) {
+      apiCall<{ usuarios: Array<{ id: string; nombre: string; apellido: string; activo: boolean }> }>(
+        '/api/usuarios',
+        {},
+        { mostrar_toast_en_error: false },
+      ).then(r => {
+        if (r.ok && r.data) {
+          const u = (r.data as any).usuarios ?? []
+          setUsuariosLista(u.filter((x: any) => x.activo !== false))
+        }
+      })
+    }
     apiCall<{ activo: boolean }>('/api/comunicaciones/estado', {}, { mostrar_toast_en_error: false })
       .then(r => { if (r.ok && r.data) setComunicacionesActivo(Boolean((r.data as any).activo)) })
-  }, [])
+  }, [isAdmin])
 
   const confirmarBaja = async () => {
     if (!modalMotivo) { setError('Seleccioná un motivo'); return }
@@ -604,6 +617,25 @@ export default function FichaPolizaPage() {
               )}
               {asegurado.telefono && (
                 <p className="text-xs text-slate-500 font-mono">{asegurado.telefono}</p>
+              )}
+              {/* Asignado a — admin only, derivado del asegurado. La
+                  reasignación se hace desde la ficha del cliente, no de cada
+                  póliza, porque al reasignar el cliente todas sus pólizas
+                  heredan al mismo usuario. */}
+              {isAdmin && usuariosLista.length > 1 && (
+                <p className="text-2xs text-slate-400 pt-1.5 border-t border-slate-100 mt-1">
+                  Asignado a:{' '}
+                  {asegurado.usuario_id ? (
+                    <span className="text-slate-600 font-medium">
+                      {(() => {
+                        const u = usuariosLista.find(x => x.id === asegurado.usuario_id)
+                        return u ? `${u.apellido}, ${u.nombre}`.replace(/^,\s*/, '') : 'Usuario no encontrado'
+                      })()}
+                    </span>
+                  ) : (
+                    <span className="text-amber-600 italic">Sin asignar</span>
+                  )}
+                </p>
               )}
             </div>
           </div>

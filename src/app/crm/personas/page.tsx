@@ -64,6 +64,16 @@ function PersonasContent() {
   const [kpiActivo, setKpiActivo] = useState<string | null>(null)
   const [pagina, setPagina] = useState(1)
 
+  // Filtro "Asignado a" — solo admin. null = todos. 'SIN_ASIGNAR' = personas
+  // sin usuario_id. UUID = usuarios con esa asignación.
+  const [filtroAsignado, setFiltroAsignado] = useState<string | null>(searchParams.get('asignado'))
+  const [usuariosLista, setUsuariosLista] = useState<Array<{ id: string; nombre: string; apellido: string }>>([])
+  const usuariosMap = useCallback(() => {
+    const m = new Map<string, string>()
+    for (const u of usuariosLista) m.set(u.id, `${u.apellido}, ${u.nombre}`.trim().replace(/^,\s*/, ''))
+    return m
+  }, [usuariosLista])
+
   // Filtro por importación (query param ?importacion_id=...)
   const importacionId = searchParams.get('importacion_id')
   const [filtroImportacion, setFiltroImportacion] = useState<{ id: string; fecha: string; archivos: string[]; total: number } | null>(null)
@@ -195,6 +205,14 @@ function PersonasContent() {
       query = query.eq("usuario_id", usuario.id)
     }
 
+    // Filtro "Asignado a" (admin) — null = todos, 'SIN_ASIGNAR' = NULL,
+    // UUID = ese usuario en particular.
+    if (filtroAsignado === 'SIN_ASIGNAR') {
+      query = query.is('usuario_id', null)
+    } else if (filtroAsignado && filtroAsignado !== 'TODOS') {
+      query = query.eq('usuario_id', filtroAsignado)
+    }
+
     // Excluir prospectos de la cartera
     if (estadoFiltro !== 'TODOS') {
       query = query.eq('estado', estadoFiltro)
@@ -241,7 +259,7 @@ function PersonasContent() {
     }
 
     setCargando(false)
-  }, [supabase, busqueda, estadoFiltro, pagina, usuario, idsImportacion, importacionId])
+  }, [supabase, busqueda, estadoFiltro, pagina, usuario, idsImportacion, importacionId, filtroAsignado])
 
   useEffect(() => {
     cargarContadores()
@@ -251,6 +269,23 @@ function PersonasContent() {
     apiCall<{ activo: boolean }>('/api/comunicaciones/estado', {}, { mostrar_toast_en_error: false })
       .then(r => { if (r.ok && r.data) setComunicacionesActivo(Boolean((r.data as any).activo)) })
   }, [])
+
+  // Cargar lista de usuarios (solo admin) — la usamos para el filtro y la
+  // columna "Asignado a". Los usuarios no admin no la necesitan: ya ven solo
+  // su propia cartera (filtro de cartera server-side).
+  useEffect(() => {
+    if (!isAdmin) return
+    apiCall<{ usuarios: Array<{ id: string; nombre: string; apellido: string; activo: boolean }> }>(
+      '/api/usuarios',
+      {},
+      { mostrar_toast_en_error: false },
+    ).then(r => {
+      if (r.ok && r.data) {
+        const u = (r.data as any).usuarios ?? []
+        setUsuariosLista(u.filter((x: any) => x.activo !== false))
+      }
+    })
+  }, [isAdmin])
 
   useEffect(() => {
     cargarPersonas()
@@ -487,8 +522,24 @@ function PersonasContent() {
             className="search-input w-full pl-6"
           />
         </div>
-        {(busquedaInput || kpiActivo) && (
-          <button onClick={() => { setBusquedaInput(''); setBusqueda(''); setKpiActivo(null); setEstadoFiltro('TODOS'); setPagina(1) }} className="btn-secondary flex items-center gap-1">
+        {/* Filtro "Asignado a" — admin-only, mostrar solo si hay >1 usuario en
+            el sistema (con 1 solo usuario el filtro no aporta nada). */}
+        {isAdmin && usuariosLista.length > 1 && (
+          <select
+            value={filtroAsignado ?? ''}
+            onChange={e => { setFiltroAsignado(e.target.value || null); setPagina(1) }}
+            className="search-input text-xs h-7"
+            title="Filtrar por usuario asignado"
+          >
+            <option value="">Todos los asignados</option>
+            <option value="SIN_ASIGNAR">Sin asignar</option>
+            {usuariosLista.map(u => (
+              <option key={u.id} value={u.id}>{`${u.apellido}, ${u.nombre}`.replace(/^,\s*/, '')}</option>
+            ))}
+          </select>
+        )}
+        {(busquedaInput || kpiActivo || filtroAsignado) && (
+          <button onClick={() => { setBusquedaInput(''); setBusqueda(''); setKpiActivo(null); setEstadoFiltro('TODOS'); setFiltroAsignado(null); setPagina(1) }} className="btn-secondary flex items-center gap-1">
             <X className="h-3.5 w-3.5" /> Limpiar
           </button>
         )}
@@ -559,6 +610,9 @@ function PersonasContent() {
                 <th style={{ width: 200 }}>Email</th>
                 <th style={{ width: 100 }}>Localidad</th>
                 <th style={{ width: 90 }}>Estado</th>
+                {isAdmin && usuariosLista.length > 1 && (
+                  <th style={{ width: 130 }}>Asignado a</th>
+                )}
                 <th style={{ width: 90 }}>Alta</th>
                 <th style={{ width: 70 }}>Acciones</th>
               </tr>
@@ -573,6 +627,8 @@ function PersonasContent() {
                   mostrarCheckbox={!!(isAdmin && comunicacionesActivo)}
                   seleccionado={seleccionados.has(persona.id)}
                   onToggleSeleccion={() => toggleSeleccion(persona.id)}
+                  mostrarAsignado={isAdmin && usuariosLista.length > 1}
+                  nombreAsignado={persona.usuario_id ? usuariosMap().get(persona.usuario_id) ?? null : null}
                 />
               ))}
             </tbody>
@@ -643,6 +699,8 @@ function PersonaFila({
   mostrarCheckbox,
   seleccionado,
   onToggleSeleccion,
+  mostrarAsignado,
+  nombreAsignado,
 }: {
   persona: Persona
   onVerDetalle: () => void
@@ -650,6 +708,8 @@ function PersonaFila({
   mostrarCheckbox: boolean
   seleccionado: boolean
   onToggleSeleccion: () => void
+  mostrarAsignado: boolean
+  nombreAsignado: string | null
 }) {
   const nombre = nombreCompleto(persona.apellido, persona.nombre, persona.razon_social)
 
@@ -726,6 +786,19 @@ function PersonaFila({
           {getLabelEstado(persona.estado)}
         </span>
       </td>
+
+      {/* Asignado a — admin only */}
+      {mostrarAsignado && (
+        <td>
+          {nombreAsignado ? (
+            <span className="text-xs text-slate-600 truncate block max-w-32" title={nombreAsignado}>
+              {nombreAsignado}
+            </span>
+          ) : (
+            <span className="text-2xs text-amber-600 italic">Sin asignar</span>
+          )}
+        </td>
+      )}
 
       {/* Fecha alta */}
       <td>

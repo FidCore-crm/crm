@@ -328,7 +328,15 @@ export async function crearCatalogosPendientes(
   return { companias_creadas, ramos_creados, coberturas_creadas, errores };
 }
 
-function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
+/**
+ * Mapea una `PersonaImportada` a un row listo para `INSERT` o `UPDATE patch`.
+ *
+ * Si se pasa `usuario_id`, se incluye en el output — esto se usa SOLO para
+ * INSERTs (las personas creadas por el importador quedan asignadas al PAS que
+ * lanzó la importación). En UPDATEs el caller NO pasa `usuario_id`, así que
+ * el campo se omite y NO pisa una asignación manual previa.
+ */
+function mapeoPersona(p: PersonaImportada, usuario_id?: string | null): Record<string, unknown> {
   const pr = p as Record<string, unknown>;
   const out: Record<string, unknown> = {
     // Los valores de enum ya vinieron normalizados por `normalizarPersonaImportada`
@@ -388,6 +396,9 @@ function mapeoPersona(p: PersonaImportada): Record<string, unknown> {
   for (const k of keys) {
     const v = pr[k];
     if (v != null && v !== '') out[k] = v;
+  }
+  if (usuario_id) {
+    out.usuario_id = usuario_id;
   }
   return out;
 }
@@ -755,6 +766,12 @@ export async function ejecutarImportacionFinal(
     }
   }
 
+  // `imp.usuario_id` es quien lanzó la importación. Las personas creadas en
+  // esta corrida van a quedar asignadas a él (defaults a NULL si por algún
+  // motivo no quedó registrado — el caso es raro y el admin igual puede
+  // reasignarlas después desde la UI).
+  const usuario_id_importador = (imp as { usuario_id?: string | null } | null)?.usuario_id ?? null;
+
   for (let offset = 0; offset < finales.length; offset += BLOQUE) {
     const bloque = finales.slice(offset, offset + BLOQUE);
     await procesarBloque(bloque, {
@@ -763,6 +780,7 @@ export async function ejecutarImportacionFinal(
       errores,
       dniToIdAcum,
       ramoIdATipoRiesgo,
+      usuario_id_importador,
     });
   }
 
@@ -852,6 +870,13 @@ async function procesarBloque(
      * la póliza sin ningún riesgo asociado.
      */
     ramoIdATipoRiesgo?: Map<string, string>;
+    /**
+     * Usuario que lanzó la importación. Se setea como `usuario_id` en las
+     * personas creadas (INSERT) para que queden asignadas a él. NO se
+     * propaga a UPDATEs de personas existentes — eso preserva asignaciones
+     * manuales hechas con anterioridad por el admin.
+     */
+    usuario_id_importador?: string | null;
   }
 ): Promise<void> {
   const supa = getSupabaseAdmin();
@@ -898,7 +923,7 @@ async function procesarBloque(
       .filter((r) => r.accion_persona === 'INSERT' && r.persona)
       .sort((a, b) => completitudPersona(b) - completitudPersona(a))[0];
     if (!mejor || !mejor.persona) continue;
-    inserts.push(mapeoPersona(mejor.persona));
+    inserts.push(mapeoPersona(mejor.persona, acc.usuario_id_importador));
     personasNuevas.push({ dni_cuil: dni, row: inserts[inserts.length - 1], registros: regs });
   }
 

@@ -116,9 +116,15 @@ export default function FichaPersonaPage() {
   const params   = useParams()
   const id       = params.id as string
   const supabase = getSupabaseClient()
-  const { usuario } = useAuth()
+  const { usuario, isAdmin } = useAuth()
 
   const [persona,    setPersona]    = useState<Persona | null>(null)
+
+  // Asignación de cliente a usuario (admin-only)
+  const [usuariosLista, setUsuariosLista] = useState<Array<{ id: string; nombre: string; apellido: string }>>([])
+  const [modalAsignar, setModalAsignar] = useState(false)
+  const [usuarioElegidoAsignar, setUsuarioElegidoAsignar] = useState<string>('')
+  const [asignandoLoading, setAsignandoLoading] = useState(false)
   const [polizas,    setPolizas]    = useState<PolizaResumen[]>([])
   const [siniestros, setSiniestros] = useState<SiniestroResumen[]>([])
   const [tareas,     setTareas]     = useState<TareaResumen[]>([])
@@ -198,6 +204,37 @@ export default function FichaPersonaPage() {
   }, [supabase, id])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Cargar lista de usuarios (admin) para el botón "Reasignar"
+  useEffect(() => {
+    if (!isAdmin) return
+    apiCall<{ usuarios: Array<{ id: string; nombre: string; apellido: string; activo: boolean }> }>(
+      '/api/usuarios',
+      {},
+      { mostrar_toast_en_error: false },
+    ).then(r => {
+      if (r.ok && r.data) {
+        const u = (r.data as any).usuarios ?? []
+        setUsuariosLista(u.filter((x: any) => x.activo !== false))
+      }
+    })
+  }, [isAdmin])
+
+  async function ejecutarReasignacion() {
+    if (!persona) return
+    setAsignandoLoading(true)
+    const r = await apiCall('/api/personas/asignar', {
+      method: 'POST',
+      body: { ids: [persona.id], usuario_id: usuarioElegidoAsignar || null },
+    }, { mostrar_toast_en_error: true })
+    setAsignandoLoading(false)
+    if (r.ok) {
+      setModalAsignar(false)
+      // Refrescar la persona desde DB
+      const { data } = await supabase.from('personas').select('*').eq('id', persona.id).single()
+      if (data) setPersona(data as Persona)
+    }
+  }
 
   // ── Portal del Cliente ─────────────────────────────────────
   const cargarPortal = useCallback(async () => {
@@ -598,6 +635,34 @@ export default function FichaPersonaPage() {
               )}
             </div>
           </div>
+
+          {/* Asignación (admin-only). Si hay 0 o 1 usuario en el sistema, no
+              tiene sentido mostrarlo — la asignación no agrega información. */}
+          {isAdmin && usuariosLista.length > 1 && (
+            <div className="bg-white border border-slate-200 rounded p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Asignación</h2>
+                <button
+                  onClick={() => {
+                    setUsuarioElegidoAsignar((persona as any).usuario_id ?? '')
+                    setModalAsignar(true)
+                  }}
+                  className="text-2xs text-blue-600 hover:underline"
+                >
+                  Reasignar
+                </button>
+              </div>
+              {(persona as any).usuario_id ? (
+                <span className="text-xs text-slate-700 font-medium">
+                  {usuariosLista.find(u => u.id === (persona as any).usuario_id)
+                    ? `${usuariosLista.find(u => u.id === (persona as any).usuario_id)!.apellido}, ${usuariosLista.find(u => u.id === (persona as any).usuario_id)!.nombre}`.replace(/^,\s*/, '')
+                    : 'Usuario no encontrado'}
+                </span>
+              ) : (
+                <span className="text-xs text-amber-600 italic">Sin asignar</span>
+              )}
+            </div>
+          )}
 
           {persona.datos_extra && Object.keys(persona.datos_extra).length > 0 && (
             <div className="bg-white border border-slate-200 rounded p-3">
@@ -1129,6 +1194,38 @@ export default function FichaPersonaPage() {
 
       {/* ── Historial / Bitácora ──────────────────────────────── */}
       <HistorialPersona personaId={id} />
+
+      {/* ── Modal Reasignar usuario ──────────────────────────── */}
+      {modalAsignar && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setModalAsignar(false)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-800">Reasignar cliente</h3>
+              <p className="text-2xs text-slate-500 mt-0.5">Elegí a qué usuario asignás este cliente. Sus pólizas heredan automáticamente la asignación.</p>
+            </div>
+            <div className="px-4 py-3 flex flex-col gap-2">
+              <label className="text-xs text-slate-600">Asignado a</label>
+              <select
+                className="form-input text-xs"
+                value={usuarioElegidoAsignar}
+                onChange={e => setUsuarioElegidoAsignar(e.target.value)}
+              >
+                <option value="">Sin asignar</option>
+                {usuariosLista.map(u => (
+                  <option key={u.id} value={u.id}>{`${u.apellido}, ${u.nombre}`.replace(/^,\s*/, '')}</option>
+                ))}
+              </select>
+            </div>
+            <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-end gap-2">
+              <button onClick={() => setModalAsignar(false)} className="btn-secondary text-xs px-3 py-1.5">Cancelar</button>
+              <button onClick={ejecutarReasignacion} disabled={asignandoLoading} className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5 disabled:opacity-50">
+                {asignandoLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal Enviar Email ────────────────────────────────── */}
       <ModalEnviarEmail

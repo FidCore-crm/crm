@@ -25,7 +25,7 @@ interface Poliza {
   fecha_inicio: string
   fecha_fin: string
   estado: string
-  asegurado: { id: string; apellido: string; nombre: string; razon_social: string | null; email: string | null; acepta_marketing: boolean; telefono: string | null; whatsapp: string | null }
+  asegurado: { id: string; apellido: string; nombre: string; razon_social: string | null; email: string | null; acepta_marketing: boolean; telefono: string | null; whatsapp: string | null; usuario_id: string | null }
   compania: { id: string; nombre: string } | null
   ramo: { id: string; nombre: string } | null
   cobertura: { id: string; nombre: string } | null
@@ -85,6 +85,16 @@ function PolizasContent() {
   const [filtroRamo,       setFiltroRamo]       = useState('')
   const [filtroEstado,     setFiltroEstado]     = useState('')
   const [filtroTemporal,   setFiltroTemporal]   = useState('')
+  // Filtro "Asignado a" — solo admin. Las pólizas no tienen usuario_id
+  // propio: la asignación vive en `asegurado.usuario_id`, así que para
+  // filtrar usamos un sub-query sobre personas y después `.in('asegurado_id', ...)`.
+  const [filtroAsignado, setFiltroAsignado] = useState<string | null>(null)
+  const [usuariosLista, setUsuariosLista] = useState<Array<{ id: string; nombre: string; apellido: string }>>([])
+  const usuariosMap = useCallback(() => {
+    const m = new Map<string, string>()
+    for (const u of usuariosLista) m.set(u.id, `${u.apellido}, ${u.nombre}`.trim().replace(/^,\s*/, ''))
+    return m
+  }, [usuariosLista])
 
   const [companias, setCompanias] = useState<Catalogo[]>([])
   const [ramos,     setRamos]     = useState<Catalogo[]>([])
@@ -176,6 +186,21 @@ function PolizasContent() {
 
   useEffect(() => { cargarKpis() }, [cargarKpis])
 
+  // Cargar lista de usuarios para el filtro + columna "Asignado a" (admin-only).
+  useEffect(() => {
+    if (!isAdmin) return
+    apiCall<{ usuarios: Array<{ id: string; nombre: string; apellido: string; activo: boolean }> }>(
+      '/api/usuarios',
+      {},
+      { mostrar_toast_en_error: false },
+    ).then(r => {
+      if (r.ok && r.data) {
+        const u = (r.data as any).usuarios ?? []
+        setUsuariosLista(u.filter((x: any) => x.activo !== false))
+      }
+    })
+  }, [isAdmin])
+
   const cargarPolizas = useCallback(async () => {
     // Si hay filtro por importación pero los IDs no se cargaron aún, esperar
     if (importacionId && idsImportacion === null) {
@@ -209,7 +234,7 @@ function PolizasContent() {
       .from('polizas')
       .select(`
         id, numero_poliza, fecha_inicio, fecha_fin, estado,
-        asegurado:personas!asegurado_id (id, apellido, nombre, razon_social, email, acepta_marketing, telefono, whatsapp),
+        asegurado:personas!asegurado_id (id, apellido, nombre, razon_social, email, acepta_marketing, telefono, whatsapp, usuario_id),
         compania:catalogos!compania_id (id, nombre),
         ramo:catalogos!ramo_id (id, nombre),
         cobertura:catalogos!cobertura_id (id, nombre),
@@ -217,6 +242,20 @@ function PolizasContent() {
       `, { count: 'exact' })
 
     query = filtrarPorPersonas(query, idsPersonas, 'asegurado_id')
+
+    // Filtro "Asignado a" (admin) — resuelvo a través de personas porque la
+    // póliza no tiene usuario_id propio (la asignación vive en el asegurado).
+    if (filtroAsignado) {
+      let qPersonas = supabase.from('personas').select('id')
+      if (filtroAsignado === 'SIN_ASIGNAR') qPersonas = qPersonas.is('usuario_id', null)
+      else qPersonas = qPersonas.eq('usuario_id', filtroAsignado)
+      const { data: personasFiltradas } = await qPersonas
+      const ids = (personasFiltradas ?? []).map((p: any) => p.id)
+      if (ids.length === 0) {
+        setPolizas([]); setTotal(0); setCargando(false); return
+      }
+      query = query.in('asegurado_id', ids)
+    }
 
     // Filtro por importación: limitar a los IDs importados
     if (idsImportacion !== null && idsImportacion.length > 0) {
@@ -264,7 +303,7 @@ function PolizasContent() {
       setTotal(count ?? 0)
     }
     setCargando(false)
-  }, [supabase, usuario, filtroCompania, filtroRamo, filtroEstado, filtroTemporal, busquedaDebounce, pagina, sortField, sortDir, idsImportacion, importacionId])
+  }, [supabase, usuario, filtroCompania, filtroRamo, filtroEstado, filtroTemporal, busquedaDebounce, pagina, sortField, sortDir, idsImportacion, importacionId, filtroAsignado])
 
   useEffect(() => { cargarPolizas() }, [cargarPolizas])
 
@@ -486,6 +525,20 @@ function PolizasContent() {
           <option value="recientes">Creadas este mes</option>
           <option value="vencidas">No vigentes</option>
         </select>
+        {isAdmin && usuariosLista.length > 1 && (
+          <select
+            className="form-input"
+            value={filtroAsignado ?? ''}
+            onChange={e => { setFiltroAsignado(e.target.value || null); setPagina(0) }}
+            title="Filtrar por usuario asignado al cliente"
+          >
+            <option value="">Todos los asignados</option>
+            <option value="SIN_ASIGNAR">Sin asignar</option>
+            {usuariosLista.map(u => (
+              <option key={u.id} value={u.id}>{`${u.apellido}, ${u.nombre}`.replace(/^,\s*/, '')}</option>
+            ))}
+          </select>
+        )}
         {hayFiltros && (
           <button onClick={limpiarFiltros} className="btn-secondary flex items-center gap-1">
             <X className="h-3.5 w-3.5"/> Limpiar
@@ -549,6 +602,9 @@ function PolizasContent() {
                   <AyudaTooltip clave="polizas.estado" inline />
                 </span>
               </th>
+              {isAdmin && usuariosLista.length > 1 && (
+                <th style={{ width: 130 }}>Asignado a</th>
+              )}
               <th style={{width:100}}>Acciones</th>
             </tr>
           </thead>
@@ -596,6 +652,17 @@ function PolizasContent() {
                       {badge.label}
                     </span>
                   </td>
+                  {isAdmin && usuariosLista.length > 1 && (
+                    <td>
+                      {p.asegurado?.usuario_id ? (
+                        <span className="text-xs text-slate-600 truncate block max-w-32" title={usuariosMap().get(p.asegurado.usuario_id) ?? ''}>
+                          {usuariosMap().get(p.asegurado.usuario_id) ?? '—'}
+                        </span>
+                      ) : (
+                        <span className="text-2xs text-amber-600 italic">Sin asignar</span>
+                      )}
+                    </td>
+                  )}
                   <td onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-0.5">
                       <button onClick={() => router.push(`/crm/polizas/${p.id}`)}
