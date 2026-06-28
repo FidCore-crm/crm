@@ -42,8 +42,6 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
   const [asunto, setAsunto] = useState('')
   const [titulo, setTitulo] = useState('')
   const [cuerpo, setCuerpo] = useState('')
-  const [ctaTexto, setCtaTexto] = useState('')
-  const [ctaUrl, setCtaUrl] = useState('')
 
   const [archivos, setArchivos] = useState<File[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -107,8 +105,6 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
     setAsunto(p.asunto_default)
     setTitulo('')
     setCuerpo('')
-    setCtaTexto('')
-    setCtaUrl('')
     setResultado(null)
     setMostrarPreview(false)
   }
@@ -134,7 +130,7 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
       body: {
         persona_id: persona.id,
         poliza_id: poliza?.id || null,
-        campos_editables: { titulo, cuerpo, cta_texto: ctaTexto, cta_url: ctaUrl },
+        campos_editables: { titulo, cuerpo },
       },
     }, { mostrar_toast_en_error: false })
     if (r.ok && r.data) {
@@ -159,8 +155,6 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
     formData.append('campos_editables', JSON.stringify({
       titulo: titulo || undefined,
       cuerpo: cuerpo || undefined,
-      cta_texto: ctaTexto || undefined,
-      cta_url: ctaUrl || undefined,
     }))
     archivos.forEach(f => formData.append('archivos', f))
 
@@ -183,8 +177,6 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
     setAsunto('')
     setTitulo('')
     setCuerpo('')
-    setCtaTexto('')
-    setCtaUrl('')
     setArchivos([])
     setResultado(null)
     setMostrarPreview(false)
@@ -194,6 +186,13 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
 
   const plantillaActual = plantillas.find(p => p.codigo === plantillaSeleccionada)
   const esPlantillaLibre = plantillaActual?.asunto_default.includes('asunto_personalizado')
+  // Solo las plantillas que declaran estas variables en `variables_disponibles`
+  // van a reflejar el texto que escriba el PAS. El resto tiene contenido fijo
+  // (bienvenida, renovación, recordatorio, portal cliente).
+  const vars = plantillaActual?.variables_disponibles ?? []
+  const aceptaTitulo = vars.includes('titulo')
+  const aceptaCuerpo = vars.includes('cuerpo_mensaje')
+  const tieneCamposPersonalizables = aceptaTitulo || aceptaCuerpo
   const noTieneEmail = !persona.email
   const noAceptaMarketing = persona.acepta_marketing === false
 
@@ -293,53 +292,40 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                     <p className="text-2xs text-slate-400 mt-1">Las variables como {'{{nombre}}'} se reemplazan automáticamente.</p>
                   </div>
 
-                  {/* Título */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Título del email</label>
-                    <input
-                      type="text"
-                      className="form-input w-full text-xs"
-                      value={titulo}
-                      onChange={e => setTitulo(e.target.value)}
-                      placeholder="Título que aparece dentro del email (opcional)..."
-                    />
-                  </div>
-
-                  {/* Cuerpo */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Cuerpo del mensaje</label>
-                    <textarea
-                      className="form-input w-full text-xs"
-                      rows={4}
-                      value={cuerpo}
-                      onChange={e => setCuerpo(e.target.value)}
-                      placeholder="Texto personalizado del email (opcional)..."
-                    />
-                  </div>
-
-                  {/* CTA */}
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Título — solo si la plantilla lo usa */}
+                  {aceptaTitulo && (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Botón CTA (texto)</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Título del email</label>
                       <input
                         type="text"
                         className="form-input w-full text-xs"
-                        value={ctaTexto}
-                        onChange={e => setCtaTexto(e.target.value)}
-                        placeholder="Ej: Ver póliza (opcional)"
+                        value={titulo}
+                        onChange={e => setTitulo(e.target.value)}
+                        placeholder="Título que aparece dentro del email (opcional)..."
                       />
                     </div>
+                  )}
+
+                  {/* Cuerpo — solo si la plantilla lo usa */}
+                  {aceptaCuerpo && (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">URL del botón</label>
-                      <input
-                        type="url"
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Cuerpo del mensaje</label>
+                      <textarea
                         className="form-input w-full text-xs"
-                        value={ctaUrl}
-                        onChange={e => setCtaUrl(e.target.value)}
-                        placeholder="https://..."
+                        rows={4}
+                        value={cuerpo}
+                        onChange={e => setCuerpo(e.target.value)}
+                        placeholder="Texto personalizado del email (opcional)..."
                       />
                     </div>
-                  </div>
+                  )}
+
+                  {/* Mensaje si la plantilla es de contenido fijo */}
+                  {!tieneCamposPersonalizables && (
+                    <div className="text-2xs text-slate-500 bg-slate-50 border border-slate-200 rounded p-2.5">
+                      Esta plantilla tiene contenido fijo. Solo se completa con los datos del cliente y de la póliza. Si querés escribir un texto propio, elegí <strong>&quot;Mensaje informativo&quot;</strong> o <strong>&quot;Notificación general&quot;</strong>.
+                    </div>
+                  )}
 
                   {/* Archivos adjuntos */}
                   <div>
@@ -403,7 +389,7 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                     title="Preview"
                     className="w-full border-0"
                     style={{ minHeight: '400px' }}
-                    sandbox="allow-same-origin"
+                    sandbox="allow-same-origin allow-popups"
                   />
                 </div>
               )}

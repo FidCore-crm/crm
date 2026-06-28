@@ -52,8 +52,6 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
   const [asunto, setAsunto] = useState('')
   const [titulo, setTitulo] = useState('')
   const [cuerpo, setCuerpo] = useState('')
-  const [ctaTexto, setCtaTexto] = useState('')
-  const [ctaUrl, setCtaUrl] = useState('')
 
   const [archivos, setArchivos] = useState<File[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -95,8 +93,6 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
     setAsunto(p.asunto_default)
     setTitulo('')
     setCuerpo('')
-    setCtaTexto('')
-    setCtaUrl('')
     setMostrarPreview(false)
   }
 
@@ -113,7 +109,7 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
       method: 'POST',
       body: {
         persona_id: validos[0].id,
-        campos_editables: { titulo, cuerpo, cta_texto: ctaTexto, cta_url: ctaUrl },
+        campos_editables: { titulo, cuerpo },
       },
     }, { mostrar_toast_en_error: false })
     if (r.ok && r.data) {
@@ -139,8 +135,6 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
     formData.append('campos_editables', JSON.stringify({
       titulo: titulo || undefined,
       cuerpo: cuerpo || undefined,
-      cta_texto: ctaTexto || undefined,
-      cta_url: ctaUrl || undefined,
     }))
     if (asunto) formData.append('asunto', asunto)
     archivos.forEach(f => formData.append('archivos', f))
@@ -168,6 +162,12 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
 
   const plantillaActual = plantillas.find(p => p.codigo === plantillaSeleccionada)
   const esPlantillaLibre = plantillaActual?.asunto_default.includes('asunto_personalizado')
+  // Solo las plantillas que declaran estas variables en `variables_disponibles`
+  // reflejan el texto que escribe el PAS. El resto tiene contenido fijo.
+  const vars = plantillaActual?.variables_disponibles ?? []
+  const aceptaTitulo = vars.includes('titulo')
+  const aceptaCuerpo = vars.includes('cuerpo_mensaje')
+  const tieneCamposPersonalizables = aceptaTitulo || aceptaCuerpo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={enviando ? undefined : cerrar}>
@@ -322,28 +322,25 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                     <input type="text" className="form-input w-full text-xs" value={asunto}
                       onChange={e => setAsunto(e.target.value)} placeholder="Asunto del email..." />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Título del email</label>
-                    <input type="text" className="form-input w-full text-xs" value={titulo}
-                      onChange={e => setTitulo(e.target.value)} placeholder="Título (opcional)..." />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Cuerpo del mensaje</label>
-                    <textarea className="form-input w-full text-xs" rows={3} value={cuerpo}
-                      onChange={e => setCuerpo(e.target.value)} placeholder="Texto personalizado (opcional)..." />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  {aceptaTitulo && (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Botón CTA (texto)</label>
-                      <input type="text" className="form-input w-full text-xs" value={ctaTexto}
-                        onChange={e => setCtaTexto(e.target.value)} placeholder="Opcional" />
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Título del email</label>
+                      <input type="text" className="form-input w-full text-xs" value={titulo}
+                        onChange={e => setTitulo(e.target.value)} placeholder="Título (opcional)..." />
                     </div>
+                  )}
+                  {aceptaCuerpo && (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">URL del botón</label>
-                      <input type="url" className="form-input w-full text-xs" value={ctaUrl}
-                        onChange={e => setCtaUrl(e.target.value)} placeholder="https://..." />
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Cuerpo del mensaje</label>
+                      <textarea className="form-input w-full text-xs" rows={3} value={cuerpo}
+                        onChange={e => setCuerpo(e.target.value)} placeholder="Texto personalizado (opcional)..." />
                     </div>
-                  </div>
+                  )}
+                  {!tieneCamposPersonalizables && (
+                    <div className="text-2xs text-slate-500 bg-slate-50 border border-slate-200 rounded p-2.5">
+                      Esta plantilla tiene contenido fijo. Solo se completa con los datos del cliente y de la póliza. Si querés escribir un texto propio, elegí <strong>&quot;Mensaje informativo&quot;</strong> o <strong>&quot;Notificación general&quot;</strong>.
+                    </div>
+                  )}
 
                   {/* Adjuntos */}
                   <div>
@@ -387,7 +384,7 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                       <X className="h-3 w-3" />
                     </button>
                   </div>
-                  <iframe srcDoc={previewHtml} title="Preview" className="w-full border-0" style={{ minHeight: '350px' }} sandbox="allow-same-origin" />
+                  <iframe srcDoc={previewHtml} title="Preview" className="w-full border-0" style={{ minHeight: '350px' }} sandbox="allow-same-origin allow-popups" />
                 </div>
               )}
 

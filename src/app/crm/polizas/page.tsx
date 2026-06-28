@@ -509,7 +509,7 @@ function PolizasContent() {
             </button>
           )}
           <button onClick={() => setSeleccionados(new Set())} className="btn-secondary text-xs px-2 py-1 ml-auto">
-            <X className="h-3.5 w-3.5" /> Limpiar
+            <X className="h-3.5 w-3.5" /> Limpiar selección
           </button>
         </div>
       )}
