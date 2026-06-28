@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Building2, Settings, Globe, Bell, Users, Shield, ChevronRight, Mail, HardDrive, MessageSquare, ExternalLink, Sparkles, AlertTriangle, Power, Download } from 'lucide-react'
+import { Building2, Settings, Globe, Bell, Users, Shield, ChevronRight, Mail, HardDrive, MessageSquare, ExternalLink, Sparkles, AlertTriangle, Power, Download, BarChart3 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { esModoAppliance } from '@/lib/modo-instalacion'
 
@@ -69,6 +69,14 @@ const secciones = [
     titulo: 'Notificaciones',
     descripcion: 'Alertas automáticas de vencimientos y siniestros',
     activo: true,
+  },
+  {
+    href: '/crm/configuracion/dashboard',
+    icon: BarChart3,
+    titulo: 'Panel de Análisis',
+    descripcion: 'Elegí qué gráficos ver en el dashboard de análisis de cartera',
+    activo: true,
+    adminOnly: true,
   },
   {
     href: '/crm/configuracion/usuarios',

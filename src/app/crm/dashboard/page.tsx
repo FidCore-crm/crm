@@ -19,6 +19,7 @@ import {
 } from 'recharts'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
+import { graficoVisible } from '@/lib/dashboard-graficos'
 
 // ── Helpers ──────────────────────────────────────────────────
 function primerDiaMes(date: Date): string {
@@ -209,6 +210,21 @@ export default function DashboardPage() {
   const [chartFacturacion, setChartFacturacion] = useState<{ mes: string; actual: number; anterior: number }[]>([])
   const [totalFactActual, setTotalFactActual] = useState(0)
   const [totalFactAnterior, setTotalFactAnterior] = useState(0)
+  // ── Charts nuevos (v1.0.49) ──
+  const [chartCobertura, setChartCobertura] = useState<{ name: string; value: number }[]>([])
+  const [chartMedioPago, setChartMedioPago] = useState<{ name: string; value: number }[]>([])
+  const [chartMoneda, setChartMoneda] = useState<{ name: string; value: number }[]>([])
+  const [chartTicketCompania, setChartTicketCompania] = useState<{ name: string; value: number }[]>([])
+  const [chartVencimientos6m, setChartVencimientos6m] = useState<{ mes: string; cantidad: number }[]>([])
+  const [chartVencimientosCompania, setChartVencimientosCompania] = useState<{ name: string; value: number }[]>([])
+  const [chartTasaRenovacion, setChartTasaRenovacion] = useState<{ mes: string; renovadas: number; perdidas: number; tasa: number }[]>([])
+  const [chartTopClientesPolizas, setChartTopClientesPolizas] = useState<{ name: string; value: number }[]>([])
+  const [chartTopClientesSuma, setChartTopClientesSuma] = useState<{ name: string; value: number }[]>([])
+  const [chartAntiguedad, setChartAntiguedad] = useState<{ name: string; value: number }[]>([])
+  const [chartTasaSiniestralidad, setChartTasaSiniestralidad] = useState<{ name: string; value: number }[]>([])
+  const [chartTiempoResolucion, setChartTiempoResolucion] = useState<{ name: string; value: number }[]>([])
+  // Lista de IDs de gráficos visibles (null = todos, [] = ninguno, [...] = explícito)
+  const [graficosVisibles, setGraficosVisibles] = useState<string[] | null>(null)
   const [cargandoCharts, setCargandoCharts] = useState(true)
   const [chartsLoaded, setChartsLoaded] = useState(false)
 
@@ -429,6 +445,13 @@ export default function DashboardPage() {
     async function cargarCharts() {
       setCargandoCharts(true)
 
+      // Cargar config de qué gráficos están visibles (preferencia del PAS).
+      apiCall<{ visibles: string[] | null }>('/api/configuracion/dashboard-graficos', {}, { mostrar_toast_en_error: false })
+        .then((r) => {
+          if (r.ok && r.data) setGraficosVisibles(r.data.visibles)
+        })
+        .catch(() => {})
+
       // Evolución de cartera (últimos 12 meses) — saldo neto al cierre de
       // cada mes: (pólizas creadas hasta fin de mes) − (canceladas + anuladas
       // hasta fin de mes). Refleja el tamaño REAL de la cartera mes a mes,
@@ -476,6 +499,8 @@ export default function DashboardPage() {
       // como cartera real. Excluye solo RENOVADA (estado temporal de la sombra
       // que duplicaría con la VIGENTE de la cadena). Incluye NO_VIGENTE,
       // CANCELADA y ANULADA porque forman parte del histórico del PAS.
+      // Muestra TODAS las compañías (sin agrupador "Otras") porque el chart
+      // ahora es bar horizontal con altura dinámica.
       let qVig = supabase
         .from('polizas')
         .select('compania:catalogos!compania_id (nombre)')
@@ -491,15 +516,7 @@ export default function DashboardPage() {
       const compArr = Array.from(compMap.entries())
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value)
-
-      if (compArr.length > 8) {
-        const top7 = compArr.slice(0, 7)
-        const otras = compArr.slice(7).reduce((acc, c) => acc + c.value, 0)
-        top7.push({ name: 'Otras', value: otras })
-        setChartCompanias(top7)
-      } else {
-        setChartCompanias(compArr)
-      }
+      setChartCompanias(compArr)
 
       // Distribución por ramo — misma lógica: histórico completo, sin RENOVADA.
       let qVigR = supabase
@@ -577,6 +594,270 @@ export default function DashboardPage() {
       setChartFacturacion(factData)
       setTotalFactActual(totAct)
       setTotalFactAnterior(totAnt)
+
+      // ═════════════════════════════════════════════════════════════════
+      // GRÁFICOS NUEVOS (v1.0.49) — corren en paralelo para reducir latencia.
+      // Cada uno respeta el filtro de cartera del usuario.
+      // ═════════════════════════════════════════════════════════════════
+
+      // Helper: cartera "viva" = sin RENOVADA (estado sombra).
+      const baseCartera = () => {
+        let q = supabase.from('polizas').select('*, compania:catalogos!compania_id(nombre), ramo:catalogos!ramo_id(nombre), cobertura:catalogos!cobertura_id(nombre), asegurado:personas!asegurado_id(id, apellido, nombre, razon_social, created_at)').neq('estado', 'RENOVADA')
+        return filtrarPorPersonas(q, idsPersonas, 'asegurado_id')
+      }
+
+      // Query principal: trae todas las pólizas vivas con joins (reutilizada por varios gráficos).
+      const { data: cartera } = await baseCartera()
+      const polizasCartera = (cartera ?? []) as any[]
+      const polizasVigentesAhora = polizasCartera.filter((p) => p.estado === 'VIGENTE')
+
+      // ── Distribución por cobertura (sobre pólizas vivas) ──
+      {
+        const m = new Map<string, number>()
+        for (const p of polizasCartera) {
+          const nom = p.cobertura?.nombre ?? 'Sin cobertura'
+          m.set(nom, (m.get(nom) ?? 0) + 1)
+        }
+        setChartCobertura(
+          Array.from(m.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
+        )
+      }
+
+      // ── Distribución por medio de pago (sobre pólizas vivas) ──
+      {
+        const LABELS: Record<string, string> = {
+          EFECTIVO: 'Efectivo',
+          DEBITO_CUENTA: 'Débito en cuenta',
+          TARJETA_CREDITO: 'Tarjeta de crédito',
+        }
+        const m = new Map<string, number>()
+        for (const p of polizasCartera) {
+          const k = p.medio_pago ?? 'SIN_DATO'
+          const nom = LABELS[k] ?? (k === 'SIN_DATO' ? 'Sin cargar' : k)
+          m.set(nom, (m.get(nom) ?? 0) + 1)
+        }
+        setChartMedioPago(
+          Array.from(m.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
+        )
+      }
+
+      // ── Distribución por moneda ──
+      {
+        const m = new Map<string, number>()
+        for (const p of polizasCartera) {
+          const k = p.moneda || 'ARS'
+          m.set(k, (m.get(k) ?? 0) + 1)
+        }
+        setChartMoneda(
+          Array.from(m.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
+        )
+      }
+
+      // ── Ticket promedio por compañía (solo VIGENTE con suma > 0) ──
+      {
+        const acumPorComp = new Map<string, { suma: number; n: number }>()
+        for (const p of polizasVigentesAhora) {
+          const nom = p.compania?.nombre ?? 'Sin compañía'
+          const sa = Number(p.suma_asegurada) || 0
+          if (sa <= 0) continue
+          const e = acumPorComp.get(nom) ?? { suma: 0, n: 0 }
+          e.suma += sa
+          e.n++
+          acumPorComp.set(nom, e)
+        }
+        setChartTicketCompania(
+          Array.from(acumPorComp.entries())
+            .map(([name, v]) => ({ name, value: Math.round(v.suma / v.n) }))
+            .sort((a, b) => b.value - a.value),
+        )
+      }
+
+      // ── Calendario de vencimientos (próximos 6 meses) ──
+      {
+        const data: { mes: string; cantidad: number }[] = []
+        for (let i = 0; i < 6; i++) {
+          const d = new Date(ahora.getFullYear(), ahora.getMonth() + i, 1)
+          const primer = primerDiaMes(d)
+          const ultimo = ultimoDiaMes(d)
+          const cant = polizasVigentesAhora.filter((p) => {
+            const ff = String(p.fecha_fin || '').slice(0, 10)
+            return ff >= primer && ff <= ultimo
+          }).length
+          data.push({ mes: nombreMesCorto(d.getMonth()), cantidad: cant })
+        }
+        setChartVencimientos6m(data)
+      }
+
+      // ── Vencimientos próximos 90 días por compañía ──
+      {
+        const hoyStr = hoyLocal()
+        const limite = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 90)
+        const limStr = `${limite.getFullYear()}-${String(limite.getMonth() + 1).padStart(2, '0')}-${String(limite.getDate()).padStart(2, '0')}`
+        const m = new Map<string, number>()
+        for (const p of polizasVigentesAhora) {
+          const ff = String(p.fecha_fin || '').slice(0, 10)
+          if (ff >= hoyStr && ff <= limStr) {
+            const nom = p.compania?.nombre ?? 'Sin compañía'
+            m.set(nom, (m.get(nom) ?? 0) + 1)
+          }
+        }
+        setChartVencimientosCompania(
+          Array.from(m.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
+        )
+      }
+
+      // ── Tasa de renovación (por mes, 12 últimos meses) ──
+      // Para cada mes M: tomamos las pólizas que vencieron en M (fecha_fin en M).
+      // Renovada = existe otra póliza con poliza_origen_id apuntando a esta (y nueva).
+      // Perdida = la póliza original quedó sin hija o terminó NO_VIGENTE/CANCELADA/ANULADA
+      // sin renovación dentro de 60 días.
+      {
+        const ids = polizasCartera.map((p) => p.id)
+        const { data: hijasData } = ids.length
+          ? await supabase.from('polizas').select('id, poliza_origen_id').in('poliza_origen_id', ids)
+          : { data: [] as any[] }
+        const hijasPorOrigen = new Set<string>()
+        for (const h of (hijasData ?? []) as any[]) {
+          if (h.poliza_origen_id) hijasPorOrigen.add(h.poliza_origen_id)
+        }
+
+        const data: { mes: string; renovadas: number; perdidas: number; tasa: number }[] = []
+        for (let i = 11; i >= 0; i--) {
+          const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1)
+          const primer = primerDiaMes(d)
+          const ultimo = ultimoDiaMes(d)
+          let renov = 0
+          let perd = 0
+          for (const p of polizasCartera) {
+            const ff = String(p.fecha_fin || '').slice(0, 10)
+            if (ff < primer || ff > ultimo) continue
+            if (hijasPorOrigen.has(p.id)) renov++
+            else perd++
+          }
+          const total = renov + perd
+          const tasa = total === 0 ? 0 : Math.round((renov / total) * 100)
+          data.push({ mes: nombreMesCorto(d.getMonth()), renovadas: renov, perdidas: perd, tasa })
+        }
+        setChartTasaRenovacion(data)
+      }
+
+      // ── Top 10 clientes por cantidad de pólizas (solo VIGENTES) ──
+      {
+        const m = new Map<string, number>()
+        for (const p of polizasVigentesAhora) {
+          if (!p.asegurado) continue
+          const nom = nombrePersona(p.asegurado)
+          m.set(nom, (m.get(nom) ?? 0) + 1)
+        }
+        setChartTopClientesPolizas(
+          Array.from(m.entries())
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 10),
+        )
+      }
+
+      // ── Top 10 clientes por suma asegurada (solo VIGENTES) ──
+      {
+        const m = new Map<string, number>()
+        for (const p of polizasVigentesAhora) {
+          if (!p.asegurado) continue
+          const nom = nombrePersona(p.asegurado)
+          const sa = Number(p.suma_asegurada) || 0
+          m.set(nom, (m.get(nom) ?? 0) + sa)
+        }
+        setChartTopClientesSuma(
+          Array.from(m.entries())
+            .map(([name, value]) => ({ name, value: Math.round(value) }))
+            .filter((x) => x.value > 0)
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 10),
+        )
+      }
+
+      // ── Antigüedad de la cartera (basada en created_at del asegurado) ──
+      {
+        const buckets = { '< 1 año': 0, '1-3 años': 0, '3-5 años': 0, '> 5 años': 0 }
+        const vistos = new Set<string>()
+        for (const p of polizasVigentesAhora) {
+          if (!p.asegurado?.id || !p.asegurado?.created_at) continue
+          if (vistos.has(p.asegurado.id)) continue
+          vistos.add(p.asegurado.id)
+          const created = new Date(p.asegurado.created_at)
+          const diasDif = (ahora.getTime() - created.getTime()) / 86400000
+          const aniosDif = diasDif / 365.25
+          if (aniosDif < 1) buckets['< 1 año']++
+          else if (aniosDif < 3) buckets['1-3 años']++
+          else if (aniosDif < 5) buckets['3-5 años']++
+          else buckets['> 5 años']++
+        }
+        setChartAntiguedad(
+          Object.entries(buckets).map(([name, value]) => ({ name, value })),
+        )
+      }
+
+      // ── Tasa de siniestralidad por compañía (% pólizas con siniestro en 12m) ──
+      // Reutiliza sinCompania que ya trajimos arriba, más una query de pólizas
+      // por compañía para el denominador.
+      {
+        const polizasPorComp = new Map<string, number>()
+        for (const p of polizasCartera) {
+          const nom = p.compania?.nombre ?? 'Sin compañía'
+          polizasPorComp.set(nom, (polizasPorComp.get(nom) ?? 0) + 1)
+        }
+        // Set de poliza_ids con al menos un siniestro en 12 meses
+        let qSinIds = supabase
+          .from('siniestros')
+          .select('poliza:polizas!poliza_id(id, compania:catalogos!compania_id(nombre))')
+          .is('deleted_at', null)
+          .gte('fecha_denuncia', hace12str)
+        qSinIds = filtrarPorPersonas(qSinIds, idsPersonas, 'persona_id')
+        const { data: sinRows } = await qSinIds
+        const polizasConSiniestro = new Map<string, Set<string>>()
+        for (const s of (sinRows ?? []) as any[]) {
+          const nom = s.poliza?.compania?.nombre ?? 'Sin compañía'
+          const pid = s.poliza?.id
+          if (!pid) continue
+          if (!polizasConSiniestro.has(nom)) polizasConSiniestro.set(nom, new Set())
+          polizasConSiniestro.get(nom)!.add(pid)
+        }
+        const data: { name: string; value: number }[] = []
+        for (const [nom, total] of Array.from(polizasPorComp.entries())) {
+          const conSin = polizasConSiniestro.get(nom)?.size ?? 0
+          const tasa = total > 0 ? Math.round((conSin / total) * 1000) / 10 : 0
+          if (tasa > 0) data.push({ name: nom, value: tasa })
+        }
+        setChartTasaSiniestralidad(data.sort((a, b) => b.value - a.value))
+      }
+
+      // ── Tiempo promedio de resolución de siniestros (FINALIZADO, por compañía) ──
+      {
+        let qResol = supabase
+          .from('siniestros')
+          .select('fecha_denuncia, fecha_cierre, estado, poliza:polizas!poliza_id(compania:catalogos!compania_id(nombre))')
+          .is('deleted_at', null)
+          .eq('estado', 'FINALIZADO')
+          .not('fecha_cierre', 'is', null)
+          .gte('fecha_denuncia', hace12str)
+        qResol = filtrarPorPersonas(qResol, idsPersonas, 'persona_id')
+        const { data: resolRows } = await qResol
+        const acum = new Map<string, { dias: number; n: number }>()
+        for (const r of (resolRows ?? []) as any[]) {
+          const nom = r.poliza?.compania?.nombre ?? 'Sin compañía'
+          const fd = new Date(r.fecha_denuncia)
+          const fc = new Date(r.fecha_cierre)
+          const dias = Math.max(0, Math.round((fc.getTime() - fd.getTime()) / 86400000))
+          const e = acum.get(nom) ?? { dias: 0, n: 0 }
+          e.dias += dias
+          e.n++
+          acum.set(nom, e)
+        }
+        setChartTiempoResolucion(
+          Array.from(acum.entries())
+            .map(([name, v]) => ({ name, value: Math.round(v.dias / v.n) }))
+            .sort((a, b) => b.value - a.value),
+        )
+      }
 
       setCargandoCharts(false)
       setChartsLoaded(true)
@@ -1121,133 +1402,369 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {/* Evolución de cartera */}
-                <div className="bg-white border border-slate-200 rounded p-4">
-                  <h3 className="text-xs font-semibold text-slate-600 mb-3">Evolución de cartera (últimos 12 meses)</h3>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={chartEvolucion}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                      <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                      <Tooltip
-                        contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }}
-                        formatter={(v: number) => [v, 'Pólizas']}
-                      />
-                      <Line type="monotone" dataKey="cantidad" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+          ) : (() => {
+            // Helpers visuales para evitar repetir JSX:
+            const SinDatos = ({ h = 220 }: { h?: number }) => (
+              <div className="flex items-center justify-center text-xs text-slate-400" style={{ height: h }}>Sin datos</div>
+            )
+            // Altura dinámica para bar charts horizontales: 36 px por fila + 60 base.
+            const heightBarH = (n: number) => Math.max(220, Math.min(600, n * 36 + 60))
+            const Vis = (id: string) => graficoVisible(id, graficosVisibles)
 
-                {/* Distribución por compañía */}
-                <div className="bg-white border border-slate-200 rounded p-4">
-                  <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por compañía</h3>
-                  {chartCompanias.length === 0 ? (
-                    <div className="flex items-center justify-center h-[220px] text-xs text-slate-400">Sin datos</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={220}>
-                      <PieChart>
-                        <Pie data={chartCompanias} cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
-                          {chartCompanias.map((_, i) => (
-                            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                        <Legend verticalAlign="bottom" iconSize={8} formatter={(value: string) => <span className="text-2xs text-slate-600">{value}</span>} />
-                      </PieChart>
-                    </ResponsiveContainer>
+            // Si todo está apagado, mostrar mensaje guía
+            const algunoVisible = [
+              'evolucion','distribucion_compania','distribucion_ramo','distribucion_cobertura',
+              'distribucion_medio_pago','distribucion_moneda','ticket_promedio_compania',
+              'vencimientos_6_meses','vencimientos_compania','tasa_renovacion',
+              'top_clientes_polizas','top_clientes_suma','antiguedad_cartera',
+              'siniestralidad_compania','tasa_siniestralidad_compania','tiempo_resolucion_siniestros',
+              'facturacion_anual',
+            ].some(Vis)
+
+            if (!algunoVisible) {
+              return (
+                <div className="bg-white border border-slate-200 rounded p-8 text-center">
+                  <BarChart className="h-10 w-10 text-slate-200 mx-auto mb-2" />
+                  <p className="text-sm text-slate-600 font-medium">No hay gráficos habilitados</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Activá los gráficos que querés ver desde{' '}
+                    <a href="/crm/configuracion/dashboard" className="text-blue-600 hover:underline">Configuración → Panel de Análisis</a>.
+                  </p>
+                </div>
+              )
+            }
+
+            return (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+
+                  {/* ── Cartera ───────────────────────────────────────── */}
+                  {Vis('evolucion') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Evolución de cartera (últimos 12 meses)</h3>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <LineChart data={chartEvolucion}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                          <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [v, 'Pólizas']} />
+                          <Line type="monotone" dataKey="cantidad" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {Vis('distribucion_compania') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por compañía ({chartCompanias.length})</h3>
+                      {chartCompanias.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={heightBarH(chartCompanias.length)}>
+                          <BarChart data={chartCompanias} layout="vertical" margin={{ left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                            <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={18} name="Pólizas" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('distribucion_ramo') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por ramo ({chartRamos.length})</h3>
+                      {chartRamos.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={heightBarH(chartRamos.length)}>
+                          <BarChart data={chartRamos} layout="vertical" margin={{ left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                            <Bar dataKey="value" fill="#10b981" radius={[0, 4, 4, 0]} barSize={18} name="Pólizas" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('distribucion_cobertura') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por cobertura ({chartCobertura.length})</h3>
+                      {chartCobertura.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={heightBarH(chartCobertura.length)}>
+                          <BarChart data={chartCobertura} layout="vertical" margin={{ left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                            <Bar dataKey="value" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={18} name="Pólizas" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('distribucion_medio_pago') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por medio de pago</h3>
+                      {chartMedioPago.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={220}>
+                          <PieChart>
+                            <Pie data={chartMedioPago} cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
+                              {chartMedioPago.map((_, i) => (
+                                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                            <Legend verticalAlign="bottom" iconSize={8} formatter={(v: string) => <span className="text-2xs text-slate-600">{v}</span>} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('distribucion_moneda') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por moneda</h3>
+                      {chartMoneda.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={220}>
+                          <PieChart>
+                            <Pie data={chartMoneda} cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
+                              {chartMoneda.map((_, i) => (
+                                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                            <Legend verticalAlign="bottom" iconSize={8} formatter={(v: string) => <span className="text-2xs text-slate-600">{v}</span>} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('ticket_promedio_compania') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Ticket promedio por compañía</h3>
+                      {chartTicketCompania.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={heightBarH(chartTicketCompania.length)}>
+                          <BarChart data={chartTicketCompania} layout="vertical" margin={{ left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis type="number" tick={{ fontSize: 10 }} stroke="#94a3b8" tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [formatMoneda(v), 'Promedio']} />
+                            <Bar dataKey="value" fill="#06b6d4" radius={[0, 4, 4, 0]} barSize={18} name="Promedio" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Vencimientos ───────────────────────────────────── */}
+                  {Vis('vencimientos_6_meses') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Vencimientos próximos (6 meses)</h3>
+                      {chartVencimientos6m.every(d => d.cantidad === 0) ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={220}>
+                          <BarChart data={chartVencimientos6m}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [v, 'Pólizas']} />
+                            <Bar dataKey="cantidad" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={28} name="Pólizas" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('vencimientos_compania') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Vencimientos próximos 90 días — por compañía</h3>
+                      {chartVencimientosCompania.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={heightBarH(chartVencimientosCompania.length)}>
+                          <BarChart data={chartVencimientosCompania} layout="vertical" margin={{ left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                            <Bar dataKey="value" fill="#f97316" radius={[0, 4, 4, 0]} barSize={18} name="Pólizas" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('tasa_renovacion') && (
+                    <div className="bg-white border border-slate-200 rounded p-4 lg:col-span-2">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Tasa de renovación (últimos 12 meses)</h3>
+                      {chartTasaRenovacion.every(d => d.renovadas === 0 && d.perdidas === 0) ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={260}>
+                          <BarChart data={chartTasaRenovacion}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number, n: string) => [v, n === 'renovadas' ? 'Renovadas' : n === 'perdidas' ? 'Perdidas' : `Tasa ${v}%`]} />
+                            <Bar dataKey="renovadas" stackId="r" fill="#10b981" radius={[0, 0, 0, 0]} barSize={20} name="Renovadas" />
+                            <Bar dataKey="perdidas" stackId="r" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} name="Perdidas" />
+                            <Legend iconSize={8} formatter={(v: string) => <span className="text-2xs text-slate-600">{v}</span>} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Clientes ──────────────────────────────────────── */}
+                  {Vis('top_clientes_polizas') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Top 10 clientes por cantidad de pólizas</h3>
+                      {chartTopClientesPolizas.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={heightBarH(chartTopClientesPolizas.length)}>
+                          <BarChart data={chartTopClientesPolizas} layout="vertical" margin={{ left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" width={160} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                            <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={18} name="Pólizas" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('top_clientes_suma') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Top 10 clientes por suma asegurada</h3>
+                      {chartTopClientesSuma.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={heightBarH(chartTopClientesSuma.length)}>
+                          <BarChart data={chartTopClientesSuma} layout="vertical" margin={{ left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis type="number" tick={{ fontSize: 10 }} stroke="#94a3b8" tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" width={160} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [formatMoneda(v), 'Suma asegurada']} />
+                            <Bar dataKey="value" fill="#0ea5e9" radius={[0, 4, 4, 0]} barSize={18} name="Suma" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('antiguedad_cartera') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Antigüedad de la cartera</h3>
+                      {chartAntiguedad.every(d => d.value === 0) ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={220}>
+                          <BarChart data={chartAntiguedad}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [v, 'Clientes']} />
+                            <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={32} name="Clientes" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Siniestros ────────────────────────────────────── */}
+                  {Vis('siniestralidad_compania') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Siniestralidad por compañía (12 meses)</h3>
+                      {chartSiniestralidad.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={220}>
+                          <BarChart data={chartSiniestralidad}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" interval={0} angle={-20} textAnchor="end" height={50} />
+                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                            <Bar dataKey="abiertos" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={16} name="Abiertos" />
+                            <Bar dataKey="cerrados" fill="#10b981" radius={[4, 4, 0, 0]} barSize={16} name="Cerrados" />
+                            <Legend iconSize={8} formatter={(v: string) => <span className="text-2xs text-slate-600">{v}</span>} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('tasa_siniestralidad_compania') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Tasa de siniestralidad por compañía (% pólizas con siniestro, 12 meses)</h3>
+                      {chartTasaSiniestralidad.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={heightBarH(chartTasaSiniestralidad.length)}>
+                          <BarChart data={chartTasaSiniestralidad} layout="vertical" margin={{ left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v: number) => `${v}%`} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [`${v}%`, 'Tasa']} />
+                            <Bar dataKey="value" fill="#dc2626" radius={[0, 4, 4, 0]} barSize={18} name="Tasa" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  )}
+
+                  {Vis('tiempo_resolucion_siniestros') && (
+                    <div className="bg-white border border-slate-200 rounded p-4">
+                      <h3 className="text-xs font-semibold text-slate-600 mb-3">Tiempo promedio de resolución (días, 12 meses)</h3>
+                      {chartTiempoResolucion.length === 0 ? <SinDatos /> : (
+                        <ResponsiveContainer width="100%" height={heightBarH(chartTiempoResolucion.length)}>
+                          <BarChart data={chartTiempoResolucion} layout="vertical" margin={{ left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={140} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number) => [`${v} días`, 'Promedio']} />
+                            <Bar dataKey="value" fill="#a855f7" radius={[0, 4, 4, 0]} barSize={18} name="Días" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
                   )}
                 </div>
 
-                {/* Distribución por ramo */}
-                <div className="bg-white border border-slate-200 rounded p-4">
-                  <h3 className="text-xs font-semibold text-slate-600 mb-3">Distribución por ramo</h3>
-                  {chartRamos.length === 0 ? (
-                    <div className="flex items-center justify-center h-[220px] text-xs text-slate-400">Sin datos</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={chartRamos} layout="vertical" margin={{ left: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={100} />
-                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                        <Bar dataKey="value" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} name="Pólizas" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-
-                {/* Siniestralidad por compañía */}
-                <div className="bg-white border border-slate-200 rounded p-4">
-                  <h3 className="text-xs font-semibold text-slate-600 mb-3">Siniestralidad por compañía (12 meses)</h3>
-                  {chartSiniestralidad.length === 0 ? (
-                    <div className="flex items-center justify-center h-[220px] text-xs text-slate-400">Sin datos</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={chartSiniestralidad}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" interval={0} angle={-20} textAnchor="end" height={50} />
-                        <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                        <Bar dataKey="abiertos" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={16} name="Abiertos" />
-                        <Bar dataKey="cerrados" fill="#10b981" radius={[4, 4, 0, 0]} barSize={16} name="Cerrados" />
-                        <Legend iconSize={8} formatter={(value: string) => <span className="text-2xs text-slate-600">{value}</span>} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-              </div>
-
-              {/* Facturación anual comparativa */}
-              <div className="bg-white border border-slate-200 rounded p-4">
-                <h3 className="text-xs font-semibold text-slate-600 mb-3">Facturación anual comparativa</h3>
-                {chartFacturacion.every(d => d.actual === 0 && d.anterior === 0) ? (
-                  <div className="flex flex-col items-center justify-center h-[280px] text-slate-400">
-                    <TrendingUp className="h-8 w-8 text-slate-200 mb-2" />
-                    <span className="text-xs">No hay datos de facturación cargados.</span>
-                    <span className="text-2xs mt-1">Cargá tus facturaciones desde el módulo de Facturación.</span>
+                {/* ── Comercial / Facturación ─────────────────────────── */}
+                {Vis('facturacion_anual') && (
+                  <div className="bg-white border border-slate-200 rounded p-4">
+                    <h3 className="text-xs font-semibold text-slate-600 mb-3">Facturación anual comparativa</h3>
+                    {chartFacturacion.every(d => d.actual === 0 && d.anterior === 0) ? (
+                      <div className="flex flex-col items-center justify-center h-[280px] text-slate-400">
+                        <TrendingUp className="h-8 w-8 text-slate-200 mb-2" />
+                        <span className="text-xs">No hay datos de facturación cargados.</span>
+                        <span className="text-2xs mt-1">Cargá tus facturaciones desde el módulo de Facturación.</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-4 mb-3 text-2xs text-slate-500">
+                          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#1e3a5f' }} /> {anioActual}</span>
+                          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-300" /> {anioAnterior}</span>
+                        </div>
+                        <ResponsiveContainer width="100%" height={280}>
+                          <BarChart data={chartFacturacion}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }} formatter={(v: number, name: string) => [formatMoneda(v), name === 'actual' ? anioActual : anioAnterior]} />
+                            <Bar dataKey="actual" fill="#1e3a5f" radius={[4, 4, 0, 0]} barSize={18} name={String(anioActual)} />
+                            <Bar dataKey="anterior" fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={18} name={String(anioAnterior)} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <div className="mt-3 text-xs text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
+                          <span>Total {anioActual}: <strong>{formatMoneda(totalFactActual)}</strong></span>
+                          <span>Total {anioAnterior}: <strong>{formatMoneda(totalFactAnterior)}</strong></span>
+                          <span>
+                            Diferencia:{' '}
+                            <strong className={diffFact >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+                              {diffFact >= 0 ? '+' : ''}{formatMoneda(diffFact)}
+                              {pctFact && ` (${diffFact >= 0 ? '+' : ''}${pctFact}%)`}
+                            </strong>
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-4 mb-3 text-2xs text-slate-500">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#1e3a5f' }} /> {anioActual}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm bg-slate-300" /> {anioAnterior}
-                      </span>
-                    </div>
-                    <ResponsiveContainer width="100%" height={280}>
-                      <BarChart data={chartFacturacion}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                        <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-                        <Tooltip
-                          contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #e2e8f0' }}
-                          formatter={(v: number, name: string) => [formatMoneda(v), name === 'actual' ? anioActual : anioAnterior]}
-                        />
-                        <Bar dataKey="actual" fill="#1e3a5f" radius={[4, 4, 0, 0]} barSize={18} name={String(anioActual)} />
-                        <Bar dataKey="anterior" fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={18} name={String(anioAnterior)} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                    <div className="mt-3 text-xs text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
-                      <span>Total {anioActual}: <strong>{formatMoneda(totalFactActual)}</strong></span>
-                      <span>Total {anioAnterior}: <strong>{formatMoneda(totalFactAnterior)}</strong></span>
-                      <span>
-                        Diferencia:{' '}
-                        <strong className={diffFact >= 0 ? 'text-emerald-600' : 'text-red-600'}>
-                          {diffFact >= 0 ? '+' : ''}{formatMoneda(diffFact)}
-                          {pctFact && ` (${diffFact >= 0 ? '+' : ''}${pctFact}%)`}
-                        </strong>
-                      </span>
-                    </div>
-                  </>
                 )}
-              </div>
-            </>
-          )}
+              </>
+            )
+          })()}
         </>
       )}
 
