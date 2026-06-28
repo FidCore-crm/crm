@@ -429,33 +429,57 @@ export default function DashboardPage() {
     async function cargarCharts() {
       setCargandoCharts(true)
 
-      // Evolución de cartera (últimos 12 meses) — respeta filtro de cartera
+      // Evolución de cartera (últimos 12 meses) — saldo neto al cierre de
+      // cada mes: (pólizas creadas hasta fin de mes) − (canceladas + anuladas
+      // hasta fin de mes). Refleja el tamaño REAL de la cartera mes a mes,
+      // basado en cuándo se cargó cada póliza al CRM y cuándo se dio de baja
+      // — no en los rangos de vigencia (que daban una curva poco intuitiva).
+      // Excluye RENOVADA (estado sombra) para no duplicar con la VIGENTE de
+      // la cadena.
       const evolucion: { mes: string; cantidad: number }[] = []
       let qTodas = supabase
         .from('polizas')
-        .select('fecha_inicio, fecha_fin, estado')
-        .not('estado', 'in', '("CANCELADA","ANULADA")')
+        .select('created_at, fecha_baja, estado')
+        .neq('estado', 'RENOVADA')
       qTodas = filtrarPorPersonas(qTodas, idsPersonas, 'asegurado_id')
       const { data: todasPolizas } = await qTodas
 
+      const polizas = (todasPolizas ?? []) as Array<{
+        created_at: string
+        fecha_baja: string | null
+        estado: string
+      }>
+
       for (let i = 11; i >= 0; i--) {
         const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1)
-        const primer = primerDiaMes(d)
-        const ultimo = ultimoDiaMes(d)
-        const count = (todasPolizas ?? []).filter((p: any) => {
-          const fi = p.fecha_inicio.split('T')[0]
-          const ff = p.fecha_fin.split('T')[0]
-          return fi <= ultimo && ff >= primer
-        }).length
-        evolucion.push({ mes: nombreMesCorto(d.getMonth()), cantidad: count })
+        const ultimo = ultimoDiaMes(d) // 'YYYY-MM-DD' inclusive
+
+        let altas = 0
+        let bajas = 0
+        for (const p of polizas) {
+          const createdDia = (p.created_at || '').slice(0, 10)
+          if (createdDia && createdDia <= ultimo) altas++
+
+          const esBaja = p.estado === 'CANCELADA' || p.estado === 'ANULADA'
+          const fbDia = (p.fecha_baja || '').slice(0, 10)
+          if (esBaja && fbDia && fbDia <= ultimo) bajas++
+        }
+
+        evolucion.push({
+          mes: nombreMesCorto(d.getMonth()),
+          cantidad: Math.max(0, altas - bajas),
+        })
       }
       setChartEvolucion(evolucion)
 
-      // Distribución por compañía (pólizas vigentes) — respeta filtro de cartera
+      // Distribución por compañía — todas las pólizas que tuviste alguna vez
+      // como cartera real. Excluye solo RENOVADA (estado temporal de la sombra
+      // que duplicaría con la VIGENTE de la cadena). Incluye NO_VIGENTE,
+      // CANCELADA y ANULADA porque forman parte del histórico del PAS.
       let qVig = supabase
         .from('polizas')
         .select('compania:catalogos!compania_id (nombre)')
-        .eq('estado', 'VIGENTE')
+        .neq('estado', 'RENOVADA')
       qVig = filtrarPorPersonas(qVig, idsPersonas, 'asegurado_id')
       const { data: vigentes } = await qVig
 
@@ -468,20 +492,20 @@ export default function DashboardPage() {
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value)
 
-      if (compArr.length > 6) {
-        const top5 = compArr.slice(0, 5)
-        const otras = compArr.slice(5).reduce((acc, c) => acc + c.value, 0)
-        top5.push({ name: 'Otras', value: otras })
-        setChartCompanias(top5)
+      if (compArr.length > 8) {
+        const top7 = compArr.slice(0, 7)
+        const otras = compArr.slice(7).reduce((acc, c) => acc + c.value, 0)
+        top7.push({ name: 'Otras', value: otras })
+        setChartCompanias(top7)
       } else {
         setChartCompanias(compArr)
       }
 
-      // Distribución por ramo (pólizas vigentes) — respeta filtro de cartera
+      // Distribución por ramo — misma lógica: histórico completo, sin RENOVADA.
       let qVigR = supabase
         .from('polizas')
         .select('ramo:catalogos!ramo_id (nombre)')
-        .eq('estado', 'VIGENTE')
+        .neq('estado', 'RENOVADA')
       qVigR = filtrarPorPersonas(qVigR, idsPersonas, 'asegurado_id')
       const { data: vigRamos } = await qVigR
 
