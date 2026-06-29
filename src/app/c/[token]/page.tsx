@@ -11,6 +11,7 @@ import WhatsAppFloatingButton from './components/WhatsAppFloatingButton'
 import MisDatosSection, { DatosCliente } from './components/MisDatosSection'
 import FooterPortal from './components/FooterPortal'
 import InstalarAppBanner from './components/InstalarAppBanner'
+import { gradientDeColorMarca } from '@/lib/color-marca'
 
 interface PortalData {
   cliente: {
@@ -120,10 +121,10 @@ export default function PortalAseguradoPage() {
   const nombreCliente = data.cliente.nombre_mostrar || data.cliente.nombre || data.cliente.apellido
   const whatsappUrl = construirWhatsAppUrl(data.organizacion, data.cliente.nombre_completo)
   const logoUrl = data.organizacion.logo_path ? `/api/storage/${data.organizacion.logo_path}` : null
-  // Gradient navy estándar — INDEPENDIENTE del color de marca del PAS.
-  // El portal mantiene una identidad visual del producto. El color de marca
-  // solo se usa en mails y PDFs (cara al asegurado en otros canales).
-  const heroBg = 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #3b82f6 100%)'
+  // Gradient generado a partir del color de marca del PAS (oscuro → base →
+  // vibrante). Si el PAS no eligió color, queda el navy default. Coherente con
+  // el theme del PWA manifest y con el portal de denuncia.
+  const heroBg = gradientDeColorMarca(data.organizacion.color_marca)
   const heroTextColor = '#FFFFFF'
   const textoSecundarioHero = 'rgba(255,255,255,0.85)'
 

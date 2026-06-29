@@ -7,6 +7,7 @@ import {
   MAX_TESTIGOS,
   type TipoRiesgoSiniestro, type TestigoData,
 } from '@/lib/siniestros-tipos'
+import { gradientDeColorMarca } from '@/lib/color-marca'
 
 // ════════════════════════════════════════════════════════════
 //   TIPOS
@@ -283,14 +284,19 @@ function DenunciarPageContent() {
       .catch(() => { /* config default */ })
   }, [])
 
-  // Inyectar `color_marca` como CSS variable para que `denuncia.css` y los
+  // Inyectar `color_marca` como CSS variables para que `denuncia.css` y los
   // estilos inline tomen el color del PAS en vez del navy default.
+  // - `--color-marca`: color base (botones, acentos).
+  // - `--color-marca-gradient`: gradient 135° derivado (splash, topbar, hero).
   useEffect(() => {
     const color = organizacion?.color_marca
     if (!color) return
+    const gradient = gradientDeColorMarca(color)
     document.documentElement.style.setProperty('--color-marca', color)
+    document.documentElement.style.setProperty('--color-marca-gradient', gradient)
     return () => {
       document.documentElement.style.removeProperty('--color-marca')
+      document.documentElement.style.removeProperty('--color-marca-gradient')
     }
   }, [organizacion?.color_marca])
 

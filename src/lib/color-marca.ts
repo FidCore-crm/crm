@@ -170,6 +170,17 @@ export function derivarTonos(hex: string): TonosDerivados {
 }
 
 /**
+ * Construye un `linear-gradient` 135° desde el color de marca: oscuro → base
+ * → vibrante. Pensado para los heroes / fondos donde antes se usaba navy
+ * hardcoded. Si no hay color, cae al gradient navy de siempre.
+ */
+export function gradientDeColorMarca(hex: string | null | undefined): string {
+  const colorBase = hex && esColorMarcaValido(hex) ? hex : COLOR_MARCA_DEFAULT
+  const tonos = derivarTonos(colorBase)
+  return `linear-gradient(135deg, ${tonos.oscuro} 0%, ${tonos.base} 55%, ${tonos.vibrante} 100%)`
+}
+
+/**
  * Validador. Devuelve true si el hex es '#RRGGBB' con caracteres hex válidos.
  */
 export function esColorMarcaValido(hex: string): boolean {
