@@ -255,7 +255,11 @@ export default function UsuariosPage() {
       )}
 
       {/* Tabla */}
-      <div className="bg-white border border-slate-200 rounded overflow-hidden">
+      {/* NO usar overflow-hidden acá — corta los menús dropdown de los "3
+          puntitos" de cada fila (`position:absolute` se ve cortado por el
+          contenedor padre). El border-radius del wrapper sigue funcionando
+          sin overflow-hidden. */}
+      <div className="bg-white border border-slate-200 rounded">
         <table className="crm-table w-full">
           <thead>
             <tr>
