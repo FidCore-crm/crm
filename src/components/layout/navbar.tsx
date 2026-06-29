@@ -15,6 +15,7 @@ import { tieneAccesoTotal, obtenerIdsPersonas } from '@/lib/cartera-filter'
 import { apiCall } from '@/lib/api-client'
 import { emitirBroadcastNotificaciones, useBroadcastNotificaciones } from '@/lib/broadcast-notificaciones'
 import { PresenciaNavbar } from './PresenciaNavbar'
+import { MensajesWebNavbar } from './MensajesWebNavbar'
 import { AvisoActualizacion } from './AvisoActualizacion'
 
 // ── Tipos búsqueda global ──
@@ -171,9 +172,12 @@ export function Navbar() {
   // ── Cargar contadores de notificaciones ──
   // El scope se aplica en el backend a partir de la sesión autenticada,
   // no se pasa usuario_id por query string (era ignorado por la API).
+  // Excluimos los LEAD_WEB_NUEVO porque tienen su propio ícono al lado
+  // (MensajesWebNavbar — el Inbox verde). Si no se excluyen, aparecen en
+  // ambos lados y el contador queda duplicado.
   const cargarContadores = useCallback(async () => {
     try {
-      const res = await fetch('/api/notificaciones?leida=false&limite=1')
+      const res = await fetch('/api/notificaciones?leida=false&limite=1&tipo_excluir=LEAD_WEB_NUEVO')
       const json = await res.json()
       if (json.ok && json.resumen) {
         setContadores(json.resumen)
@@ -187,7 +191,7 @@ export function Navbar() {
   const cargarNotificaciones = useCallback(async () => {
     setCargandoNotif(true)
     try {
-      const res = await fetch('/api/notificaciones?limite=15')
+      const res = await fetch('/api/notificaciones?limite=15&tipo_excluir=LEAD_WEB_NUEVO')
       const json = await res.json()
       if (json.ok) {
         setNotificaciones(json.data ?? [])
@@ -605,6 +609,9 @@ export function Navbar() {
 
         {/* Presencia: usuarios conectados (solo admin) */}
         <PresenciaNavbar />
+
+        {/* Mensajes recibidos desde la web (leads del formulario público) */}
+        <MensajesWebNavbar />
 
         {/* Notificaciones */}
         <div className="relative" ref={panelRef}>

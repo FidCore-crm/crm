@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import {
   ArrowLeft, Edit, MessageCircle, Phone, Mail, MapPin,
   User, Building2, FileText, AlertTriangle, Calendar,
-  Shield, Eye, CheckCircle, Loader2, ClipboardList,
+  Shield, Eye, CheckCircle, CheckCircle2, Loader2, ClipboardList,
   Trash2, X, FolderOpen, Target, Send, Briefcase, ExternalLink,
   Globe, Copy, RefreshCw, Ban, Check, Sparkles
 } from 'lucide-react'
@@ -132,6 +132,7 @@ export default function FichaPersonaPage() {
   const [oportunidades, setOportunidades] = useState<OportunidadResumen[]>([])
   const [cotizacionesCom, setCotizacionesCom] = useState<CotizacionResumen[]>([])
   const [interaccionesCom, setInteraccionesCom] = useState<InteraccionResumen[]>([])
+  const [comunicacionesCount, setComunicacionesCount] = useState<number>(0)
   const [cargando,   setCargando]   = useState(true)
   const [tabActivo,  setTabActivo]  = useState<Tab>('polizas')
 
@@ -178,7 +179,7 @@ export default function FichaPersonaPage() {
       `).eq('asegurado_id', id).order('fecha_fin', { ascending: false }),
       supabase.from('siniestros').select(`
         id, numero_caso, fecha_denuncia, estado, tipo_siniestro, monto_estimado
-      `).eq('persona_id', id).order('fecha_denuncia', { ascending: false }),
+      `).eq('persona_id', id).is('deleted_at', null).order('fecha_denuncia', { ascending: false }),
     ])
     const resTar = await supabase.from('tareas').select(`
       id, titulo, fecha_vencimiento, prioridad, estado
@@ -200,6 +201,20 @@ export default function FichaPersonaPage() {
     setOportunidades((resOps.data ?? []) as unknown as OportunidadResumen[])
     setCotizacionesCom((resCots.data ?? []) as unknown as CotizacionResumen[])
     setInteraccionesCom((resInts.data ?? []) as unknown as InteraccionResumen[])
+
+    // Count del tab Comunicaciones (head:true → solo cuenta, no trae rows).
+    // Se hace después del Promise.all principal para no bloquear el paint
+    // inicial; si falla, queda en 0.
+    try {
+      const { count } = await supabase
+        .from('email_envios')
+        .select('id', { count: 'exact', head: true })
+        .eq('persona_id', id)
+      setComunicacionesCount(count ?? 0)
+    } catch {
+      setComunicacionesCount(0)
+    }
+
     setCargando(false)
   }, [supabase, id])
 
@@ -245,6 +260,13 @@ export default function FichaPersonaPage() {
   useEffect(() => {
     if (tabActivo === 'portal') cargarPortal()
   }, [tabActivo, cargarPortal])
+
+  // Carga inicial del estado del portal (independiente del tab activo) para
+  // poder mostrar el check verde en el badge del tab sin esperar a que el
+  // usuario lo abra.
+  useEffect(() => {
+    if (id) cargarPortal()
+  }, [id, cargarPortal])
 
   async function portalGenerar() {
     setPortalCargando(true); setPortalMensaje('')
@@ -379,13 +401,14 @@ export default function FichaPersonaPage() {
 
   // ── Tabs config ────────────────────────────────────────────
   const comercialCount = oportunidades.length + cotizacionesCom.length + interaccionesCom.length
-  const tabs: { key: Tab; label: string; count: number; icon: React.ReactNode }[] = [
+  const portalActivo = !!portalAcceso?.tiene_acceso
+  const tabs: { key: Tab; label: string; count: number; icon: React.ReactNode; check?: boolean }[] = [
     { key: 'polizas',    label: 'Pólizas',    count: polizas.length,    icon: <Shield className="h-3 w-3" /> },
     { key: 'siniestros', label: 'Siniestros',  count: siniestros.length, icon: <AlertTriangle className="h-3 w-3" /> },
     { key: 'tareas',     label: 'Tareas',      count: tareas.length,     icon: <ClipboardList className="h-3 w-3" /> },
     { key: 'comercial',  label: 'Comercial',   count: comercialCount,    icon: <Briefcase className="h-3 w-3" /> },
-    { key: 'portal',     label: 'Portal',      count: 0,                 icon: <Globe className="h-3 w-3" /> },
-    { key: 'comunicaciones', label: 'Comunicaciones', count: 0,          icon: <Mail className="h-3 w-3" /> },
+    { key: 'portal',     label: 'Portal',      count: 0,                 icon: <Globe className="h-3 w-3" />, check: portalActivo },
+    { key: 'comunicaciones', label: 'Comunicaciones', count: comunicacionesCount, icon: <Mail className="h-3 w-3" /> },
   ]
 
   const enPapelera = !!(persona as any).deleted_at
@@ -692,7 +715,11 @@ export default function FichaPersonaPage() {
                     : 'text-slate-500 hover:text-slate-700'
                 }`}>
                 {t.icon} {t.label}
-                <span className="font-mono text-slate-500 ml-0.5">{t.count}</span>
+                {t.check ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 ml-0.5" aria-label="Acceso activo" />
+                ) : (
+                  <span className="font-mono text-slate-500 ml-0.5">{t.count}</span>
+                )}
               </button>
             ))}
           </div>

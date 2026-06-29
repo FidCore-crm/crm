@@ -390,6 +390,7 @@ export type TipoNotificacion =
   | 'SINIESTRO_DENUNCIA_PUBLICA'
   | 'SOLICITUD_BLANQUEO_PASSWORD'
   | 'BLANQUEO_ABUSO_DETECTADO'
+  | 'LEAD_WEB_NUEVO'
 
 export interface Notificacion {
   id: string
@@ -667,6 +668,8 @@ export type TipoEnvioEmail =
   | 'SISTEMA_LICENCIA_BLOQUEADA'
   // Rollback del sistema de actualizaciones (migración 092)
   | 'SISTEMA_ROLLBACK_UPDATE'
+  // Lead recibido desde formulario web público (migración 103)
+  | 'SISTEMA_LEAD_WEB_RECIBIDO'
 
 export type PrioridadEmailEnvio = 'ALTA' | 'NORMAL'
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Building2, Settings, Globe, Bell, Users, Shield, ChevronRight, Mail, HardDrive, MessageSquare, ExternalLink, Sparkles, AlertTriangle, Power, Download, BarChart3 } from 'lucide-react'
+import { Building2, Settings, Globe, Bell, Users, Shield, ChevronRight, Mail, HardDrive, MessageSquare, ExternalLink, Sparkles, AlertTriangle, Power, Download, BarChart3, Inbox } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { esModoAppliance } from '@/lib/modo-instalacion'
 
@@ -55,6 +55,14 @@ const secciones = [
     titulo: 'Formulario público',
     descripcion: 'Configurá el formulario de denuncia para tus clientes',
     activo: true,
+  },
+  {
+    href: '/crm/configuracion/leads-web',
+    icon: Inbox,
+    titulo: 'Leads desde web',
+    descripcion: 'Recibí leads del formulario de contacto de tu sitio web',
+    activo: true,
+    adminOnly: true,
   },
   {
     href: '/crm/configuracion/portal-cliente',

@@ -21,6 +21,15 @@ export async function GET(request: NextRequest) {
   const leida = params.get('leida')
   const prioridad = params.get('prioridad')
   const tipo = params.get('tipo')
+  // Filtros nuevos para el panel "Inbox" del navbar:
+  //   tipo_in=A,B,C        → muestra solo esos tipos
+  //   tipo_excluir=A,B     → excluye esos tipos
+  // Se aplican TANTO al listado como al resumen, para que el badge cuente
+  // exactamente lo mismo que el panel va a mostrar.
+  const tipoIn = params.get('tipo_in')
+  const tipoExcluir = params.get('tipo_excluir')
+  const tiposIn = tipoIn ? tipoIn.split(',').map((s) => s.trim()).filter(Boolean) : null
+  const tiposExcluir = tipoExcluir ? tipoExcluir.split(',').map((s) => s.trim()).filter(Boolean) : null
   const limite = parseInt(params.get('limite') ?? '50', 10)
 
   let query = supabase
@@ -33,6 +42,10 @@ export async function GET(request: NextRequest) {
   if (leida === 'false') query = query.eq('leida', false)
   if (prioridad) query = query.eq('prioridad', prioridad)
   if (tipo) query = query.eq('tipo', tipo)
+  if (tiposIn && tiposIn.length > 0) query = query.in('tipo', tiposIn)
+  if (tiposExcluir && tiposExcluir.length > 0) {
+    for (const t of tiposExcluir) query = query.neq('tipo', t)
+  }
   query = aplicarScope(query, usuario)
 
   const { data, error } = await query
@@ -40,10 +53,17 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ ok: false, error: 'Error al obtener los datos' }, { status: 500 })
 
   // Contadores de no leídas por prioridad (limitados al scope del usuario)
+  // Aplica los mismos filtros tipo / tipo_in / tipo_excluir para que el badge
+  // refleje EXACTAMENTE lo mismo que el panel va a mostrar.
   let contQuery = supabase
     .from('notificaciones')
     .select('prioridad')
     .eq('leida', false)
+  if (tipo) contQuery = contQuery.eq('tipo', tipo)
+  if (tiposIn && tiposIn.length > 0) contQuery = contQuery.in('tipo', tiposIn)
+  if (tiposExcluir && tiposExcluir.length > 0) {
+    for (const t of tiposExcluir) contQuery = contQuery.neq('tipo', t)
+  }
   contQuery = aplicarScope(contQuery, usuario)
 
   const { data: contadores } = await contQuery

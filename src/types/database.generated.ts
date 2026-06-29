@@ -20,6 +20,85 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      actualizaciones: {
+        Row: {
+          backup_id: string | null
+          cancelada_por_usuario_id: string | null
+          changelog: string | null
+          created_at: string
+          error_mensaje: string | null
+          estado: string
+          fecha_fin_ejecucion: string | null
+          fecha_inicio_ejecucion: string | null
+          fecha_solicitud: string
+          id: string
+          log_completo: string | null
+          programada_para: string | null
+          solicitada_por_usuario_id: string | null
+          updated_at: string
+          version_anterior: string
+          version_nueva: string
+        }
+        Insert: {
+          backup_id?: string | null
+          cancelada_por_usuario_id?: string | null
+          changelog?: string | null
+          created_at?: string
+          error_mensaje?: string | null
+          estado?: string
+          fecha_fin_ejecucion?: string | null
+          fecha_inicio_ejecucion?: string | null
+          fecha_solicitud?: string
+          id?: string
+          log_completo?: string | null
+          programada_para?: string | null
+          solicitada_por_usuario_id?: string | null
+          updated_at?: string
+          version_anterior: string
+          version_nueva: string
+        }
+        Update: {
+          backup_id?: string | null
+          cancelada_por_usuario_id?: string | null
+          changelog?: string | null
+          created_at?: string
+          error_mensaje?: string | null
+          estado?: string
+          fecha_fin_ejecucion?: string | null
+          fecha_inicio_ejecucion?: string | null
+          fecha_solicitud?: string
+          id?: string
+          log_completo?: string | null
+          programada_para?: string | null
+          solicitada_por_usuario_id?: string | null
+          updated_at?: string
+          version_anterior?: string
+          version_nueva?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actualizaciones_backup_id_fkey"
+            columns: ["backup_id"]
+            isOneToOne: false
+            referencedRelation: "backups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actualizaciones_cancelada_por_usuario_id_fkey"
+            columns: ["cancelada_por_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios_perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actualizaciones_solicitada_por_usuario_id_fkey"
+            columns: ["solicitada_por_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios_perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       anthropic_modelos_cache: {
         Row: {
           created_at: string | null
@@ -122,7 +201,7 @@ export type Database = {
             foreignKeyName: "backups_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -202,8 +281,11 @@ export type Database = {
           cotizacion_whatsapp_template: string | null
           created_at: string | null
           cuit: string | null
+          dashboard_graficos_visibles: Json | null
           direccion: string | null
           email: string | null
+          email_header_estilo: string
+          email_header_subtitulo: string
           facebook: string | null
           id: string
           instagram: string | null
@@ -224,7 +306,10 @@ export type Database = {
           url_crm: string | null
           url_formulario_publico: string | null
           url_portal_cliente: string | null
+          url_repo_updates: string | null
           usar_logo: boolean
+          verificar_updates_automatico: boolean | null
+          version_actual: string | null
           whatsapp: string | null
         }
         Insert: {
@@ -244,8 +329,11 @@ export type Database = {
           cotizacion_whatsapp_template?: string | null
           created_at?: string | null
           cuit?: string | null
+          dashboard_graficos_visibles?: Json | null
           direccion?: string | null
           email?: string | null
+          email_header_estilo?: string
+          email_header_subtitulo?: string
           facebook?: string | null
           id?: string
           instagram?: string | null
@@ -266,7 +354,10 @@ export type Database = {
           url_crm?: string | null
           url_formulario_publico?: string | null
           url_portal_cliente?: string | null
+          url_repo_updates?: string | null
           usar_logo?: boolean
+          verificar_updates_automatico?: boolean | null
+          version_actual?: string | null
           whatsapp?: string | null
         }
         Update: {
@@ -286,8 +377,11 @@ export type Database = {
           cotizacion_whatsapp_template?: string | null
           created_at?: string | null
           cuit?: string | null
+          dashboard_graficos_visibles?: Json | null
           direccion?: string | null
           email?: string | null
+          email_header_estilo?: string
+          email_header_subtitulo?: string
           facebook?: string | null
           id?: string
           instagram?: string | null
@@ -308,7 +402,10 @@ export type Database = {
           url_crm?: string | null
           url_formulario_publico?: string | null
           url_portal_cliente?: string | null
+          url_repo_updates?: string | null
           usar_logo?: boolean
+          verificar_updates_automatico?: boolean | null
+          version_actual?: string | null
           whatsapp?: string | null
         }
         Relationships: []
@@ -325,6 +422,8 @@ export type Database = {
           remote_nombre: string | null
           retener_diarios: number | null
           retener_mensuales: number | null
+          retener_pre_update_dias: number | null
+          retener_pre_update_minimos: number | null
           retener_semanales: number | null
           sync_remoto_activo: boolean | null
           updated_at: string | null
@@ -340,6 +439,8 @@ export type Database = {
           remote_nombre?: string | null
           retener_diarios?: number | null
           retener_mensuales?: number | null
+          retener_pre_update_dias?: number | null
+          retener_pre_update_minimos?: number | null
           retener_semanales?: number | null
           sync_remoto_activo?: boolean | null
           updated_at?: string | null
@@ -355,6 +456,8 @@ export type Database = {
           remote_nombre?: string | null
           retener_diarios?: number | null
           retener_mensuales?: number | null
+          retener_pre_update_dias?: number | null
+          retener_pre_update_minimos?: number | null
           retener_semanales?: number | null
           sync_remoto_activo?: boolean | null
           updated_at?: string | null
@@ -369,7 +472,10 @@ export type Database = {
           delay_entre_envios_automaticos_seg: number
           delay_entre_envios_ms: number | null
           eliminar_despues_meses: number
+          envio_automatico_bienvenida_cliente: boolean
           envio_automatico_bienvenida_poliza: boolean
+          envio_automatico_denuncia_publica_cliente: boolean
+          envio_automatico_denuncia_publica_pas: boolean
           envio_automatico_portal_cliente: boolean
           envio_automatico_renovaciones: boolean | null
           errores_retener_completo_dias: number
@@ -378,7 +484,14 @@ export type Database = {
           id: string
           limite_diario: number | null
           max_adjuntos_mb: number
+          notificar_admin_backup_completado: boolean
+          notificar_admin_email_automatico_fallido: boolean
           notificar_admin_eventos_informativos: boolean
+          notificar_admin_lead_web: boolean
+          notificar_admin_pdf_fallido: boolean
+          notificar_admin_pdf_procesado: boolean
+          notificar_admin_restauracion_completada: boolean
+          notificar_admin_restauracion_iniciada: boolean
           retener_completo_dias: number
           retener_metadata_meses: number
           updated_at: string | null
@@ -390,7 +503,10 @@ export type Database = {
           delay_entre_envios_automaticos_seg?: number
           delay_entre_envios_ms?: number | null
           eliminar_despues_meses?: number
+          envio_automatico_bienvenida_cliente?: boolean
           envio_automatico_bienvenida_poliza?: boolean
+          envio_automatico_denuncia_publica_cliente?: boolean
+          envio_automatico_denuncia_publica_pas?: boolean
           envio_automatico_portal_cliente?: boolean
           envio_automatico_renovaciones?: boolean | null
           errores_retener_completo_dias?: number
@@ -399,7 +515,14 @@ export type Database = {
           id?: string
           limite_diario?: number | null
           max_adjuntos_mb?: number
+          notificar_admin_backup_completado?: boolean
+          notificar_admin_email_automatico_fallido?: boolean
           notificar_admin_eventos_informativos?: boolean
+          notificar_admin_lead_web?: boolean
+          notificar_admin_pdf_fallido?: boolean
+          notificar_admin_pdf_procesado?: boolean
+          notificar_admin_restauracion_completada?: boolean
+          notificar_admin_restauracion_iniciada?: boolean
           retener_completo_dias?: number
           retener_metadata_meses?: number
           updated_at?: string | null
@@ -411,7 +534,10 @@ export type Database = {
           delay_entre_envios_automaticos_seg?: number
           delay_entre_envios_ms?: number | null
           eliminar_despues_meses?: number
+          envio_automatico_bienvenida_cliente?: boolean
           envio_automatico_bienvenida_poliza?: boolean
+          envio_automatico_denuncia_publica_cliente?: boolean
+          envio_automatico_denuncia_publica_pas?: boolean
           envio_automatico_portal_cliente?: boolean
           envio_automatico_renovaciones?: boolean | null
           errores_retener_completo_dias?: number
@@ -420,7 +546,14 @@ export type Database = {
           id?: string
           limite_diario?: number | null
           max_adjuntos_mb?: number
+          notificar_admin_backup_completado?: boolean
+          notificar_admin_email_automatico_fallido?: boolean
           notificar_admin_eventos_informativos?: boolean
+          notificar_admin_lead_web?: boolean
+          notificar_admin_pdf_fallido?: boolean
+          notificar_admin_pdf_procesado?: boolean
+          notificar_admin_restauracion_completada?: boolean
+          notificar_admin_restauracion_iniciada?: boolean
           retener_completo_dias?: number
           retener_metadata_meses?: number
           updated_at?: string | null
@@ -522,6 +655,65 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      configuracion_leads_web: {
+        Row: {
+          activo: boolean
+          created_at: string
+          dominios_permitidos: string[]
+          id: string
+          modo_asignacion: string
+          notificar_email_admin: boolean
+          notificar_inapp: boolean
+          recibidos_historico: number
+          recibidos_mes_actual: number
+          reset_contador_mes: string
+          token: string
+          ultimo_lead_recibido_en: string | null
+          ultimo_usuario_asignado_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          dominios_permitidos?: string[]
+          id?: string
+          modo_asignacion?: string
+          notificar_email_admin?: boolean
+          notificar_inapp?: boolean
+          recibidos_historico?: number
+          recibidos_mes_actual?: number
+          reset_contador_mes?: string
+          token: string
+          ultimo_lead_recibido_en?: string | null
+          ultimo_usuario_asignado_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          dominios_permitidos?: string[]
+          id?: string
+          modo_asignacion?: string
+          notificar_email_admin?: boolean
+          notificar_inapp?: boolean
+          recibidos_historico?: number
+          recibidos_mes_actual?: number
+          reset_contador_mes?: string
+          token?: string
+          ultimo_lead_recibido_en?: string | null
+          ultimo_usuario_asignado_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracion_leads_web_ultimo_usuario_fk"
+            columns: ["ultimo_usuario_asignado_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       configuracion_notificaciones: {
         Row: {
@@ -726,13 +918,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cotizaciones_persona_id_fkey"
-            columns: ["persona_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
-          },
-          {
             foreignKeyName: "cotizaciones_poliza_generada_id_fkey"
             columns: ["poliza_generada_id"]
             isOneToOne: false
@@ -747,13 +932,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cotizaciones_poliza_generada_id_fkey"
-            columns: ["poliza_generada_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
-          },
-          {
             foreignKeyName: "cotizaciones_ramo_id_fkey"
             columns: ["ramo_id"]
             isOneToOne: false
@@ -764,7 +942,7 @@ export type Database = {
             foreignKeyName: "cotizaciones_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -801,13 +979,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "personas"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_email_bajas_persona"
-            columns: ["persona_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
           },
         ]
       }
@@ -856,6 +1027,7 @@ export type Database = {
           enviado_por_usuario_id: string | null
           enviar_despues_de: string | null
           error_mensaje: string | null
+          error_tipo: string | null
           estado: string
           fecha_apertura: string | null
           fecha_creacion: string | null
@@ -867,6 +1039,7 @@ export type Database = {
           plantilla_codigo: string
           poliza_id: string | null
           prioridad: string
+          proximo_intento_en: string | null
           tipo_envio: string
           token_tracking: string | null
           variables_usadas: Json | null
@@ -883,6 +1056,7 @@ export type Database = {
           enviado_por_usuario_id?: string | null
           enviar_despues_de?: string | null
           error_mensaje?: string | null
+          error_tipo?: string | null
           estado?: string
           fecha_apertura?: string | null
           fecha_creacion?: string | null
@@ -894,6 +1068,7 @@ export type Database = {
           plantilla_codigo: string
           poliza_id?: string | null
           prioridad?: string
+          proximo_intento_en?: string | null
           tipo_envio?: string
           token_tracking?: string | null
           variables_usadas?: Json | null
@@ -910,6 +1085,7 @@ export type Database = {
           enviado_por_usuario_id?: string | null
           enviar_despues_de?: string | null
           error_mensaje?: string | null
+          error_tipo?: string | null
           estado?: string
           fecha_apertura?: string | null
           fecha_creacion?: string | null
@@ -921,6 +1097,7 @@ export type Database = {
           plantilla_codigo?: string
           poliza_id?: string | null
           prioridad?: string
+          proximo_intento_en?: string | null
           tipo_envio?: string
           token_tracking?: string | null
           variables_usadas?: Json | null
@@ -930,7 +1107,7 @@ export type Database = {
             foreignKeyName: "email_envios_enviado_por_usuario_id_fkey"
             columns: ["enviado_por_usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
           {
@@ -939,13 +1116,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "personas"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_envios_persona_id_fkey"
-            columns: ["persona_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
           },
           {
             foreignKeyName: "email_envios_poliza_id_fkey"
@@ -960,13 +1130,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_polizas_pendientes_renovar"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_envios_poliza_id_fkey"
-            columns: ["poliza_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
           },
         ]
       }
@@ -1012,13 +1175,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_polizas_pendientes_renovar"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "endosos_poliza_id_fkey"
-            columns: ["poliza_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
           },
         ]
       }
@@ -1085,7 +1241,7 @@ export type Database = {
             foreignKeyName: "errores_sistema_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -1372,7 +1528,7 @@ export type Database = {
             foreignKeyName: "importacion_registros_dudosos_resuelto_por_usuario_id_fkey"
             columns: ["resuelto_por_usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -1465,7 +1621,7 @@ export type Database = {
             foreignKeyName: "importaciones_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -1523,13 +1679,6 @@ export type Database = {
             referencedRelation: "personas"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "interacciones_persona_id_fkey"
-            columns: ["persona_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
-          },
         ]
       }
       leads: {
@@ -1556,6 +1705,7 @@ export type Database = {
           telefono: string | null
           updated_at: string | null
           usuario_id: string | null
+          web_meta: Json | null
         }
         Insert: {
           apellido: string
@@ -1580,6 +1730,7 @@ export type Database = {
           telefono?: string | null
           updated_at?: string | null
           usuario_id?: string | null
+          web_meta?: Json | null
         }
         Update: {
           apellido?: string
@@ -1604,6 +1755,7 @@ export type Database = {
           telefono?: string | null
           updated_at?: string | null
           usuario_id?: string | null
+          web_meta?: Json | null
         }
         Relationships: [
           {
@@ -1614,17 +1766,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "leads_persona_id_fkey"
-            columns: ["persona_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
-          },
-          {
             foreignKeyName: "leads_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads_web_intentos: {
+        Row: {
+          created_at: string
+          exito: boolean
+          id: string
+          ip: string | null
+          lead_id: string | null
+          motivo_rechazo: string | null
+          payload_resumen: Json | null
+          referer: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          exito: boolean
+          id?: string
+          ip?: string | null
+          lead_id?: string | null
+          motivo_rechazo?: string | null
+          payload_resumen?: Json | null
+          referer?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          exito?: boolean
+          id?: string
+          ip?: string | null
+          lead_id?: string | null
+          motivo_rechazo?: string | null
+          payload_resumen?: Json | null
+          referer?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_web_intentos_lead_fk"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1682,6 +1871,218 @@ export type Database = {
           {
             foreignKeyName: "licencias_cargada_por_usuario_id_fkey"
             columns: ["cargada_por_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios_perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mailing_audiencias: {
+        Row: {
+          activa: boolean
+          created_at: string
+          descripcion: string | null
+          filtro_jsonb: Json | null
+          id: string
+          ids_personas: string[] | null
+          nombre: string
+          tipo: string
+          ultima_cantidad: number | null
+          ultimo_preview_en: string | null
+          updated_at: string
+          usuario_creador_id: string | null
+        }
+        Insert: {
+          activa?: boolean
+          created_at?: string
+          descripcion?: string | null
+          filtro_jsonb?: Json | null
+          id?: string
+          ids_personas?: string[] | null
+          nombre: string
+          tipo: string
+          ultima_cantidad?: number | null
+          ultimo_preview_en?: string | null
+          updated_at?: string
+          usuario_creador_id?: string | null
+        }
+        Update: {
+          activa?: boolean
+          created_at?: string
+          descripcion?: string | null
+          filtro_jsonb?: Json | null
+          id?: string
+          ids_personas?: string[] | null
+          nombre?: string
+          tipo?: string
+          ultima_cantidad?: number | null
+          ultimo_preview_en?: string | null
+          updated_at?: string
+          usuario_creador_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mailing_audiencias_usuario_creador_id_fkey"
+            columns: ["usuario_creador_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios_perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mailing_campanas: {
+        Row: {
+          asunto_libre: string | null
+          asunto_override: string | null
+          audiencia_id: string | null
+          created_at: string
+          cuerpo_libre: string | null
+          descripcion: string | null
+          enviados: number
+          estado: string
+          excluidos: number
+          fallidos: number
+          fecha_fin_ejecucion: string | null
+          fecha_inicio_ejecucion: string | null
+          id: string
+          mailing_plantilla_id: string | null
+          nombre: string
+          personas_ids: string[] | null
+          personas_procesadas_ids: string[] | null
+          programada_para: string | null
+          total_destinatarios: number
+          ultimo_error: string | null
+          updated_at: string
+          usuario_creador_id: string | null
+        }
+        Insert: {
+          asunto_libre?: string | null
+          asunto_override?: string | null
+          audiencia_id?: string | null
+          created_at?: string
+          cuerpo_libre?: string | null
+          descripcion?: string | null
+          enviados?: number
+          estado?: string
+          excluidos?: number
+          fallidos?: number
+          fecha_fin_ejecucion?: string | null
+          fecha_inicio_ejecucion?: string | null
+          id?: string
+          mailing_plantilla_id?: string | null
+          nombre: string
+          personas_ids?: string[] | null
+          personas_procesadas_ids?: string[] | null
+          programada_para?: string | null
+          total_destinatarios?: number
+          ultimo_error?: string | null
+          updated_at?: string
+          usuario_creador_id?: string | null
+        }
+        Update: {
+          asunto_libre?: string | null
+          asunto_override?: string | null
+          audiencia_id?: string | null
+          created_at?: string
+          cuerpo_libre?: string | null
+          descripcion?: string | null
+          enviados?: number
+          estado?: string
+          excluidos?: number
+          fallidos?: number
+          fecha_fin_ejecucion?: string | null
+          fecha_inicio_ejecucion?: string | null
+          id?: string
+          mailing_plantilla_id?: string | null
+          nombre?: string
+          personas_ids?: string[] | null
+          personas_procesadas_ids?: string[] | null
+          programada_para?: string | null
+          total_destinatarios?: number
+          ultimo_error?: string | null
+          updated_at?: string
+          usuario_creador_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mailing_campanas_audiencia_id_fkey"
+            columns: ["audiencia_id"]
+            isOneToOne: false
+            referencedRelation: "mailing_audiencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mailing_campanas_mailing_plantilla_id_fkey"
+            columns: ["mailing_plantilla_id"]
+            isOneToOne: false
+            referencedRelation: "mailing_plantillas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mailing_campanas_usuario_creador_id_fkey"
+            columns: ["usuario_creador_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios_perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mailing_plantillas: {
+        Row: {
+          activa: boolean
+          asunto: string
+          cierre: string
+          codigo: string
+          created_at: string
+          cta_texto: string | null
+          cta_url: string | null
+          cuerpo: string
+          descripcion: string | null
+          id: string
+          nombre: string
+          saludo: string
+          updated_at: string
+          usuario_creador_id: string | null
+          variables_disponibles: string[] | null
+        }
+        Insert: {
+          activa?: boolean
+          asunto: string
+          cierre: string
+          codigo: string
+          created_at?: string
+          cta_texto?: string | null
+          cta_url?: string | null
+          cuerpo: string
+          descripcion?: string | null
+          id?: string
+          nombre: string
+          saludo: string
+          updated_at?: string
+          usuario_creador_id?: string | null
+          variables_disponibles?: string[] | null
+        }
+        Update: {
+          activa?: boolean
+          asunto?: string
+          cierre?: string
+          codigo?: string
+          created_at?: string
+          cta_texto?: string | null
+          cta_url?: string | null
+          cuerpo?: string
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+          saludo?: string
+          updated_at?: string
+          usuario_creador_id?: string | null
+          variables_disponibles?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mailing_plantillas_usuario_creador_id_fkey"
+            columns: ["usuario_creador_id"]
             isOneToOne: false
             referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
@@ -1757,7 +2158,7 @@ export type Database = {
             foreignKeyName: "notificaciones_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -1823,17 +2224,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "oportunidades_persona_id_fkey"
-            columns: ["persona_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
-          },
-          {
             foreignKeyName: "oportunidades_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -1922,13 +2316,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pdf_procesamientos_poliza_creada_id_fkey"
-            columns: ["poliza_creada_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
-          },
-          {
             foreignKeyName: "pdf_procesamientos_poliza_origen_id_fkey"
             columns: ["poliza_origen_id"]
             isOneToOne: false
@@ -1943,17 +2330,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pdf_procesamientos_poliza_origen_id_fkey"
-            columns: ["poliza_origen_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
-          },
-          {
             foreignKeyName: "pdf_procesamientos_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -2004,17 +2384,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "persona_bitacora_persona_id_fkey"
-            columns: ["persona_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
-          },
-          {
             foreignKeyName: "persona_bitacora_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -2025,6 +2398,7 @@ export type Database = {
           apellido: string
           apellido_norm: string | null
           barrio: string | null
+          bienvenida_cliente_encolada_en: string | null
           calle: string | null
           canal_preferido: string | null
           codigo_postal: string | null
@@ -2039,12 +2413,14 @@ export type Database = {
           estado: string
           fecha_alta: string
           fecha_baja: string | null
+          fecha_nacimiento: string | null
           id: string
           localidad: string | null
           nombre: string | null
           nombre_norm: string | null
           numero: string | null
           origen: string | null
+          origen_creacion: string
           pais: string
           piso_depto: string | null
           provincia: string | null
@@ -2063,6 +2439,7 @@ export type Database = {
           apellido: string
           apellido_norm?: string | null
           barrio?: string | null
+          bienvenida_cliente_encolada_en?: string | null
           calle?: string | null
           canal_preferido?: string | null
           codigo_postal?: string | null
@@ -2077,12 +2454,14 @@ export type Database = {
           estado?: string
           fecha_alta?: string
           fecha_baja?: string | null
+          fecha_nacimiento?: string | null
           id?: string
           localidad?: string | null
           nombre?: string | null
           nombre_norm?: string | null
           numero?: string | null
           origen?: string | null
+          origen_creacion?: string
           pais?: string
           piso_depto?: string | null
           provincia?: string | null
@@ -2101,6 +2480,7 @@ export type Database = {
           apellido?: string
           apellido_norm?: string | null
           barrio?: string | null
+          bienvenida_cliente_encolada_en?: string | null
           calle?: string | null
           canal_preferido?: string | null
           codigo_postal?: string | null
@@ -2115,12 +2495,14 @@ export type Database = {
           estado?: string
           fecha_alta?: string
           fecha_baja?: string | null
+          fecha_nacimiento?: string | null
           id?: string
           localidad?: string | null
           nombre?: string | null
           nombre_norm?: string | null
           numero?: string | null
           origen?: string | null
+          origen_creacion?: string
           pais?: string
           piso_depto?: string | null
           provincia?: string | null
@@ -2139,14 +2521,14 @@ export type Database = {
             foreignKeyName: "personas_deleted_by_usuario_id_fkey"
             columns: ["deleted_by_usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "personas_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -2217,6 +2599,54 @@ export type Database = {
         }
         Relationships: []
       }
+      plantillas_whatsapp: {
+        Row: {
+          activa: boolean | null
+          codigo: string
+          contexto: string
+          created_at: string | null
+          descripcion: string | null
+          editable: boolean
+          es_sistema: boolean
+          id: string
+          mensaje: string
+          mensaje_default: string
+          nombre: string
+          updated_at: string | null
+          variables_disponibles: string[] | null
+        }
+        Insert: {
+          activa?: boolean | null
+          codigo: string
+          contexto: string
+          created_at?: string | null
+          descripcion?: string | null
+          editable?: boolean
+          es_sistema?: boolean
+          id?: string
+          mensaje: string
+          mensaje_default: string
+          nombre: string
+          updated_at?: string | null
+          variables_disponibles?: string[] | null
+        }
+        Update: {
+          activa?: boolean | null
+          codigo?: string
+          contexto?: string
+          created_at?: string | null
+          descripcion?: string | null
+          editable?: boolean
+          es_sistema?: boolean
+          id?: string
+          mensaje?: string
+          mensaje_default?: string
+          nombre?: string
+          updated_at?: string | null
+          variables_disponibles?: string[] | null
+        }
+        Relationships: []
+      }
       poliza_archivos: {
         Row: {
           categoria: string
@@ -2273,13 +2703,6 @@ export type Database = {
             referencedRelation: "v_polizas_pendientes_renovar"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "poliza_archivos_poliza_id_fkey"
-            columns: ["poliza_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
-          },
         ]
       }
       poliza_bitacora: {
@@ -2332,17 +2755,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "poliza_bitacora_poliza_id_fkey"
-            columns: ["poliza_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
-          },
-          {
             foreignKeyName: "poliza_bitacora_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -2359,6 +2775,7 @@ export type Database = {
           fecha_inicio: string
           fecha_renovacion: string | null
           id: string
+          medio_pago: string | null
           moneda: string
           motivo_baja: string | null
           notas: string | null
@@ -2386,6 +2803,7 @@ export type Database = {
           fecha_inicio: string
           fecha_renovacion?: string | null
           id?: string
+          medio_pago?: string | null
           moneda?: string
           motivo_baja?: string | null
           notas?: string | null
@@ -2413,6 +2831,7 @@ export type Database = {
           fecha_inicio?: string
           fecha_renovacion?: string | null
           id?: string
+          medio_pago?: string | null
           moneda?: string
           motivo_baja?: string | null
           notas?: string | null
@@ -2438,13 +2857,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_polizas_asegurado"
-            columns: ["asegurado_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
-          },
-          {
             foreignKeyName: "fk_polizas_compania"
             columns: ["compania_id"]
             isOneToOne: false
@@ -2466,13 +2878,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_polizas_origen"
-            columns: ["poliza_origen_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
-          },
-          {
             foreignKeyName: "fk_polizas_ramo"
             columns: ["ramo_id"]
             isOneToOne: false
@@ -2485,13 +2890,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "personas"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_polizas_tomador"
-            columns: ["tomador_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
           },
           {
             foreignKeyName: "polizas_cobertura_id_fkey"
@@ -2580,7 +2978,7 @@ export type Database = {
             foreignKeyName: "polizas_eliminadas_eliminada_por_usuario_id_fkey"
             columns: ["eliminada_por_usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -2594,6 +2992,7 @@ export type Database = {
           motivo_revocacion: string | null
           persona_id: string
           revocado: boolean | null
+          token_encrypted: string | null
           token_hash: string
           ultimo_acceso: string | null
           ultimo_ip: string | null
@@ -2607,6 +3006,7 @@ export type Database = {
           motivo_revocacion?: string | null
           persona_id: string
           revocado?: boolean | null
+          token_encrypted?: string | null
           token_hash: string
           ultimo_acceso?: string | null
           ultimo_ip?: string | null
@@ -2620,6 +3020,7 @@ export type Database = {
           motivo_revocacion?: string | null
           persona_id?: string
           revocado?: boolean | null
+          token_encrypted?: string | null
           token_hash?: string
           ultimo_acceso?: string | null
           ultimo_ip?: string | null
@@ -2630,7 +3031,7 @@ export type Database = {
             foreignKeyName: "portal_cliente_accesos_creado_por_usuario_id_fkey"
             columns: ["creado_por_usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
           {
@@ -2639,13 +3040,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "personas"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "portal_cliente_accesos_persona_id_fkey"
-            columns: ["persona_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
           },
         ]
       }
@@ -2682,7 +3076,7 @@ export type Database = {
             foreignKeyName: "postits_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -2812,7 +3206,7 @@ export type Database = {
             foreignKeyName: "restauraciones_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -2869,13 +3263,6 @@ export type Database = {
             referencedRelation: "v_polizas_pendientes_renovar"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "riesgos_poliza_id_fkey"
-            columns: ["poliza_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
-          },
         ]
       }
       sesiones: {
@@ -2905,7 +3292,7 @@ export type Database = {
             foreignKeyName: "sesiones_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -3000,7 +3387,7 @@ export type Database = {
             foreignKeyName: "siniestro_bitacora_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -3016,6 +3403,7 @@ export type Database = {
           fecha_cierre: string | null
           fecha_denuncia: string
           fecha_ocurrencia: string
+          fecha_revision: string | null
           fecha_ultimo_movimiento: string
           franquicia_aplicada: number | null
           hora_siniestro: string | null
@@ -3029,8 +3417,11 @@ export type Database = {
           notas: string | null
           numero_caso: string | null
           numero_siniestro: string | null
+          origen_creacion: string
           persona_id: string
           poliza_id: string
+          revisado_por_pas: boolean
+          revisado_por_usuario_id: string | null
           riesgo_id: string | null
           tercero_dni: string | null
           tercero_nombre: string | null
@@ -3049,6 +3440,7 @@ export type Database = {
           fecha_cierre?: string | null
           fecha_denuncia?: string
           fecha_ocurrencia: string
+          fecha_revision?: string | null
           fecha_ultimo_movimiento?: string
           franquicia_aplicada?: number | null
           hora_siniestro?: string | null
@@ -3062,8 +3454,11 @@ export type Database = {
           notas?: string | null
           numero_caso?: string | null
           numero_siniestro?: string | null
+          origen_creacion?: string
           persona_id: string
           poliza_id: string
+          revisado_por_pas?: boolean
+          revisado_por_usuario_id?: string | null
           riesgo_id?: string | null
           tercero_dni?: string | null
           tercero_nombre?: string | null
@@ -3082,6 +3477,7 @@ export type Database = {
           fecha_cierre?: string | null
           fecha_denuncia?: string
           fecha_ocurrencia?: string
+          fecha_revision?: string | null
           fecha_ultimo_movimiento?: string
           franquicia_aplicada?: number | null
           hora_siniestro?: string | null
@@ -3095,8 +3491,11 @@ export type Database = {
           notas?: string | null
           numero_caso?: string | null
           numero_siniestro?: string | null
+          origen_creacion?: string
           persona_id?: string
           poliza_id?: string
+          revisado_por_pas?: boolean
+          revisado_por_usuario_id?: string | null
           riesgo_id?: string | null
           tercero_dni?: string | null
           tercero_nombre?: string | null
@@ -3114,13 +3513,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_siniestros_persona"
-            columns: ["persona_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
-          },
-          {
             foreignKeyName: "fk_siniestros_poliza"
             columns: ["poliza_id"]
             isOneToOne: false
@@ -3135,17 +3527,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_siniestros_poliza"
-            columns: ["poliza_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
-          },
-          {
             foreignKeyName: "siniestros_deleted_by_usuario_id_fkey"
             columns: ["deleted_by_usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siniestros_revisado_por_usuario_id_fkey"
+            columns: ["revisado_por_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
           {
@@ -3229,14 +3621,14 @@ export type Database = {
             foreignKeyName: "solicitudes_blanqueo_password_habilitada_por_admin_id_fkey"
             columns: ["habilitada_por_admin_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "solicitudes_blanqueo_password_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -3280,7 +3672,7 @@ export type Database = {
             foreignKeyName: "storage_tokens_creado_por_usuario_id_fkey"
             columns: ["creado_por_usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -3376,13 +3768,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tareas_persona_id_fkey"
-            columns: ["persona_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
-          },
-          {
             foreignKeyName: "tareas_poliza_id_fkey"
             columns: ["poliza_id"]
             isOneToOne: false
@@ -3397,13 +3782,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tareas_poliza_id_fkey"
-            columns: ["poliza_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["poliza_id"]
-          },
-          {
             foreignKeyName: "tareas_siniestro_id_fkey"
             columns: ["siniestro_id"]
             isOneToOne: false
@@ -3414,7 +3792,7 @@ export type Database = {
             foreignKeyName: "tareas_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "usuarios_perfil"
             referencedColumns: ["id"]
           },
         ]
@@ -3532,6 +3910,7 @@ export type Database = {
           created_at: string | null
           id: string
           intentos_fallidos: number | null
+          mostrar_ayuda_contextual: boolean
           nombre: string
           rol: string
           ultimo_acceso: string | null
@@ -3545,6 +3924,7 @@ export type Database = {
           created_at?: string | null
           id: string
           intentos_fallidos?: number | null
+          mostrar_ayuda_contextual?: boolean
           nombre: string
           rol?: string
           ultimo_acceso?: string | null
@@ -3558,6 +3938,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           intentos_fallidos?: number | null
+          mostrar_ayuda_contextual?: boolean
           nombre?: string
           rol?: string
           ultimo_acceso?: string | null
@@ -3619,13 +4000,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_polizas_asegurado"
-            columns: ["asegurado_id"]
-            isOneToOne: false
-            referencedRelation: "v_polizas_por_vencer"
-            referencedColumns: ["persona_id"]
-          },
-          {
             foreignKeyName: "fk_polizas_compania"
             columns: ["compania_id"]
             isOneToOne: false
@@ -3648,25 +4022,6 @@ export type Database = {
           },
         ]
       }
-      v_polizas_por_vencer: {
-        Row: {
-          compania: string | null
-          dias_restantes: number | null
-          dni_cuil: string | null
-          email: string | null
-          estado_poliza: string | null
-          fecha_fin: string | null
-          nombre_completo: string | null
-          numero_poliza: string | null
-          persona_id: string | null
-          poliza_id: string | null
-          prioridad_alerta: string | null
-          ramo: string | null
-          telefono: string | null
-          whatsapp: string | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       actualizar_estados_polizas: { Args: never; Returns: undefined }
@@ -3679,6 +4034,7 @@ export type Database = {
       }
       fn_es_admin_actual: { Args: never; Returns: boolean }
       fn_invalidar_todas_sesiones_auth: { Args: never; Returns: undefined }
+      fn_licencia_permite_escritura: { Args: never; Returns: boolean }
       fn_obtener_perfil_por_email: {
         Args: { p_email: string }
         Returns: {
@@ -3691,6 +4047,18 @@ export type Database = {
           intentos_fallidos: number
           nombre: string
           rol: string
+        }[]
+      }
+      fn_polizas_ancestros: {
+        Args: { p_id: string }
+        Returns: {
+          estado: string
+          fecha_fin: string
+          fecha_inicio: string
+          id: string
+          nivel: number
+          numero_poliza: string
+          poliza_origen_id: string
         }[]
       }
       fn_rol_actual: { Args: never; Returns: string }

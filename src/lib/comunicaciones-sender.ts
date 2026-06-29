@@ -795,6 +795,7 @@ export type TipoEventoSistema =
   | 'LICENCIA_EN_GRACIA'
   | 'LICENCIA_BLOQUEADA'
   | 'ROLLBACK_UPDATE'
+  | 'LEAD_WEB_RECIBIDO'
 
 interface MapeoEventoSistema {
   plantilla_codigo: string
@@ -944,6 +945,14 @@ function mapearTipoEvento(tipo: TipoEventoSistema): MapeoEventoSistema {
       // volvió a la versión anterior, incluso si volvió de forma exitosa.
       es_critico: true,
       es_informativo: false,
+    },
+    LEAD_WEB_RECIBIDO: {
+      plantilla_codigo: 'sistema_lead_web_recibido',
+      tipo_envio: 'SISTEMA_LEAD_WEB_RECIBIDO',
+      prioridad: 'NORMAL',
+      es_critico: false,
+      es_informativo: true,
+      campo_toggle: 'notificar_admin_lead_web',
     },
   }
   return mapa[tipo]
