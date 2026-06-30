@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { hexARgb, normalizarColorMarca, COLOR_MARCA_DEFAULT } from './color-marca'
+import { hexARgb, normalizarColorMarca, COLOR_MARCA_DEFAULT, derivarTonos, textoSobreColor } from './color-marca'
 
 interface DatosCotizacion {
   numero_cotizacion: string
@@ -203,6 +203,138 @@ function pintarFooterTodasPaginas(
   }
 }
 
+// ── Helpers de marca: banner, franja, caja, tag, fila destacada ──
+
+// Dibuja el banner superior con color pleno. A la izquierda el logo (si hay)
+// dentro de una caja blanca. A la derecha nombre + contacto + matrícula.
+function dibujarBannerMarca(
+  doc: jsPDF,
+  pageWidth: number,
+  organizacion: DatosOrganizacion,
+  pleno: { r: number; g: number; b: number },
+  textoBanner: { r: number; g: number; b: number },
+): number {
+  const altoBanner = 30
+  // Rectángulo color pleno full-width desde y=0
+  doc.setFillColor(pleno.r, pleno.g, pleno.b)
+  doc.rect(0, 0, pageWidth, altoBanner, 'F')
+
+  const padX = 14
+  const padY = 6
+  let textoX = padX
+
+  // Logo (si el PAS lo configuró) en caja blanca 18×18mm
+  if (organizacion.logo_data_url) {
+    try {
+      const m = organizacion.logo_data_url.match(/^data:image\/(\w+);/i)
+      const ext = (m?.[1] ?? 'png').toUpperCase()
+      const formato = ext === 'JPG' ? 'JPEG' : ext
+
+      const cajaLogo = 18
+      // Fondo blanco para el cuadrado del logo
+      doc.setFillColor(255, 255, 255)
+      doc.rect(padX, padY, cajaLogo, cajaLogo, 'F')
+
+      // Logo respeta aspect ratio dentro de la caja (con margen interno)
+      const padInterno = 1.5
+      const maxLogo = cajaLogo - padInterno * 2
+      const dim = calcularTamanioLogo(doc, organizacion.logo_data_url, maxLogo, maxLogo)
+      if (dim) {
+        const xLogo = padX + padInterno + (maxLogo - dim.w) / 2
+        const yLogo = padY + padInterno + (maxLogo - dim.h) / 2
+        doc.addImage(organizacion.logo_data_url, formato, xLogo, yLogo, dim.w, dim.h)
+      }
+      textoX = padX + cajaLogo + 6
+    } catch {
+      textoX = padX
+    }
+  }
+
+  // Nombre organización — texto sobre color del banner
+  const nombre = organizacion.razon_social || organizacion.nombre || 'Mi Organización'
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(textoBanner.r, textoBanner.g, textoBanner.b)
+  doc.text(nombre, textoX, padY + 6)
+
+  // Contacto y matrícula — mismo color pero más chico (sin alfa porque
+  // jsPDF no soporta opacidad bien; los colores del helper textoBanner
+  // tienen buen contraste a tamaño 8).
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(textoBanner.r, textoBanner.g, textoBanner.b)
+
+  const lineas: string[] = []
+  const contactoPartes: string[] = []
+  if (organizacion.telefono) contactoPartes.push(`Tel ${organizacion.telefono}`)
+  if (organizacion.email) contactoPartes.push(organizacion.email)
+  if (organizacion.direccion) contactoPartes.push(organizacion.direccion)
+  if (contactoPartes.length > 0) lineas.push(contactoPartes.join('  ·  '))
+  if (organizacion.matricula_ssn) lineas.push(`Matrícula SSN ${organizacion.matricula_ssn}`)
+
+  let yLinea = padY + 11
+  for (const linea of lineas) {
+    doc.text(linea, textoX, yLinea, { maxWidth: pageWidth - textoX - padX })
+    yLinea += 4
+  }
+
+  return altoBanner
+}
+
+// Franja angosta debajo del banner con número de cotización + fecha emisión.
+// Color oscuro derivado para dar jerarquía sin pesar de más.
+function dibujarFranjaNumero(
+  doc: jsPDF,
+  pageWidth: number,
+  yInicio: number,
+  numero: string,
+  fechaEmision: string,
+  oscuro: { r: number; g: number; b: number },
+  textoFranja: { r: number; g: number; b: number },
+): number {
+  const altoFranja = 9
+  doc.setFillColor(oscuro.r, oscuro.g, oscuro.b)
+  doc.rect(0, yInicio, pageWidth, altoFranja, 'F')
+
+  doc.setTextColor(textoFranja.r, textoFranja.g, textoFranja.b)
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.text(`COTIZACIÓN N° ${numero}`, 14, yInicio + 6)
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Emitida el ${fechaEmision}`, pageWidth - 14, yInicio + 6, { align: 'right' })
+
+  return yInicio + altoFranja
+}
+
+// Dibuja un tag pequeño "RECOMENDADA" con fondo color pleno + texto encima.
+// Devuelve el ancho ocupado (mm) para que el caller pueda continuar después.
+function dibujarTagRecomendada(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  pleno: { r: number; g: number; b: number },
+  textoPleno: { r: number; g: number; b: number },
+): number {
+  const texto = 'RECOMENDADA'
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'bold')
+  const anchoTexto = doc.getTextWidth(texto)
+  const padX = 2.2
+  const padY = 1.4
+  const ancho = anchoTexto + padX * 2
+  const alto = 3.8 + padY * 2
+
+  doc.setFillColor(pleno.r, pleno.g, pleno.b)
+  doc.rect(x, y - alto + 1.5, ancho, alto, 'F')
+
+  doc.setTextColor(textoPleno.r, textoPleno.g, textoPleno.b)
+  doc.text(texto, x + padX, y - 0.6)
+
+  return ancho
+}
+
 // Construye el documento jsPDF con todo el layout. Las dos APIs públicas
 // (save / blob) comparten esta función para evitar duplicación.
 function construirDocumentoCotizacion(
@@ -214,112 +346,59 @@ function construirDocumentoCotizacion(
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  let y = 18
 
-  // Color de marca: solo se usa para nombre organización, título principal
-  // y header de la tabla. El resto (títulos de sección, texto de cuerpo)
-  // queda en grises para legibilidad e impresión limpia.
-  const cm = hexARgb(normalizarColorMarca(organizacion.color_marca ?? COLOR_MARCA_DEFAULT))
+  // Sistema de color: derivado del color de marca del PAS. Tres niveles
+  // (pleno / oscuro / claro) más el texto sobre color (decisión WCAG).
+  // Reutiliza el mismo helper que emails, portal y denuncia para que
+  // todo el sistema sea coherente.
+  const colorBase = normalizarColorMarca(organizacion.color_marca ?? COLOR_MARCA_DEFAULT)
+  const tonos = derivarTonos(colorBase)
+  const pleno = hexARgb(tonos.base)
+  const oscuro = hexARgb(tonos.oscuro)
+  const claro = hexARgb(tonos.muyClaro)
+  const textoBanner = hexARgb(tonos.textoSobreColor)
+  // textoSobreColor sobre el "oscuro" se calcula aparte por si el caso del
+  // amarillo/celeste pastel cambia (el oscuro de un claro puede ser distinto).
+  const textoFranja = hexARgb(textoSobreColor(tonos.oscuro))
 
-  // ── Header organización ──
-  // Si hay logo, va a la izquierda dentro de una caja 32×24mm respetando
-  // aspect ratio (no se deforma). El texto se desplaza tras el logo.
-  const nombreProd = organizacion.razon_social || organizacion.nombre || 'Mi Organización'
-  let textoX = 14
+  // ── Banner de marca ──
+  let y = dibujarBannerMarca(doc, pageWidth, organizacion, pleno, textoBanner)
 
-  if (organizacion.logo_data_url) {
-    try {
-      // Detectar formato del data URL: "data:image/png;base64,..." → "PNG"
-      // jsPDF acepta 'PNG', 'JPEG', 'WEBP'. Mapeamos jpg→JPEG.
-      const m = organizacion.logo_data_url.match(/^data:image\/(\w+);/i)
-      const ext = (m?.[1] ?? 'png').toUpperCase()
-      const formato = ext === 'JPG' ? 'JPEG' : ext
+  // ── Franja del número ──
+  y = dibujarFranjaNumero(doc, pageWidth, y, cotizacion.numero_cotizacion, formatFechaPDF(cotizacion.fecha), oscuro, textoFranja)
 
-      const dim = calcularTamanioLogo(doc, organizacion.logo_data_url, 32, 24)
-      if (dim) {
-        // Centrado vertical dentro de caja de 24mm a partir de y=14
-        const yLogo = 14 + (24 - dim.h) / 2
-        doc.addImage(organizacion.logo_data_url, formato, 14, yLogo, dim.w, dim.h)
-        textoX = 14 + dim.w + 6  // margen tras el logo
-      }
-    } catch {
-      // Si addImage falla (formato no soportado, data URL roto, etc.),
-      // ignoramos silenciosamente y caemos al layout solo-texto.
-      textoX = 14
-    }
-  }
-
-  // Nombre organización — color de marca, único uso destacado en el header
-  doc.setFontSize(15)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(cm.r, cm.g, cm.b)
-  doc.text(nombreProd, textoX, y + 4)
-  y += 9
-
-  // Datos de contacto — gris secundario
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
-  const contactoLineas: string[] = []
-  if (organizacion.telefono) contactoLineas.push(`Tel: ${organizacion.telefono}`)
-  if (organizacion.email) contactoLineas.push(organizacion.email)
-  if (organizacion.direccion) contactoLineas.push(organizacion.direccion)
-  if (contactoLineas.length > 0) {
-    doc.text(contactoLineas.join('  ·  '), textoX, y)
-    y += 4
-  }
-  if (organizacion.matricula_ssn) {
-    doc.text(`Matrícula SSN ${organizacion.matricula_ssn}`, textoX, y)
-    y += 4
-  }
-
-  // Espacio mínimo después del logo
-  if (organizacion.logo_data_url) {
-    const yLogoBottom = 14 + 24
-    if (y < yLogoBottom + 4) y = yLogoBottom + 4
-  }
-  y += 2
-
-  // ── Título principal ──
-  doc.setDrawColor(cm.r, cm.g, cm.b)
-  doc.setLineWidth(0.6)
-  doc.line(14, y, pageWidth - 14, y)
-  y += 6
-
-  doc.setFontSize(17)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(cm.r, cm.g, cm.b)
-  doc.text(`COTIZACIÓN N° ${cotizacion.numero_cotizacion}`, 14, y)
-
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
-  doc.text(`Emitida el ${formatFechaPDF(cotizacion.fecha)}`, pageWidth - 14, y, { align: 'right' })
+  // Margen superior antes del primer bloque de contenido
   y += 10
+  const nombreProd = organizacion.razon_social || organizacion.nombre || 'Mi Organización'
 
   // ── Destinatario ──
   y = dibujarTituloSeccion(doc, 'DESTINATARIO', y, pageWidth)
 
-  doc.setFontSize(10)
+  // Nombre y DNI alineados a izquierda y derecha respectivamente
+  const nombreDest = [destinatario.nombre, destinatario.apellido].filter(Boolean).join(' ').trim() || 'Sin destinatario'
+  doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...COLOR_TEXTO_CUERPO)
-  const nombreDest = [destinatario.nombre, destinatario.apellido].filter(Boolean).join(' ').trim() || 'Sin destinatario'
   doc.text(nombreDest, 14, y)
+
+  if (destinatario.dni) {
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
+    doc.text('DNI/CUIL', pageWidth - 14, y - 3, { align: 'right' })
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...COLOR_TEXTO_CUERPO)
+    doc.text(destinatario.dni, pageWidth - 14, y + 1, { align: 'right' })
+  }
   y += 5
 
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  if (destinatario.dni) {
-    doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
-    doc.text('DNI/CUIL:', 14, y)
-    doc.setTextColor(...COLOR_TEXTO_CUERPO)
-    doc.text(destinatario.dni, 32, y)
-    y += 4
-  }
   const contactoDest: string[] = []
   if (destinatario.telefono) contactoDest.push(`Tel ${destinatario.telefono}`)
   if (destinatario.email) contactoDest.push(destinatario.email)
   if (contactoDest.length > 0) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
     doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
     doc.text(contactoDest.join('  ·  '), 14, y)
     y += 4
@@ -329,151 +408,223 @@ function construirDocumentoCotizacion(
   // ── Datos del riesgo ──
   y = dibujarTituloSeccion(doc, 'DATOS DEL RIESGO', y, pageWidth)
 
-  // Ramo siempre primero, full-width
+  // Caja con fondo color claro derivado del color de marca. Los campos
+  // (ramo + grilla de 2 columnas) van adentro con un padding consistente.
+  const filasRiesgo = getRiesgoTexto(cotizacion.datos_riesgo, cotizacion.tipo_riesgo)
+  const padCajaX = 6
+  const padCajaY = 5
+  const filasTotales = 1 + Math.ceil(filasRiesgo.length / 2)  // 1 línea para "Ramo"
+  const altoCaja = filasTotales * 5 + padCajaY * 2 - 1
+
+  doc.setFillColor(claro.r, claro.g, claro.b)
+  doc.rect(14, y - 3, pageWidth - 28, altoCaja, 'F')
+
+  // Ramo full-width adentro de la caja
+  const xDentro = 14 + padCajaX
+  let yDentro = y + padCajaY - 1
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
-  doc.text('Ramo:', 14, y)
+  doc.text('Ramo', xDentro, yDentro)
   doc.setTextColor(...COLOR_TEXTO_CUERPO)
   doc.setFont('helvetica', 'bold')
-  doc.text(cotizacion.ramo, 36, y)
+  doc.text(cotizacion.ramo, xDentro + 18, yDentro)
   doc.setFont('helvetica', 'normal')
-  y += 5
+  yDentro += 5
 
-  const filasRiesgo = getRiesgoTexto(cotizacion.datos_riesgo, cotizacion.tipo_riesgo)
   if (filasRiesgo.length > 0) {
-    y = dibujarFilasDosColumnas(doc, filasRiesgo, 14, y, (pageWidth - 28) / 2)
+    yDentro = dibujarFilasDosColumnas(doc, filasRiesgo, xDentro, yDentro, (pageWidth - 28 - padCajaX * 2) / 2)
   }
-  y += 4
+
+  y += altoCaja + 3
 
   // ── Comparativa de opciones ──
   y = dibujarTituloSeccion(doc, 'COMPARATIVA DE OPCIONES', y, pageWidth)
 
-  const precioMin = companias.length > 0 ? Math.min(...companias.map(c => c.precio)) : null
+  // Índice de la fila recomendada (la seleccionada). Si no hay seleccionada
+  // queda en -1 y la tabla no destaca ninguna fila.
+  const idxRecomendada = companias.findIndex(c => c.seleccionada)
 
   autoTable(doc, {
     startY: y,
     head: [['Compañía', 'Cobertura', 'Precio', 'Detalle']],
     body: companias.map(c => [
-      (c.seleccionada ? '✓ ' : '') + c.compania_nombre,
+      c.compania_nombre,
       c.cobertura_nombre ?? '—',
-      formatMonedaPDF(c.precio) + (c.precio === precioMin && companias.length > 1 ? '  ★' : ''),
+      formatMonedaPDF(c.precio),
       c.detalle ?? '—',
     ]),
-    theme: 'grid',
+    theme: 'plain',
     headStyles: {
-      fillColor: [cm.r, cm.g, cm.b],
-      textColor: [255, 255, 255],
+      fillColor: [pleno.r, pleno.g, pleno.b],
+      textColor: [textoBanner.r, textoBanner.g, textoBanner.b],
       fontSize: 9,
       fontStyle: 'bold',
       halign: 'left',
-      cellPadding: 2.5,
+      cellPadding: 2.8,
     },
     bodyStyles: {
-      fontSize: 8.5,
+      fontSize: 9,
       textColor: COLOR_TEXTO_CUERPO,
-      cellPadding: 2.5,
+      cellPadding: 2.8,
       lineColor: COLOR_LINEA_SUTIL,
       lineWidth: 0.1,
     },
-    alternateRowStyles: {
-      fillColor: [248, 250, 252],  // slate-50
-    },
     columnStyles: {
-      0: { fontStyle: 'bold' },
-      2: { halign: 'right', fontStyle: 'bold' },
+      0: { fontStyle: 'normal' },
+      2: { halign: 'right' },
     },
     margin: { left: 14, right: 14 },
     didParseCell: (data: any) => {
       if (data.section === 'body') {
-        const comp = companias[data.row.index]
-        if (comp?.seleccionada) {
-          data.cell.styles.fillColor = [220, 252, 231]  // emerald-100
+        const esRecomendada = data.row.index === idxRecomendada
+        if (esRecomendada) {
+          // Fila recomendada: fondo claro derivado
+          data.cell.styles.fillColor = [claro.r, claro.g, claro.b]
+          // Primera columna en bold, precio en color pleno bold
+          if (data.column.index === 0) {
+            data.cell.styles.fontStyle = 'bold'
+          }
+          if (data.column.index === 2) {
+            data.cell.styles.fontStyle = 'bold'
+            data.cell.styles.textColor = [pleno.r, pleno.g, pleno.b]
+          }
         }
+      }
+    },
+    didDrawCell: (data: any) => {
+      if (data.section !== 'body') return
+      const esRecomendada = data.row.index === idxRecomendada
+      if (!esRecomendada) return
+
+      // Barra lateral color pleno en la primera columna
+      if (data.column.index === 0) {
+        doc.setFillColor(pleno.r, pleno.g, pleno.b)
+        doc.rect(data.cell.x, data.cell.y, 1.4, data.cell.height, 'F')
+
+        // Tag "RECOMENDADA" después del nombre de la compañía
+        const nombreCompania = companias[data.row.index].compania_nombre
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        const anchoNombre = doc.getTextWidth(nombreCompania)
+        const xTag = data.cell.x + data.cell.padding('left') + anchoNombre + 4
+        const yTag = data.cell.y + data.cell.height / 2 + 1
+        dibujarTagRecomendada(doc, xTag, yTag, pleno, textoBanner)
       }
     },
   })
 
   y = (doc as any).lastAutoTable?.finalY ?? y + 20
 
-  // Leyenda discreta de íconos si aplica
-  if (companias.length > 1) {
+  // Pie de tabla: indica el criterio de la recomendación (si la hay)
+  if (idxRecomendada >= 0 && companias.length > 1) {
     y += 3
-    doc.setFontSize(7)
+    doc.setFontSize(8)
     doc.setFont('helvetica', 'italic')
     doc.setTextColor(...COLOR_TEXTO_TENUE)
-    doc.text('★ precio más bajo    ✓ opción seleccionada', 14, y)
+    doc.text('La opción recomendada ofrece la mejor relación precio-cobertura.', 14, y)
     y += 1
   }
   y += 6
 
-  // ── Detalle de coberturas (sólo las que tengan info cargada) ──
-  // Deduplicamos por cobertura_id para no repetir si dos opciones usan la
-  // misma cobertura. Solo mostramos las que tengan al menos descripción
-  // o un bullet en `cubre`.
-  const coberturasUnicas = new Map<string, { nombre: string; descripcion?: string | null; cubre?: string[] | null }>()
-  for (const c of companias) {
-    if (!c.cobertura_id) continue
-    if (coberturasUnicas.has(c.cobertura_id)) continue
+  // ── Detalle de cada opción ──
+  // El prompt original del cambio decía "solo la recomendada"; el PAS
+  // pidió que aparezcan TODAS las opciones con su detalle, para que el
+  // cliente pueda comparar.
+  const opcionesConDetalle = companias.filter(c => {
     const tieneInfo = (c.cobertura_descripcion && c.cobertura_descripcion.trim())
       || (Array.isArray(c.cobertura_cubre) && c.cobertura_cubre.length > 0)
-    if (!tieneInfo) continue
-    coberturasUnicas.set(c.cobertura_id, {
-      nombre: c.cobertura_nombre ?? '—',
-      descripcion: c.cobertura_descripcion,
-      cubre: c.cobertura_cubre,
-    })
-  }
+    return tieneInfo
+  })
 
-  if (coberturasUnicas.size > 0) {
-    // Page break si quedan menos de ~40mm en la página
+  if (opcionesConDetalle.length > 0) {
     if (y > pageHeight - 50) {
       doc.addPage()
       y = 18
     }
-    y = dibujarTituloSeccion(doc, 'DETALLE DE COBERTURAS', y, pageWidth)
+    y = dibujarTituloSeccion(doc, 'DETALLE DE CADA OPCIÓN', y, pageWidth)
 
-    for (const cob of Array.from(coberturasUnicas.values())) {
-      // Page break si queda poco espacio
+    for (const op of opcionesConDetalle) {
+      const esRecomendada = op.seleccionada
       if (y > pageHeight - 35) {
         doc.addPage()
         y = 18
       }
-      // Nombre de cobertura
+
+      // Nombre de la opción: "Compañía — Cobertura"
       doc.setFontSize(10)
       doc.setFont('helvetica', 'bold')
-      doc.setTextColor(...COLOR_TEXTO_CUERPO)
-      doc.text(cob.nombre, 14, y)
+      // Si es la recomendada, nombre en color pleno; sino en gris oscuro
+      if (esRecomendada) {
+        doc.setTextColor(pleno.r, pleno.g, pleno.b)
+      } else {
+        doc.setTextColor(...COLOR_TEXTO_CUERPO)
+      }
+      const tituloOpcion = `${op.compania_nombre} — ${op.cobertura_nombre ?? '—'}`
+      doc.text(tituloOpcion, 14, y)
+
+      // Tag "RECOMENDADA" al lado del título si aplica
+      if (esRecomendada) {
+        const anchoTitulo = doc.getTextWidth(tituloOpcion)
+        dibujarTagRecomendada(doc, 14 + anchoTitulo + 4, y, pleno, textoBanner)
+      }
       y += 5
 
-      // Descripción breve
-      if (cob.descripcion && cob.descripcion.trim()) {
+      // Descripción breve (en cursiva, gris)
+      if (op.cobertura_descripcion && op.cobertura_descripcion.trim()) {
         doc.setFontSize(9)
         doc.setFont('helvetica', 'italic')
         doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
-        const lineasDesc = doc.splitTextToSize(cob.descripcion.trim(), pageWidth - 28)
+        const lineasDesc = doc.splitTextToSize(op.cobertura_descripcion.trim(), pageWidth - 28)
         doc.text(lineasDesc, 14, y)
         y += lineasDesc.length * 4 + 1
       }
 
-      // Bullets de "qué cubre"
-      if (Array.isArray(cob.cubre) && cob.cubre.length > 0) {
-        doc.setFontSize(9)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(...COLOR_TEXTO_CUERPO)
-        for (const item of cob.cubre) {
-          if (!item || !String(item).trim()) continue
-          if (y > pageHeight - 25) {
-            doc.addPage()
-            y = 18
+      // Bullets "qué cubre" en 2 columnas — viñeta cuadrada color pleno
+      if (Array.isArray(op.cobertura_cubre) && op.cobertura_cubre.length > 0) {
+        const items = op.cobertura_cubre.filter(it => it && String(it).trim())
+        if (items.length > 0) {
+          doc.setFontSize(9)
+          doc.setFont('helvetica', 'normal')
+
+          const anchoCol = (pageWidth - 28 - 4) / 2  // 2 columnas con gap
+          const xColIzq = 14
+          const xColDer = 14 + anchoCol + 4
+          const altoLinea = 5
+          const padBullet = 4  // espacio entre cuadrito y texto
+
+          // Repartir items entre col izq y col der
+          const mitad = Math.ceil(items.length / 2)
+          const izq = items.slice(0, mitad)
+          const der = items.slice(mitad)
+
+          let yIzq = y
+          let yDer = y
+          const dibujarColumna = (lista: string[], xCol: number, yInicial: number): number => {
+            let yLocal = yInicial
+            for (const item of lista) {
+              if (yLocal > pageHeight - 25) {
+                doc.addPage()
+                yLocal = 18
+              }
+              // Cuadradito color pleno como viñeta
+              doc.setFillColor(pleno.r, pleno.g, pleno.b)
+              doc.rect(xCol, yLocal - 2.5, 1.6, 1.6, 'F')
+              // Texto del bullet
+              doc.setTextColor(...COLOR_TEXTO_CUERPO)
+              const lineasItem = doc.splitTextToSize(String(item).trim(), anchoCol - padBullet)
+              doc.text(lineasItem, xCol + padBullet, yLocal)
+              yLocal += lineasItem.length * altoLinea
+            }
+            return yLocal
           }
-          const lineasItem = doc.splitTextToSize(String(item).trim(), pageWidth - 36)
-          doc.text('•', 18, y)
-          doc.text(lineasItem, 22, y)
-          y += lineasItem.length * 4 + 0.5
+
+          yIzq = dibujarColumna(izq, xColIzq, yIzq)
+          yDer = dibujarColumna(der, xColDer, yDer)
+          y = Math.max(yIzq, yDer)
         }
       }
-      y += 4  // espacio entre coberturas
+      y += 5  // espacio entre opciones
     }
   }
 

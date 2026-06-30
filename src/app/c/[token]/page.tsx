@@ -173,6 +173,11 @@ export default function PortalAseguradoPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 -mt-12 flex flex-col gap-6 relative">
+        {/* Banner instalar app — primero después del hero para que el cliente
+            lo vea apenas entra (solo si no está instalada y el navegador lo
+            soporta). */}
+        <InstalarAppBanner colorMarca={data.organizacion.color_marca} />
+
         {/* Resumen rápido */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 flex items-center gap-3">
@@ -194,9 +199,6 @@ export default function PortalAseguradoPage() {
             </div>
           </div>
         </div>
-
-        {/* Banner instalar app (solo si no está instalada y el navegador lo soporta) */}
-        <InstalarAppBanner />
 
         {/* MIS PÓLIZAS */}
         <section>

@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { Download, Share, Plus, X, Smartphone } from 'lucide-react'
+import { derivarTonos, COLOR_MARCA_DEFAULT } from '@/lib/color-marca'
+
+interface Props {
+  /** Color de marca del PAS (hex). Si no viene, usa navy default. */
+  colorMarca?: string | null
+}
 
 // Tipo del evento beforeinstallprompt (no está en el tipado standard de TS).
 interface BeforeInstallPromptEvent extends Event {
@@ -28,11 +34,16 @@ function estaInstalada(): boolean {
   return false
 }
 
-export default function InstalarAppBanner() {
+export default function InstalarAppBanner({ colorMarca }: Props) {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null)
   const [mostrarBanner, setMostrarBanner] = useState(false)
   const [mostrarModalIOS, setMostrarModalIOS] = useState(false)
   const [esDispositivoIOS, setEsDispositivoIOS] = useState(false)
+
+  // Tonos derivados del color de marca del PAS para que el banner luzca como
+  // un acento del portal (no como un Toast genérico). Cae a navy si el PAS no
+  // configuró color de marca.
+  const tonos = derivarTonos(colorMarca || COLOR_MARCA_DEFAULT)
 
   useEffect(() => {
     if (estaInstalada()) return
@@ -99,28 +110,63 @@ export default function InstalarAppBanner() {
 
   return (
     <>
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
-        <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
-          <Smartphone className="h-5 w-5 text-white" />
+      {/* Banner prominente con color de marca del PAS. Animación de entrada
+          y pulso suave en el ícono para que el cliente lo note sin sentirse
+          interrumpido. */}
+      <style jsx>{`
+        @keyframes portal-banner-in {
+          0%   { opacity: 0; transform: translateY(-8px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes portal-icon-pulse {
+          0%, 100% { transform: scale(1); }
+          50%      { transform: scale(1.08); }
+        }
+        .banner-anim { animation: portal-banner-in 0.45s ease-out both; }
+        .icon-anim   { animation: portal-icon-pulse 2.4s ease-in-out infinite; }
+      `}</style>
+      <div
+        className="banner-anim relative rounded-2xl p-4 flex items-start gap-3 shadow-lg overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.oscuro} 100%)`,
+          color: tonos.textoSobreColor,
+        }}
+      >
+        {/* Halo decorativo sutil para dar profundidad */}
+        <div
+          aria-hidden="true"
+          className="absolute -top-12 -right-12 h-32 w-32 rounded-full opacity-20"
+          style={{ background: tonos.vibrante }}
+        />
+        <div
+          className="icon-anim h-11 w-11 rounded-xl flex items-center justify-center shrink-0 relative z-10"
+          style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(2px)' }}
+        >
+          <Smartphone className="h-6 w-6" style={{ color: tonos.textoSobreColor }} />
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-slate-800">Tené tu portal a un toque</h3>
-          <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+        <div className="flex-1 min-w-0 relative z-10">
+          <h3 className="text-base font-bold leading-tight">Instalá tu portal en el celular</h3>
+          <p className="text-xs mt-1 leading-relaxed" style={{ color: tonos.textoSobreColor, opacity: 0.92 }}>
             {esDispositivoIOS
-              ? 'Instalá esta app en tu pantalla de inicio para acceder rápido sin abrir el navegador.'
-              : 'Instalá esta app en tu celular para acceder más rápido y verla a pantalla completa.'}
+              ? 'Tenelo a un toque en tu pantalla de inicio, sin tener que entrar al navegador cada vez.'
+              : 'Tenelo a un toque, sin tener que entrar al navegador cada vez.'}
           </p>
           <div className="flex items-center gap-2 mt-3">
             <button
               onClick={instalar}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg min-h-[36px]"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg min-h-[40px] shadow-sm transition-transform active:scale-95"
+              style={{
+                background: tonos.textoSobreColor === '#FFFFFF' ? '#FFFFFF' : tonos.base,
+                color: tonos.textoSobreColor === '#FFFFFF' ? tonos.base : '#FFFFFF',
+              }}
             >
-              <Download className="h-3.5 w-3.5" />
+              <Download className="h-4 w-4" />
               Instalar app
             </button>
             <button
               onClick={descartar}
-              className="px-3 py-2 text-xs text-slate-500 hover:text-slate-700 min-h-[36px]"
+              className="px-3 py-2 text-xs min-h-[40px]"
+              style={{ color: tonos.textoSobreColor, opacity: 0.75 }}
             >
               Ahora no
             </button>
@@ -129,7 +175,8 @@ export default function InstalarAppBanner() {
         <button
           onClick={descartar}
           aria-label="Cerrar"
-          className="text-slate-400 hover:text-slate-600 shrink-0"
+          className="shrink-0 relative z-10 transition-opacity"
+          style={{ color: tonos.textoSobreColor, opacity: 0.6 }}
         >
           <X className="h-4 w-4" />
         </button>

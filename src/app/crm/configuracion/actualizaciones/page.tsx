@@ -414,14 +414,6 @@ function BannerUpdateDisponible({
           <Clock className="h-3.5 w-3.5" />
           Programar
         </button>
-        <a
-          href={release.html_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-blue-700 hover:underline flex items-center gap-1 ml-auto"
-        >
-          Ver detalles en GitHub <ArrowRight className="h-3 w-3" />
-        </a>
       </div>
     </div>
   )
