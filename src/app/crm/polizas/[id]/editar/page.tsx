@@ -27,6 +27,9 @@ interface FormPoliza {
   fecha_inicio: string; fecha_fin: string
   refacturacion: string
   medio_pago: string
+  suma_asegurada: string
+  moneda: string
+  mostrar_suma_asegurada_portal: boolean
   observaciones: string; notas: string
 }
 
@@ -126,7 +129,7 @@ export default function EditarPolizaPage() {
     setCargando(true)
     const { data: pol } = await supabase.from('polizas').select(`
       id, numero_poliza, asegurado_id, compania_id, ramo_id, cobertura_id,
-      fecha_inicio, fecha_fin, refacturacion, medio_pago,
+      fecha_inicio, fecha_fin, refacturacion, medio_pago, suma_asegurada, moneda, mostrar_suma_asegurada_portal,
       observaciones, notas, updated_at,
       ramo:catalogos!ramo_id (id, nombre, metadata),
       riesgos (id, tipo_riesgo, detalle_tecnico)
@@ -152,6 +155,9 @@ export default function EditarPolizaPage() {
         fecha_fin: p.fecha_fin ?? '',
         refacturacion: p.refacturacion ?? '',
         medio_pago: p.medio_pago ?? '',
+        suma_asegurada: p.suma_asegurada != null ? String(p.suma_asegurada) : '',
+        moneda: p.moneda ?? 'ARS',
+        mostrar_suma_asegurada_portal: p.mostrar_suma_asegurada_portal ?? false,
         observaciones: p.observaciones ?? '',
         notas: p.notas ?? '',
       })
@@ -221,7 +227,7 @@ export default function EditarPolizaPage() {
       })
     : []
 
-  const setP = (k: keyof FormPoliza, v: string) => {
+  const setP = (k: keyof FormPoliza, v: string | boolean) => {
     setPoliza(p => p ? { ...p, [k]: v } : p)
     setErrores(e => ({ ...e, [k]: '' }))
   }
@@ -365,6 +371,9 @@ export default function EditarPolizaPage() {
         fecha_fin:        poliza.fecha_fin,
         refacturacion:    poliza.refacturacion || null,
         medio_pago:       poliza.medio_pago || null,
+        suma_asegurada:   poliza.suma_asegurada ? parseFloat(poliza.suma_asegurada) : null,
+        moneda:           poliza.moneda || 'ARS',
+        mostrar_suma_asegurada_portal: poliza.mostrar_suma_asegurada_portal,
         observaciones:    poliza.observaciones || null,
         notas:            poliza.notas || null,
         riesgos: riesgosPayload,
@@ -529,6 +538,33 @@ export default function EditarPolizaPage() {
                 ? vigenciaTextoDesdeFechas(poliza.fecha_inicio, poliza.fecha_fin)
                 : <span className="text-slate-400">Se calcula con las fechas</span>}
             </div>
+          </Campo>
+          <Campo label="Suma asegurada">
+            <div className="flex gap-1">
+              <select className="form-input rounded-r-none w-20" value={poliza.moneda} onChange={e => setP('moneda', e.target.value)}>
+                <option value="ARS">ARS</option>
+                <option value="USD">USD</option>
+              </select>
+              <input className="form-input font-mono rounded-l-none flex-1"
+                value={poliza.suma_asegurada}
+                onChange={e => setP('suma_asegurada', e.target.value.replace(/[^\d.]/g, ''))}
+                placeholder="0" inputMode="decimal"/>
+            </div>
+          </Campo>
+          <Campo label="Mostrar en el portal del asegurado" col={2}>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox"
+                checked={poliza.mostrar_suma_asegurada_portal}
+                onChange={e => setP('mostrar_suma_asegurada_portal', e.target.checked)}
+                className="mt-0.5"/>
+              <span className="text-xs text-slate-600 leading-tight">
+                Permitir que el asegurado vea la suma asegurada en el portal.
+                <span className="block text-slate-400 mt-0.5">
+                  Recomendado para sumas fijas (hogar, robo de bien no registrable, etc.).
+                  Dejar destildado si la suma varía mes a mes (típico en auto).
+                </span>
+              </span>
+            </label>
           </Campo>
         </div>
       </div>

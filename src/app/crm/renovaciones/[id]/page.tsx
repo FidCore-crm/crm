@@ -33,6 +33,7 @@ interface PolizaOrigen {
   estado: string
   suma_asegurada: number | null
   moneda: string
+  mostrar_suma_asegurada_portal: boolean
   asegurado: { id: string; apellido: string; nombre: string | null; razon_social: string | null }
   compania: { id: string; nombre: string } | null
   ramo: { id: string; nombre: string; metadata: Record<string,any> | null } | null
@@ -100,6 +101,8 @@ export default function RenovarPolizaPage() {
   const [fechaInicio,   setFechaInicio]   = useState('')
   const [fechaFin,      setFechaFin]      = useState('')
   const [sumaAsegurada, setSumaAsegurada] = useState('')
+  const [moneda, setMoneda] = useState('ARS')
+  const [mostrarSumaPortal, setMostrarSumaPortal] = useState(false)
   const [refacturacion, setRefacturacion] = useState('')
   const [medioPago, setMedioPago] = useState('')
   const [observaciones, setObservaciones] = useState('')
@@ -147,7 +150,7 @@ export default function RenovarPolizaPage() {
 
     const [{ data: pol }, { data: comps }, { data: cobs }] = await Promise.all([
       supabase.from('polizas').select(`
-        id, numero_poliza, fecha_inicio, fecha_fin, estado, suma_asegurada, moneda, refacturacion, medio_pago,
+        id, numero_poliza, fecha_inicio, fecha_fin, estado, suma_asegurada, moneda, mostrar_suma_asegurada_portal, refacturacion, medio_pago,
         asegurado:personas!asegurado_id (id, apellido, nombre, razon_social),
         compania:catalogos!compania_id (id, nombre),
         ramo:catalogos!ramo_id (id, nombre, metadata),
@@ -204,6 +207,8 @@ export default function RenovarPolizaPage() {
       setCompaniaId(p.compania?.id ?? '')
       setCoberturaId(p.cobertura?.id ?? '')
       setSumaAsegurada(p.suma_asegurada ? String(p.suma_asegurada) : '')
+      setMoneda(p.moneda ?? 'ARS')
+      setMostrarSumaPortal(p.mostrar_suma_asegurada_portal ?? false)
       setRefacturacion(p.refacturacion ?? '')
       setMedioPago((p as any).medio_pago ?? '')
 
@@ -399,6 +404,8 @@ export default function RenovarPolizaPage() {
           fecha_inicio:     fechaInicio,
           fecha_fin:        fechaFin,
           suma_asegurada:   parseFloat(sumaAsegurada) || null,
+          moneda:           moneda || 'ARS',
+          mostrar_suma_asegurada_portal: mostrarSumaPortal,
           refacturacion:    refacturacion || null,
           medio_pago:       medioPago || null,
           estado:           'RENOVADA',
@@ -629,11 +636,29 @@ export default function RenovarPolizaPage() {
           </Campo>
           <Campo label="Suma asegurada">
             <div className="flex gap-1">
-              <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
+              <select className="form-input rounded-r-none w-20" value={moneda} onChange={e => setMoneda(e.target.value)}>
+                <option value="ARS">ARS</option>
+                <option value="USD">USD</option>
+              </select>
               <input className="form-input font-mono rounded-l-none flex-1" value={sumaAsegurada}
                 onChange={e => setSumaAsegurada(e.target.value.replace(/[^\d.]/g,''))}
                 placeholder="0" inputMode="decimal"/>
             </div>
+          </Campo>
+          <Campo label="Mostrar en el portal del asegurado" col={2}>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox"
+                checked={mostrarSumaPortal}
+                onChange={e => setMostrarSumaPortal(e.target.checked)}
+                className="mt-0.5"/>
+              <span className="text-xs text-slate-600 leading-tight">
+                Permitir que el asegurado vea la suma asegurada en el portal.
+                <span className="block text-slate-400 mt-0.5">
+                  Recomendado para sumas fijas (hogar, robo de bien no registrable, etc.).
+                  Dejar destildado si la suma varía mes a mes (típico en auto).
+                </span>
+              </span>
+            </label>
           </Campo>
         </div>
       </div>

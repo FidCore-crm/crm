@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import {
   ArrowLeft, Edit, Loader2, AlertCircle, MessageCircle,
   User, Calendar, Car, Home, Heart, Package,
-  AlertTriangle, Eye, RefreshCw, UserX, Ban, X,
+  AlertTriangle, Eye, EyeOff, RefreshCw, UserX, Ban, X,
   Trash2, FolderOpen, Send, Sparkles, Banknote,
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
@@ -40,7 +40,9 @@ interface PolizaDetalle {
   fecha_fin: string
   refacturacion: string | null
   medio_pago: string | null
+  suma_asegurada: number | null
   moneda: string
+  mostrar_suma_asegurada_portal: boolean
   estado: string
   motivo_baja: string | null
   fecha_baja: string | null
@@ -154,7 +156,7 @@ export default function FichaPolizaPage() {
       supabase.from('polizas').select(`
         id, numero_poliza, numero_certificado,
         fecha_inicio, fecha_fin, refacturacion, medio_pago,
-        moneda, estado, motivo_baja, fecha_baja, observaciones_baja,
+        suma_asegurada, moneda, mostrar_suma_asegurada_portal, estado, motivo_baja, fecha_baja, observaciones_baja,
         observaciones, notas, created_at, updated_at,
         asegurado:personas!asegurado_id (id, apellido, nombre, razon_social, dni_cuil, telefono, whatsapp, email, usuario_id),
         compania:catalogos!compania_id (id, nombre),
@@ -677,6 +679,50 @@ export default function FichaPolizaPage() {
                 <div className="flex justify-between">
                   <span className="text-slate-500">Medio de pago</span>
                   <span className="text-slate-700 font-medium">{formatearMedioPago(poliza.medio_pago)}</span>
+                </div>
+              )}
+              {poliza.suma_asegurada != null && poliza.suma_asegurada > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Suma asegurada</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-700 font-medium font-mono">{formatMoneda(poliza.suma_asegurada, poliza.moneda)}</span>
+                    {/* Toggle inline: el PAS decide si se muestra en el portal del asegurado.
+                        Default: oculto (false). Tipico caso: autos con suma que varía mes a mes. */}
+                    <button
+                      type="button"
+                      title={poliza.mostrar_suma_asegurada_portal
+                        ? 'Visible en el portal del asegurado — click para ocultar'
+                        : 'Oculta en el portal del asegurado — click para mostrar'}
+                      onClick={async () => {
+                        const nuevoValor = !poliza.mostrar_suma_asegurada_portal
+                        setPoliza({ ...poliza, mostrar_suma_asegurada_portal: nuevoValor })
+                        const r = await apiCall(`/api/polizas/${id}`, {
+                          method: 'PATCH',
+                          body: {
+                            mostrar_suma_asegurada_portal: nuevoValor,
+                            if_match_updated_at: poliza.updated_at,
+                          },
+                        }, { mostrar_toast_en_error: false })
+                        if (!r.ok) {
+                          // Revertir UI si falla
+                          setPoliza({ ...poliza, mostrar_suma_asegurada_portal: !nuevoValor })
+                          toast.error('No se pudo actualizar la visibilidad. Recargá e intentá de nuevo.')
+                        } else {
+                          await cargar()
+                          toast.exito(nuevoValor ? 'Ahora se muestra en el portal' : 'Ahora queda oculta en el portal')
+                        }
+                      }}
+                      className={`flex items-center justify-center h-5 w-5 rounded transition-colors ${
+                        poliza.mostrar_suma_asegurada_portal
+                          ? 'text-emerald-600 hover:bg-emerald-50'
+                          : 'text-slate-400 hover:bg-slate-100'
+                      }`}
+                    >
+                      {poliza.mostrar_suma_asegurada_portal
+                        ? <Eye className="h-3.5 w-3.5" />
+                        : <EyeOff className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
               )}
               <div className="flex justify-between">

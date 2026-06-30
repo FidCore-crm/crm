@@ -324,6 +324,7 @@ const CAMPOS_EDITABLES_POLIZA = [
   'asegurado_id', 'compania_id', 'ramo_id', 'cobertura_id',
   'numero_poliza', 'fecha_inicio', 'fecha_fin',
   'refacturacion', 'medio_pago',
+  'suma_asegurada', 'moneda', 'mostrar_suma_asegurada_portal',
   'observaciones', 'notas',
 ] as const
 

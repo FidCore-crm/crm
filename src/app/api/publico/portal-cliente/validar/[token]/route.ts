@@ -132,7 +132,7 @@ export async function GET(
     const { data: polizas } = await supabase
       .from('polizas')
       .select(
-        'id, numero_poliza, fecha_inicio, fecha_fin, estado, compania_id, ramo_id, cobertura_id, suma_asegurada, moneda'
+        'id, numero_poliza, fecha_inicio, fecha_fin, estado, compania_id, ramo_id, cobertura_id, suma_asegurada, moneda, mostrar_suma_asegurada_portal'
       )
       .eq('asegurado_id', personaId)
       .eq('estado', 'VIGENTE')
@@ -203,7 +203,10 @@ export async function GET(
           compania: p.compania_id ? mapCompania.get(p.compania_id) || '' : '',
           ramo: p.ramo_id ? mapRamo.get(p.ramo_id) || '' : '',
           cobertura: p.cobertura_id ? mapCobertura.get(p.cobertura_id) || '' : '',
-          suma_asegurada: p.suma_asegurada ?? null,
+          // Suma asegurada solo se expone si el PAS marcó el toggle en la
+          // ficha. Default false (oculto) — evita que el cliente vea un valor
+          // desactualizado en seguros donde la suma cambia mes a mes (auto).
+          suma_asegurada: p.mostrar_suma_asegurada_portal ? (p.suma_asegurada ?? null) : null,
           moneda: p.moneda || 'ARS',
           fecha_inicio: p.fecha_inicio,
           fecha_fin: p.fecha_fin,
