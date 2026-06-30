@@ -147,21 +147,26 @@
            focus:border-blue-500 transition-colors;
   }
 
-  /* ── Botones ── */
+  /* ── Botones ──
+     Todos los botones tienen alto fijo (h-8) y `whitespace-nowrap` para que el
+     texto no rompa en dos líneas y se salga del alto cuando el contenedor está
+     apretado. Si necesitás un botón multi-línea es excepción y va con clase
+     custom. `flex-shrink-0` evita que el botón se aplaste cuando vive dentro
+     de un flex container con elementos que crecen. */
   .btn-primary {
-    @apply inline-flex items-center gap-1.5 h-8 px-3.5 text-sm font-medium
+    @apply inline-flex items-center gap-1.5 h-8 px-3.5 text-sm font-medium whitespace-nowrap flex-shrink-0
            bg-navy-600 text-white rounded hover:bg-navy-700
            transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center gap-1.5 h-8 px-3.5 text-sm font-medium
+    @apply inline-flex items-center gap-1.5 h-8 px-3.5 text-sm font-medium whitespace-nowrap flex-shrink-0
            bg-white text-slate-600 border border-slate-300 rounded
            hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500;
   }
 
   .btn-danger {
-    @apply inline-flex items-center gap-1.5 h-8 px-3.5 text-sm font-medium
+    @apply inline-flex items-center gap-1.5 h-8 px-3.5 text-sm font-medium whitespace-nowrap flex-shrink-0
            bg-red-600 text-white rounded hover:bg-red-700
            transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500;
   }

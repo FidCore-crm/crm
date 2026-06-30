@@ -321,6 +321,10 @@ export async function POST(
   if (cfg.notificar_email_admin) {
     encolarEmailSistema({
       tipo_evento: 'LEAD_WEB_RECIBIDO',
+      // procesar_inmediato: el aviso al admin de un lead nuevo es información
+      // comercial urgente — no puede esperar hasta 4 horas al próximo tick del
+      // cron. Si el procesamiento falla, queda en cola y el cron lo recoge.
+      procesar_inmediato: true,
       variables_extra: {
         nombre_lead: nombre,
         apellido_lead: apellido || '',

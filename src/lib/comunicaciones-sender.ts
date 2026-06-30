@@ -1001,6 +1001,14 @@ export interface EncolarEmailSistemaParams {
   variables_extra: Record<string, string>
   /** Diferir el envío (opcional). Default: ahora. */
   enviar_despues_de?: Date
+  /**
+   * Si true, dispara `procesarEmailEncolado()` fire-and-forget para cada envío
+   * creado, en vez de esperar al cron (que corre cada 4h). Usar SOLO para
+   * eventos donde el delay importa: avisos comerciales al PAS (lead nuevo,
+   * etc.). Para eventos técnicos (backup, restauración) no aplica — el cron
+   * está bien.
+   */
+  procesar_inmediato?: boolean
 }
 
 export interface EncolarEmailSistemaResult {
@@ -1060,6 +1068,7 @@ export async function encolarEmailSistema(
     }
 
     let creados = 0
+    const envioIdsCreados: string[] = []
     for (const admin of admins) {
       const res = await encolarEmail({
         plantilla_codigo: config.plantilla_codigo,
@@ -1074,8 +1083,27 @@ export async function encolarEmailSistema(
         anti_spam: false,
         bypass_email_bajas: true,
       })
-      if (res.ok) creados++
-      else logger.warn({ modulo: 'comunicaciones', mensaje: `No se pudo encolar email a ${admin.email}`, contexto: { error: res.error } })
+      if (res.ok) {
+        creados++
+        if (res.envio_id && res.estado === 'ENCOLADO') envioIdsCreados.push(res.envio_id)
+      } else {
+        logger.warn({ modulo: 'comunicaciones', mensaje: `No se pudo encolar email a ${admin.email}`, contexto: { error: res.error } })
+      }
+    }
+
+    // Procesar inmediato: dispara procesarEmailEncolado para cada envío sin
+    // esperar el cron. Fire-and-forget — si falla, el cron lo recoge igual
+    // en su próximo tick (porque queda en estado ENCOLADO).
+    if (params.procesar_inmediato && envioIdsCreados.length > 0) {
+      for (const envio_id of envioIdsCreados) {
+        procesarEmailEncolado(envio_id).catch((err) => {
+          logger.warn({
+            modulo: 'comunicaciones',
+            mensaje: 'procesar_inmediato falló (queda en cola)',
+            contexto: { envio_id, error: err?.message || String(err) },
+          })
+        })
+      }
     }
 
     return { ok: creados > 0, envios_creados: creados }

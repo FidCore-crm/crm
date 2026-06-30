@@ -123,7 +123,25 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ ok: true, mensaje: `${body.ids.length} notificación(es) marcada(s) como leída(s)` })
   }
 
-  return NextResponse.json({ ok: false, error: 'Enviar { ids: [...] } o { todas: true }' }, { status: 400 })
+  // Marcar como leídas todas las notificaciones de una entidad específica
+  // (ej: al abrir la ficha de un lead, las notifs LEAD_WEB_NUEVO de ese lead
+  // se marcan como leídas — comportamiento tipo Gmail).
+  if (body.entidad_tipo && body.entidad_id) {
+    let q = supabase
+      .from('notificaciones')
+      .update({ leida: true, fecha_lectura: new Date().toISOString() })
+      .eq('entidad_tipo', body.entidad_tipo)
+      .eq('entidad_id', body.entidad_id)
+      .eq('leida', false)
+    if (body.tipo) q = q.eq('tipo', body.tipo)
+    q = aplicarScope(q, usuario)
+    const { error } = await q
+
+    if (error) return NextResponse.json({ ok: false, error: 'Error al actualizar los datos' }, { status: 500 })
+    return NextResponse.json({ ok: true, mensaje: 'Notificaciones de la entidad marcadas como leídas' })
+  }
+
+  return NextResponse.json({ ok: false, error: 'Enviar { ids: [...] }, { todas: true } o { entidad_tipo, entidad_id }' }, { status: 400 })
 }
 
 // DELETE — Eliminar notificación(es) (solo dentro del scope del usuario)

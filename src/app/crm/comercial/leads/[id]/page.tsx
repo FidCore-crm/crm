@@ -12,6 +12,7 @@ import { formatFechaLocalLarga, nowLocalDatetimeInput } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { apiCall } from '@/lib/api-client'
+import { emitirBroadcastMensajesWeb } from '@/lib/broadcast-mensajes-web'
 
 interface LeadData {
   id: string
@@ -193,6 +194,20 @@ export default function FichaLeadPage() {
     setTareasAsociadas((tareasData ?? []) as any[])
     setPersonaConvertida((persConvRes?.data ?? null) as { deleted_at: string | null } | null)
     setCargando(false)
+
+    // Auto-marcar como leídas las notificaciones LEAD_WEB_NUEVO de este lead
+    // (comportamiento tipo Gmail: abrir la ficha "consume" la notificación).
+    // Fire-and-forget — si falla no afecta la carga.
+    apiCall(
+      '/api/notificaciones',
+      {
+        method: 'PATCH',
+        body: { entidad_tipo: 'lead', entidad_id: id, tipo: 'LEAD_WEB_NUEVO' },
+      },
+      { mostrar_toast_en_error: false },
+    ).then(() => {
+      emitirBroadcastMensajesWeb({ tipo: 'marcada-leida', id })
+    }).catch(() => {})
   }, [supabase, id, usuario, router])
 
   useEffect(() => { cargarDatos() }, [cargarDatos])
