@@ -164,7 +164,7 @@ export default function FichaPolizaPage() {
       `).eq('id', id).single(),
       supabase.from('siniestros').select(`
         id, numero_caso, fecha_denuncia, estado, tipo_siniestro, monto_estimado, monto_liquidado
-      `).eq('poliza_id', id).order('fecha_denuncia', { ascending: false }),
+      `).eq('poliza_id', id).is('deleted_at', null).order('fecha_denuncia', { ascending: false }),
     ])
     if (pol) {
       setPoliza(pol as unknown as PolizaDetalle)

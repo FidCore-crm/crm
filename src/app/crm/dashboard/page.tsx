@@ -301,7 +301,12 @@ export default function DashboardPage() {
       let qClientesInicio = supabase.from('polizas').select('asegurado_id').lte('fecha_inicio', inicioMes).gte('fecha_fin', inicioMes).not('estado', 'in', '("CANCELADA","ANULADA")')
       let qVigentes = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE')
       let qVigentesInicio = supabase.from('polizas').select('id', { count: 'exact', head: true }).lte('fecha_inicio', inicioMes).gte('fecha_fin', inicioMes).not('estado', 'in', '("CANCELADA","ANULADA")')
-      let qVencenMes = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE').gte('fecha_fin', inicioMes).lte('fecha_fin', finMes)
+      // "Vencen este mes" = rolling 30 días desde hoy (no mes calendario).
+      // Antes usaba inicioMes/finMes y cuando hoy era fin de mes daba 0 mientras
+      // "esta semana" mostraba pólizas de los primeros días del mes siguiente.
+      const en30 = new Date(); en30.setDate(en30.getDate() + 30)
+      const en30str = `${en30.getFullYear()}-${String(en30.getMonth() + 1).padStart(2, '0')}-${String(en30.getDate()).padStart(2, '0')}`
+      let qVencenMes = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE').gte('fecha_fin', hoy).lte('fecha_fin', en30str)
       let qVencenSemana = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE').gte('fecha_fin', hoy).lte('fecha_fin', en7str)
       let qSiniestros = supabase.from('siniestros').select('id', { count: 'exact', head: true }).not('estado', 'in', '("FINALIZADO","RECHAZADO")').is('deleted_at', null)
       let qSiniestrosAnt = supabase.from('siniestros').select('id', { count: 'exact', head: true }).not('estado', 'in', '("FINALIZADO","RECHAZADO")').is('deleted_at', null).lte('fecha_denuncia', finMesAnt)
@@ -965,7 +970,7 @@ export default function DashboardPage() {
               />
               <KPICard
                 icono={<Clock className="h-4 w-4 text-amber-500" />}
-                label="Vencen este mes"
+                label="Vencen en 30 días"
                 valor={kpis.vencenEsteMes}
                 sub={kpis.vencenEstaSemana > 0 ? `${kpis.vencenEstaSemana} esta semana` : 'Ninguna esta semana'}
                 badge={kpis.vencenEstaSemana > 0 ? { text: `${kpis.vencenEstaSemana} urgentes`, color: 'bg-red-50 text-red-700' } : undefined}

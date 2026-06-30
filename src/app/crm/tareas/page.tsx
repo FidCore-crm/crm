@@ -125,9 +125,11 @@ export default function TareasPage() {
     const en7     = new Date(); en7.setDate(en7.getDate() + 7)
     const en7str  = `${en7.getFullYear()}-${String(en7.getMonth() + 1).padStart(2, '0')}-${String(en7.getDate()).padStart(2, '0')}`
 
-    let qV = supabase.from('tareas').select('id', { count: 'exact', head: true }).lte('fecha_vencimiento', hoy).in('estado', ['PENDIENTE', 'EN_PROCESO'])
+    // "Vencidas" estricto < hoy / "Hoy" = hoy / "Próximos 7d" > hoy. Antes
+    // los rangos se solapaban y una tarea de hoy se contaba en los 3 KPIs.
+    let qV = supabase.from('tareas').select('id', { count: 'exact', head: true }).lt('fecha_vencimiento', hoy).in('estado', ['PENDIENTE', 'EN_PROCESO'])
     let qH = supabase.from('tareas').select('id', { count: 'exact', head: true }).eq('fecha_vencimiento', hoy).in('estado', ['PENDIENTE', 'EN_PROCESO'])
-    let qS = supabase.from('tareas').select('id', { count: 'exact', head: true }).gte('fecha_vencimiento', hoy).lte('fecha_vencimiento', en7str).in('estado', ['PENDIENTE', 'EN_PROCESO'])
+    let qS = supabase.from('tareas').select('id', { count: 'exact', head: true }).gt('fecha_vencimiento', hoy).lte('fecha_vencimiento', en7str).in('estado', ['PENDIENTE', 'EN_PROCESO'])
     let qP = supabase.from('tareas').select('id', { count: 'exact', head: true }).in('estado', ['PENDIENTE', 'EN_PROCESO'])
 
     // Filtrar por persona — esto excluye automáticamente papelera (idsPersonas

@@ -163,7 +163,13 @@ export default function SiniestrosPage() {
 
     query = filtrarPorPersonas(query, idsPersonas, 'persona_id')
 
-    if (filtroEstado) query = query.eq('estado', filtroEstado)
+    if (filtroEstado) {
+      // Soporta CSV ("INSPECCION,LIQUIDACION,REPARACION,EN_TRAMITE") para los
+      // KPIs agregados ("En trámite"). El dropdown sigue mandando un solo estado.
+      const estados = filtroEstado.split(',').map(s => s.trim()).filter(Boolean)
+      if (estados.length > 1) query = query.in('estado', estados)
+      else query = query.eq('estado', estados[0])
+    }
     if (filtroDenunciasPendientes) {
       query = query.eq('origen_creacion', 'PORTAL_CLIENTE').eq('revisado_por_pas', false)
     }
@@ -317,7 +323,7 @@ export default function SiniestrosPage() {
           <span className="kpi-sub">recién denunciados</span>
         </div>
         <div className={`kpi-card bg-amber-50 border border-amber-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'enTramite' ? 'ring-2 ring-amber-400' : ''}`}
-          onClick={() => { setKpiActivo('enTramite'); setFiltroEstado('INSPECCION'); setPagina(0) }}
+          onClick={() => { if (kpiActivo === 'enTramite') { setKpiActivo(null); setFiltroEstado('') } else { setKpiActivo('enTramite'); setFiltroEstado('EN_TRAMITE,INSPECCION,LIQUIDACION,REPARACION') } setPagina(0) }}
           title="Hacé clic para ver INSPECCION. Cambiá a LIQUIDACION o REPARACION desde el filtro de estado."
         >
           <span className="kpi-label flex items-center gap-1">

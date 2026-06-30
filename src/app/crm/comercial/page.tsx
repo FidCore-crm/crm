@@ -124,7 +124,7 @@ export default function ComercialPage() {
       const [ln, lc, conv, oa, cp, cg90, cp90, cLeads, cOps, cCots, cPipe] = await Promise.all([
         aplicarFiltroCartera(supabase.from('leads').select('id', { count: 'exact', head: true }).eq('estado', 'NUEVO').gte('created_at', primerDiaMes), usuario),
         aplicarFiltroCartera(supabase.from('leads').select('id', { count: 'exact', head: true }).eq('estado', 'CONTACTADO'), usuario),
-        supabase.from('personas').select('id', { count: 'exact', head: true }).eq('origen', 'LEAD').gte('fecha_alta', primerDiaMes),
+        aplicarFiltroCartera(supabase.from('personas').select('id', { count: 'exact', head: true }).eq('origen', 'LEAD').gte('fecha_alta', primerDiaMes).is('deleted_at', null), usuario),
         aplicarFiltroCartera(supabase.from('oportunidades').select('id', { count: 'exact', head: true }).not('estado', 'in', '("GANADA","PERDIDA")'), usuario),
         aplicarFiltroCartera(supabase.from('cotizaciones').select('id', { count: 'exact', head: true }).in('estado', ['ENVIADA', 'EN_PROCESO']), usuario),
         aplicarFiltroCartera(supabase.from('cotizaciones').select('id', { count: 'exact', head: true }).eq('estado', 'GANADA').gte('fecha_cierre', hace90d.toISOString()), usuario),
