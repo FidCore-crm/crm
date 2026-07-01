@@ -278,18 +278,21 @@ async function llamarClaudeConPDF(
 
   const client = new Anthropic({ apiKey })
 
-  // Llamada con auto-sustitución: si Anthropic rechaza el modelo con
-  // not_found_error (discontinuado), refrescamos el cache y reintentamos
-  // una sola vez con el modelo nuevo de la misma familia. Transparente
-  // al caller.
+  // Llamada con auto-sustitución + fallback si el modelo rechaza temperature:
+  //   1) Si Anthropic rechaza el modelo con not_found_error (discontinuado),
+  //      refrescamos el cache y reintentamos con el modelo nuevo de la
+  //      misma familia.
+  //   2) Si el modelo devuelve "temperature is deprecated" (modelos nuevos
+  //      como claude-sonnet-5 no lo aceptan), reintentamos sin ese parámetro.
+  //   Ambos son transparentes al caller.
   let respuesta: Awaited<ReturnType<typeof client.messages.create>>
   let yaSustituyo = false
+  let sinTemperature = false
   while (true) {
     try {
-      respuesta = await client.messages.create({
+      const requestBody: any = {
         model: modelo,
         max_tokens: 4096,
-        temperature: 0,
         system,
         messages: [
           {
@@ -303,7 +306,10 @@ async function llamarClaudeConPDF(
             ],
           },
         ],
-      })
+      }
+      if (!sinTemperature) requestBody.temperature = 0
+
+      respuesta = await client.messages.create(requestBody)
       break
     } catch (err: any) {
       const status = err?.status ?? err?.response?.status
@@ -311,6 +317,17 @@ async function llamarClaudeConPDF(
       const errorMsg: string = err?.error?.error?.message || err?.message || ''
       const esModeloInvalido =
         status === 404 && errorType === 'not_found_error' && /model:/i.test(errorMsg)
+
+      // Fallback #2: temperature deprecada por el modelo → reintento sin ese param.
+      if (!sinTemperature && /temperature.*deprecated/i.test(errorMsg)) {
+        sinTemperature = true
+        logger.warn({
+          modulo: 'agente-pdf',
+          mensaje: 'Modelo rechazó temperature — reintento sin ese parámetro',
+          contexto: { modelo },
+        })
+        continue
+      }
 
       if (esModeloInvalido && !yaSustituyo) {
         yaSustituyo = true

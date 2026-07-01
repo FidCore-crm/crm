@@ -667,17 +667,24 @@ export async function llamarClaude(params: {
 
   let intento = 0
   let yaSustituyo = false
+  let sinTemperature = false  // se activa si el modelo rechaza temperature
   let ultimoError: any = null
 
   while (intento <= maxRetries) {
     try {
-      const respuesta = await client.messages.create({
+      // Los modelos más nuevos de Anthropic (ej: claude-sonnet-5) rechazan
+      // el parámetro `temperature` con "temperature is deprecated for this
+      // model". La primera pasada lo incluye; si falla con ese mensaje, se
+      // activa `sinTemperature` y reintentamos sin él (default del modelo).
+      const requestBody: any = {
         model: modelo,
         max_tokens: maxTokens,
-        temperature,
         system: systemPrompt,
         messages,
-      })
+      }
+      if (!sinTemperature) requestBody.temperature = temperature
+
+      const respuesta = await client.messages.create(requestBody)
 
       const bloques = respuesta.content || []
       const texto = bloques
@@ -735,6 +742,20 @@ export async function llamarClaude(params: {
     } catch (err: any) {
       ultimoError = err
       const mapeado = mapearErrorSdk(err)
+
+      // "temperature is deprecated for this model" — modelos nuevos de
+      // Anthropic (ej: claude-sonnet-5) rechazan el parámetro. Reintentamos
+      // sin él una sola vez.
+      const errorMsgTemp: string = err?.error?.error?.message || err?.message || ''
+      if (!sinTemperature && /temperature.*deprecated/i.test(errorMsgTemp)) {
+        sinTemperature = true
+        logger.warn({
+          modulo: 'anthropic-client',
+          mensaje: 'Modelo rechazó temperature — reintento sin ese parámetro',
+          contexto: { modelo },
+        })
+        continue // retry sin incrementar `intento`
+      }
 
       // Auto-sustitución transparente: si Anthropic dice que el modelo
       // no existe y todavía no intentamos cambiarlo, refrescamos el
