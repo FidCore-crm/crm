@@ -69,7 +69,11 @@ export default function SiniestrosPage() {
 
   const [busqueda,         setBusqueda]         = useState('')
   const [busquedaDebounce, setBusquedaDebounce] = useState('')
-  const [filtroEstado,     setFiltroEstado]     = useState('')
+  // Filtro con default "EN_CURSO" (todos los estados no-terminales). Los
+  // FINALIZADO/RECHAZADO quedan ocultos por defecto para reducir ruido en
+  // carteras grandes. El PAS puede elegir "Todos" o un estado terminal
+  // específico desde el select o desde los KPIs.
+  const [filtroEstado,     setFiltroEstado]     = useState<string>('EN_CURSO')
   const [filtroPeriodo,    setFiltroPeriodo]    = useState<'TODOS' | '7' | '30' | '90' | '365'>('TODOS')
   const [sortDir,          setSortDir]          = useState<'asc'|'desc'>('desc')
 
@@ -163,7 +167,10 @@ export default function SiniestrosPage() {
 
     query = filtrarPorPersonas(query, idsPersonas, 'persona_id')
 
-    if (filtroEstado) {
+    if (filtroEstado === 'EN_CURSO') {
+      // Default: siniestros no-terminales (activos).
+      query = query.in('estado', ['DENUNCIADO', 'EN_TRAMITE', 'INSPECCION', 'LIQUIDACION', 'REPARACION'])
+    } else if (filtroEstado) {
       // Soporta CSV ("INSPECCION,LIQUIDACION,REPARACION,EN_TRAMITE") para los
       // KPIs agregados ("En trámite"). El dropdown sigue mandando un solo estado.
       const estados = filtroEstado.split(',').map(s => s.trim()).filter(Boolean)
@@ -254,8 +261,9 @@ export default function SiniestrosPage() {
     }
   }, [supabase])
 
-  const limpiar = () => { setBusqueda(''); setFiltroEstado(''); setFiltroPeriodo('TODOS'); setKpiActivo(null); setFiltroDenunciasPendientes(false); setPagina(0) }
-  const hayFiltros = busqueda || filtroEstado || filtroPeriodo !== 'TODOS' || filtroDenunciasPendientes
+  const limpiar = () => { setBusqueda(''); setFiltroEstado('EN_CURSO'); setFiltroPeriodo('TODOS'); setKpiActivo(null); setFiltroDenunciasPendientes(false); setPagina(0) }
+  // "EN_CURSO" es el default — no lo considero un filtro explícito del usuario.
+  const hayFiltros = busqueda || (filtroEstado && filtroEstado !== 'EN_CURSO') || filtroPeriodo !== 'TODOS' || filtroDenunciasPendientes
 
   // Scroll-to-top al cambiar de página
   const primeraCargaRef = useRef(true)
@@ -315,7 +323,7 @@ export default function SiniestrosPage() {
           </div>
         )}
         <div className={`kpi-card bg-blue-50 border border-blue-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'abiertos' ? 'ring-2 ring-blue-400' : ''}`}
-          onClick={() => { if (kpiActivo === 'abiertos') { setKpiActivo(null); setFiltroEstado('') } else { setKpiActivo('abiertos'); setFiltroEstado('DENUNCIADO') } setPagina(0) }}>
+          onClick={() => { if (kpiActivo === 'abiertos') { setKpiActivo(null); setFiltroEstado('EN_CURSO') } else { setKpiActivo('abiertos'); setFiltroEstado('DENUNCIADO') } setPagina(0) }}>
           <span className="kpi-label flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" /> Abiertos
           </span>
@@ -323,7 +331,7 @@ export default function SiniestrosPage() {
           <span className="kpi-sub">recién denunciados</span>
         </div>
         <div className={`kpi-card bg-amber-50 border border-amber-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'enTramite' ? 'ring-2 ring-amber-400' : ''}`}
-          onClick={() => { if (kpiActivo === 'enTramite') { setKpiActivo(null); setFiltroEstado('') } else { setKpiActivo('enTramite'); setFiltroEstado('EN_TRAMITE,INSPECCION,LIQUIDACION,REPARACION') } setPagina(0) }}
+          onClick={() => { if (kpiActivo === 'enTramite') { setKpiActivo(null); setFiltroEstado('EN_CURSO') } else { setKpiActivo('enTramite'); setFiltroEstado('EN_TRAMITE,INSPECCION,LIQUIDACION,REPARACION') } setPagina(0) }}
           title="Hacé clic para ver INSPECCION. Cambiá a LIQUIDACION o REPARACION desde el filtro de estado."
         >
           <span className="kpi-label flex items-center gap-1">
@@ -333,7 +341,7 @@ export default function SiniestrosPage() {
           <span className="kpi-sub">inspección · liquidación · reparación</span>
         </div>
         <div className={`kpi-card bg-emerald-50 border border-emerald-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'finalizados' ? 'ring-2 ring-emerald-400' : ''}`}
-          onClick={() => { if (kpiActivo === 'finalizados') { setKpiActivo(null); setFiltroEstado('') } else { setKpiActivo('finalizados'); setFiltroEstado('FINALIZADO') } setPagina(0) }}>
+          onClick={() => { if (kpiActivo === 'finalizados') { setKpiActivo(null); setFiltroEstado('EN_CURSO') } else { setKpiActivo('finalizados'); setFiltroEstado('FINALIZADO') } setPagina(0) }}>
           <span className="kpi-label flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" /> Finalizados
           </span>
@@ -341,7 +349,7 @@ export default function SiniestrosPage() {
           <span className="kpi-sub">resueltos</span>
         </div>
         <div className={`kpi-card bg-red-50 border border-red-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'rechazados' ? 'ring-2 ring-red-400' : ''}`}
-          onClick={() => { if (kpiActivo === 'rechazados') { setKpiActivo(null); setFiltroEstado('') } else { setKpiActivo('rechazados'); setFiltroEstado('RECHAZADO') } setPagina(0) }}>
+          onClick={() => { if (kpiActivo === 'rechazados') { setKpiActivo(null); setFiltroEstado('EN_CURSO') } else { setKpiActivo('rechazados'); setFiltroEstado('RECHAZADO') } setPagina(0) }}>
           <span className="kpi-label flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-red-500 inline-block" /> Rechazados
           </span>
@@ -358,7 +366,8 @@ export default function SiniestrosPage() {
             value={busqueda} onChange={e => setBusqueda(e.target.value)} />
         </div>
         <select className="form-input" value={filtroEstado} onChange={e => { setFiltroEstado(e.target.value); setKpiActivo(null); setPagina(0) }} aria-label="Filtrar por estado">
-          <option value="">Todos los estados</option>
+          <option value="EN_CURSO">En curso (no finalizados)</option>
+          <option value="">Todos (incluye histórico)</option>
           {ESTADOS_SINIESTRO.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
         </select>
         <select

@@ -126,6 +126,11 @@ export default function FichaPersonaPage() {
   const [usuarioElegidoAsignar, setUsuarioElegidoAsignar] = useState<string>('')
   const [asignandoLoading, setAsignandoLoading] = useState(false)
   const [polizas,    setPolizas]    = useState<PolizaResumen[]>([])
+  // Toggle para incluir pólizas terminales (NO_VIGENTE/CANCELADA/ANULADA) en
+  // la tabla del tab. Default false — se ocultan hasta que el PAS lo pida.
+  const [mostrarPolizasHistoricas, setMostrarPolizasHistoricas] = useState(false)
+  // Toggle equivalente para siniestros: por default ocultamos FINALIZADO/RECHAZADO.
+  const [mostrarSiniestrosHistoricos, setMostrarSiniestrosHistoricos] = useState(false)
   const [siniestros, setSiniestros] = useState<SiniestroResumen[]>([])
   const [tareas,     setTareas]     = useState<TareaResumen[]>([])
   const [leadOrigen, setLeadOrigen] = useState<LeadOrigen | null>(null)
@@ -725,10 +730,37 @@ export default function FichaPersonaPage() {
           </div>
 
           {/* ── Tab: Pólizas ──────────────────────────────── */}
-          {tabActivo === 'polizas' && (
+          {tabActivo === 'polizas' && (() => {
+            // Filtro client-side: por default ocultamos NO_VIGENTE/CANCELADA/ANULADA.
+            // El PAS puede tildar el toggle para verlas.
+            const terminales = ['NO_VIGENTE', 'CANCELADA', 'ANULADA']
+            const polizasVisibles = mostrarPolizasHistoricas
+              ? polizas
+              : polizas.filter(p => !terminales.includes(p.estado))
+            const cantHistoricas = polizas.length - polizas.filter(p => !terminales.includes(p.estado)).length
+
+            return (
             <div className="bg-white border border-slate-200 rounded overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
-                <span className="text-xs text-slate-500">{polizas.length} póliza{polizas.length !== 1 ? 's' : ''}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-500">
+                    {polizasVisibles.length} póliza{polizasVisibles.length !== 1 ? 's' : ''}
+                    {cantHistoricas > 0 && !mostrarPolizasHistoricas && (
+                      <span className="text-2xs text-slate-400 ml-1">({cantHistoricas} histórica{cantHistoricas !== 1 ? 's' : ''} oculta{cantHistoricas !== 1 ? 's' : ''})</span>
+                    )}
+                  </span>
+                  {cantHistoricas > 0 && (
+                    <label className="inline-flex items-center gap-1 text-2xs text-slate-500 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={mostrarPolizasHistoricas}
+                        onChange={e => setMostrarPolizasHistoricas(e.target.checked)}
+                        className="h-3 w-3 cursor-pointer"
+                      />
+                      Mostrar históricas
+                    </label>
+                  )}
+                </div>
                 <div className="flex items-center gap-3">
                   <button onClick={() => router.push(`/crm/polizas/nueva?persona_id=${id}`)}
                     className="text-xs text-blue-600 hover:underline">+ Nueva póliza</button>
@@ -740,8 +772,12 @@ export default function FichaPersonaPage() {
                   )}
                 </div>
               </div>
-              {polizas.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-500">No tiene pólizas asociadas</div>
+              {polizasVisibles.length === 0 ? (
+                <div className="text-center py-8 text-xs text-slate-500">
+                  {polizas.length === 0
+                    ? 'No tiene pólizas asociadas'
+                    : 'No tiene pólizas activas — tildá "Mostrar históricas" para ver las anteriores'}
+                </div>
               ) : (
                 <table className="crm-table">
                   <thead>
@@ -754,9 +790,9 @@ export default function FichaPersonaPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {polizas.map(p => {
+                    {polizasVisibles.map(p => {
                       const badge = estadoPolizaBadge(p)
-                      const vencida = ['NO_VIGENTE', 'CANCELADA', 'ANULADA'].includes(p.estado)
+                      const vencida = terminales.includes(p.estado)
                       return (
                         <tr key={p.id} className={`${vencida ? 'opacity-55' : ''} cursor-pointer hover:bg-slate-50`} onClick={() => router.push(`/crm/polizas/${p.id}`)}>
                           <td className="font-mono text-xs font-semibold text-blue-600 hover:underline">{p.numero_poliza}</td>
@@ -777,18 +813,48 @@ export default function FichaPersonaPage() {
                 </table>
               )}
             </div>
-          )}
+            )
+          })()}
 
           {/* ── Tab: Siniestros ───────────────────────────── */}
-          {tabActivo === 'siniestros' && (
+          {tabActivo === 'siniestros' && (() => {
+            const terminalesSin = ['FINALIZADO', 'RECHAZADO']
+            const siniestrosVisibles = mostrarSiniestrosHistoricos
+              ? siniestros
+              : siniestros.filter(s => !terminalesSin.includes(s.estado))
+            const cantHistoricosSin = siniestros.length - siniestros.filter(s => !terminalesSin.includes(s.estado)).length
+
+            return (
             <div className="bg-white border border-slate-200 rounded overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
-                <span className="text-xs text-slate-500">{siniestros.length} siniestro{siniestros.length !== 1 ? 's' : ''}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-500">
+                    {siniestrosVisibles.length} siniestro{siniestrosVisibles.length !== 1 ? 's' : ''}
+                    {cantHistoricosSin > 0 && !mostrarSiniestrosHistoricos && (
+                      <span className="text-2xs text-slate-400 ml-1">({cantHistoricosSin} histórico{cantHistoricosSin !== 1 ? 's' : ''} oculto{cantHistoricosSin !== 1 ? 's' : ''})</span>
+                    )}
+                  </span>
+                  {cantHistoricosSin > 0 && (
+                    <label className="inline-flex items-center gap-1 text-2xs text-slate-500 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={mostrarSiniestrosHistoricos}
+                        onChange={e => setMostrarSiniestrosHistoricos(e.target.checked)}
+                        className="h-3 w-3 cursor-pointer"
+                      />
+                      Mostrar históricos
+                    </label>
+                  )}
+                </div>
                 <button onClick={() => router.push(`/crm/siniestros/nuevo?persona_id=${id}`)}
                   className="text-xs text-blue-600 hover:underline">+ Nuevo siniestro</button>
               </div>
-              {siniestros.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-500">No tiene siniestros registrados</div>
+              {siniestrosVisibles.length === 0 ? (
+                <div className="text-center py-8 text-xs text-slate-500">
+                  {siniestros.length === 0
+                    ? 'No tiene siniestros registrados'
+                    : 'No tiene siniestros en curso — tildá "Mostrar históricos" para ver los finalizados/rechazados'}
+                </div>
               ) : (
                 <table className="crm-table">
                   <thead>
@@ -802,8 +868,10 @@ export default function FichaPersonaPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {siniestros.map(s => (
-                      <tr key={s.id}>
+                    {siniestrosVisibles.map(s => {
+                      const cerrado = terminalesSin.includes(s.estado)
+                      return (
+                      <tr key={s.id} className={cerrado ? 'opacity-55' : ''}>
                         <td className="font-mono text-xs font-semibold text-slate-700">{s.numero_caso}</td>
                         <td className="text-xs text-slate-600">{formatFecha(s.fecha_denuncia)}</td>
                         <td className="text-xs text-slate-600">{s.tipo_siniestro?.replace(/_/g, ' ') ?? '—'}</td>
@@ -816,12 +884,14 @@ export default function FichaPersonaPage() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
                 </table>
               )}
             </div>
-          )}
+            )
+          })()}
 
           {/* ── Tab: Tareas ───────────────────────────────── */}
           {tabActivo === 'tareas' && (

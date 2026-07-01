@@ -73,3 +73,4 @@ run_cron "licencias"              /api/cron/licencias
 run_cron "verificar updates"      /api/cron/verificar-actualizaciones
 run_cron "limpiar updates viejas" /api/cron/limpiar-actualizaciones-viejas
 run_cron "campanas programadas"   /api/cron/ejecutar-campanas-programadas --max-time 320
+run_cron "heartbeat panel"        /api/cron/heartbeat-panel

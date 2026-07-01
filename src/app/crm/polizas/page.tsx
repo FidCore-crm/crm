@@ -83,7 +83,10 @@ function PolizasContent() {
   const [busquedaDebounce, setBusquedaDebounce] = useState('')
   const [filtroCompania,   setFiltroCompania]   = useState('')
   const [filtroRamo,       setFiltroRamo]       = useState('')
-  const [filtroEstado,     setFiltroEstado]     = useState('')
+  // Filtro por estado con default "ACTIVAS" (VIGENTE + PROGRAMADA + RENOVADA).
+  // Las terminales (NO_VIGENTE, CANCELADA, ANULADA) quedan ocultas salvo que
+  // el PAS elija "Todas" o un estado terminal específico.
+  const [filtroEstado,     setFiltroEstado]     = useState<string>('ACTIVAS')
   const [filtroTemporal,   setFiltroTemporal]   = useState('')
   // Filtro "Asignado a" — solo admin. Las pólizas no tienen usuario_id
   // propio: la asignación vive en `asegurado.usuario_id`, así que para
@@ -264,7 +267,12 @@ function PolizasContent() {
 
     if (filtroCompania) query = query.eq('compania_id', filtroCompania)
     if (filtroRamo)     query = query.eq('ramo_id', filtroRamo)
-    if (filtroEstado)   query = query.eq('estado', filtroEstado)
+    if (filtroEstado === 'ACTIVAS') {
+      // Default: ocultamos las terminales para reducir ruido visual.
+      query = query.in('estado', ['VIGENTE', 'PROGRAMADA', 'RENOVADA'])
+    } else if (filtroEstado) {
+      query = query.eq('estado', filtroEstado)
+    }
 
     const hoy = hoyLocal()
     if (filtroTemporal === 'mes') {
@@ -396,8 +404,9 @@ function PolizasContent() {
     return Array.from(mapa.values())
   })()
 
-  const limpiarFiltros = () => { setBusqueda(''); setFiltroCompania(''); setFiltroRamo(''); setFiltroEstado(''); setFiltroTemporal(''); setKpiActivo(null); setPagina(0) }
-  const hayFiltros = busqueda || filtroCompania || filtroRamo || filtroEstado || filtroTemporal
+  const limpiarFiltros = () => { setBusqueda(''); setFiltroCompania(''); setFiltroRamo(''); setFiltroEstado('ACTIVAS'); setFiltroTemporal(''); setKpiActivo(null); setPagina(0) }
+  // "ACTIVAS" es el default — no lo considero un filtro explícito del usuario.
+  const hayFiltros = busqueda || filtroCompania || filtroRamo || (filtroEstado && filtroEstado !== 'ACTIVAS') || filtroTemporal
 
   const SortIcon = ({ field }: { field: SortField }) => (
     sortField === field
@@ -460,7 +469,7 @@ function PolizasContent() {
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-2">
         <div className={`kpi-card bg-emerald-50 border border-emerald-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'vigentes' ? 'ring-2 ring-emerald-400' : ''}`}
-          onClick={() => { if (kpiActivo === 'vigentes') { setKpiActivo(null); setFiltroEstado(''); setFiltroTemporal('') } else { setKpiActivo('vigentes'); setFiltroEstado('VIGENTE'); setFiltroTemporal('') } setPagina(0) }}>
+          onClick={() => { if (kpiActivo === 'vigentes') { setKpiActivo(null); setFiltroEstado('ACTIVAS'); setFiltroTemporal('') } else { setKpiActivo('vigentes'); setFiltroEstado('VIGENTE'); setFiltroTemporal('') } setPagina(0) }}>
           <span className="kpi-label flex items-center gap-1">
             <CheckCircle className="h-3.5 w-3.5 text-emerald-600"/> Vigentes
           </span>
@@ -468,7 +477,7 @@ function PolizasContent() {
           <span className="kpi-sub">pólizas activas</span>
         </div>
         <div className={`kpi-card bg-amber-50 border border-amber-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'porVencer' ? 'ring-2 ring-amber-400' : ''}`}
-          onClick={() => { if (kpiActivo === 'porVencer') { setKpiActivo(null); setFiltroEstado(''); setFiltroTemporal('') } else { setKpiActivo('porVencer'); setFiltroEstado('VIGENTE'); setFiltroTemporal('mes') } setPagina(0) }}>
+          onClick={() => { if (kpiActivo === 'porVencer') { setKpiActivo(null); setFiltroEstado('ACTIVAS'); setFiltroTemporal('') } else { setKpiActivo('porVencer'); setFiltroEstado('VIGENTE'); setFiltroTemporal('mes') } setPagina(0) }}>
           <span className="kpi-label flex items-center gap-1">
             <Clock className="h-3.5 w-3.5 text-amber-600"/> Por vencer (30d)
           </span>
@@ -476,7 +485,7 @@ function PolizasContent() {
           <span className="kpi-sub">requieren renovación</span>
         </div>
         <div className={`kpi-card bg-slate-50 border border-slate-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'noVigentes' ? 'ring-2 ring-slate-400' : ''}`}
-          onClick={() => { if (kpiActivo === 'noVigentes') { setKpiActivo(null); setFiltroEstado(''); setFiltroTemporal('') } else { setKpiActivo('noVigentes'); setFiltroEstado('NO_VIGENTE'); setFiltroTemporal('') } setPagina(0) }}>
+          onClick={() => { if (kpiActivo === 'noVigentes') { setKpiActivo(null); setFiltroEstado('ACTIVAS'); setFiltroTemporal('') } else { setKpiActivo('noVigentes'); setFiltroEstado('NO_VIGENTE'); setFiltroTemporal('') } setPagina(0) }}>
           <span className="kpi-label flex items-center gap-1">
             <XCircle className="h-3.5 w-3.5 text-slate-500"/> No vigentes
           </span>
@@ -484,7 +493,7 @@ function PolizasContent() {
           <span className="kpi-sub">vencidas sin renovar</span>
         </div>
         <div className={`kpi-card bg-blue-50 border border-blue-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'programadas' ? 'ring-2 ring-blue-400' : ''}`}
-          onClick={() => { if (kpiActivo === 'programadas') { setKpiActivo(null); setFiltroEstado(''); setFiltroTemporal('') } else { setKpiActivo('programadas'); setFiltroEstado(''); setFiltroTemporal('programadas') } setPagina(0) }}>
+          onClick={() => { if (kpiActivo === 'programadas') { setKpiActivo(null); setFiltroEstado('ACTIVAS'); setFiltroTemporal('') } else { setKpiActivo('programadas'); setFiltroEstado(''); setFiltroTemporal('programadas') } setPagina(0) }}>
           <span className="kpi-label flex items-center gap-1">
             <CalendarCheck className="h-3.5 w-3.5 text-blue-600"/> Programadas
           </span>
@@ -509,10 +518,11 @@ function PolizasContent() {
           {ramos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
         </select>
         <select className="form-input" value={filtroEstado} onChange={e => { setFiltroEstado(e.target.value); setKpiActivo(null); setPagina(0) }}>
-          <option value="">Todos los estados</option>
+          <option value="ACTIVAS">Activas (VIGENTE + PROGRAMADA + RENOVADA)</option>
+          <option value="">Todas (incluye histórico)</option>
+          <option value="VIGENTE">Vigente</option>
           <option value="PROGRAMADA">Programada</option>
           <option value="RENOVADA">Renovada</option>
-          <option value="VIGENTE">Vigente</option>
           <option value="NO_VIGENTE">No Vigente</option>
           <option value="CANCELADA">Cancelada</option>
           <option value="ANULADA">Anulada</option>
