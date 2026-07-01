@@ -49,6 +49,7 @@ interface CompaniaOpcion {
   precio: number
   detalle: string | null
   seleccionada: boolean
+  es_recomendada: boolean
   compania: { id: string; nombre: string } | null
   cobertura: { id: string; nombre: string; metadata: Record<string, any> | null } | null
 }
@@ -188,7 +189,7 @@ export default function FichaCotizacionPage() {
         poliza_generada:polizas!poliza_generada_id (id, numero_poliza)
       `).eq('id', id).single(),
       supabase.from('cotizacion_companias').select(`
-        id, compania_id, cobertura_id, precio, detalle, seleccionada,
+        id, compania_id, cobertura_id, precio, detalle, seleccionada, es_recomendada,
         compania:catalogos!compania_id (id, nombre),
         cobertura:catalogos!cobertura_id (id, nombre, metadata)
       `).eq('cotizacion_id', id).order('precio', { ascending: true }),
@@ -202,6 +203,52 @@ export default function FichaCotizacionPage() {
   }, [supabase, id])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Helper: nombre comercial de una cobertura para una compañía específica.
+  // Cada cobertura del catálogo puede tener `metadata.equivalencias` (array
+  // de {compania_id, nombre_comercial}). Si hay match, devolvemos el nombre
+  // comercial. Si no, fallback al nombre genérico de la cobertura.
+  // Ej: cobertura "Terceros Completo" en Federación Patronal → "CF".
+  const nombreComercialCobertura = (opcion: CompaniaOpcion): string => {
+    const generico = opcion.cobertura?.nombre ?? '—'
+    const meta = (opcion.cobertura?.metadata ?? {}) as Record<string, any>
+    const eqs = Array.isArray(meta.equivalencias) ? meta.equivalencias : null
+    if (!eqs || !opcion.compania_id) return generico
+    const match = eqs.find((e: any) => e?.compania_id === opcion.compania_id)
+    const comercial = typeof match?.nombre_comercial === 'string' ? match.nombre_comercial.trim() : ''
+    return comercial || generico
+  }
+
+  // Handler: marcar una opción como recomendada por el PAS. Es mutuamente
+  // exclusiva por cotización — primero desmarcamos todas y después seteamos
+  // la nueva. Si el usuario hace click sobre la que ya está marcada, la
+  // desmarca (radio button "cancelable"). El índice parcial único protege
+  // en DB contra race conditions.
+  const [marcandoRecomendada, setMarcandoRecomendada] = useState<string | null>(null)
+  const marcarComoRecomendada = async (opcionId: string) => {
+    if (marcandoRecomendada) return
+    setMarcandoRecomendada(opcionId)
+    const yaMarcada = opciones.find((o) => o.id === opcionId)?.es_recomendada === true
+    try {
+      // Desmarcar todas las de esta cotización primero
+      await supabase
+        .from('cotizacion_companias')
+        .update({ es_recomendada: false })
+        .eq('cotizacion_id', id)
+      // Si no era la que estaba marcada, ahora sí marcarla
+      if (!yaMarcada) {
+        await supabase
+          .from('cotizacion_companias')
+          .update({ es_recomendada: true })
+          .eq('id', opcionId)
+      }
+      await cargar()
+    } catch (err: any) {
+      toast.error(err?.message || 'No se pudo marcar la opción como recomendada')
+    } finally {
+      setMarcandoRecomendada(null)
+    }
+  }
 
   useEffect(() => {
     apiCall<{ activo: boolean }>('/api/comunicaciones/estado', {}, { mostrar_toast_en_error: false })
@@ -304,17 +351,70 @@ export default function FichaCotizacionPage() {
 
   // Carga el logo desde storage y lo convierte a data URL para que jsPDF
   // pueda embeberlo en el PDF. Devuelve null si falla (404, error de red,
-  // formato no soportado, etc.) — el PDF cae al layout solo-texto.
+  // etc.) — el PDF cae al layout solo-texto.
+  //
+  // Caso SVG: jsPDF NO soporta SVG en addImage (solo PNG/JPEG/WEBP), así que
+  // si el archivo es SVG lo rasterizamos a PNG con un canvas antes de
+  // devolver el data URL. El resultado es un PNG de 256×256px que jsPDF
+  // acepta sin problema. Aspect ratio preservado.
   const cargarLogoComoDataURL = async (logoPath: string): Promise<string | null> => {
     try {
       const res = await fetch(`/api/storage/${logoPath}`)
       if (!res.ok) return null
       const blob = await res.blob()
-      return await new Promise<string | null>((resolve) => {
+
+      const esSvg =
+        blob.type === 'image/svg+xml' ||
+        blob.type === 'image/svg' ||
+        /\.svg$/i.test(logoPath)
+
+      // Camino directo para PNG/JPEG/WEBP.
+      if (!esSvg) {
+        return await new Promise<string | null>((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null)
+          reader.onerror = () => resolve(null)
+          reader.readAsDataURL(blob)
+        })
+      }
+
+      // Camino SVG: leer como data URL, cargarlo en un <img>, y pintarlo en
+      // un canvas de 256×256 respetando aspect ratio. Después exportamos el
+      // canvas como PNG (data URL) que jsPDF sí soporta.
+      const svgDataUrl = await new Promise<string | null>((resolve) => {
         const reader = new FileReader()
         reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null)
         reader.onerror = () => resolve(null)
         reader.readAsDataURL(blob)
+      })
+      if (!svgDataUrl) return null
+
+      return await new Promise<string | null>((resolve) => {
+        const img = new Image()
+        img.onload = () => {
+          const size = 256
+          const canvas = document.createElement('canvas')
+          canvas.width = size
+          canvas.height = size
+          const ctx = canvas.getContext('2d')
+          if (!ctx) { resolve(null); return }
+          // Aspect ratio del SVG (fallback a cuadrado si no viene naturalWidth)
+          const iw = img.naturalWidth || size
+          const ih = img.naturalHeight || size
+          const ar = iw / ih
+          let dw = size, dh = size / ar
+          if (dh > size) { dh = size; dw = size * ar }
+          const dx = (size - dw) / 2
+          const dy = (size - dh) / 2
+          try {
+            ctx.drawImage(img, dx, dy, dw, dh)
+            resolve(canvas.toDataURL('image/png'))
+          } catch {
+            resolve(null)
+          }
+        }
+        img.onerror = () => resolve(null)
+        img.src = svgDataUrl
       })
     } catch {
       return null
@@ -371,15 +471,22 @@ export default function FichaCotizacionPage() {
     const companias = opciones.map(o => {
       const meta = (o.cobertura?.metadata ?? {}) as Record<string, any>
       const cubreRaw = Array.isArray(meta.cubre) ? meta.cubre : null
+      // Nombre comercial por compañía si la cobertura tiene equivalencias.
+      // Ej: "Terceros Full" (genérico) → "CF" (Federación Patronal).
+      const nombreCobParaPdf = nombreComercialCobertura(o)
       return {
         compania_nombre: o.compania?.nombre ?? '—',
         cobertura_id: o.cobertura?.id ?? null,
-        cobertura_nombre: o.cobertura?.nombre ?? null,
+        cobertura_nombre: nombreCobParaPdf,
         cobertura_descripcion: typeof meta.descripcion === 'string' ? meta.descripcion : null,
         cobertura_cubre: cubreRaw ? cubreRaw.map((x: any) => String(x)).filter((x: string) => x.trim()) : null,
         precio: o.precio,
         detalle: o.detalle,
-        seleccionada: o.seleccionada,
+        // El destaque visual del PDF usa `seleccionada` (el campo que la
+        // función pdf-cotizacion.ts espera). Le mapeamos es_recomendada acá,
+        // porque el PAS marca "recomendada" ANTES de enviar y esa es la que
+        // el cliente debe ver destacada en el PDF.
+        seleccionada: o.es_recomendada,
       }
     })
 
@@ -972,12 +1079,16 @@ export default function FichaCotizacionPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="text-left px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide">Compania</th>
+                      {/* Radio de "Recomendada" — el PAS marca cuál sugerir al
+                          cliente ANTES de enviar. Distinto de "seleccionada"
+                          (que se setea automáticamente cuando gana). */}
+                      <th className="text-center px-2 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide" style={{ width: 90 }} title="Marcá la opción recomendada">Recomendada</th>
+                      <th className="text-left px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide">Compañía</th>
                       <th className="text-left px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide">Cobertura</th>
                       <th className="text-right px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide">Precio</th>
                       <th className="text-left px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide">Detalle</th>
                       {cotizacion.estado === 'GANADA' && (
-                        <th className="text-center px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide" style={{ width: 80 }}>Seleccionada</th>
+                        <th className="text-center px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide" style={{ width: 80 }}>Ganadora</th>
                       )}
                     </tr>
                   </thead>
@@ -985,15 +1096,38 @@ export default function FichaCotizacionPage() {
                     {opciones.map((o) => {
                       const esGanadora = cotizacion.estado === 'GANADA' && o.seleccionada
                       const esMejorPrecio = o.precio === precioMinimo
+                      const esRecom = o.es_recomendada
+                      const nombreCob = nombreComercialCobertura(o)
+                      const usaComercial = nombreCob !== (o.cobertura?.nombre ?? '—')
                       return (
-                        <tr key={o.id} className={`border-b border-slate-100 last:border-b-0 ${esGanadora ? 'bg-emerald-50' : 'hover:bg-slate-50'}`}>
+                        <tr key={o.id} className={`border-b border-slate-100 last:border-b-0 ${esGanadora ? 'bg-emerald-50' : esRecom ? 'bg-blue-50/40' : 'hover:bg-slate-50'}`}>
+                          <td className="px-2 py-2.5 text-center">
+                            <input
+                              type="radio"
+                              name="recomendada-cotizacion"
+                              checked={esRecom}
+                              onClick={() => marcarComoRecomendada(o.id)}
+                              onChange={() => {}}
+                              disabled={marcandoRecomendada !== null}
+                              title={esRecom ? 'Click para desmarcar' : 'Marcar como recomendada'}
+                              className="cursor-pointer accent-blue-600"
+                            />
+                          </td>
                           <td className="px-3 py-2.5">
                             <span className={`text-xs font-semibold ${esGanadora ? 'text-emerald-800' : 'text-slate-700'}`}>
                               {o.compania?.nombre ?? '—'}
                             </span>
                           </td>
                           <td className="px-3 py-2.5">
-                            <span className="text-xs text-slate-600">{o.cobertura?.nombre ?? '—'}</span>
+                            <span className="text-xs text-slate-600">{nombreCob}</span>
+                            {usaComercial && (
+                              <span
+                                className="ml-1 text-2xs text-slate-400"
+                                title={`Nombre genérico: ${o.cobertura?.nombre ?? '—'}`}
+                              >
+                                ({o.cobertura?.nombre ?? '—'})
+                              </span>
+                            )}
                           </td>
                           <td className="px-3 py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1.5">

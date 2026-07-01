@@ -419,16 +419,18 @@ function construirDocumentoCotizacion(
   doc.setFillColor(claro.r, claro.g, claro.b)
   doc.rect(14, y - 3, pageWidth - 28, altoCaja, 'F')
 
-  // Ramo full-width adentro de la caja
+  // Ramo full-width adentro de la caja. Usa el mismo offset (22mm) que las
+  // demás filas dibujadas por dibujarFilasDosColumnas para que el valor quede
+  // alineado verticalmente con "Marca", "Modelo", etc.
   const xDentro = 14 + padCajaX
   let yDentro = y + padCajaY - 1
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
-  doc.text('Ramo', xDentro, yDentro)
+  doc.text('Ramo:', xDentro, yDentro)
   doc.setTextColor(...COLOR_TEXTO_CUERPO)
   doc.setFont('helvetica', 'bold')
-  doc.text(cotizacion.ramo, xDentro + 18, yDentro)
+  doc.text(cotizacion.ramo, xDentro + 22, yDentro)
   doc.setFont('helvetica', 'normal')
   yDentro += 5
 
