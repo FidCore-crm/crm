@@ -8,6 +8,7 @@ import {
   type TipoRiesgoSiniestro, type TestigoData,
 } from '@/lib/siniestros-tipos'
 import { gradientDeColorMarca } from '@/lib/color-marca'
+import { PoweredByFidCore } from '@/components/PoweredByFidCore'
 
 // ════════════════════════════════════════════════════════════
 //   TIPOS
@@ -972,6 +973,10 @@ function DenunciarPageContent() {
               </button>
             )}
           </div>
+        </div>
+        {/* Powered by FidCore (solo modo VPS/SaaS-managed) */}
+        <div style={{ marginTop: 16, marginBottom: 24 }}>
+          <PoweredByFidCore align="center" />
         </div>
       </div>
     </>

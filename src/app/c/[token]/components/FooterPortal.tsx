@@ -1,6 +1,7 @@
 'use client'
 
 import { Lock, Award } from 'lucide-react'
+import { PoweredByFidCore } from '@/components/PoweredByFidCore'
 
 export default function FooterPortal({
   organizacion,
@@ -43,6 +44,9 @@ export default function FooterPortal({
             es accesible únicamente con tu link único.
           </p>
         </div>
+
+        {/* Powered by FidCore (solo modo VPS/SaaS-managed) */}
+        <PoweredByFidCore align="center" className="mt-2" />
       </div>
     </footer>
   )

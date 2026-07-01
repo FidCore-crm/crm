@@ -22,6 +22,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { reemplazarVariables } from '@/lib/email-variables'
 import type { PlantillaEmail } from '@/types/database'
 import { derivarTonos, normalizarColorMarca, COLOR_MARCA_DEFAULT } from '@/lib/color-marca'
+import { esModoVps } from '@/lib/modo-instalacion'
 
 export interface PlantillaRenderizada {
   asunto: string
@@ -360,6 +361,7 @@ ${contactoHtml}
 <p style="margin:0;font-size:13px;font-weight:700;color:${tonos.base};letter-spacing:0.3px;line-height:1.5;">${escapeHtml(organizacion.nombre)}</p>
 <p style="margin:6px 0 0;font-size:11px;color:#94a3b8;line-height:1.5;">Este email fue enviado automáticamente desde el sistema de gestión.</p>
 ${unsubscribeLine}
+${esModoVps() ? `<p style="margin:14px 0 0;font-size:9px;color:#cbd5e1;letter-spacing:0.5px;line-height:1.4;">Tecnología FidCore</p>` : ''}
 </td></tr>
 
 </table>

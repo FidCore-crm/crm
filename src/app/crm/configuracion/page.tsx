@@ -117,6 +117,9 @@ const secciones = [
     descripcion: 'Estado de tu suscripción y carga de nueva licencia',
     activo: true,
     adminOnly: true,
+    // Solo modo APPLIANCE: en VPS (SaaS-managed) el control de pago se
+    // maneja desde el panel de FidCore, no desde acá.
+    applianceOnly: true,
   },
   {
     href: '/crm/configuracion/actualizaciones',

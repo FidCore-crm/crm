@@ -33,6 +33,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const json = await res.json()
         if (json.ok) {
+          // SaaS-managed: si el panel suspendió el servicio mientras el PAS
+          // tenía sesión abierta, /me lo reporta y forzamos redirect. En
+          // APPLIANCE `servicio.estado` es siempre ACTIVO y este branch no se
+          // ejecuta.
+          if (json.servicio?.estado === 'SUSPENDIDO') {
+            setUsuario(null)
+            if (typeof window !== 'undefined' && window.location.pathname !== '/suspendido') {
+              window.location.href = '/suspendido'
+            }
+            return
+          }
           setUsuario(json.usuario)
           return
         }

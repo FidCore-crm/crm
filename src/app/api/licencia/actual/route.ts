@@ -18,11 +18,29 @@ import { requireAuth } from '@/lib/api-auth'
 import { obtenerEstadoLicencia } from '@/lib/licencia'
 import { obtenerInstalacionId } from '@/lib/instalacion-id'
 import { esLicenciaPublicKeyPlaceholder } from '@/lib/licencia-public-key'
+import { esModoVps } from '@/lib/modo-instalacion'
 
 export const GET = manejarErrores(async (request: NextRequest) => {
   const auth = await requireAuth(request)
   if (auth instanceof Response) {
     return respuestaError(ERRORES.AUTH_TOKEN_INVALIDO)
+  }
+
+  // En modo VPS (SaaS-managed) el sistema de licencias está desactivado.
+  // Devolvemos un estado sintético "ACTIVA + permanente" para que el frontend
+  // (LicenciaContext, LicenciaGuard, BannerLicencia, etc.) nunca active los
+  // modos gracia/bloqueada. La UI de licencia queda oculta por otro camino
+  // (ver componentes que chequean esModoVps).
+  if (esModoVps()) {
+    return respuestaExito({
+      modo: 'ACTIVA' as const,
+      modo_solo_lectura: false,
+      licencia_activa: null,
+      licencias_encoladas: [],
+      dias_gracia_restantes: null,
+      instalacion_id: obtenerInstalacionId(),
+      sistema_configurado: true,
+    })
   }
 
   const estado = await obtenerEstadoLicencia()

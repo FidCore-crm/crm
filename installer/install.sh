@@ -535,6 +535,22 @@ fase_clonar_crm() {
   _set_env_var NEXT_PUBLIC_FIDCORE_MODO "$MODO_INSTALACION" "$env_path"
   _set_env_var SLUG_CLIENTE "$SLUG_CLIENTE" "$env_path"
 
+  # SOPORTE_TOKEN: solo aplica en modo VPS (SaaS-managed). Es el secret que
+  # el panel de administración de FidCore usa para llamar
+  # POST /api/soporte/estado-servicio y suspender/reactivar la cuenta. En
+  # modo APPLIANCE queda vacío y el endpoint responde 404.
+  if [ "$MODO_INSTALACION" = "VPS" ]; then
+    if ! grep -q "^SOPORTE_TOKEN=" "$env_path" || grep -q "^SOPORTE_TOKEN=$" "$env_path"; then
+      local soporte_token
+      soporte_token="$(openssl rand -hex 32)"
+      _set_env_var SOPORTE_TOKEN "$soporte_token" "$env_path"
+    fi
+  else
+    if ! grep -q "^SOPORTE_TOKEN=" "$env_path"; then
+      echo "SOPORTE_TOKEN=" >> "$env_path"
+    fi
+  fi
+
   # CF Tunnel queda vacío — se configura en Fase 2 con el wizard
   if ! grep -q "^TUNNEL_TOKEN=" "$env_path"; then
     echo "TUNNEL_TOKEN=" >> "$env_path"
@@ -1052,7 +1068,9 @@ fase_resumen() {
   fi
 
   local lic_status="pendiente — cargar desde el CRM"
-  if [ -n "${LICENCIA_PATH:-}" ]; then
+  if [ "$MODO_INSTALACION" = "VPS" ]; then
+    lic_status="no aplica (SaaS-managed — gestionado desde el panel de FidCore)"
+  elif [ -n "${LICENCIA_PATH:-}" ]; then
     lic_status="archivo en ${LICENCIA_PATH} — subir desde /crm/configuracion/licencia"
   fi
 
@@ -1087,10 +1105,29 @@ ${C_BOLD}${C_BLUE}📋  HAND-OFF AL PAS:${C_RESET}
   5. Configura rclone para backups remotos en /crm/configuracion/backups.
 EOF
 
-  if [ -z "${LICENCIA_PATH:-}" ]; then
+  # Sistema de licencias: solo aplica en APPLIANCE. En VPS se gestiona desde
+  # el panel de FidCore (suspensión/reactivación vía /api/soporte/estado-servicio).
+  if [ "$MODO_INSTALACION" = "APPLIANCE" ] && [ -z "${LICENCIA_PATH:-}" ]; then
     cat <<EOF
   6. Carga la licencia desde /crm/configuracion/licencia.
      (Vos generás la .lic con scripts/emitir-licencia.js de tu carpeta offline.)
+EOF
+  fi
+
+  if [ "$MODO_INSTALACION" = "VPS" ]; then
+    cat <<EOF
+
+${C_BOLD}${C_BLUE}🔐  SOPORTE_TOKEN (SaaS-managed):${C_RESET}
+  Guardá este token en tu registro del panel — es el secret que usás para
+  suspender/reactivar la cuenta del cliente cuando no paga:
+
+    $(grep '^SOPORTE_TOKEN=' "${INSTALACION_DIR_CRM}/.env.docker" | cut -d= -f2)
+
+  Uso desde curl (o desde el panel de FidCore):
+    curl -X POST ${URL_PUBLICA}/api/soporte/estado-servicio \\
+      -H "Authorization: Bearer <SOPORTE_TOKEN>" \\
+      -H "Content-Type: application/json" \\
+      -d '{"estado":"SUSPENDIDO","motivo":"Pago pendiente"}'
 EOF
   fi
 

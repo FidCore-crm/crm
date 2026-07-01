@@ -5,6 +5,7 @@ import { checkRateLimit, incrementRateLimit, getClientIp } from '@/lib/rate-limi
 import { logger } from '@/lib/errores'
 import { obtenerSolicitudActiva } from '@/lib/blanqueo-password'
 import { setearCookiesSesion } from '@/lib/auth/cookie-options'
+import { esServicioSuspendido, obtenerEstadoServicio } from '@/lib/estado-servicio'
 
 const RL_LOGIN_MAX_FALLOS = 20
 const RL_LOGIN_VENTANA_SEG = 3600
@@ -30,6 +31,24 @@ export async function POST(request: Request) {
 
     if (!email) {
       return NextResponse.json({ ok: false, error: 'Email es obligatorio' }, { status: 400 })
+    }
+
+    // Gate SaaS (solo modo VPS): si el servicio está suspendido por falta de
+    // pago, bloqueamos el login con un estado especial que el frontend
+    // interpreta para mostrar la pantalla de suspendido. En APPLIANCE la
+    // función devuelve siempre false y este check es transparente.
+    if (await esServicioSuspendido()) {
+      const est = await obtenerEstadoServicio()
+      return NextResponse.json(
+        {
+          ok: false,
+          estado: 'SERVICIO_SUSPENDIDO',
+          error: 'El servicio está temporalmente suspendido.',
+          motivo: est.motivo,
+          fecha_suspension: est.fecha_suspension,
+        },
+        { status: 403 },
+      )
     }
 
     const supabase = getSupabaseAdmin()

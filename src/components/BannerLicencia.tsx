@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { AlertTriangle, XCircle, Clock } from 'lucide-react'
 import { useLicenciaEstado } from '@/contexts/LicenciaContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { esModoVps } from '@/lib/modo-instalacion'
 
 /**
  * Banner sticky arriba de toda la app que avisa sobre vencimiento de licencia.
@@ -21,6 +22,9 @@ export function BannerLicencia() {
   const router = useRouter()
   const { estado, loading } = useLicenciaEstado()
   const { isAdmin } = useAuth()
+
+  // En modo VPS el sistema de licencias no aplica — nunca mostrar el banner.
+  if (esModoVps()) return null
 
   if (loading || !estado) return null
 

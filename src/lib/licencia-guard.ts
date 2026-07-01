@@ -17,6 +17,7 @@
 import { NextResponse } from 'next/server'
 import { obtenerEstadoLicencia } from '@/lib/licencia'
 import { ErrorAplicacion, ERRORES } from '@/lib/errores'
+import { esModoVps } from '@/lib/modo-instalacion'
 
 function mensajePorModo(modo: string): string {
   return modo === 'SIN_LICENCIA'
@@ -29,6 +30,11 @@ function mensajePorModo(modo: string): string {
  * Para usar dentro de handlers envueltos con `manejarErrores`.
  */
 export async function requireLicenciaActiva(): Promise<void> {
+  // En modo VPS (SaaS-managed) el sistema de licencias está desactivado —
+  // el control de pago es operativo (suspensión del acceso desde el panel).
+  // Ver estado-servicio.ts para el enforcement equivalente en VPS.
+  if (esModoVps()) return
+
   const estado = await obtenerEstadoLicencia()
   if (estado.modo_solo_lectura) {
     throw new ErrorAplicacion(ERRORES.NEG_OPERACION_INVALIDA, {
@@ -46,6 +52,9 @@ export async function requireLicenciaActiva(): Promise<void> {
  *   if (bloqueo) return bloqueo
  */
 export async function checkLicenciaActiva(): Promise<NextResponse | null> {
+  // En modo VPS el sistema de licencias no aplica — ver requireLicenciaActiva.
+  if (esModoVps()) return null
+
   const estado = await obtenerEstadoLicencia()
   if (!estado.modo_solo_lectura) return null
   return NextResponse.json(

@@ -18,6 +18,7 @@ import { manejarErrores, respuestaError, respuestaExito, ERRORES, logger } from 
 import { validarCronSecret } from '@/lib/cron-auth'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { rotarLicencias, obtenerEstadoLicencia, invalidarCacheEstado, DIAS_GRACIA_POST_VENCIMIENTO } from '@/lib/licencia'
+import { esModoVps } from '@/lib/modo-instalacion'
 import { obtenerAdminsActivos } from '@/lib/comunicaciones-sender'
 import { enviarEmailFidCore, type TipoEmailFidCore } from '@/lib/fidcore-emails'
 
@@ -117,6 +118,12 @@ async function emitirEmailLicenciaDesdeFidCore(
 export const GET = manejarErrores(async (request: NextRequest) => {
   const errCron = await validarCronSecret(request)
   if (errCron) return errCron
+
+  // En modo VPS (SaaS-managed) el sistema de licencias está desactivado —
+  // el control de pago pasa por estado_servicio (endpoint /api/soporte).
+  if (esModoVps()) {
+    return respuestaExito({ skipped: true, motivo: 'Modo VPS — sistema de licencias desactivado' })
+  }
 
   const supabase = getSupabaseAdmin()
 

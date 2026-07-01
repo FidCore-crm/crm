@@ -70,6 +70,10 @@ function LoginContent() {
         const destino = volver ? decodeURIComponent(volver) : '/crm/dashboard'
         const destinoSeguro = destino.startsWith('/crm') ? destino : '/crm/dashboard'
         router.push(destinoSeguro)
+      } else if (json.estado === 'SERVICIO_SUSPENDIDO') {
+        // SaaS-managed: el panel suspendió el servicio por falta de pago.
+        // Redirect a pantalla dedicada — no intentar más login.
+        router.push('/suspendido')
       } else if (json.estado === 'BLANQUEO_PENDIENTE') {
         setModal({ tipo: 'PENDIENTE' })
       } else if (json.estado === 'BLANQUEO_HABILITADA') {

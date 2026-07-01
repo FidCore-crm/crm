@@ -9,6 +9,7 @@ import { toast } from '@/lib/toast'
 import { apiCall } from '@/lib/api-client'
 import { copiarAlPortapapeles } from '@/lib/copiar-portapapeles'
 import { ConfirmacionTipeada } from '@/components/ConfirmacionTipeada'
+import { esModoVps } from '@/lib/modo-instalacion'
 
 interface LicenciaHistorial {
   id: string
@@ -76,6 +77,12 @@ export default function LicenciaPage() {
 
   useEffect(() => {
     if (!loadingAuth && !isAdmin) {
+      router.push('/crm/configuracion')
+      return
+    }
+    // En modo VPS (SaaS-managed) la gestión de suscripción pasa por FidCore,
+    // no por el CRM. Si el admin llega directo por URL, redirigimos.
+    if (esModoVps()) {
       router.push('/crm/configuracion')
       return
     }

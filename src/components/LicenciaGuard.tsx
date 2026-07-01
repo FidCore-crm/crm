@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { ShieldOff, Shield, ChevronRight, ArrowLeft, Copy, Check } from 'lucide-react'
 import { useLicenciaEstado } from '@/contexts/LicenciaContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { esModoVps } from '@/lib/modo-instalacion'
 
 /**
  * Decide qué renderizar según el estado de la licencia:
@@ -49,6 +50,10 @@ export function LicenciaGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [copiado, setCopiado] = useState(false)
+
+  // En modo VPS (SaaS-managed) el guard nunca bloquea — el enforcement es
+  // vía estado_servicio (endpoint de soporte + pantalla /suspendido).
+  if (esModoVps()) return <>{children}</>
 
   // Mientras carga, no bloqueamos
   if (loading || !estado) return <>{children}</>

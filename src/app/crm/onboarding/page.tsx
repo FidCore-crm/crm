@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOnboarding } from '@/contexts/OnboardingContext'
+import { esModoVps } from '@/lib/modo-instalacion'
 import { PasoBienvenida } from './pasos/PasoBienvenida'
 import { PasoPerfil } from './pasos/PasoPerfil'
 import { PasoLicencia } from './pasos/PasoLicencia'
@@ -45,9 +46,21 @@ export default function OnboardingPage() {
       // Si ya está completado, OnboardingGuard nos redirige fuera —
       // mientras tanto no hacemos nada raro
       if (estado.onboarding_completado) return
-      setPasoActual(Math.min(estado.onboarding_paso_actual ?? 0, TOTAL_PASOS - 1))
+      let inicial = Math.min(estado.onboarding_paso_actual ?? 0, TOTAL_PASOS - 1)
+      // En modo VPS el paso de licencia (2) no aplica — lo saltamos.
+      if (inicial === 2 && esModoVps()) inicial = 3
+      setPasoActual(inicial)
     }
   }, [estado, loading])
+
+  // Auto-avanzar el paso de licencia en modo VPS. Ocurre si el usuario llega
+  // al 2 con "atrás" desde correos, o si el estado persistido apuntaba a 2.
+  useEffect(() => {
+    if (pasoActual === 2 && esModoVps()) {
+      setPasoActual(3)
+      guardarPaso(3).catch(() => {})
+    }
+  }, [pasoActual, guardarPaso])
 
   // Cada vez que el usuario avanza/retrocede, persistir el paso.
   // Hacemos await + try/catch para no perder feedback si la API falla.
