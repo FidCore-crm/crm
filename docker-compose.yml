@@ -81,7 +81,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       CRM_BASE_URL: "http://crm:3000"
-      CRONS_INTERVAL_SECONDS: "14400"
+      CRONS_INTERVAL_SECONDS: "7200"
     volumes:
       - ./storage:/app/storage
       - ./tmp:/app/tmp

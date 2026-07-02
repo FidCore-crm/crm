@@ -1,5 +1,5 @@
 #!/bin/bash
-# Ejecuta los crons del CRM una vez (catch-up al boot + cada 4h via timer/loop).
+# Ejecuta los crons del CRM una vez (catch-up al boot + cada 2h via timer/loop).
 # Funciona en dos modos:
 #   - HOST/systemd:  ENV_FILE=/home/.../.env.local, CRM_BASE_URL=http://localhost:3000
 #   - DOCKER:        CRON_SECRET en env, CRM_BASE_URL=http://crm:3000

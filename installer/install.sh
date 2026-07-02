@@ -556,6 +556,19 @@ fase_clonar_crm() {
     echo "TUNNEL_TOKEN=" >> "$env_path"
   fi
 
+  # Vínculo al panel FidCore (opcional, viene del wizard). Si el PAS lo
+  # configuró, el heartbeat empieza a reportar en cuanto arranque el CRM.
+  if [ -n "${PANEL_URL:-}" ]; then
+    _set_env_var PANEL_URL "$PANEL_URL" "$env_path"
+  elif ! grep -q "^PANEL_URL=" "$env_path"; then
+    echo "PANEL_URL=" >> "$env_path"
+  fi
+  if [ -n "${PANEL_HEARTBEAT_TOKEN:-}" ]; then
+    _set_env_var PANEL_HEARTBEAT_TOKEN "$PANEL_HEARTBEAT_TOKEN" "$env_path"
+  elif ! grep -q "^PANEL_HEARTBEAT_TOKEN=" "$env_path"; then
+    echo "PANEL_HEARTBEAT_TOKEN=" >> "$env_path"
+  fi
+
   chown "$USUARIO_INSTALACION:$USUARIO_INSTALACION" "$env_path"
   chmod 0600 "$env_path"
   ok ".env.docker generado (modo $MODO_INSTALACION)"
@@ -1117,17 +1130,52 @@ EOF
   if [ "$MODO_INSTALACION" = "VPS" ]; then
     cat <<EOF
 
-${C_BOLD}${C_BLUE}🔐  SOPORTE_TOKEN (SaaS-managed):${C_RESET}
-  Guardá este token en tu registro del panel — es el secret que usás para
-  suspender/reactivar la cuenta del cliente cuando no paga:
+${C_BOLD}${C_YELLOW}🔐  SOPORTE_TOKEN (SaaS-managed) — COPIALO AHORA:${C_RESET}
+  Este token es ÚNICO PARA ESTE CLIENTE. Es el secret que usás para
+  suspender/reactivar la cuenta desde el panel cuando el cliente no paga.
+
+  📋 Copialo YA — no vas a verlo de nuevo:
 
     $(grep '^SOPORTE_TOKEN=' "${INSTALACION_DIR_CRM}/.env.docker" | cut -d= -f2)
 
-  Uso desde curl (o desde el panel de FidCore):
+  Dónde cargarlo en el panel:
+    panel.fidcore.com.ar → Clientes → <este cliente> → Instalación →
+    campo "SOPORTE_TOKEN" en el modal.
+
+  Uso manual (si el panel no está disponible):
     curl -X POST ${URL_PUBLICA}/api/soporte/estado-servicio \\
       -H "Authorization: Bearer <SOPORTE_TOKEN>" \\
       -H "Content-Type: application/json" \\
       -d '{"estado":"SUSPENDIDO","motivo":"Pago pendiente"}'
+EOF
+  fi
+
+  # Aviso sobre el vínculo al panel FidCore
+  if [ -n "${PANEL_URL:-}" ]; then
+    cat <<EOF
+
+${C_BOLD}${C_GREEN}📡  Vínculo al panel FidCore configurado:${C_RESET}
+  Este CRM va a reportar al panel cada 2h con su versión, estado y último backup.
+
+  Próximo paso en el panel:
+    ${PANEL_URL} → Nuevo cliente → completar datos → configurar Instalación
+    con URL = ${URL_PUBLICA#https://}
+
+  Forzar el primer heartbeat ahora (sin esperar 2h):
+    docker exec fidcore-crm curl -s -o /dev/null -w "%{http_code}\\n" \\
+      http://localhost:3000/api/cron/heartbeat-panel \\
+      -H "Authorization: Bearer \$(grep CRON_SECRET ${INSTALACION_DIR_CRM}/.env.docker | cut -d= -f2)"
+EOF
+  else
+    cat <<EOF
+
+${C_BOLD}${C_YELLOW}📡  Vínculo al panel FidCore pendiente:${C_RESET}
+  Si sos parte del equipo de FidCore, podés reportar este CRM al panel central:
+  - Editar ${INSTALACION_DIR_CRM}/.env.docker
+  - Agregar:
+      PANEL_URL=https://panel.fidcore.com.ar
+      PANEL_HEARTBEAT_TOKEN=<token compartido — pediselo a Nahuel>
+  - Reiniciar: cd ${INSTALACION_DIR_CRM} && docker compose up -d --force-recreate crm crons
 EOF
   fi
 

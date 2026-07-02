@@ -1,13 +1,13 @@
 #!/bin/bash
 # Loop wrapper de los crons del CRM cuando corren como container del compose.
 # En el host con systemd, se usa crm-crons.timer + crm-crons.service en su lugar
-# (cada 4h con Persistent=true para catch-up post-reboot).
+# (cada 2h con Persistent=true para catch-up post-reboot).
 #
 # Acá replicamos: ejecutar startup-crons.sh, dormir CRONS_INTERVAL_SECONDS, repetir.
 
 set -u
 
-INTERVAL_SECONDS="${CRONS_INTERVAL_SECONDS:-14400}"  # 4h por defecto
+INTERVAL_SECONDS="${CRONS_INTERVAL_SECONDS:-7200}"  # 2h por defecto
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "[crons-loop] Iniciando loop cada ${INTERVAL_SECONDS}s"

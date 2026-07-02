@@ -9,7 +9,8 @@
 #   - Si una var ya viene seteada en env, se respeta y no se pregunta.
 #
 # Variables que setea (exportadas al shell que lo invoca):
-#   SLUG_CLIENTE, MODO_INSTALACION, CRM_REPO_URL, TUNNEL_TOKEN, LICENCIA_PATH
+#   SLUG_CLIENTE, MODO_INSTALACION, CRM_REPO_URL, TUNNEL_TOKEN, LICENCIA_PATH,
+#   PANEL_URL, PANEL_HEARTBEAT_TOKEN
 
 # ---- Helpers internos ----
 
@@ -60,7 +61,7 @@ preguntar_modo() {
     return 0
   fi
 
-  gum style --bold --foreground 51 '1/5  Tipo de instalación'
+  gum style --bold --foreground 51 '1/6  Tipo de instalación'
   gum style --foreground 245 \
     '¿Dónde corre este servidor?' \
     '- Servidor local: mini PC físico en la oficina del PAS.' \
@@ -93,7 +94,7 @@ preguntar_slug() {
     return 0
   fi
 
-  gum style --bold --foreground 51 '2/5  Slug del cliente'
+  gum style --bold --foreground 51 '2/6  Slug del cliente'
   gum style --foreground 245 \
     'Identificador corto del cliente. Se usa en:' \
     '- El subdominio público (juanperez.fidcore.com.ar)' \
@@ -134,7 +135,7 @@ preguntar_repo_url() {
     return 0
   fi
 
-  gum style --bold --foreground 51 '3/5  Repo del CRM'
+  gum style --bold --foreground 51 '3/6  Repo del CRM'
   gum style --foreground 245 \
     'El repo oficial es público — no necesitás auth ni PAT.' \
     '  Default: https://github.com/FidCore-crm/crm.git' \
@@ -161,7 +162,7 @@ preguntar_cf_token() {
     return 0
   fi
 
-  gum style --bold --foreground 51 '4/5  Cloudflare Tunnel (opcional)'
+  gum style --bold --foreground 51 '4/6  Cloudflare Tunnel (opcional)'
   gum style --foreground 245 \
     'El túnel permite que el PAS acceda al CRM desde cualquier lado' \
     'con la URL pública. Sin esto, solo accede dentro de la oficina.' \
@@ -195,7 +196,7 @@ preguntar_licencia() {
     return 0
   fi
 
-  gum style --bold --foreground 51 '5/5  Licencia (.lic) (opcional)'
+  gum style --bold --foreground 51 '5/6  Licencia (.lic) (opcional)'
   gum style --foreground 245 \
     'Archivo de licencia firmado que activa el CRM.' \
     'Sin licencia el sistema arranca en MODO SOLO LECTURA — el PAS puede' \
@@ -224,6 +225,59 @@ preguntar_licencia() {
   echo
 }
 
+preguntar_panel_vinculo() {
+  if [ -n "${PANEL_URL:-}" ] && [ -n "${PANEL_HEARTBEAT_TOKEN:-}" ]; then
+    ok "Vínculo al panel FidCore: configurado (ya seteado en env)"
+    return 0
+  fi
+
+  local default_panel="https://panel.fidcore.com.ar"
+
+  gum style --bold --foreground 51 '6/6  Vínculo al panel FidCore (recomendado)'
+  gum style --foreground 245 \
+    'El panel de administración de FidCore recibe un heartbeat cada 2h' \
+    'de este CRM y te muestra en un dashboard central:' \
+    '  - Si el servidor está online / caído.' \
+    '  - Qué versión corre.' \
+    '  - Cuándo fue el último backup.' \
+    'Sin este vínculo el panel no ve al CRM. Solo aplica si sos parte' \
+    'del equipo de FidCore. Si no, saltalo.'
+  echo
+
+  if _gum_confirm "¿Vincular este CRM al panel de FidCore?"; then
+    echo
+    PANEL_URL=$(_gum_input "URL del panel" "$default_panel" "$default_panel")
+    if [ -z "$PANEL_URL" ]; then
+      PANEL_URL="$default_panel"
+    fi
+    if ! [[ "$PANEL_URL" =~ ^https?:// ]]; then
+      warn "URL inválida — el vínculo queda pendiente"
+      PANEL_URL=""
+      PANEL_HEARTBEAT_TOKEN=""
+      echo
+      return 0
+    fi
+
+    gum style --foreground 245 \
+      'El PANEL_HEARTBEAT_TOKEN es el mismo para TODOS los CRMs que instales.' \
+      'Lo obtenés del .env.docker del panel (o pediselo a Nahuel).'
+    echo
+    PANEL_HEARTBEAT_TOKEN=$(_gum_password "Pegá el PANEL_HEARTBEAT_TOKEN")
+    if [ -z "$PANEL_HEARTBEAT_TOKEN" ]; then
+      warn "Token vacío — el vínculo queda pendiente"
+      PANEL_URL=""
+      PANEL_HEARTBEAT_TOKEN=""
+    else
+      ok "Vínculo al panel configurado: $PANEL_URL"
+    fi
+  else
+    info "Vínculo salteado. Podés configurarlo después agregando PANEL_URL y PANEL_HEARTBEAT_TOKEN al .env.docker."
+    PANEL_URL=""
+    PANEL_HEARTBEAT_TOKEN=""
+  fi
+  echo
+}
+
 mostrar_resumen() {
   echo
   gum style \
@@ -236,6 +290,7 @@ mostrar_resumen() {
       printf '  Repo del CRM:     %s\n' "$(echo "$CRM_REPO_URL" | sed -E 's#https?://[^@]+@#https://***@#')"
       printf '  CF Tunnel:        %s\n' "$([ -n "${TUNNEL_TOKEN:-}" ] && echo 'configurado' || echo 'pendiente')"
       printf '  Licencia:         %s\n' "$([ -n "${LICENCIA_PATH:-}" ] && echo "$LICENCIA_PATH" || echo 'pendiente')"
+      printf '  Vínculo panel:    %s\n' "$([ -n "${PANEL_URL:-}" ] && echo "$PANEL_URL" || echo 'pendiente')"
       printf '\n  Carpetas:\n'
       printf '    CRM:            %s\n' "$INSTALACION_DIR_CRM"
       printf '    Supabase:       %s\n' "$INSTALACION_DIR_SUPABASE"
@@ -277,9 +332,11 @@ correr_wizard() {
   preguntar_repo_url
   preguntar_cf_token
   preguntar_licencia
+  preguntar_panel_vinculo
   mostrar_resumen
   confirmar_inicio
 
   # Exportar para que install.sh las vea
   export MODO_INSTALACION SLUG_CLIENTE CRM_REPO_URL TUNNEL_TOKEN LICENCIA_PATH
+  export PANEL_URL PANEL_HEARTBEAT_TOKEN
 }
