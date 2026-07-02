@@ -32,6 +32,8 @@ export interface TerceroData {
   telefono: string
   compania: string
   poliza: string
+  /** Categoría unificada de tercero (7 valores: vehiculo/moto/bici/peaton/objeto_fijo/persona/otro). */
+  categoria?: string
   tipo_vehiculo: string
   patente: string
   marca: string
@@ -101,6 +103,7 @@ export function construirDetalleSiniestro(input: {
   denuncia_policial?: boolean
   acta_policial?: string
   // Auto/moto
+  vehiculo_estacionado?: boolean
   otra_persona_conduce?: boolean
   conductor?: ConductorData
   danos_propios?: string
@@ -133,6 +136,10 @@ export function construirDetalleSiniestro(input: {
     if (input.acta_policial?.trim()) {
       out.acta_policial = input.acta_policial.trim()
     }
+  }
+
+  if (input.vehiculo_estacionado !== undefined) {
+    out.vehiculo_estacionado = input.vehiculo_estacionado
   }
 
   const esAutoMoto = input.tipo_riesgo === 'automotor' || input.tipo_riesgo === 'moto'

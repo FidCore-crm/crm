@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { X, Save, Loader2, AlertCircle } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
-import { TIPOS_SINIESTRO } from '@/lib/siniestros-config'
+import { tiposDeSiniestroPorRamo, obtenerConfigTipoSiniestro } from '@/lib/siniestros-catalogo'
+import { CamposDinamicos, type ValoresDinamicos } from '@/components/siniestros/CamposDinamicos'
 
 interface SiniestroParaEditar {
   id: string
@@ -23,6 +24,10 @@ interface SiniestroParaEditar {
   tercero_dni: string | null
   tercero_telefono: string | null
   tercero_patente: string | null
+  /** JSONB con datos específicos del tipo (conductor, tercero completo, testigos, campos custom, etc.). */
+  detalle_siniestro?: Record<string, unknown> | null
+  /** tipo_riesgo del ramo de la póliza (viene de poliza.ramo.metadata.tipo_riesgo). */
+  tipo_riesgo?: string | null
 }
 
 interface Props {
@@ -63,9 +68,17 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
   const [terceroTelefono, setTerceroTelefono] = useState('')
   const [terceroPatente, setTerceroPatente] = useState('')
 
+  // Valores del detalle_siniestro para edición dinámica según tipo.
+  const [valoresDinamicos, setValoresDinamicos] = useState<ValoresDinamicos>({})
+
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const [errorCampos, setErrorCampos] = useState<Record<string, string>>({})
+
+  const tipoRiesgo = siniestro.tipo_riesgo || 'generico'
+  const tiposValidos = tiposDeSiniestroPorRamo(tipoRiesgo)
+  const configTipo = obtenerConfigTipoSiniestro(tipoRiesgo, tipoSiniestro)
+  const tieneCamposDinamicos = configTipo !== null && (configTipo.bloques.length > 0 || configTipo.campos.length > 0)
 
   useEffect(() => {
     if (!abierto) return
@@ -84,6 +97,18 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
     setTerceroDni(siniestro.tercero_dni || '')
     setTerceroTelefono(siniestro.tercero_telefono || '')
     setTerceroPatente(siniestro.tercero_patente || '')
+    // Cargar valoresDinamicos desde el detalle_siniestro (si viene).
+    // Filtramos las keys que ya editan campos estructurales (tercero_*, etc.) para no duplicar.
+    const detalle = (siniestro.detalle_siniestro ?? {}) as Record<string, unknown>
+    const KEYS_NO_DINAMICAS = new Set([
+      'tipo_riesgo', 'tipo_otro_descripcion', 'denuncia_policial', 'acta_policial',
+      // Estos se editan directo en las columnas planas del modal.
+    ])
+    const dinamicos: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(detalle)) {
+      if (!KEYS_NO_DINAMICAS.has(k)) dinamicos[k] = v
+    }
+    setValoresDinamicos(dinamicos as ValoresDinamicos)
     setError('')
     setErrorCampos({})
   }, [abierto, siniestro])
@@ -115,6 +140,25 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
       tercero_telefono: terceroTelefono.trim() || null,
       tercero_patente: terceroPatente.trim().toUpperCase() || null,
     }
+
+    // Construir el detalle_siniestro final: preservamos las keys que el modal
+    // no toca (tipo_riesgo, tipo_otro_descripcion, denuncia/acta policial)
+    // y mergeamos los valores dinámicos editados.
+    const detalleOriginal = (siniestro.detalle_siniestro ?? {}) as Record<string, unknown>
+    const detalleFinal: Record<string, unknown> = {
+      // Preservar keys estructurales
+      tipo_riesgo: detalleOriginal.tipo_riesgo,
+      tipo_otro_descripcion: detalleOriginal.tipo_otro_descripcion,
+      denuncia_policial: detalleOriginal.denuncia_policial,
+      acta_policial: detalleOriginal.acta_policial,
+      // Mergear valores editados desde CamposDinamicos
+      ...valoresDinamicos,
+    }
+    // Limpiar undefined del objeto final
+    for (const k of Object.keys(detalleFinal)) {
+      if (detalleFinal[k] === undefined) delete detalleFinal[k]
+    }
+    body.detalle_siniestro = detalleFinal
     const r = await apiCall(
       `/api/siniestros/${siniestro.id}`,
       { method: 'PATCH', body },
@@ -186,7 +230,11 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
                 <label className="block text-xs font-medium text-slate-600 mb-1">Tipo de siniestro</label>
                 <select className="form-input" value={tipoSiniestro} onChange={e => setTipoSiniestro(e.target.value)}>
                   <option value="">— Sin tipo —</option>
-                  {TIPOS_SINIESTRO.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  {tiposValidos.map(t => (
+                    <option key={t.value} value={t.value}>
+                      {t.icono ? `${t.icono} ${t.label}` : t.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -254,9 +302,25 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
             </div>
           </section>
 
-          {/* Tercero */}
+          {/* Detalle del siniestro (dinámico según tipo) */}
+          {tieneCamposDinamicos && configTipo && (
+            <section>
+              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                {configTipo.icono} Datos de {configTipo.label.toLowerCase()}
+              </h3>
+              <CamposDinamicos
+                tipoRiesgo={tipoRiesgo}
+                tipoSiniestro={tipoSiniestro}
+                valores={valoresDinamicos}
+                onChange={setValoresDinamicos}
+                errores={errorCampos}
+              />
+            </section>
+          )}
+
+          {/* Tercero (columnas planas — se mantienen para búsqueda + reporting) */}
           <section>
-            <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Datos del tercero (si aplica)</h3>
+            <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Datos del tercero (columnas indexadas)</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Nombre y apellido</label>

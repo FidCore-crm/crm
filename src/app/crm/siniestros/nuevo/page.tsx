@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Save, Loader2, AlertCircle, CheckCircle, Car, Home, Heart, Package, Users, Plus, X } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
-import { TIPOS_SINIESTRO as TIPOS_SINIESTRO_BASE } from '@/lib/siniestros-config'
 import { hoyLocal, mensajeErrorAmigable } from '@/lib/utils'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
@@ -13,6 +12,12 @@ import BuscadorPersona from '@/components/BuscadorPersona'
 import { construirDetalleSiniestro, MAX_TESTIGOS, type TestigoData } from '@/lib/siniestros-tipos'
 import { obtenerIdsPersonas } from '@/lib/cartera-filter'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
+import {
+  tiposDeSiniestroPorRamo,
+  obtenerConfigTipoSiniestro,
+  CATEGORIAS_TERCERO,
+} from '@/lib/siniestros-catalogo'
+import { CamposDinamicos, type ValoresDinamicos } from '@/components/siniestros/CamposDinamicos'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface CampoSiniestro {
@@ -107,6 +112,10 @@ function NuevoSiniestroContent() {
   const [lugarLocalidad,   setLugarLocalidad]   = useState('')
   const [denunciaPolicial, setDenunciaPolicial] = useState(false)
   const [actaPolicial,     setActaPolicial]     = useState('')
+  const [vehiculoEstacionado, setVehiculoEstacionado] = useState(false)
+
+  // ── Valores para bloques que renderiza CamposDinamicos (para tipos no-accidente) ──
+  const [valoresDinamicos, setValoresDinamicos] = useState<ValoresDinamicos>({})
 
   // ── Conductor (automotor/moto) ─────────────────────────
   const [otraPersonaConduce, setOtraPersonaConduce] = useState(false)
@@ -160,6 +169,16 @@ function NuevoSiniestroContent() {
     : tipoRenderForm(tipoRiesgo)
   const esAutomotor = renderTipo === 'automotor'
   const esHogar     = renderTipo === 'hogar'
+
+  // Lista de tipos de siniestro válidos para el ramo actual (viene de la matriz).
+  // Reemplaza a TIPOS_SINIESTRO_BASE que era la misma lista para todos los ramos.
+  const tiposValidos = tiposDeSiniestroPorRamo(tipoRiesgo)
+  const configTipo = obtenerConfigTipoSiniestro(tipoRiesgo, tipoSiniestro)
+
+  // ACCIDENTE_TRANSITO usa el bloque automotor hardcoded (más detallado).
+  // Otros tipos (ROBO_RUEDAS, GRANIZO, ROTURA_CRISTALES...) usan CamposDinamicos.
+  const usarBloqueAutomotorHardcoded = esAutomotor && tipoSiniestro === 'ACCIDENTE_TRANSITO'
+  const usarCamposDinamicos = tipoSiniestro && tipoSiniestro !== 'ACCIDENTE_TRANSITO' && configTipo !== null && (configTipo.bloques.length > 0 || configTipo.campos.length > 0)
 
   // ── Cargar pólizas vigentes (filtradas por cartera) ────
   useEffect(() => {
@@ -274,28 +293,35 @@ function NuevoSiniestroContent() {
         tipo_otro_descripcion: tipoSiniestro === 'OTRO' ? tipoOtroDescripcion : undefined,
         denuncia_policial: denunciaPolicial,
         acta_policial: actaPolicial,
-        otra_persona_conduce: esAutomotor ? otraPersonaConduce : undefined,
-        conductor: esAutomotor && otraPersonaConduce ? {
+        // Campos automotor solo si el tipo es ACCIDENTE_TRANSITO (bloque hardcoded).
+        vehiculo_estacionado: usarBloqueAutomotorHardcoded ? vehiculoEstacionado : undefined,
+        otra_persona_conduce: usarBloqueAutomotorHardcoded && !vehiculoEstacionado ? otraPersonaConduce : undefined,
+        conductor: usarBloqueAutomotorHardcoded && !vehiculoEstacionado && otraPersonaConduce ? {
           nombre: conductorNombre, dni: conductorDni, telefono: conductorTelefono,
           relacion: conductorRelacion, registro: conductorRegistro,
         } : undefined,
-        danos_propios: esAutomotor ? danosPropios : undefined,
-        hubo_lesionados: esAutomotor ? huboLesionados : undefined,
-        detalle_lesiones: esAutomotor && huboLesionados ? detalleLesiones : undefined,
-        hubo_tercero: esAutomotor ? huboTercero : undefined,
-        tercero_fuga: esAutomotor && huboTercero ? terceroFuga : undefined,
-        tercero: esAutomotor && huboTercero && !terceroFuga ? {
+        danos_propios: usarBloqueAutomotorHardcoded ? danosPropios : undefined,
+        hubo_lesionados: usarBloqueAutomotorHardcoded ? huboLesionados : undefined,
+        detalle_lesiones: usarBloqueAutomotorHardcoded && huboLesionados ? detalleLesiones : undefined,
+        hubo_tercero: usarBloqueAutomotorHardcoded ? huboTercero : undefined,
+        tercero_fuga: usarBloqueAutomotorHardcoded && huboTercero ? terceroFuga : undefined,
+        tercero: usarBloqueAutomotorHardcoded && huboTercero && !terceroFuga ? {
           nombre: terceroNombre, dni: terceroDni, telefono: terceroTelefono,
           compania: terceroCompania, poliza: terceroPoliza,
-          tipo_vehiculo: terceroTipoVehiculo, patente: terceroPatente,
+          categoria: terceroTipoVehiculo, tipo_vehiculo: terceroTipoVehiculo,
+          patente: terceroPatente,
           marca: terceroMarca, modelo: terceroModelo, anio: terceroAnio,
           danos: terceroDanos,
         } : undefined,
-        hubo_testigos: huboTestigos,
-        testigos: huboTestigos ? testigos : undefined,
+        hubo_testigos: usarBloqueAutomotorHardcoded ? huboTestigos : undefined,
+        testigos: usarBloqueAutomotorHardcoded && huboTestigos ? testigos : undefined,
         tipo_vivienda: esHogar ? tipoVivienda : undefined,
         que_paso: esHogar ? quePasoHogar : undefined,
-        extra: detalleExtra,
+        // Campos que vienen del bloque CamposDinamicos (para tipos no accidente).
+        // Se serializan como strings para respetar el shape esperado por construirDetalleSiniestro.
+        extra: usarCamposDinamicos
+          ? { ...detalleExtra, ...(Object.fromEntries(Object.entries(valoresDinamicos).map(([k, v]) => [k, v == null ? '' : String(v)])) as Record<string, string>) }
+          : detalleExtra,
       })
 
       const r = await apiCall<{ siniestro: { id: string } }>('/api/siniestros/crear', {
@@ -312,10 +338,10 @@ function NuevoSiniestroContent() {
           hora_siniestro:      horaSiniestro || null,
           lugar_siniestro:     lugarCalle.trim() || null,
           localidad_siniestro: lugarLocalidad.trim() || null,
-          tercero_nombre:      esAutomotor && huboTercero && !terceroFuga ? (terceroNombre.trim() || null) : null,
-          tercero_dni:         esAutomotor && huboTercero && !terceroFuga ? (terceroDni.trim() || null) : null,
-          tercero_telefono:    esAutomotor && huboTercero && !terceroFuga ? (terceroTelefono.trim() || null) : null,
-          tercero_patente:     esAutomotor && huboTercero && !terceroFuga ? (terceroPatente.trim().toUpperCase() || null) : null,
+          tercero_nombre:      usarBloqueAutomotorHardcoded && huboTercero && !terceroFuga ? (terceroNombre.trim() || null) : null,
+          tercero_dni:         usarBloqueAutomotorHardcoded && huboTercero && !terceroFuga ? (terceroDni.trim() || null) : null,
+          tercero_telefono:    usarBloqueAutomotorHardcoded && huboTercero && !terceroFuga ? (terceroTelefono.trim() || null) : null,
+          tercero_patente:     usarBloqueAutomotorHardcoded && huboTercero && !terceroFuga ? (terceroPatente.trim().toUpperCase() || null) : null,
         },
       }, { mostrar_toast_en_error: false })
       if (!r.ok) {
@@ -446,9 +472,23 @@ function NuevoSiniestroContent() {
               onChange={e => setFechaDenuncia(e.target.value)} />
           </Campo>
           <Campo label="Tipo de siniestro" required error={errores.tipo_siniestro} col={2}>
-            <select className={ic('tipo_siniestro')} value={tipoSiniestro} onChange={e => setTipoSiniestro(e.target.value)}>
-              <option value="">— Seleccioná el tipo —</option>
-              {TIPOS_SINIESTRO_BASE.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            <select
+              className={ic('tipo_siniestro')}
+              value={tipoSiniestro}
+              onChange={e => {
+                setTipoSiniestro(e.target.value)
+                setValoresDinamicos({}) // resetea al cambiar de tipo
+              }}
+              disabled={!tipoRiesgo}
+            >
+              <option value="">
+                {tipoRiesgo ? '— Seleccioná el tipo —' : 'Primero elegí una póliza'}
+              </option>
+              {tiposValidos.map(t => (
+                <option key={t.value} value={t.value}>
+                  {t.icono ? `${t.icono} ${t.label}` : t.label}
+                </option>
+              ))}
             </select>
           </Campo>
           {tipoSiniestro === 'OTRO' && (
@@ -509,20 +549,26 @@ function NuevoSiniestroContent() {
         </div>
       )}
 
-      {/* ── Datos del conductor (automotor/moto) ────────────── */}
-      {polizaId && esAutomotor && (
+      {/* ── Datos del conductor (automotor/moto — solo para ACCIDENTE_TRANSITO) ────────────── */}
+      {polizaId && usarBloqueAutomotorHardcoded && (
         <div className="bg-white border border-slate-200 rounded overflow-hidden">
           <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
             <Car className="h-3.5 w-3.5 text-blue-500" />
             <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Datos del conductor</h3>
           </div>
           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Campo label="¿Quién conducía?" col={2}>
-              <Toggle value={otraPersonaConduce} onChange={setOtraPersonaConduce}
-                labelSi="Otra persona" labelNo="El asegurado" />
+            <Campo label="¿El vehículo estaba estacionado?" col={2}>
+              <Toggle value={vehiculoEstacionado} onChange={setVehiculoEstacionado} />
             </Campo>
 
-            {otraPersonaConduce && (<>
+            {!vehiculoEstacionado && (
+              <Campo label="¿Quién conducía?" col={2}>
+                <Toggle value={otraPersonaConduce} onChange={setOtraPersonaConduce}
+                  labelSi="Otra persona" labelNo="El asegurado" />
+              </Campo>
+            )}
+
+            {!vehiculoEstacionado && otraPersonaConduce && (<>
               <Campo label="Nombre y apellido">
                 <input className="form-input" value={conductorNombre}
                   onChange={e => setConductorNombre(e.target.value)} />
@@ -565,8 +611,8 @@ function NuevoSiniestroContent() {
         </div>
       )}
 
-      {/* ── Datos del tercero (automotor/moto) ──────────────── */}
-      {polizaId && esAutomotor && (
+      {/* ── Datos del tercero (automotor/moto — solo para ACCIDENTE_TRANSITO) ──────────────── */}
+      {polizaId && usarBloqueAutomotorHardcoded && (
         <div className="bg-white border border-slate-200 rounded overflow-hidden">
           <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
             <Car className="h-3.5 w-3.5 text-amber-500" />
@@ -607,18 +653,13 @@ function NuevoSiniestroContent() {
                   <input className="form-input font-mono" value={terceroPoliza}
                     onChange={e => setTerceroPoliza(e.target.value)} />
                 </Campo>
-                <Campo label="Tipo de vehículo">
+                <Campo label="¿Qué era el tercero?">
                   <select className="form-input" value={terceroTipoVehiculo}
                     onChange={e => setTerceroTipoVehiculo(e.target.value)}>
                     <option value="">— Seleccioná —</option>
-                    <option value="auto">Auto</option>
-                    <option value="moto">Moto</option>
-                    <option value="camioneta">Camioneta</option>
-                    <option value="camion">Camión</option>
-                    <option value="colectivo">Colectivo</option>
-                    <option value="bicicleta">Bicicleta</option>
-                    <option value="peaton">Peatón</option>
-                    <option value="otro">Otro</option>
+                    {CATEGORIAS_TERCERO.map(c => (
+                      <option key={c.value} value={c.label}>{c.label}</option>
+                    ))}
                   </select>
                 </Campo>
                 <Campo label="Patente">
@@ -787,13 +828,33 @@ function NuevoSiniestroContent() {
         </div>
       )}
 
-      {polizaId && camposDB.length === 0 && polizaInfo && !esAutomotor && !esHogar && (
+      {polizaId && camposDB.length === 0 && polizaInfo && !esAutomotor && !esHogar && !usarCamposDinamicos && (
         <div className="flex items-center gap-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           Este ramo no tiene campos específicos configurados. Podés agregarlos en
           <button onClick={() => router.push('/crm/configuracion/catalogos')} className="underline font-medium ml-1">
             Configuración → Catálogos → Ramos
           </button>
+        </div>
+      )}
+
+      {/* ── Campos específicos del tipo de siniestro (para tipos no cubiertos por bloques hardcoded) ── */}
+      {polizaId && usarCamposDinamicos && configTipo && (
+        <div className="bg-white border border-slate-200 rounded overflow-hidden">
+          <div className="px-4 py-2 border-b border-slate-100 bg-slate-50">
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              {configTipo.icono} Datos de {configTipo.label.toLowerCase()}
+            </h3>
+          </div>
+          <div className="p-4">
+            <CamposDinamicos
+              tipoRiesgo={tipoRiesgo}
+              tipoSiniestro={tipoSiniestro}
+              valores={valoresDinamicos}
+              onChange={setValoresDinamicos}
+              errores={errores}
+            />
+          </div>
         </div>
       )}
 

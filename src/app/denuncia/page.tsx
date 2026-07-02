@@ -9,6 +9,8 @@ import {
 } from '@/lib/siniestros-tipos'
 import { gradientDeColorMarca } from '@/lib/color-marca'
 import { PoweredByFidCore } from '@/components/PoweredByFidCore'
+import { tiposDeSiniestroPorRamo, obtenerConfigTipoSiniestro } from '@/lib/siniestros-catalogo'
+import { CamposDinamicos, type ValoresDinamicos } from '@/components/siniestros/CamposDinamicos'
 
 // ════════════════════════════════════════════════════════════
 //   TIPOS
@@ -56,16 +58,10 @@ interface FormConfig {
 //   CONSTANTES
 // ════════════════════════════════════════════════════════════
 
-const TIPOS_SINIESTRO = [
-  { id: 'ACCIDENTE_TRANSITO',  label: 'Accidente de tránsito', icon: '🚗' },
-  { id: 'ROBO',                label: 'Robo',                  icon: '🔒' },
-  { id: 'INCENDIO',            label: 'Incendio',              icon: '🔥' },
-  { id: 'GRANIZO',             label: 'Granizo',               icon: '❄️' },
-  { id: 'ROTURA_CRISTALES',    label: 'Rotura de cristales',   icon: '🪟' },
-  { id: 'ROTURA_CERRADURAS',   label: 'Rotura de cerraduras',  icon: '🔑' },
-  { id: 'RC_TERCEROS',         label: 'Responsabilidad Civil', icon: '⚖️' },
-  { id: 'DAÑOS',               label: 'Daños',                 icon: '💥' },
-  { id: 'OTRO',                label: 'Otro',                  icon: '📝' },
+// Fallback de tipos genéricos — se usa solo cuando no hay ramo definido.
+// Los tipos reales por ramo se calculan con tiposDeSiniestroPorRamo() de la matriz.
+const TIPOS_SINIESTRO_FALLBACK = [
+  { id: 'OTRO', label: 'Siniestro', icon: '📝' },
 ]
 
 const PASOS = [
@@ -225,6 +221,8 @@ function DenunciarPageContent() {
   // Cuando viene por token: salen de polizaSeleccionada.campos_dinamicos.
   // Sin token: salen de polizaValidada (cargada en validatePaso1).
   const [valoresCustom, setValoresCustom] = useState<Record<string, string>>({})
+  // Valores para tipos de siniestro que no son ACCIDENTE_TRANSITO (renderea CamposDinamicos).
+  const [valoresDinamicos, setValoresDinamicos] = useState<ValoresDinamicos>({})
   const [polizaValidada, setPolizaValidada] = useState<{
     tipo_riesgo: string
     campos_dinamicos: any[]
@@ -265,6 +263,19 @@ function DenunciarPageContent() {
   const esAutoMoto = tipoRiesgo === 'automotor' || tipoRiesgo === 'moto'
   const esHogar = tipoRiesgo === 'hogar'
   const esVida = tipoRiesgo === 'vida'
+
+  // Tipos de siniestro válidos para el ramo actual (viene de la matriz).
+  // Reemplaza a TIPOS_SINIESTRO_FALLBACK cuando hay ramo definido.
+  const tiposValidos = useMemo(() => {
+    if (!tipoRiesgo || tipoRiesgo === 'generico') return TIPOS_SINIESTRO_FALLBACK
+    return tiposDeSiniestroPorRamo(tipoRiesgo).map(t => ({
+      id: t.value,
+      label: t.label,
+      icon: t.icono ?? '📝',
+    }))
+  }, [tipoRiesgo])
+  // Solo para ACCIDENTE_TRANSITO usamos los bloques hardcoded específicos del form público.
+  const usarBloqueAutomotorHardcoded = esAutoMoto && tipoSiniestro === 'ACCIDENTE_TRANSITO'
   const esRobo = tipoSiniestro === 'ROBO'
 
   // Fecha local del cliente (no UTC). En Argentina entre 21:00 y 23:59
@@ -392,8 +403,8 @@ function DenunciarPageContent() {
   function validatePaso3(): boolean {
     const e: Record<string, string> = {}
 
-    // Conductor (auto/moto)
-    if (esAutoMoto && !conductorEsAsegurado) {
+    // Conductor (auto/moto — solo ACCIDENTE_TRANSITO)
+    if (usarBloqueAutomotorHardcoded && !conductorEsAsegurado) {
       if (!conductorNombre.trim()) e.conductor_nombre = 'Requerido'
       if (!conductorApellido.trim()) e.conductor_apellido = 'Requerido'
       if (!conductorDni.trim()) e.conductor_dni = 'Requerido'
@@ -403,8 +414,8 @@ function DenunciarPageContent() {
       }
     }
 
-    // Tercero / otra persona o vehículo involucrado
-    if (esAutoMoto && huboTercero) {
+    // Tercero / otra persona o vehículo involucrado (solo ACCIDENTE_TRANSITO)
+    if (usarBloqueAutomotorHardcoded && huboTercero) {
       if (!terceroCategoria) {
         e.tercero_categoria = 'Indicá con qué o con quién'
       } else if (!terceroFuga && terceroCategoria !== 'objeto_fijo') {
@@ -412,15 +423,34 @@ function DenunciarPageContent() {
       }
     }
 
-    // Testigos
-    if (huboTestigos) {
+    // Testigos (solo ACCIDENTE_TRANSITO)
+    if (usarBloqueAutomotorHardcoded && huboTestigos) {
       const validos = testigos.filter(t => t.nombre.trim() || t.telefono.trim())
       if (validos.length === 0) e.testigos = 'Cargá al menos un testigo o desactivá esta opción'
     }
 
-    // Lesionados
-    if (esAutoMoto && huboLesionados && !detalleLesiones.trim()) {
+    // Lesionados (solo ACCIDENTE_TRANSITO)
+    if (usarBloqueAutomotorHardcoded && huboLesionados && !detalleLesiones.trim()) {
       e.detalle_lesiones = 'Describí brevemente las lesiones'
+    }
+
+    // Validación de tipos no-accidente: los campos requeridos del bloque dinámico
+    if (tipoSiniestro && !usarBloqueAutomotorHardcoded) {
+      const configTipo = obtenerConfigTipoSiniestro(tipoRiesgo, tipoSiniestro)
+      if (configTipo) {
+        for (const campo of configTipo.campos) {
+          if (campo.requerido) {
+            const valor = (valoresDinamicos as Record<string, unknown>)[campo.key]
+            if (valor == null || (typeof valor === 'string' && !valor.trim())) {
+              e[campo.key] = `${campo.label} es obligatorio`
+            }
+          }
+        }
+        // Si el tipo requiere selector_rueda, validar que se eligió una
+        if (configTipo.bloques.includes('selector_rueda') && !valoresDinamicos.rueda_robada) {
+          e.rueda_robada = 'Marcá qué rueda robaron'
+        }
+      }
     }
 
     // Hogar
@@ -573,8 +603,8 @@ function DenunciarPageContent() {
       fd.append('localidad_siniestro', localidadSiniestro.trim())
       fd.append('descripcion', descripcion.trim())
 
-      // Conductor
-      if (esAutoMoto) {
+      // Conductor + bloques específicos de auto — solo si ACCIDENTE_TRANSITO
+      if (usarBloqueAutomotorHardcoded) {
         fd.append('conductor_es_asegurado', conductorEsAsegurado ? 'si' : 'no')
         if (!conductorEsAsegurado) {
           fd.append('conductor_nombre', conductorNombre.trim())
@@ -643,6 +673,22 @@ function DenunciarPageContent() {
       // Denuncia policial
       if (denunciaPolicial) fd.append('denuncia_policial', denunciaPolicial)
       if (actaPolicial)     fd.append('acta_policial', actaPolicial.trim())
+
+      // Valores del bloque dinámico (para tipos no-accidente: ROBO_RUEDAS, GRANIZO, etc.).
+      // Se serializan como JSON y el backend los mergea al detalle_siniestro.
+      if (tipoSiniestro && !usarBloqueAutomotorHardcoded && Object.keys(valoresDinamicos).length > 0) {
+        // Filtrar valores vacíos antes de mandar.
+        const limpio: Record<string, unknown> = {}
+        for (const [k, v] of Object.entries(valoresDinamicos)) {
+          if (v == null || v === '' || v === false) continue
+          if (typeof v === 'object' && !Array.isArray(v) && Object.keys(v as Record<string, unknown>).length === 0) continue
+          if (Array.isArray(v) && v.length === 0) continue
+          limpio[k] = v
+        }
+        if (Object.keys(limpio).length > 0) {
+          fd.append('valores_dinamicos', JSON.stringify(limpio))
+        }
+      }
 
       // Campos custom configurados por el PAS — se mandan con prefijo `custom_`
       // para que el backend los identifique y los meta en `detalle_siniestro`.
@@ -829,6 +875,7 @@ function DenunciarPageContent() {
           {pasoActual === 2 && (
             <Paso2
               poliza={polizaSeleccionada}
+              tiposValidos={tiposValidos}
               tipoSiniestro={tipoSiniestro}
               setTipoSiniestro={(v) => { setTipoSiniestro(v); clearError('tipo_siniestro') }}
               tipoOtroDescripcion={tipoOtroDescripcion}
@@ -850,6 +897,10 @@ function DenunciarPageContent() {
           {pasoActual === 3 && (
             <Paso3
               tipoRiesgo={tipoRiesgo}
+              tipoSiniestro={tipoSiniestro}
+              usarBloqueAutoHardcoded={usarBloqueAutomotorHardcoded}
+              valoresDinamicos={valoresDinamicos}
+              setValoresDinamicos={setValoresDinamicos}
               esAutoMoto={esAutoMoto}
               esHogar={esHogar}
               esVida={esVida}
@@ -1138,13 +1189,14 @@ function Paso1({
 // ════════════════════════════════════════════════════════════
 
 function Paso2({
-  poliza, tipoSiniestro, setTipoSiniestro, tipoOtroDescripcion, setTipoOtroDescripcion,
+  poliza, tiposValidos, tipoSiniestro, setTipoSiniestro, tipoOtroDescripcion, setTipoOtroDescripcion,
   fechaSiniestro, setFechaSiniestro, horaSiniestro, setHoraSiniestro,
   lugarSiniestro, setLugarSiniestro, localidadSiniestro, setLocalidadSiniestro,
   descripcion, setDescripcion,
   today, errores,
 }: {
   poliza: PolizaDisponible | null
+  tiposValidos: Array<{ id: string; label: string; icon: string }>
   tipoSiniestro: string; setTipoSiniestro: (v: string) => void
   tipoOtroDescripcion: string; setTipoOtroDescripcion: (v: string) => void
   fechaSiniestro: string; setFechaSiniestro: (v: string) => void
@@ -1189,7 +1241,7 @@ function Paso2({
 
       {errores.tipo_siniestro && <div className="form-error" style={{ marginBottom: 8 }}>{errores.tipo_siniestro}</div>}
       <div className="type-grid">
-        {TIPOS_SINIESTRO.map(t => (
+        {tiposValidos.map(t => (
           <div key={t.id}
             className={`type-card ${tipoSiniestro === t.id ? 'selected' : ''}`}
             onClick={() => setTipoSiniestro(t.id)}>
@@ -1292,7 +1344,9 @@ interface HogarProps {
 }
 
 function Paso3({
-  tipoRiesgo, esAutoMoto, esHogar, esVida, esRobo,
+  tipoRiesgo, tipoSiniestro, usarBloqueAutoHardcoded,
+  valoresDinamicos, setValoresDinamicos,
+  esAutoMoto, esHogar, esVida, esRobo,
   conductor, vehiculoEstacionado, setVehiculoEstacionado,
   tercero, lesionados, testigos, danosPropios, setDanosPropios,
   hogar,
@@ -1302,6 +1356,10 @@ function Paso3({
   errores,
 }: {
   tipoRiesgo: TipoRiesgoSiniestro
+  tipoSiniestro: string
+  usarBloqueAutoHardcoded: boolean
+  valoresDinamicos: ValoresDinamicos
+  setValoresDinamicos: (v: ValoresDinamicos) => void
   esAutoMoto: boolean; esHogar: boolean; esVida: boolean; esRobo: boolean
   conductor: ConductorProps
   vehiculoEstacionado: 'si' | 'no' | ''
@@ -1328,8 +1386,8 @@ function Paso3({
       <h2 className="form-card-title">Detalles del siniestro</h2>
       <p className="form-card-subtitle">Completá los datos específicos según corresponda.</p>
 
-      {/* ═════ CONDUCTOR (auto/moto) ═════ */}
-      {esAutoMoto && (
+      {/* ═════ CONDUCTOR (auto/moto — solo ACCIDENTE_TRANSITO) ═════ */}
+      {usarBloqueAutoHardcoded && (
         <SectionCard icon="👤" title="Conductor del vehículo">
           <div className="toggle-pregunta">
             <div className="toggle-pregunta-label">¿El conductor era el asegurado?</div>
@@ -1377,8 +1435,8 @@ function Paso3({
         </SectionCard>
       )}
 
-      {/* ═════ ¿VEHÍCULO ESTACIONADO? (auto/moto) ═════ */}
-      {esAutoMoto && (
+      {/* ═════ ¿VEHÍCULO ESTACIONADO? (auto/moto — solo ACCIDENTE_TRANSITO) ═════ */}
+      {usarBloqueAutoHardcoded && (
         <SectionCard icon="🅿️" title="¿El vehículo estaba estacionado?">
           <p style={{ fontSize: 13, color: '#64748b', marginTop: -4, marginBottom: 12 }}>
             Indicá si al momento del siniestro el vehículo estaba detenido y estacionado.
@@ -1396,8 +1454,8 @@ function Paso3({
         </SectionCard>
       )}
 
-      {/* ═════ DAÑOS PROPIOS (auto/moto) ═════ */}
-      {esAutoMoto && (
+      {/* ═════ DAÑOS PROPIOS (auto/moto — solo ACCIDENTE_TRANSITO) ═════ */}
+      {usarBloqueAutoHardcoded && (
         <SectionCard icon="🔧" title="Daños del vehículo asegurado">
           <div className="form-group">
             <label className="form-label">Describí los daños</label>
@@ -1408,8 +1466,8 @@ function Paso3({
         </SectionCard>
       )}
 
-      {/* ═════ OTRA PERSONA O VEHÍCULO INVOLUCRADO (auto/moto) — Opción C ═════ */}
-      {esAutoMoto && (
+      {/* ═════ OTRA PERSONA O VEHÍCULO INVOLUCRADO (auto/moto — solo ACCIDENTE_TRANSITO) ═════ */}
+      {usarBloqueAutoHardcoded && (
         <SectionCard icon="🚙" title="¿Otra persona o vehículo involucrado?">
           <p style={{ fontSize: 13, color: '#64748b', marginTop: -4, marginBottom: 12 }}>
             Marcá "Sí" si chocaste con otro vehículo, peatón o algún objeto, o si hay otra persona afectada.
@@ -1535,8 +1593,8 @@ function Paso3({
         </SectionCard>
       )}
 
-      {/* ═════ LESIONADOS (auto/moto) ═════ */}
-      {esAutoMoto && (
+      {/* ═════ LESIONADOS (auto/moto — solo ACCIDENTE_TRANSITO) ═════ */}
+      {usarBloqueAutoHardcoded && (
         <SectionCard icon="🏥" title="Lesionados">
           <div className="toggle-pregunta">
             <div className="toggle-pregunta-label">¿Hubo personas lesionadas?</div>
@@ -1606,6 +1664,23 @@ function Paso3({
           </div>
         )}
       </SectionCard>
+
+      {/* ═════ CAMPOS DINÁMICOS (para tipos que no son ACCIDENTE_TRANSITO) ═════ */}
+      {tipoSiniestro && !usarBloqueAutoHardcoded && (() => {
+        const configTipo = obtenerConfigTipoSiniestro(tipoRiesgo, tipoSiniestro)
+        if (!configTipo || (configTipo.bloques.length === 0 && configTipo.campos.length === 0)) return null
+        return (
+          <SectionCard icon={configTipo.icono ?? '📋'} title={`Datos de ${configTipo.label.toLowerCase()}`}>
+            <CamposDinamicos
+              tipoRiesgo={tipoRiesgo}
+              tipoSiniestro={tipoSiniestro}
+              valores={valoresDinamicos}
+              onChange={setValoresDinamicos}
+              errores={errores}
+            />
+          </SectionCard>
+        )
+      })()}
 
       {/* ═════ HOGAR ═════ */}
       {esHogar && (
@@ -1835,7 +1910,8 @@ function Paso4(props: {
   aceptaTerminos: boolean; setAceptaTerminos: (v: boolean) => void
   mostrarTerminos: boolean; setMostrarTerminos: (v: boolean) => void
 }) {
-  const tipoLabel = TIPOS_SINIESTRO.find(t => t.id === props.tipoSiniestro)?.label || props.tipoSiniestro
+  const configTipo = obtenerConfigTipoSiniestro(props.tipoRiesgo, props.tipoSiniestro)
+  const tipoLabel = configTipo?.label || props.tipoSiniestro
   const totalArchivos =
     Object.values(props.docSlots).reduce((acc, files) => acc + files.length, 0)
     + props.archivosGenerales.length

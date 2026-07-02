@@ -752,22 +752,67 @@ export default function FichaSiniestroPage() {
           {(() => {
             const camposCatalogo = extraerCamposCustom(siniestro.poliza?.ramo?.metadata as any)
             const labelsMap = mapaLabelsPorKey(camposCatalogo)
-            const keysVisibles = Object.keys(detalle).filter(k => k !== 'tipo_riesgo' && detalle[k])
+            // Filtramos keys vacías. Un objeto/array cuenta como no-vacío si tiene al menos un valor útil.
+            const tieneContenido = (v: unknown): boolean => {
+              if (v == null || v === '' || v === false) return false
+              if (Array.isArray(v)) return v.some(tieneContenido)
+              if (typeof v === 'object') return Object.values(v as Record<string, unknown>).some(tieneContenido)
+              return true
+            }
+            const keysVisibles = Object.keys(detalle).filter(k => k !== 'tipo_riesgo' && tieneContenido(detalle[k]))
             if (keysVisibles.length === 0) return null
             const keysOrdenadas = [
               ...camposCatalogo.map(c => c.key).filter(k => keysVisibles.includes(k)),
               ...keysVisibles.filter(k => !labelsMap[k]),
             ]
+
+            /** Convierte cualquier valor del detalle en JSX legible. */
+            const renderValor = (valor: unknown): React.ReactNode => {
+              if (valor == null || valor === '') return '—'
+              if (typeof valor === 'boolean') return valor ? 'Sí' : 'No'
+              if (typeof valor === 'string' || typeof valor === 'number') return String(valor)
+              // Array (ej: testigos): lista con separador
+              if (Array.isArray(valor)) {
+                if (valor.length === 0) return '—'
+                return (
+                  <div className="flex flex-col gap-2">
+                    {valor.map((item, i) => (
+                      <div key={i} className="border-l-2 border-slate-200 pl-2">
+                        <p className="text-2xs text-slate-400 mb-0.5">#{i + 1}</p>
+                        {renderValor(item)}
+                      </div>
+                    ))}
+                  </div>
+                )
+              }
+              // Object (ej: conductor, tercero): sub-campos con label + valor
+              if (typeof valor === 'object') {
+                const entries = Object.entries(valor as Record<string, unknown>).filter(([, v]) => tieneContenido(v))
+                if (entries.length === 0) return '—'
+                return (
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    {entries.map(([k, v]) => (
+                      <div key={k}>
+                        <span className="text-2xs text-slate-400 capitalize">{k.replace(/_/g, ' ')}: </span>
+                        <span className="text-xs text-slate-700">{renderValor(v)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              }
+              return String(valor)
+            }
+
             return (
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
                   <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Detalle del ramo</h3>
                 </div>
-                <div className="p-3 flex flex-col gap-2">
+                <div className="p-3 flex flex-col gap-3">
                   {keysOrdenadas.map(k => (
                     <div key={k}>
-                      <p className="text-2xs text-slate-500 mb-0.5">{labelDeCampo(k, labelsMap)}</p>
-                      <p className="text-xs text-slate-700">{String(detalle[k])}</p>
+                      <p className="text-2xs text-slate-500 mb-1 font-medium">{labelDeCampo(k, labelsMap)}</p>
+                      <div className="text-xs text-slate-700">{renderValor(detalle[k])}</div>
                     </div>
                   ))}
                 </div>
@@ -912,7 +957,12 @@ export default function FichaSiniestroPage() {
 
       {/* ── Modal Editar ─────────────────────────────────────── */}
       <EditarSiniestroModal
-        siniestro={siniestro}
+        siniestro={{
+          ...siniestro,
+          // Exponer campos que el modal necesita para editar el detalle_siniestro dinámico.
+          detalle_siniestro: (siniestro as { detalle_siniestro?: Record<string, unknown> | null }).detalle_siniestro ?? null,
+          tipo_riesgo: (siniestro.poliza?.ramo?.metadata as { tipo_riesgo?: string } | null | undefined)?.tipo_riesgo ?? null,
+        }}
         abierto={modalEditar}
         onCerrar={() => setModalEditar(false)}
         onGuardado={async () => {

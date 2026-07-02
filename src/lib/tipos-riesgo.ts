@@ -97,13 +97,7 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
       { key: 'color', label: 'Color', tipo: 'text', requerido: false, ancho: 'mitad' },
       { key: 'uso', label: 'Uso', tipo: 'select', requerido: false, opciones: ['Particular', 'Comercial', 'Profesional', 'Taxi/Remis', 'Otro'], ancho: 'mitad' },
     ],
-    campos_siniestro_default: [
-      { key: 'lugar_hecho', label: 'Lugar del hecho', tipo: 'text', requerido: true, placeholder: 'Av. Rivadavia y Carabobo' },
-      { key: 'terceros', label: 'Datos del tercero', tipo: 'textarea', requerido: false, placeholder: 'Nombre, DNI, patente, compañía...' },
-      { key: 'lesionados', label: '¿Hay lesionados?', tipo: 'select', requerido: false, opciones: 'No,Sí - Leves,Sí - Graves' },
-      { key: 'acta_policial', label: 'Nro. Acta Policial', tipo: 'text', requerido: false, placeholder: 'Opcional' },
-      { key: 'taller', label: 'Taller de reparación', tipo: 'text', requerido: false, placeholder: 'Nombre y dirección' },
-    ],
+    campos_siniestro_default: [],
   },
 
   {
@@ -129,7 +123,6 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
       { key: 'descripcion_daños', label: 'Descripción de los daños', tipo: 'textarea', requerido: true, placeholder: 'Detallá los daños...' },
       { key: 'ambiente_afectado', label: 'Ambiente / sector afectado', tipo: 'text', requerido: false, placeholder: 'Cocina, baño, depósito...' },
       { key: 'causa', label: 'Causa del siniestro', tipo: 'text', requerido: false, placeholder: 'Cañería rota, cortocircuito, robo...' },
-      { key: 'acta_policial', label: 'Nro. Acta Policial', tipo: 'text', requerido: false, placeholder: 'En caso de robo' },
     ],
   },
 
@@ -169,7 +162,6 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
     ],
     campos_siniestro_default: [
       { key: 'tipo_evento', label: 'Tipo de evento', tipo: 'select', requerido: true, opciones: 'Robo total,Robo parcial,Daño en tránsito,Pérdida,Otro' },
-      { key: 'lugar_hecho', label: 'Lugar del hecho', tipo: 'text', requerido: false, placeholder: 'Ciudad / ruta' },
       { key: 'descripcion_daños', label: 'Descripción del daño / pérdida', tipo: 'textarea', requerido: true },
       { key: 'remito', label: 'Nro. de remito / guía', tipo: 'text', requerido: false },
     ],
@@ -193,8 +185,7 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
     ],
     campos_siniestro_default: [
       { key: 'tipo_evento', label: 'Tipo de evento', tipo: 'select', requerido: true, opciones: 'Daño,Hundimiento,Colisión,Robo,Incendio,Otro' },
-      { key: 'lugar_hecho', label: 'Lugar del hecho', tipo: 'text', requerido: false, placeholder: 'Río / puerto / ciudad' },
-      { key: 'descripcion_daños', label: 'Descripción del siniestro', tipo: 'textarea', requerido: true },
+      { key: 'descripcion_daños', label: 'Descripción de los daños', tipo: 'textarea', requerido: true },
       { key: 'condiciones_clima', label: 'Condiciones del clima', tipo: 'text', requerido: false },
     ],
   },
@@ -213,12 +204,8 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
       { key: 'ambito_territorial', label: 'Ámbito territorial', tipo: 'text', requerido: false, placeholder: 'Ej: Argentina, MERCOSUR', ancho: 'mitad' },
     ],
     campos_siniestro_default: [
-      { key: 'descripcion_hecho', label: 'Descripción del hecho', tipo: 'textarea', requerido: true },
-      { key: 'lugar_fecha_hecho', label: 'Lugar y fecha del hecho', tipo: 'text', requerido: false },
       { key: 'datos_reclamante', label: 'Datos del damnificado / reclamante', tipo: 'textarea', requerido: true, placeholder: 'Nombre, DNI, contacto' },
       { key: 'danios_reclamados', label: 'Daños o lesiones reclamadas', tipo: 'textarea', requerido: false },
-      { key: 'monto_reclamado', label: 'Monto reclamado', tipo: 'text', requerido: false },
-      { key: 'acta_denuncia', label: 'Nro. de acta / denuncia policial', tipo: 'text', requerido: false },
     ],
   },
 
@@ -245,7 +232,6 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
       { key: 'sector_afectado', label: 'Sector / ambiente afectado', tipo: 'text', requerido: false },
       { key: 'descripcion_danios', label: 'Descripción de los daños', tipo: 'textarea', requerido: true },
       { key: 'bomberos_actuacion', label: 'Bomberos intervinientes / Nro. de actuación', tipo: 'text', requerido: false },
-      { key: 'acta_policial', label: 'Nro. de acta policial', tipo: 'text', requerido: false },
     ],
   },
 
@@ -265,10 +251,6 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
       { key: 'lugar_guarda', label: 'Lugar habitual de guarda', tipo: 'text', requerido: false, placeholder: 'Ej: cochera del edificio, oficina, mochila', ancho: 'mitad' },
     ],
     campos_siniestro_default: [
-      { key: 'fecha_hora_hecho', label: 'Fecha y hora del hecho', tipo: 'text', requerido: false },
-      { key: 'lugar_hecho', label: 'Lugar del hecho', tipo: 'text', requerido: false },
-      { key: 'descripcion_hecho', label: 'Descripción del hecho', tipo: 'textarea', requerido: true },
-      { key: 'acta_policial', label: 'Nro. de acta policial', tipo: 'text', requerido: true },
       { key: 'fiscalia_comisaria', label: 'Fiscalía / comisaría interviniente', tipo: 'text', requerido: false },
       { key: 'otros_bienes', label: 'Otros bienes robados en el mismo hecho', tipo: 'textarea', requerido: false },
     ],
@@ -294,10 +276,7 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
     campos_siniestro_default: [
       { key: 'trabajador_nombre', label: 'Nombre y apellido del trabajador', tipo: 'text', requerido: true },
       { key: 'trabajador_dni', label: 'DNI del trabajador', tipo: 'text', requerido: true },
-      { key: 'fecha_hora_accidente', label: 'Fecha y hora del accidente / inicio enfermedad', tipo: 'text', requerido: false },
       { key: 'in_itinere', label: '¿In itinere?', tipo: 'select', requerido: false, opciones: 'Sí,No' },
-      { key: 'lugar_accidente', label: 'Lugar del accidente', tipo: 'text', requerido: false },
-      { key: 'descripcion_accidente', label: 'Descripción del accidente o enfermedad', tipo: 'textarea', requerido: true },
       { key: 'diagnostico', label: 'Diagnóstico / lesión', tipo: 'textarea', requerido: false },
       { key: 'centro_medico', label: 'Centro médico que atendió', tipo: 'text', requerido: false },
     ],
@@ -320,7 +299,6 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
     ],
     campos_siniestro_default: [
       { key: 'tipo_evento', label: 'Tipo de evento', tipo: 'select', requerido: true, opciones: 'Granizo,Inundación,Sequía,Helada,Incendio,Enfermedad animal,Otro' },
-      { key: 'fecha_evento', label: 'Fecha del evento', tipo: 'date', requerido: false },
       { key: 'lote_afectado', label: 'Lote / sector afectado', tipo: 'text', requerido: false },
       { key: 'hectareas_afectadas', label: 'Hectáreas afectadas', tipo: 'text', requerido: false },
       { key: 'descripcion_danio', label: 'Descripción del daño', tipo: 'textarea', requerido: true },
@@ -338,9 +316,7 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
       { key: 'descripcion', label: 'Descripción del bien / riesgo asegurado', tipo: 'textarea', requerido: true, placeholder: 'Describí qué se está asegurando…', ancho: 'completo' },
     ],
     campos_siniestro_default: [
-      { key: 'descripcion_daños', label: 'Descripción del siniestro', tipo: 'textarea', requerido: true, placeholder: 'Describí qué ocurrió...' },
-      { key: 'lugar_hecho', label: 'Lugar del hecho', tipo: 'text', requerido: false, placeholder: 'Dirección o lugar' },
-      { key: 'acta_policial', label: 'Nro. Acta Policial', tipo: 'text', requerido: false, placeholder: 'Opcional' },
+      { key: 'descripcion_daños', label: 'Descripción de los daños', tipo: 'textarea', requerido: true, placeholder: 'Detallá los daños resultantes...' },
     ],
   },
 ]

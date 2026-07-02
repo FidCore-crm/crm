@@ -395,6 +395,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Valores del bloque dinámico (para tipos ROBO_RUEDAS, GRANIZO, etc. que
+    // renderea CamposDinamicos en el form). El cliente los serializa como JSON.
+    // Los mergeamos al detalle. Aceptamos cualquier key porque estos campos vienen
+    // de la matriz siniestros-catalogo.ts que ya define keys válidas por tipo.
+    const valoresDinamicosRaw = formData.get('valores_dinamicos')
+    if (typeof valoresDinamicosRaw === 'string' && valoresDinamicosRaw.trim()) {
+      try {
+        const parsed = JSON.parse(valoresDinamicosRaw)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          for (const [k, v] of Object.entries(parsed)) {
+            if (v == null || v === '') continue
+            // Limitar el tamaño para evitar JSONBs gigantes (max ~50 KB).
+            const sizeCheck = JSON.stringify(v).length
+            if (sizeCheck > 50_000) continue
+            detalleSiniestro[k] = v
+          }
+        }
+      } catch {
+        // Si el JSON es inválido lo ignoramos silenciosamente.
+      }
+    }
+
     // Sanitizar todos los strings dentro de detalle_siniestro para evitar XSS.
     // IMPORTANTE: cortamos a 2000 ANTES de sanitizar — si el texto incluía un
     // `&`, `sanitizeText` lo expande a `&amp;` (5 chars) y un slice posterior
