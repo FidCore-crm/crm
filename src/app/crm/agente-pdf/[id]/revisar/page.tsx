@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation'
 import {
   ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Sparkles, FileText,
   User, Building2, Car, Home, Heart, Package, Calendar, ShieldCheck, X,
-  Ban, RefreshCw, ExternalLink, Wrench,
 } from 'lucide-react'
 import { useAgentePDFPolling } from '@/lib/hooks/useAgentePDFPolling'
 import { getSupabaseClient } from '@/lib/supabase/client'
@@ -153,13 +152,10 @@ export default function RevisarPDFPage() {
     })
   }, [coberturas, mapeos?.ramo_id])
 
-  // Bloqueador: cobertura que necesita configuración manual en catálogos
-  const coberturaBloqueada = useMemo(
-    () => mapeos?.cobertura_estado === 'REQUIERE_CONFIGURACION' && !mapeos?.cobertura_id,
-    [mapeos]
-  )
-
-  // Resolución completa para habilitar el botón
+  // Resolución completa para habilitar el botón. La cobertura queda OK si:
+  // (a) hay un id mapeado, o (b) el PAS decidió crearla al vuelo (queda en
+  // catalogosACrear.coberturas hasta que se aprueba). Mismo criterio que
+  // compañías y ramos.
   const todoResuelto = useMemo(() => {
     if (!datos) return false
     if (esEndoso) {
@@ -172,25 +168,10 @@ export default function RevisarPDFPage() {
     if (!d.poliza?.fecha_inicio || !d.poliza?.fecha_fin) return false
     const companiaOk = !!mapeos?.compania_id || catalogosACrear.companias.length > 0
     const ramoOk = !!mapeos?.ramo_id || catalogosACrear.ramos.length > 0
-    const coberturaOk = !!mapeos?.cobertura_id
+    const coberturaOk = !!mapeos?.cobertura_id || catalogosACrear.coberturas.length > 0
     if (!companiaOk || !ramoOk || !coberturaOk) return false
-    if (coberturaBloqueada) return false
     return true
-  }, [datos, mapeos, esEndoso, catalogosACrear, coberturaBloqueada])
-
-  // Función para re-ejecutar el mapeo después de que el PAS configuró la cobertura
-  const [remapeando, setRemapeando] = useState(false)
-  async function remapearCatalogos() {
-    setRemapeando(true)
-    const r = await apiCall<{ mapeos: MapeosCatalogos }>(`/api/agente-pdf/${id}/remapear`, { method: 'POST' }, { mostrar_toast_en_error: false })
-    if (r.ok && r.data) {
-      setMapeos(r.data.mapeos)
-      mostrarToast('Mapeo actualizado', 'ok')
-    } else {
-      mostrarToast(r.error?.mensaje || 'No se pudo remapear', 'error')
-    }
-    setRemapeando(false)
-  }
+  }, [datos, mapeos, esEndoso, catalogosACrear])
 
   const dudosos = estado?.campos_dudosos || []
   const bannerColor = dudosos.length === 0
@@ -311,17 +292,6 @@ export default function RevisarPDFPage() {
           Revisá los datos extraídos del PDF y ajustá lo que haga falta antes de crear {tipoOp === 'ENDOSO' ? 'el endoso' : 'la póliza'}.
         </p>
       </div>
-
-      {/* Banner rojo si hay bloqueadores */}
-      {coberturaBloqueada && (
-        <div className="flex items-start gap-2 border rounded p-3 bg-red-50 border-red-300 text-red-800">
-          <Ban className="h-4 w-4 shrink-0 mt-0.5" />
-          <p className="text-xs">
-            <span className="font-semibold">Hay configuraciones pendientes que impiden completar la carga.</span>
-            {' '}La cobertura identificada en el PDF no está configurada en tu catálogo — revisá la sección "Compañía y producto" abajo.
-          </p>
-        </div>
-      )}
 
       {/* Banner de calidad */}
       <div className={`flex items-start gap-2 border rounded p-3 ${bannerColor}`}>
@@ -476,71 +446,43 @@ export default function RevisarPDFPage() {
                   setMapeos(prev => ({ ...(prev || ({} as MapeosCatalogos)), ramo_propuesto: nombre, ramo_id: null }))
                 }}
               />
-              {coberturaBloqueada ? (
-                <div className="border-2 border-red-300 bg-red-50 rounded p-4 flex flex-col gap-3">
-                  <div className="flex items-start gap-2">
-                    <Ban className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-red-800 uppercase tracking-wide">
-                        Cobertura no configurada
-                      </p>
-                      <p className="text-sm font-medium text-red-900 mt-1">
-                        La cobertura &ldquo;{mapeos?.cobertura_info_config?.texto_pdf || d.catalogos_pdf?.cobertura_texto}&rdquo;
-                        {mapeos?.cobertura_info_config?.compania_nombre && (
-                          <> de <span className="font-semibold">{mapeos.cobertura_info_config.compania_nombre}</span></>
-                        )}
-                        {' '}no está en tu catálogo.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-red-800 bg-white border border-red-200 rounded p-3">
-                    <p className="font-semibold mb-1">Para poder continuar con esta carga necesitás:</p>
-                    <ol className="list-decimal list-inside space-y-0.5 leading-relaxed">
-                      <li>Ir a <strong>Catálogos → Coberturas</strong></li>
-                      <li>Crear una nueva cobertura o editar una existente</li>
-                      <li>
-                        Configurar la equivalencia: en{' '}
-                        <strong>{mapeos?.cobertura_info_config?.compania_nombre || 'la compañía'}</strong>{' '}
-                        se llama <strong>&ldquo;{mapeos?.cobertura_info_config?.texto_pdf}&rdquo;</strong>
-                        {mapeos?.cobertura_info_config?.ramo_nombre && (
-                          <> (ramo <strong>{mapeos.cobertura_info_config.ramo_nombre}</strong>)</>
-                        )}
-                      </li>
-                      <li>Volver acá y refrescar para que el sistema reconozca</li>
-                    </ol>
-                  </div>
-
-                  <div className="flex gap-2 flex-wrap">
-                    <a
-                      href="/crm/configuracion/catalogos"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-secondary text-xs"
-                    >
-                      <Wrench className="h-3 w-3" /> Abrir Catálogos
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                    <button
-                      onClick={remapearCatalogos}
-                      disabled={remapeando}
-                      className="btn-primary text-xs"
-                    >
-                      {remapeando ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                      Refrescar después de configurar
-                    </button>
+              <SelectorCatalogoPDF
+                tipo="COBERTURA"
+                valor_pdf={d.catalogos_pdf?.cobertura_texto}
+                valor_mapeado_id={mapeos?.cobertura_id || null}
+                opciones={coberturasFiltradas}
+                nombreMapeado={coberturaNombre || undefined}
+                pendienteCrearNombre={catalogosACrear.coberturas[0] || null}
+                onCancelarPendiente={() => setCatalogosACrear(prev => ({ ...prev, coberturas: [] }))}
+                permiteCrear={true}
+                onMapear={idCat => {
+                  setCatalogosACrear(prev => ({ ...prev, coberturas: [] }))
+                  setMapeos(prev => ({ ...(prev || ({} as MapeosCatalogos)), cobertura_id: idCat }))
+                }}
+                onCrearNuevo={() => {
+                  const nombre = mapeos?.cobertura_info_config?.texto_pdf || d.catalogos_pdf?.cobertura_texto
+                  if (!nombre) return
+                  if (!catalogosACrear.coberturas.includes(nombre)) {
+                    setCatalogosACrear(prev => ({ ...prev, coberturas: [...prev.coberturas, nombre] }))
+                  }
+                  const cia = mapeos?.cobertura_info_config?.compania_nombre || companiaNombre
+                  mostrarToast(
+                    cia
+                      ? `"${nombre}" se va a crear al aprobar y quedará vinculada a ${cia}`
+                      : `"${nombre}" se va a crear al aprobar`,
+                    'ok'
+                  )
+                  setMapeos(prev => ({ ...(prev || ({} as MapeosCatalogos)), cobertura_propuesta: nombre, cobertura_id: null }))
+                }}
+              />
+              {mapeos?.cobertura_estado === 'SUGERIDO_CREAR' && mapeos?.cobertura_info_config && !mapeos?.cobertura_id && catalogosACrear.coberturas.length === 0 && (
+                <div className="border border-blue-200 bg-blue-50 rounded p-3 text-xs text-blue-900 flex gap-2 items-start">
+                  <Sparkles className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Cobertura nueva detectada</p>
+                    <p className="mt-0.5 text-blue-800">{mapeos.cobertura_info_config.sugerencia_accion}</p>
                   </div>
                 </div>
-              ) : (
-                <SelectorCatalogoPDF
-                  tipo="COBERTURA"
-                  valor_pdf={d.catalogos_pdf?.cobertura_texto}
-                  valor_mapeado_id={mapeos?.cobertura_id || null}
-                  opciones={coberturasFiltradas}
-                  nombreMapeado={coberturaNombre || undefined}
-                  permiteCrear={false}
-                  onMapear={idCat => setMapeos(prev => ({ ...(prev || ({} as MapeosCatalogos)), cobertura_id: idCat }))}
-                />
               )}
             </SeccionCard>
 
@@ -683,9 +625,7 @@ export default function RevisarPDFPage() {
           {!todoResuelto && (
             <span className="text-2xs text-amber-700 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" />
-              {coberturaBloqueada
-                ? 'Configurá la cobertura antes de continuar'
-                : 'Resolvé los campos marcados primero'}
+              Resolvé los campos marcados primero
             </span>
           )}
           <button

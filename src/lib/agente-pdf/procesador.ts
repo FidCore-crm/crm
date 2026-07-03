@@ -97,6 +97,11 @@ async function estadoActual(
 export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
   const supabase = getSupabaseAdmin()
 
+  // Timing por etapa. Loguear al final para poder medir cuánto se va en IA
+  // vs pre/post (mapeo, validación, DB). Sin esto optimizar es a ciegas.
+  const timings: Record<string, number> = {}
+  const inicioTotal = Date.now()
+
   try {
     // 1. Marcar como procesando — sólo si estaba PENDIENTE.
     // Si /cancelar ya lo movió a CANCELADO, el update no toca nada y salimos.
@@ -133,9 +138,11 @@ export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
     }
 
     // 4. Llamar a la IA
+    const tIA = Date.now()
     const extraccion = await extraerDatosDePDF(rutaPDF, tipoOperacion, {
       poliza_origen_descripcion: contexto?.descripcion,
     })
+    timings.ms_ia = Date.now() - tIA
 
     // Re-chequear cancelación después de la llamada cara a la IA: si el PAS
     // canceló mientras esperábamos a Claude, no queremos pisar el estado
@@ -149,6 +156,7 @@ export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
     }
 
     // 5. Mapear catálogos + validar
+    const tMapeo = Date.now()
     let mapeos: MapeosCatalogos | null = null
     let dudosos: CampoDudoso[] = []
 
@@ -165,6 +173,7 @@ export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
           : undefined
       )
     }
+    timings.ms_mapeo_validacion = Date.now() - tMapeo
 
     // 6. Guardar todo, pero sólo si seguimos siendo los dueños del estado.
     // Si /cancelar nos ganó la carrera, el update no toca nada.
@@ -181,6 +190,21 @@ export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
         costo_estimado: extraccion.costo_usd,
       },
     )
+
+    timings.ms_total = Date.now() - inicioTotal
+    logger.info({
+      modulo: 'agente-pdf',
+      mensaje: 'Procesamiento PDF completado',
+      contexto: {
+        procesamiento_id: procesamientoId,
+        tipo_operacion: tipoOperacion,
+        ms_total: timings.ms_total,
+        ms_ia: timings.ms_ia,
+        ms_mapeo_validacion: timings.ms_mapeo_validacion,
+        ms_otros: timings.ms_total - (timings.ms_ia || 0) - (timings.ms_mapeo_validacion || 0),
+        dudosos: dudosos.length,
+      },
+    })
 
     // 7. Notificar al PAS
     const urlRevisar = `/crm/agente-pdf/${procesamientoId}` // pantalla del Paso 2

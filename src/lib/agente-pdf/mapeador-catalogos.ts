@@ -9,7 +9,7 @@
 // ============================================================
 
 import { getSupabaseAdmin } from '@/lib/supabase/server'
-import type { DatosExtraidosPoliza, MapeosCatalogos, InfoCoberturaBloqueante } from './types'
+import type { DatosExtraidosPoliza, MapeosCatalogos, InfoCoberturaSugerida } from './types'
 import { normalizarRefacturacion } from '@/lib/refacturaciones'
 import { normalizarMedioPago } from '@/lib/medios-pago'
 
@@ -134,7 +134,9 @@ export async function mapearCatalogos(
   }
 
   // Coberturas: match estricto por equivalencia contra la compañía identificada,
-  // o por nombre dentro del mismo ramo. Si nada matchea → REQUIERE_CONFIGURACION.
+  // o por nombre dentro del mismo ramo. Si nada matchea → SUGERIDO_CREAR
+  // (no bloquea; el PAS decide crear al vuelo o mapear a existente y en ambos
+  // casos aprendemos la equivalencia).
   const textoCobertura = datos.catalogos_pdf?.cobertura_texto || null
   let coberturaMatch: FilaCatalogo | null = null
 
@@ -167,19 +169,21 @@ export async function mapearCatalogos(
     }
   }
 
-  let coberturaEstado: 'MAPEADA' | 'REQUIERE_CONFIGURACION' = 'MAPEADA'
-  let coberturaInfoConfig: InfoCoberturaBloqueante | null = null
+  let coberturaEstado: 'MAPEADA' | 'SUGERIDO_CREAR' = 'MAPEADA'
+  let coberturaInfoConfig: InfoCoberturaSugerida | null = null
   if (!coberturaMatch && textoCobertura) {
-    coberturaEstado = 'REQUIERE_CONFIGURACION'
+    coberturaEstado = 'SUGERIDO_CREAR'
     const companiaNombre = compania?.nombre || datos.catalogos_pdf?.compania_texto || 'la compañía'
     const ramoNombre = ramo?.nombre || datos.catalogos_pdf?.ramo_texto || 'el ramo'
+    // Mensaje pro-activo: al aprobar se crea la cobertura + equivalencia auto
+    // para esa compañía. La próxima póliza con el mismo texto ya se resuelve sola.
     coberturaInfoConfig = {
       texto_pdf: textoCobertura,
       compania_id: compania?.id || null,
       compania_nombre: companiaNombre,
       ramo_id: ramo?.id || null,
       ramo_nombre: ramoNombre,
-      sugerencia_accion: `La cobertura "${textoCobertura}" de ${companiaNombre} no está configurada en tu catálogo. Antes de continuar, necesitás configurarla en Catálogos > Coberturas (agregá la equivalencia para esta compañía dentro del ramo ${ramoNombre}).`,
+      sugerencia_accion: `Se puede crear "${textoCobertura}" como nueva cobertura del ramo ${ramoNombre}, o vincularla a una existente. La equivalencia con ${companiaNombre} queda guardada para futuras pólizas.`,
     }
   }
 

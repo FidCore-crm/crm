@@ -8,6 +8,7 @@
  */
 
 import { validarPatente, validarDNI } from '@/lib/importacion/validators'
+import { hoyAR } from '@/lib/utils'
 
 export interface SiniestroInput {
   // Identificación
@@ -84,7 +85,9 @@ export function validarYNormalizarSiniestro(
   const out: Record<string, any> = {}
 
   // ── Fechas ──────────────────────────────────────────────
-  const hoyIso = new Date().toISOString().slice(0, 10)
+  // Usamos TZ Argentina para que una denuncia hecha 22:00 ARG del 03/07
+  // no se rechace por "fecha futura" contra el 04/07 UTC.
+  const hoyIso = hoyAR()
 
   if (input.fecha_denuncia !== undefined) {
     const fd = trimOrNull(input.fecha_denuncia)

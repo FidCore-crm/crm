@@ -81,9 +81,18 @@ export interface DatosExtraidosEndoso {
 // Mapeo contra catálogos del CRM
 // ────────────────────────────────────────────────────────────
 
-export type EstadoCobertura = 'MAPEADA' | 'REQUIERE_CONFIGURACION'
+export type EstadoCobertura = 'MAPEADA' | 'SUGERIDO_CREAR'
 
-export interface InfoCoberturaBloqueante {
+/**
+ * Info que acompaña al estado `SUGERIDO_CREAR`: el PDF trajo un texto de
+ * cobertura que no matchea ninguno del catálogo. En vez de bloquear, el modal
+ * ofrece crear la cobertura al vuelo con equivalencia auto-sembrada para la
+ * compañía identificada.
+ *
+ * Nombre viejo `InfoCoberturaBloqueante` reexportado como alias para no romper
+ * el resto del código que ya lo importa.
+ */
+export interface InfoCoberturaSugerida {
   texto_pdf: string
   compania_id: string | null
   compania_nombre: string | null
@@ -91,6 +100,8 @@ export interface InfoCoberturaBloqueante {
   ramo_nombre: string | null
   sugerencia_accion: string
 }
+
+export type InfoCoberturaBloqueante = InfoCoberturaSugerida
 
 export interface MapeosCatalogos {
   compania_id: string | null
@@ -100,7 +111,7 @@ export interface MapeosCatalogos {
   cobertura_id: string | null
   cobertura_propuesta?: string | null
   cobertura_estado?: EstadoCobertura
-  cobertura_info_config?: InfoCoberturaBloqueante | null
+  cobertura_info_config?: InfoCoberturaSugerida | null
   refacturacion?: string | null // Valor normalizado del enum REFACTURACIONES (no es FK)
   medio_pago?: string | null // Valor normalizado del enum MEDIOS_PAGO (no es FK)
 }

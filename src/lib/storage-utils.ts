@@ -149,11 +149,25 @@ export async function transicionarArchivosRenovacion(
     .eq('categoria', 'documentacion_renovada')
 
   if (registros && registros.length > 0) {
-    for (const reg of registros) {
+    // Antes de marcar el nuevo PDF como principal, desmarcamos cualquier otro
+    // archivo principal de esta póliza (defensivo — no debería existir).
+    await supabase
+      .from('poliza_archivos')
+      .update({ es_poliza_principal: false } as any)
+      .eq('poliza_id', polizaNuevaId)
+      .eq('es_poliza_principal', true)
+
+    for (let i = 0; i < registros.length; i++) {
+      const reg = registros[i]
       const nuevaRuta = (reg.ruta as string).replace('documentacion_renovada', 'documentacion')
+      // Solo el primer archivo de la renovación se marca como principal —
+      // si hay varios PDFs adjuntos en la renovación (raro), el primero
+      // representa la póliza. El comparador de la próxima renovación tomará
+      // ese como referencia.
+      const esPrincipal = i === 0
       await supabase
         .from('poliza_archivos')
-        .update({ categoria: 'documentacion', ruta: nuevaRuta })
+        .update({ categoria: 'documentacion', ruta: nuevaRuta, es_poliza_principal: esPrincipal } as any)
         .eq('id', reg.id)
     }
   }

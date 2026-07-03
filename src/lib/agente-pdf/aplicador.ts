@@ -385,6 +385,9 @@ export interface ResultadoAplicacion {
   endoso_id?: string
   persona_id?: string
   accion_ejecutada?: AccionEjecutada
+  // Sólo relevante para renovaciones: id del registro poliza_archivos del PDF
+  // recién copiado. Lo usa el comparador IA en background.
+  archivo_id_nuevo?: string | null
 }
 
 export async function aplicarPolizaNueva(params: {
@@ -481,6 +484,9 @@ export async function aplicarPolizaNueva(params: {
     // 3. Registrar en poliza_archivos PRIMERO (con la ruta futura). Esto
     // evita archivos huérfanos si el insert de archivos falla después de
     // copiar. Si el copy falla, revertimos el archivo_id.
+    // es_poliza_principal=true: este PDF representa el contrato vigente
+    // recién creado. El comparador IA lo usa como "PDF viejo" en la
+    // próxima renovación.
     const { data: archivoCreado, error: errArch } = await supabase
       .from('poliza_archivos')
       .insert({
@@ -489,6 +495,7 @@ export async function aplicarPolizaNueva(params: {
         nombre: dest.nombreSaneado,
         ruta: dest.rutaRelativa,
         mime_type: 'application/pdf',
+        es_poliza_principal: true,
       } as any)
       .select('id')
       .single()
@@ -693,6 +700,9 @@ export async function aplicarRenovacion(params: {
     throw new Error(`No se pudo crear la renovación: ${errPol?.message}`)
   }
   const polizaId = (polizaCreada as any).id
+  // Elevado al scope de la función para poder devolverlo (lo usa el comparador
+  // background que dispara /aprobar en RENOVACION).
+  let archivoNuevoId: string | null = null
 
   try {
     // 1. Copiar riesgos del origen (usar datos nuevos si el PDF trae info distinta)
@@ -745,6 +755,7 @@ export async function aplicarRenovacion(params: {
       throw new Error(`No se pudo registrar el archivo: ${errArch?.message}`)
     }
     const archivoId = (archivoCreado as any).id
+    archivoNuevoId = archivoId
 
     // 4. Copiar PDF con rollback del registro si falla
     try {
@@ -825,7 +836,12 @@ export async function aplicarRenovacion(params: {
     })
   }
 
-  return { poliza_id: polizaId, persona_id: (origen as any).asegurado_id, accion_ejecutada }
+  return {
+    poliza_id: polizaId,
+    persona_id: (origen as any).asegurado_id,
+    accion_ejecutada,
+    archivo_id_nuevo: archivoNuevoId,
+  }
 }
 
 export async function aplicarEndoso(params: {

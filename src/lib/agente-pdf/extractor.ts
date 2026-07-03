@@ -9,7 +9,14 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { readFile } from 'fs/promises'
-import { obtenerApiKey, obtenerModelo, registrarUso, autoSustituirModelo } from '@/lib/anthropic-client'
+import {
+  obtenerApiKey,
+  obtenerModelo,
+  registrarUso,
+  autoSustituirModelo,
+  resolverModeloParaFamilia,
+  type FamiliaModelo,
+} from '@/lib/anthropic-client'
 import { logger } from '@/lib/errores'
 import { TIPOS_RIESGO } from '@/lib/tipos-riesgo'
 import type {
@@ -147,19 +154,16 @@ function traducirErrorExtractor(err: any): string {
  * Lee `TIPOS_RIESGO` para mantener una sola fuente de verdad — agregar un
  * tipo nuevo a `tipos-riesgo.ts` lo hace aparecer automáticamente en este
  * prompt sin tocar el extractor.
+ *
+ * Formato compacto: sólo lista de keys sin placeholder ni "importante" —
+ * baja el tamaño del prompt ~70% respecto de la versión verbosa sin perder
+ * la restricción de qué keys usar bajo `detalle_tecnico`.
  */
 function construirSeccionTiposRiesgo(): string {
   return TIPOS_RIESGO.map(t => {
-    const camposLista = t.campos_poliza.map(c => {
-      const requerido = c.requerido ? ' (importante)' : ''
-      const detalle = c.placeholder ? `, ej: ${c.placeholder}` : ''
-      return `       • "${c.key}" (${c.label}${requerido}${detalle})`
-    }).join('\n')
-    const ejemplos = t.ejemplos.length > 0
-      ? ` — ej: ${t.ejemplos.join(', ')}`
-      : ''
-    return `   ${t.key.toUpperCase()}: ${t.resumen}${ejemplos}\n     Campos esperados en detalle_tecnico:\n${camposLista}`
-  }).join('\n\n')
+    const keys = t.campos_poliza.map(c => `"${c.key}"`).join(', ')
+    return `   ${t.key.toUpperCase()}: ${t.resumen}\n     Keys detalle_tecnico: ${keys}`
+  }).join('\n')
 }
 
 const SYSTEM_POLIZA = `Sos un asistente especializado en interpretar PDFs de pólizas de compañías de seguros argentinas (Federación Patronal, San Cristóbal, Sancor, Mercantil Andina, Provincia, La Segunda, Allianz, Zurich, La Holando, etc.).
@@ -267,14 +271,28 @@ export interface ResultadoExtraccion<T> {
 async function llamarClaudeConPDF(
   rutaPDF: string,
   system: string,
-  instruccionUsuario: string
-): Promise<{ texto: string; tokens_input: number; tokens_output: number; modelo: string }> {
+  instruccionUsuario: string,
+  opciones?: { familia?: FamiliaModelo; max_tokens?: number; pdfExtra?: string },
+): Promise<{ texto: string; tokens_input: number; tokens_output: number; modelo: string; ms_ia: number }> {
   const apiKey = await obtenerApiKey()
   if (!apiKey) throw new Error('API key de Anthropic no configurada')
-  let modelo = await obtenerModelo()
+
+  // Si el caller forzó una familia (el extractor usa haiku para velocidad),
+  // resolvemos por familia. Si no, usamos la familia configurada por el PAS.
+  let modelo = opciones?.familia
+    ? await resolverModeloParaFamilia(opciones.familia)
+    : await obtenerModelo()
 
   const buffer = await readFile(rutaPDF)
   const base64 = buffer.toString('base64')
+
+  // Segundo PDF opcional — usado por el comparador de renovaciones (2 PDFs
+  // en el mismo request). Si no se pasa, se envía solo el primero.
+  let base64Extra: string | null = null
+  if (opciones?.pdfExtra) {
+    const bufferExtra = await readFile(opciones.pdfExtra)
+    base64Extra = bufferExtra.toString('base64')
+  }
 
   const client = new Anthropic({ apiKey })
 
@@ -288,24 +306,29 @@ async function llamarClaudeConPDF(
   let respuesta: Awaited<ReturnType<typeof client.messages.create>>
   let yaSustituyo = false
   let sinTemperature = false
+  const inicioIA = Date.now()
   while (true) {
     try {
+      // Contenido del mensaje: PDF principal + PDF extra opcional (comparador).
+      const contenido: any[] = [
+        {
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: base64 },
+        },
+      ]
+      if (base64Extra) {
+        contenido.push({
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: base64Extra },
+        })
+      }
+      contenido.push({ type: 'text', text: instruccionUsuario })
+
       const requestBody: any = {
         model: modelo,
-        max_tokens: 4096,
+        max_tokens: opciones?.max_tokens ?? 2048,
         system,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'document',
-                source: { type: 'base64', media_type: 'application/pdf', data: base64 },
-              } as any,
-              { type: 'text', text: instruccionUsuario },
-            ],
-          },
-        ],
+        messages: [{ role: 'user', content: contenido }],
       }
       if (!sinTemperature) requestBody.temperature = 0
 
@@ -374,8 +397,16 @@ async function llamarClaudeConPDF(
     tokens_input: tokensInput,
     tokens_output: tokensOutput,
     modelo,
+    ms_ia: Date.now() - inicioIA,
   }
 }
+
+// Familia por defecto para las llamadas del extractor. Haiku 4.5 es 2-3x más
+// rápido que Sonnet en tareas de visión y para extracción estructurada (leer
+// campos de un PDF) alcanza en calidad. Si en el futuro degrada, el PAS puede
+// forzar sonnet globalmente y el resto del sistema queda igual — pero por
+// código, el extractor SIEMPRE arranca en haiku.
+const FAMILIA_EXTRACTOR: FamiliaModelo = 'haiku'
 
 export async function extraerDatosPoliza(
   rutaPDF: string,
@@ -386,11 +417,18 @@ export async function extraerDatosPoliza(
       ? `\n\nCONTEXTO ADICIONAL: Este PDF se está cargando como renovación de una póliza existente en el CRM:\n${contextoAdicional.poliza_origen_descripcion}\n\nVerificá que el asegurado coincida. Si el número de póliza nuevo es igual al anterior, marcá una advertencia.`
       : ''
 
-    const { texto, tokens_input, tokens_output } = await llamarClaudeConPDF(
+    const { texto, tokens_input, tokens_output, ms_ia } = await llamarClaudeConPDF(
       rutaPDF,
       SYSTEM_POLIZA,
-      `Extraé los datos de la póliza principal del PDF adjunto y devolvémelos en el JSON que indica el system prompt.${ctx}`
+      `Extraé los datos de la póliza principal del PDF adjunto y devolvémelos en el JSON que indica el system prompt.${ctx}`,
+      { familia: FAMILIA_EXTRACTOR },
     )
+
+    logger.info({
+      modulo: 'agente-pdf',
+      mensaje: 'Extracción de póliza completada',
+      contexto: { ms_ia, tokens_input, tokens_output, familia: FAMILIA_EXTRACTOR },
+    })
 
     const crudo = extraerJson(texto)
     validarEstructuraPoliza(crudo)
@@ -422,11 +460,18 @@ export async function extraerDatosEndoso(
       ? `\n\nCONTEXTO: Este endoso aplica sobre la póliza:\n${contextoAdicional.poliza_origen_descripcion}`
       : ''
 
-    const { texto, tokens_input, tokens_output } = await llamarClaudeConPDF(
+    const { texto, tokens_input, tokens_output, ms_ia } = await llamarClaudeConPDF(
       rutaPDF,
       SYSTEM_ENDOSO,
-      `Extraé los datos del endoso del PDF adjunto y devolvémelos en el JSON del system prompt.${ctx}`
+      `Extraé los datos del endoso del PDF adjunto y devolvémelos en el JSON del system prompt.${ctx}`,
+      { familia: FAMILIA_EXTRACTOR },
     )
+
+    logger.info({
+      modulo: 'agente-pdf',
+      mensaje: 'Extracción de endoso completada',
+      contexto: { ms_ia, tokens_input, tokens_output, familia: FAMILIA_EXTRACTOR },
+    })
 
     const crudo = extraerJson(texto)
     validarEstructuraEndoso(crudo)
@@ -458,4 +503,144 @@ export async function extraerDatosDePDF(
     return extraerDatosEndoso(rutaPDF, contextoAdicional)
   }
   return extraerDatosPoliza(rutaPDF, contextoAdicional)
+}
+
+// ────────────────────────────────────────────────────────────
+// Comparador de renovaciones: 2 PDFs → JSON de cambios
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Un cambio detectado por la IA entre el PDF viejo y el nuevo.
+ *
+ *   tipo = 'material' → cambio importante para el PAS (cobertura distinta,
+ *          sublímite, RC, exclusión nueva, monto asegurado).
+ *   tipo = 'cosmético' → cambio irrelevante (número de póliza nuevo,
+ *          fecha de emisión, número de endoso). No se muestra por default.
+ *   severidad = 'alta' | 'media' | 'baja' → para ordenar y colorear.
+ */
+export interface CambioDetectado {
+  categoria: string        // ej: "Cobertura", "Suma asegurada", "RC", "Exclusiones", "Vigencia"
+  campo: string            // ej: "Cobertura principal", "RC hasta"
+  antes: string | null
+  ahora: string | null
+  tipo: 'material' | 'cosmético'
+  severidad: 'alta' | 'media' | 'baja'
+  descripcion: string      // frase legible: "La cobertura pasó de CF (Terceros Full) a C (Terceros común). Es un downgrade."
+}
+
+export interface ResultadoComparacion {
+  ok: boolean
+  cambios?: CambioDetectado[]
+  resumen?: string         // 1-2 líneas de tl;dr para el PAS
+  error?: string
+  tokens_input: number
+  tokens_output: number
+  tokens_total: number
+  costo_usd: number
+  ms_ia: number
+}
+
+const SYSTEM_COMPARADOR = `Sos un asistente especializado en comparar dos versiones de una póliza de seguros argentina (la póliza vigente y su renovación de la misma compañía).
+
+Tu tarea es leer los 2 PDFs adjuntos y devolver un JSON con los cambios materiales que detectes. El PAS que asesora al cliente necesita saber qué cambió para poder avisarle antes de que el cliente firme la renovación.
+
+CONTEXTO IMPORTANTE — nombres de coberturas:
+Las compañías usan nombres/códigos comerciales que varían aunque el producto sea el mismo. Por ejemplo, en San Cristóbal "CM", "Premium Max" y "CF" son variantes del mismo producto "Terceros Full". NO marques como cambio material si el nombre cambia pero el nivel de cobertura es equivalente (ej: "CF" → "Premium Max" en la misma compañía = sin cambio). SÍ marcá como material si el nivel real cambia (ej: "CF" → "C" es un downgrade de Terceros Full a Terceros común).
+
+QUÉ CONSIDERAR COMO CAMBIO MATERIAL:
+- Cambio de cobertura (upgrade / downgrade / cambio de plan).
+- Cambio de suma asegurada de la póliza o de una cobertura interna.
+- Cambio de responsabilidad civil (RC): monto, sublímite, exclusiones.
+- Cambio de franquicia.
+- Coberturas adicionales agregadas o quitadas (granizo, cristales, robo de ruedas, asistencia mecánica, etc.).
+- Cambio de sublímites por cobertura.
+- Cambio de zonas geográficas cubiertas (ej: "ya no cubre Chile").
+- Cambio de exclusiones o restricciones.
+- Cambio de moneda (ARS → USD o viceversa).
+
+QUÉ CONSIDERAR COSMÉTICO (marcá igual, pero con tipo 'cosmético'):
+- Número de póliza nuevo (es normal en renovaciones).
+- Fecha de emisión.
+- Número de endoso.
+- Número de recibo, forma de pago si es la misma.
+- Datos del asegurado (dirección, teléfono) si sólo son actualizaciones.
+
+REGLAS DURAS:
+1. Respondé SOLO con JSON válido, sin texto extra, sin fences.
+2. Los 2 PDFs se te pasan en orden: PRIMERO el PDF viejo (póliza vigente), SEGUNDO el PDF nuevo (renovación).
+3. Si no detectás ningún cambio material, devolvé "cambios": [] y un resumen tipo "Sin cambios materiales — la renovación mantiene las mismas condiciones".
+4. Sé preciso con montos. Si en el viejo era $30.000.000 y en el nuevo $50.000.000, escribilo exacto.
+5. En "descripcion" escribí frases claras para el PAS, no tecnicismos.
+6. Si detectás algo dudoso (no estás seguro si es cambio o no), agregalo con severidad 'baja' y aclará en descripción.
+
+Schema de salida:
+{
+  "resumen": string,
+  "cambios": [
+    {
+      "categoria": string,
+      "campo": string,
+      "antes": string | null,
+      "ahora": string | null,
+      "tipo": "material" | "cosmético",
+      "severidad": "alta" | "media" | "baja",
+      "descripcion": string
+    }
+  ]
+}`
+
+/**
+ * Compara dos PDFs de póliza (el viejo y la renovación) con IA y devuelve un
+ * JSON de cambios detectados. Usa Haiku por defecto para velocidad.
+ *
+ * Diseñada para correr fire-and-forget desde el endpoint de aprobación de
+ * renovación — no bloquea al PAS.
+ */
+export async function compararPolizasConIA(
+  rutaPDFViejo: string,
+  rutaPDFNuevo: string,
+): Promise<ResultadoComparacion> {
+  try {
+    const { texto, tokens_input, tokens_output, ms_ia } = await llamarClaudeConPDF(
+      rutaPDFViejo,
+      SYSTEM_COMPARADOR,
+      'Adjunto dos PDFs. El PRIMERO es la póliza vigente (viejo). El SEGUNDO es la renovación (nuevo). Compará y devolvé el JSON de cambios materiales según el schema del system prompt.',
+      { familia: FAMILIA_EXTRACTOR, pdfExtra: rutaPDFNuevo, max_tokens: 3072 },
+    )
+
+    logger.info({
+      modulo: 'agente-pdf',
+      mensaje: 'Comparación de pólizas completada',
+      contexto: { ms_ia, tokens_input, tokens_output, familia: FAMILIA_EXTRACTOR },
+    })
+
+    const crudo = extraerJson(texto)
+    const cambios = Array.isArray((crudo as any).cambios) ? (crudo as any).cambios as CambioDetectado[] : []
+    const resumen = typeof (crudo as any).resumen === 'string' ? (crudo as any).resumen : ''
+    const total = tokens_input + tokens_output
+    const costo =
+      (tokens_input / 1_000_000) * COSTO_INPUT_POR_MTOK +
+      (tokens_output / 1_000_000) * COSTO_OUTPUT_POR_MTOK
+
+    return {
+      ok: true,
+      cambios,
+      resumen,
+      tokens_input,
+      tokens_output,
+      tokens_total: total,
+      costo_usd: costo,
+      ms_ia,
+    }
+  } catch (err: any) {
+    return {
+      ok: false,
+      error: traducirErrorExtractor(err),
+      tokens_input: 0,
+      tokens_output: 0,
+      tokens_total: 0,
+      costo_usd: 0,
+      ms_ia: 0,
+    }
+  }
 }

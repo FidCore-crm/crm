@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabase/server'
+import { formatFechaLocalLarga, diasHastaVencimiento } from '@/lib/utils'
 
 /**
  * Reemplaza {{variable}} por su valor. Si falta, deja vacío.
@@ -52,26 +53,19 @@ export async function obtenerVariablesPoliza(polizaId: string): Promise<Record<s
     supabase.from('riesgos').select('descripcion_corta').eq('poliza_id', polizaId).limit(1).maybeSingle(),
   ])
 
-  const fechaFin = poliza.fecha_fin ? new Date(poliza.fecha_fin) : null
-  const hoy = new Date()
-  const diasHastaVencimiento = fechaFin
-    ? Math.ceil((fechaFin.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
-    : 0
-
-  const formatFecha = (f: string | null) => {
-    if (!f) return ''
-    const d = new Date(f)
-    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
+  // Fechas: siempre usar el helper que parsea YYYY-MM-DD split-manual, para
+  // evitar el drift de UTC que hace que en Argentina (UTC-3) una póliza con
+  // fecha_fin '2026-07-03' se muestre como '02/07/2026'.
+  const diasVenc = diasHastaVencimiento(poliza.fecha_fin)
 
   return {
     numero_poliza: poliza.numero_poliza || '',
     compania: (companiaRes.data as any)?.nombre || '',
     ramo: (ramoRes.data as any)?.nombre || '',
-    fecha_inicio: formatFecha(poliza.fecha_inicio),
-    fecha_fin: formatFecha(poliza.fecha_fin),
+    fecha_inicio: formatFechaLocalLarga(poliza.fecha_inicio),
+    fecha_fin: formatFechaLocalLarga(poliza.fecha_fin),
     riesgo: (riesgoRes.data as any)?.descripcion_corta || '',
-    dias_hasta_vencimiento: String(diasHastaVencimiento),
+    dias_hasta_vencimiento: String(diasVenc),
   }
 }
 

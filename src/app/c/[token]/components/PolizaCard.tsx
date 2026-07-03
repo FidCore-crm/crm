@@ -6,6 +6,7 @@ import {
   Car, Home, HeartPulse, Building2, Bike, Shield,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { formatFechaLocalLarga, diasHastaVencimiento } from '@/lib/utils'
 
 export interface PolizaData {
   id: string
@@ -79,19 +80,6 @@ function lineasRiesgo(r: PolizaData['riesgos'][number]): { label: string; valor:
   return out
 }
 
-function formatoFecha(iso: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function diasRestantes(fechaFin: string): number {
-  if (!fechaFin) return 0
-  const fin = new Date(fechaFin).getTime()
-  const hoy = Date.now()
-  return Math.ceil((fin - hoy) / (24 * 3600 * 1000))
-}
-
 function formatoTamano(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
@@ -128,7 +116,7 @@ export default function PolizaCard({
   token: string
 }) {
   const [docsAbierto, setDocsAbierto] = useState(false)
-  const dias = diasRestantes(poliza.fecha_fin)
+  const dias = diasHastaVencimiento(poliza.fecha_fin)
   const porVencer = dias >= 0 && dias <= 30
   const Icono = iconoRamo(poliza.ramo, poliza.riesgos[0]?.tipo)
 
@@ -198,7 +186,7 @@ export default function PolizaCard({
         <div className="flex items-start gap-2">
           <span className="text-xs text-slate-500 w-24 shrink-0">Vigencia</span>
           <span className="text-sm text-slate-700">
-            {formatoFecha(poliza.fecha_inicio)} → {formatoFecha(poliza.fecha_fin)}
+            {formatFechaLocalLarga(poliza.fecha_inicio)} → {formatFechaLocalLarga(poliza.fecha_fin)}
           </span>
         </div>
       </div>

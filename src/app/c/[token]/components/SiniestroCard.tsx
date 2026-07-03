@@ -5,6 +5,7 @@ import {
   Calendar, Hash, CheckCircle2, XCircle, MessageSquare, ArrowRight,
   ChevronDown, ChevronUp, FileText, Download, Folder,
 } from 'lucide-react'
+import { formatFechaLocalLarga } from '@/lib/utils'
 
 export interface SiniestroData {
   id: string
@@ -82,9 +83,7 @@ function labelTipo(tipo: string | null, tipoOtro: string | null): string {
 }
 
 function formatoFecha(iso: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return formatFechaLocalLarga(iso)
 }
 
 function formatoTamano(bytes: number): string {

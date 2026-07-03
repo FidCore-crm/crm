@@ -978,6 +978,12 @@ function resolverCatalogos(
       if (m) {
         pol.cobertura_id = m.id;
       } else {
+        // Guardamos el contexto (compañía + ramo) en la descripción para que
+        // `crearCatalogosPendientes` pueda armar el metadata correctamente:
+        //   { ramo_ids: [ramo_id], equivalencias: { [compania_id]: texto } }
+        // y para aprender la equivalencia si el PAS mapea a una existente.
+        // La captura viaja además en `datos_originales.entidades.poliza` que
+        // ya persistimos en el dudoso — no hace falta duplicar acá.
         reg.problemas.push({
           tipo_entidad: 'POLIZA',
           tipo_problema: 'COBERTURA_NO_RECONOCIDA',

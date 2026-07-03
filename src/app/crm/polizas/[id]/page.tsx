@@ -12,6 +12,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { formatFecha, formatFechaLocal, formatMoneda, getBadgeClase, getLabelEstado, getPolizaBadgeColor, nombreCompleto, hoyLocal, diasHastaVencimiento } from '@/lib/utils'
 import GestorArchivos from '@/components/GestorArchivos'
 import EndososSection from '@/components/EndososSection'
+import ComparacionRenovacionCard from '@/components/ComparacionRenovacionCard'
 import ModalEnviarEmail from '@/components/ModalEnviarEmail'
 import ModalRecordarPago from '@/components/ModalRecordarPago'
 import ModalUploadPDF from '@/components/agente-pdf/ModalUploadPDF'
@@ -51,6 +52,29 @@ interface PolizaDetalle {
   notas: string | null
   created_at: string
   updated_at: string
+  poliza_origen_id: string | null
+  comparacion_ia: {
+    poliza_origen_id: string
+    archivo_viejo_id: string
+    archivo_nuevo_id: string
+    estado: 'PROCESANDO' | 'COMPLETADA' | 'FALLIDA'
+    cambios?: Array<{
+      categoria: string
+      campo: string
+      antes: string | null
+      ahora: string | null
+      tipo: 'material' | 'cosmético'
+      severidad: 'alta' | 'media' | 'baja'
+      descripcion: string
+    }>
+    resumen?: string
+    error?: string | null
+    tokens_usados?: number
+    costo_usd?: number
+    duracion_ms?: number
+    creado_en: string
+    completado_en?: string
+  } | null
   asegurado: { id: string; apellido: string; nombre: string | null; razon_social: string | null; dni_cuil: string; telefono: string | null; whatsapp: string | null; email: string | null; usuario_id: string | null }
   compania: { id: string; nombre: string } | null
   ramo: { id: string; nombre: string; metadata: Record<string, any> | null } | null
@@ -158,6 +182,7 @@ export default function FichaPolizaPage() {
         fecha_inicio, fecha_fin, refacturacion, medio_pago,
         suma_asegurada, moneda, mostrar_suma_asegurada_portal, estado, motivo_baja, fecha_baja, observaciones_baja,
         observaciones, notas, created_at, updated_at,
+        poliza_origen_id, comparacion_ia,
         asegurado:personas!asegurado_id (id, apellido, nombre, razon_social, dni_cuil, telefono, whatsapp, email, usuario_id),
         compania:catalogos!compania_id (id, nombre),
         ramo:catalogos!ramo_id (id, nombre, metadata),
@@ -843,6 +868,14 @@ export default function FichaPolizaPage() {
               </div>
             </div>
           )}
+
+          {/* Análisis de cambios con IA (solo si la póliza es renovación) */}
+          <ComparacionRenovacionCard
+            polizaId={poliza.id}
+            polizaOrigenId={poliza.poliza_origen_id}
+            comparacionIa={poliza.comparacion_ia}
+            onCambio={cargar}
+          />
 
           {/* Historial / bitácora de la póliza */}
           <HistorialPoliza polizaId={poliza.id} refreshKey={historialKey} />

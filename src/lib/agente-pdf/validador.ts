@@ -140,16 +140,15 @@ export function validarDatosExtraidosPoliza(
   }
   if (!mapeos.cobertura_id) {
     const info = mapeos.cobertura_info_config
-    const esBloqueante = mapeos.cobertura_estado === 'REQUIERE_CONFIGURACION'
     dudosos.push({
       campo: 'mapeos.cobertura',
       tipo_problema: 'COBERTURA_NO_RECONOCIDA',
       valor_extraido: info?.texto_pdf || mapeos.cobertura_propuesta || datos.catalogos_pdf?.cobertura_texto || null,
-      motivo: esBloqueante
-        ? 'COBERTURA_NO_CONFIGURADA'
-        : 'La cobertura del PDF no coincide con ninguna del catálogo',
+      motivo: 'La cobertura del PDF no coincide con ninguna del catálogo',
       sugerencia: info?.sugerencia_accion || mapeos.cobertura_propuesta || undefined,
-      bloqueante: esBloqueante,
+      // No bloquea: el PAS puede crear la cobertura al vuelo desde el modal o
+      // mapearla a una existente. En ambos casos aprendemos la equivalencia.
+      bloqueante: false,
     })
   }
 

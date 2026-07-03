@@ -220,7 +220,7 @@ export async function crearCatalogosPendientes(
 
   const { data: dudosos, error: errD } = await supa
     .from('importacion_registros_dudosos')
-    .select('resolucion_datos, resolucion_accion, estado_resolucion')
+    .select('resolucion_datos, resolucion_accion, estado_resolucion, tipo_problema, datos_originales')
     .eq('importacion_id', importacion_id)
     .eq('estado_resolucion', 'RESUELTO')
     .eq('resolucion_accion', 'EDITAR');
@@ -234,12 +234,21 @@ export async function crearCatalogosPendientes(
   // haya elegido un `tipo_riesgo` al crear un ramo nuevo desde la pantalla de
   // dudosos — sin eso el ramo quedaba con metadata={} y todos los riesgos
   // asociados caían en 'generico' (placeholder vacío en el form).
+  //
+  // Para coberturas, además, capturamos el contexto (compania_id, ramo_id,
+  // texto original del Excel) del `datos_originales` del dudoso para sembrar
+  // `ramo_ids` y `equivalencias.[compania_id]: texto` al crearla — así aparece
+  // filtrada por ramo en los forms y la próxima importación del mismo texto
+  // se resuelve sola.
   const porTipo = {
     compania: new Map<string, Record<string, unknown>>(),
     ramo: new Map<string, Record<string, unknown>>(),
     cobertura: new Map<string, Record<string, unknown>>(),
   };
-  type DudosoResolucion = Pick<DudosoRow, 'resolucion_datos' | 'resolucion_accion' | 'estado_resolucion'>;
+  type DudosoResolucion = Pick<
+    DudosoRow,
+    'resolucion_datos' | 'resolucion_accion' | 'estado_resolucion' | 'tipo_problema' | 'datos_originales'
+  >;
   for (const d of ((dudosos || []) as DudosoResolucion[])) {
     const datos = d?.resolucion_datos as JSONObject | null | undefined;
     if (!datos || datos.crear_nuevo !== true) continue;
@@ -262,6 +271,23 @@ export async function crearCatalogosPendientes(
     } else if (tipoRaw === 'cobertura') {
       const metaPrev = porTipo.cobertura.get(clave) ?? {};
       metaPrev.__nombre_original = nombre;
+      // Extraer contexto del dudoso original — la póliza ya tiene resueltos
+      // compania_id / ramo_id / texto_cobertura si el mapeador los encontró.
+      const orig = (d?.datos_originales ?? {}) as JSONObject;
+      const entidades = (orig.entidades ?? {}) as JSONObject;
+      const polOrig = (entidades.poliza ?? {}) as JSONObject;
+      const companiaId = typeof polOrig.compania_id === 'string' ? polOrig.compania_id : null;
+      const ramoId = typeof polOrig.ramo_id === 'string' ? polOrig.ramo_id : null;
+      const valorOriginal = typeof orig.valor_original === 'string' ? orig.valor_original.trim() : '';
+      // Acumular en sets/maps (por si el mismo nombre viene de varias filas
+      // con distintas compañías — todas quedan como equivalencia).
+      const ramoIdsPrev = (metaPrev.__ramo_ids as Set<string> | undefined) ?? new Set<string>();
+      const equivalenciasPrev =
+        (metaPrev.__equivalencias as Map<string, string> | undefined) ?? new Map<string, string>();
+      if (ramoId) ramoIdsPrev.add(ramoId);
+      if (companiaId && valorOriginal) equivalenciasPrev.set(companiaId, valorOriginal);
+      metaPrev.__ramo_ids = ramoIdsPrev;
+      metaPrev.__equivalencias = equivalenciasPrev;
       porTipo.cobertura.set(clave, metaPrev);
     }
   }
@@ -305,6 +331,40 @@ export async function crearCatalogosPendientes(
     }
   }
 
+  /**
+   * Variante para coberturas: arma el metadata con `ramo_ids` (para que la
+   * cobertura aparezca filtrada por ramo en los forms) y `equivalencias`
+   * (map compañía → texto original del Excel) sembrados desde el contexto
+   * capturado en __ramo_ids / __equivalencias de cada entrada.
+   */
+  async function crearEnCatalogoCobertura(
+    tipo_id: number,
+    entradas: Map<string, Record<string, unknown>>,
+    destino: Map<string, string>,
+  ) {
+    for (const [clave, meta] of Array.from(entradas.entries())) {
+      if (destino.has(clave)) continue;
+      const nombre = String(meta.__nombre_original ?? clave);
+      const ramoIdsSet = meta.__ramo_ids as Set<string> | undefined;
+      const equivalenciasMap = meta.__equivalencias as Map<string, string> | undefined;
+      const metadata: Record<string, unknown> = {};
+      if (ramoIdsSet && ramoIdsSet.size > 0) {
+        metadata.ramo_ids = Array.from(ramoIdsSet);
+      }
+      if (equivalenciasMap && equivalenciasMap.size > 0) {
+        metadata.equivalencias = Object.fromEntries(equivalenciasMap.entries());
+      }
+      try {
+        const id = await insertarCatalogoUpsert(tipo_id, nombre, metadata);
+        if (id) destino.set(clave, id);
+      } catch (e) {
+        const err = e as { message?: string } | string;
+        const msg = typeof err === 'string' ? err : err?.message || String(e);
+        errores.push(`Error creando catálogo "${nombre}": ${msg}`);
+      }
+    }
+  }
+
   if (tipoCompaniaId && porTipo.compania.size > 0) {
     await crearEnCatalogo(tipoCompaniaId, porTipo.compania, companias_creadas, false);
   } else if (porTipo.compania.size > 0) {
@@ -316,16 +376,155 @@ export async function crearCatalogosPendientes(
     errores.push('No se encontró tipo_catalogo RAMO');
   }
   if (tipoCoberturaId && porTipo.cobertura.size > 0) {
-    // Coberturas se crean SIN metadata.ramo_ids — el PAS las verá disponibles
-    // en el catálogo pero no aparecen filtradas por ramo en el form de pólizas
-    // hasta que él complete la metadata desde /crm/configuracion/catalogos.
-    // Es deuda menor a cambio de desbloquear la importación.
-    await crearEnCatalogo(tipoCoberturaId, porTipo.cobertura, coberturas_creadas, false);
+    // Nueva cobertura con metadata: aparece filtrada por ramo en el form de
+    // pólizas + la equivalencia queda registrada para futuras importaciones
+    // que traigan el mismo texto para la misma compañía.
+    await crearEnCatalogoCobertura(tipoCoberturaId, porTipo.cobertura, coberturas_creadas);
   } else if (porTipo.cobertura.size > 0) {
     errores.push('No se encontró tipo_catalogo COBERTURA');
   }
 
+  // Aprendizaje al mapear a existente: recorrer dudosos de COBERTURA_NO_RECONOCIDA
+  // resueltos con "mapear a existente" (resolucion_datos.cobertura_id != null,
+  // sin crear_nuevo) y agregar la equivalencia (compania_id → texto) al metadata
+  // de la cobertura elegida.
+  await aprenderEquivalenciasCoberturasImportador(
+    supa,
+    (dudosos || []) as DudosoResolucion[],
+    errores,
+  );
+
   return { companias_creadas, ramos_creados, coberturas_creadas, errores };
+}
+
+/**
+ * Recorre los dudosos de COBERTURA_NO_RECONOCIDA que el PAS resolvió mapeando
+ * a una cobertura existente (no "crear nuevo") y agrega la equivalencia al
+ * metadata de esa cobertura. Idempotente por diseño — no duplica si ya está.
+ *
+ * Cuando el mismo texto aparece varias veces en el Excel con la misma compañía,
+ * se agrupa por (cobertura_id, compania_id, texto) para hacer un solo UPDATE.
+ */
+async function aprenderEquivalenciasCoberturasImportador(
+  supa: ReturnType<typeof getSupabaseAdmin>,
+  dudosos: Array<Pick<DudosoRow, 'resolucion_datos' | 'resolucion_accion' | 'tipo_problema' | 'datos_originales'>>,
+  errores: string[],
+): Promise<void> {
+  // Agrupar por cobertura elegida: equivalencias (compania -> texto) + ramoIds.
+  // También aprendemos ramo_ids para que la cobertura vieja (sin metadata)
+  // aparezca filtrada correctamente en el form de nueva póliza.
+  interface AprenderPorCobertura {
+    equivalencias: Map<string, string>;
+    ramoIds: Set<string>;
+  }
+  const aprender = new Map<string, AprenderPorCobertura>();
+
+  for (const d of dudosos) {
+    if (d.tipo_problema !== 'COBERTURA_NO_RECONOCIDA') continue;
+    if (d.resolucion_accion !== 'EDITAR') continue;
+    const datos = (d.resolucion_datos ?? {}) as JSONObject;
+    if (datos.crear_nuevo === true) continue; // ya se manejó en el otro path
+    const coberturaId = typeof datos.cobertura_id === 'string' ? datos.cobertura_id : null;
+    if (!coberturaId) continue;
+
+    const orig = (d.datos_originales ?? {}) as JSONObject;
+    const entidades = (orig.entidades ?? {}) as JSONObject;
+    const polOrig = (entidades.poliza ?? {}) as JSONObject;
+    const companiaId = typeof polOrig.compania_id === 'string' ? polOrig.compania_id : null;
+    const ramoId = typeof polOrig.ramo_id === 'string' ? polOrig.ramo_id : null;
+    const texto = typeof orig.valor_original === 'string' ? orig.valor_original.trim() : '';
+
+    const entry = aprender.get(coberturaId) ?? {
+      equivalencias: new Map<string, string>(),
+      ramoIds: new Set<string>(),
+    };
+    if (companiaId && texto) entry.equivalencias.set(companiaId, texto);
+    if (ramoId) entry.ramoIds.add(ramoId);
+    aprender.set(coberturaId, entry);
+  }
+
+  if (aprender.size === 0) return;
+
+  const ids = Array.from(aprender.keys());
+  const { data: coberturas } = await supa
+    .from('catalogos')
+    .select('id, metadata')
+    .in('id', ids);
+
+  const normalizar = (s: string) =>
+    s
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+
+  const filasCob = (coberturas || []) as Array<{ id: string; metadata: Record<string, unknown> | null }>;
+  for (const cob of filasCob) {
+    const entry = aprender.get(cob.id);
+    if (!entry) continue;
+    const metadata = { ...(cob.metadata ?? {}) };
+    const eqPrev = metadata.equivalencias;
+    let cambio = false;
+
+    // (a) Equivalencias
+    if (entry.equivalencias.size > 0) {
+      if (Array.isArray(eqPrev)) {
+        const listaNueva = [...eqPrev];
+        for (const [companiaId, texto] of Array.from(entry.equivalencias.entries())) {
+          const yaEsta = listaNueva.some((eq: { compania_id?: string; nombre_comercial?: string; nombre?: string; texto?: string }) =>
+            eq?.compania_id === companiaId &&
+            normalizar(String(eq?.nombre_comercial || eq?.nombre || eq?.texto || '')) === normalizar(texto),
+          );
+          if (!yaEsta) {
+            listaNueva.push({ compania_id: companiaId, nombre_comercial: texto });
+            cambio = true;
+          }
+        }
+        metadata.equivalencias = listaNueva;
+      } else if (eqPrev && typeof eqPrev === 'object') {
+        const mapNuevo: Record<string, unknown> = { ...(eqPrev as Record<string, unknown>) };
+        for (const [companiaId, texto] of Array.from(entry.equivalencias.entries())) {
+          const actual = mapNuevo[companiaId];
+          const actualTxt = typeof actual === 'string' ? actual : (actual as { nombre_comercial?: string })?.nombre_comercial ?? '';
+          if (normalizar(String(actualTxt)) !== normalizar(texto)) {
+            mapNuevo[companiaId] = texto;
+            cambio = true;
+          }
+        }
+        metadata.equivalencias = mapNuevo;
+      } else {
+        metadata.equivalencias = Object.fromEntries(entry.equivalencias.entries());
+        cambio = true;
+      }
+    }
+
+    // (b) ramo_ids: agregar los ramos vistos si no estaban ya.
+    if (entry.ramoIds.size > 0) {
+      const ramoIdsPrev = metadata.ramo_ids;
+      if (!Array.isArray(ramoIdsPrev)) {
+        metadata.ramo_ids = Array.from(entry.ramoIds);
+        cambio = true;
+      } else {
+        const setActual = new Set<string>(ramoIdsPrev as string[]);
+        const antes = setActual.size;
+        for (const r of Array.from(entry.ramoIds)) setActual.add(r);
+        if (setActual.size !== antes) {
+          metadata.ramo_ids = Array.from(setActual);
+          cambio = true;
+        }
+      }
+    }
+
+    if (!cambio) continue;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supa.from('catalogos') as any)
+      .update({ metadata })
+      .eq('id', cob.id);
+    if (error) {
+      errores.push(`Aprender equivalencia cobertura ${cob.id}: ${error.message}`);
+    }
+  }
 }
 
 /**

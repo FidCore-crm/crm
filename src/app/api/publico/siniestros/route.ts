@@ -11,6 +11,7 @@ import { checkRateLimit as rlCheck, getClientIp } from '@/lib/rate-limit'
 import { logger } from '@/lib/errores'
 import { validarDNI, validarPatente } from '@/lib/importacion/validators'
 import { validarYNormalizarSiniestro } from '@/lib/siniestros-validacion'
+import { hoyAR } from '@/lib/utils'
 import { registrarEventoBitacoraSiniestro } from '@/lib/bitacora-siniestro'
 import {
   construirDetalleSiniestro,
@@ -433,7 +434,10 @@ export async function POST(request: NextRequest) {
     }
     const detalleSiniestroSeguro = sanitizarRecursivo(detalleSiniestro)
 
-    const fechaDenunciaIso = new Date().toISOString()
+    // Fecha de denuncia = hoy en Argentina. `new Date().toISOString()` usa UTC
+    // y en horario 21:00-23:59 ARG queda con el día siguiente cuando Postgres
+    // castea a DATE. hoyAR() devuelve YYYY-MM-DD forzando TZ Buenos Aires.
+    const fechaDenunciaIso = hoyAR()
     const validacionSiniestro = validarYNormalizarSiniestro({
       fecha_denuncia: fechaDenunciaIso,
       fecha_ocurrencia: fecha_siniestro,
