@@ -132,7 +132,7 @@ export async function GET(
     const { data: polizas } = await supabase
       .from('polizas')
       .select(
-        'id, numero_poliza, fecha_inicio, fecha_fin, estado, compania_id, ramo_id, cobertura_id, suma_asegurada, moneda, mostrar_suma_asegurada_portal'
+        'id, numero_poliza, fecha_inicio, fecha_fin, estado, compania_id, ramo_id, cobertura_id, suma_asegurada, moneda, mostrar_suma_asegurada_portal, observaciones'
       )
       .eq('asegurado_id', personaId)
       .eq('estado', 'VIGENTE')
@@ -211,6 +211,9 @@ export async function GET(
           fecha_inicio: p.fecha_inicio,
           fecha_fin: p.fecha_fin,
           riesgos: mapRiesgos.get(p.id) ?? [],
+          // Observaciones son intencionalmente visibles al asegurado (a
+          // diferencia de `notas` que son privadas del PAS y NO se exponen).
+          observaciones: p.observaciones || null,
           archivos,
         }
       })

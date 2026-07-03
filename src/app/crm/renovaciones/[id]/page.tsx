@@ -106,6 +106,7 @@ export default function RenovarPolizaPage() {
   const [refacturacion, setRefacturacion] = useState('')
   const [medioPago, setMedioPago] = useState('')
   const [observaciones, setObservaciones] = useState('')
+  const [notas, setNotas] = useState('')
 
   // Catálogos
   const [companias,      setCompanias]      = useState<Catalogo[]>([])
@@ -411,6 +412,7 @@ export default function RenovarPolizaPage() {
           estado:           'RENOVADA',
           poliza_origen_id: origen.id,
           observaciones:    observaciones || null,
+          notas:            notas || null,
         })
         .select('id').single()
 
@@ -825,6 +827,19 @@ export default function RenovarPolizaPage() {
               <textarea className="form-input w-full resize-none" rows={3} value={riesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describí el bien asegurado..."/>
             </Campo>
           )}
+
+          {/* Observaciones libres del bien asegurado — Se preserva desde la
+              póliza origen (mergeado en detalleDe) y se puede editar acá.
+              Se guarda en detalle_tecnico.observaciones del riesgo. */}
+          <Campo label="Observaciones del bien asegurado" col={2}>
+            <textarea
+              className="form-input w-full resize-none"
+              rows={3}
+              value={riesgo.detalle_dinamico?.observaciones ?? ''}
+              onChange={e => setR('detalle_dinamico', { ...(riesgo.detalle_dinamico ?? {}), observaciones: e.target.value })}
+              placeholder="Info libre sobre el bien (sublímites, cláusulas específicas, condiciones particulares que no encajan en los campos)..."
+            />
+          </Campo>
         </div>
       </div>
 
@@ -836,13 +851,38 @@ export default function RenovarPolizaPage() {
         titulo="Documentación de la renovación"
       />
 
-      {/* Observaciones */}
+      {/* Observaciones y Notas */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">
         <div className="px-4 py-2 border-b border-slate-100 bg-slate-50">
-          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Observaciones</h3>
+          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Observaciones y Notas</h3>
         </div>
-        <div className="p-4">
-          <textarea className="form-input w-full resize-none" rows={2} value={observaciones} onChange={e => setObservaciones(e.target.value)} placeholder="Notas internas sobre la renovación..."/>
+        <div className="p-4 grid grid-cols-1 gap-3">
+          <div>
+            <div className="flex items-baseline justify-between mb-1">
+              <label className="text-xs text-slate-700 font-medium">Observaciones</label>
+              <span className="text-2xs text-emerald-700 font-medium">👁 Visibles para el asegurado en el portal</span>
+            </div>
+            <textarea
+              className="form-input w-full resize-none"
+              rows={2}
+              value={observaciones}
+              onChange={e => setObservaciones(e.target.value)}
+              placeholder="Info que puede ver el cliente en su portal..."
+            />
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between mb-1">
+              <label className="text-xs text-slate-700 font-medium">Notas internas</label>
+              <span className="text-2xs text-slate-500 font-medium">🔒 Solo para vos — el cliente NO las ve</span>
+            </div>
+            <textarea
+              className="form-input w-full resize-none"
+              rows={2}
+              value={notas}
+              onChange={e => setNotas(e.target.value)}
+              placeholder="Comentarios privados sobre la renovación..."
+            />
+          </div>
         </div>
       </div>
 

@@ -33,6 +33,7 @@ interface FormPoliza {
   moneda: string
   mostrar_suma_asegurada_portal: boolean
   observaciones: string
+  notas: string
 }
 
 interface FormRiesgo {
@@ -57,6 +58,7 @@ const POLIZA_INICIAL: FormPoliza = {
   moneda: 'ARS',
   mostrar_suma_asegurada_portal: false,
   observaciones: '',
+  notas: '',
 }
 
 const RIESGO_INICIAL: FormRiesgo = {
@@ -332,6 +334,7 @@ function NuevaPolizaContent() {
           mostrar_suma_asegurada_portal: poliza.mostrar_suma_asegurada_portal,
           estado:            estadoCalculado,
           observaciones:     poliza.observaciones || null,
+          notas:             poliza.notas || null,
         })
         .select('id').single()
       if (pErr) throw new Error(pErr.message)
@@ -776,17 +779,54 @@ function NuevaPolizaContent() {
                 <textarea className="form-input w-full resize-none" rows={3} value={riesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describí el bien asegurado..."/>
               </Campo>
             )}
+
+            {/* Observaciones libres del bien asegurado — Independiente del tipo.
+                Se guarda en detalle_tecnico.observaciones del riesgo. */}
+            <Campo label="Observaciones del bien asegurado" col={2}>
+              <textarea
+                className="form-input w-full resize-none"
+                rows={3}
+                value={riesgo.detalle_dinamico?.observaciones ?? ''}
+                onChange={e => setR('detalle_dinamico', { ...(riesgo.detalle_dinamico ?? {}), observaciones: e.target.value })}
+                placeholder="Info libre sobre el bien (sublímites, cláusulas específicas, condiciones particulares que no encajan en los campos)..."
+              />
+            </Campo>
           </div>
         </div>
       )}
 
-      {/* Observaciones */}
+      {/* Observaciones y Notas */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">
         <div className="px-4 py-2 border-b border-slate-100 bg-slate-50">
-          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Observaciones</h3>
+          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Observaciones y Notas</h3>
         </div>
-        <div className="p-4">
-          <textarea className="form-input w-full resize-none" rows={2} value={poliza.observaciones} onChange={e => setP('observaciones', e.target.value)} placeholder="Notas internas..."/>
+        <div className="p-4 grid grid-cols-1 gap-3">
+          <div>
+            <div className="flex items-baseline justify-between mb-1">
+              <label className="text-xs text-slate-700 font-medium">Observaciones</label>
+              <span className="text-2xs text-emerald-700 font-medium">👁 Visibles para el asegurado en el portal</span>
+            </div>
+            <textarea
+              className="form-input w-full resize-none"
+              rows={2}
+              value={poliza.observaciones}
+              onChange={e => setP('observaciones', e.target.value)}
+              placeholder="Info que puede ver el cliente en su portal (ej: cobertura extendida a zona X, adhesión a débito)..."
+            />
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between mb-1">
+              <label className="text-xs text-slate-700 font-medium">Notas internas</label>
+              <span className="text-2xs text-slate-500 font-medium">🔒 Solo para vos — el cliente NO las ve</span>
+            </div>
+            <textarea
+              className="form-input w-full resize-none"
+              rows={2}
+              value={poliza.notas}
+              onChange={e => setP('notas', e.target.value)}
+              placeholder="Comentarios privados del PAS (ej: 'llamar a la tarde', 'regatea siempre')..."
+            />
+          </div>
         </div>
       </div>
 

@@ -287,8 +287,8 @@ function ModalElegirArchivo({
 }) {
   return (
     <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+      <div className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col" style={{ height: '80vh' }}>
+        <div className="shrink-0 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-800">Elegí el PDF de la póliza anterior</h3>
           <button onClick={onCancelar} className="text-slate-400 hover:text-slate-800">
             <X className="h-4 w-4" />
@@ -336,7 +336,7 @@ function ModalElegirArchivo({
             </ul>
           )}
         </div>
-        <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-end gap-2">
+        <div className="shrink-0 px-4 py-3 border-t border-slate-200 flex items-center justify-end gap-2">
           <button onClick={onCancelar} className="btn-secondary text-sm">Cancelar</button>
           <button
             onClick={onComparar}

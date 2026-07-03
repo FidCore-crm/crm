@@ -826,17 +826,25 @@ export default function FichaPolizaPage() {
         {/* ── Columna derecha ─────────────────────────────────── */}
         <div className="flex-1 min-w-0 flex flex-col gap-2">
 
-          {/* Observaciones / Notas */}
-          {(poliza.observaciones || poliza.notas) && (
+          {/* Observaciones (visibles al asegurado en el portal) */}
+          {poliza.observaciones && (
             <div className="bg-white border border-slate-200 rounded p-3">
-              <p className="text-2xs text-slate-500 mb-1 font-semibold uppercase tracking-wide">Observaciones</p>
-              <p className="text-xs text-slate-700 leading-relaxed">{poliza.observaciones ?? poliza.notas}</p>
-              {poliza.observaciones && poliza.notas && poliza.observaciones !== poliza.notas && (
-                <>
-                  <p className="text-2xs text-slate-500 mb-1 mt-3 font-semibold uppercase tracking-wide">Notas internas</p>
-                  <p className="text-xs text-slate-700 leading-relaxed">{poliza.notas}</p>
-                </>
-              )}
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-2xs text-slate-500 font-semibold uppercase tracking-wide">Observaciones</p>
+                <span className="text-2xs text-emerald-700 font-medium" title="El asegurado ve esto en su portal">👁 Visible al asegurado</span>
+              </div>
+              <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{poliza.observaciones}</p>
+            </div>
+          )}
+
+          {/* Notas internas (privadas del PAS) */}
+          {poliza.notas && (
+            <div className="bg-white border border-slate-200 rounded p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-2xs text-slate-500 font-semibold uppercase tracking-wide">Notas internas</p>
+                <span className="text-2xs text-slate-500 font-medium" title="El asegurado no ve esto">🔒 Solo para vos</span>
+              </div>
+              <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{poliza.notas}</p>
             </div>
           )}
 

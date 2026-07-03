@@ -18,6 +18,7 @@ export interface PolizaData {
   moneda: string
   fecha_inicio: string
   fecha_fin: string
+  observaciones?: string | null
   riesgos: Array<{
     descripcion: string | null
     tipo: string | null
@@ -189,6 +190,12 @@ export default function PolizaCard({
             {formatFechaLocalLarga(poliza.fecha_inicio)} → {formatFechaLocalLarga(poliza.fecha_fin)}
           </span>
         </div>
+        {poliza.observaciones && (
+          <div className="flex items-start gap-2 pt-2 border-t border-slate-100 mt-1">
+            <span className="text-xs text-slate-500 w-24 shrink-0">Observaciones</span>
+            <span className="text-sm text-slate-700 whitespace-pre-wrap">{poliza.observaciones}</span>
+          </div>
+        )}
       </div>
 
       {/* Bienes asegurados — sólo si hay flota (>1 riesgo) */}

@@ -56,8 +56,8 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col" style={{ height: '85vh' }}>
+        <div className="shrink-0 px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-blue-600" />
             <h3 className="text-sm font-semibold text-slate-800">Análisis de cambios vs. póliza anterior</h3>
@@ -67,7 +67,7 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1 min-h-0 flex flex-col gap-3">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-3">
           {comparacion.estado === 'FALLIDA' && (
             <div className="border border-red-200 bg-red-50 rounded p-3 flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
@@ -136,7 +136,7 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
           </div>
         </div>
 
-        <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-end">
+        <div className="shrink-0 px-4 py-3 border-t border-slate-200 flex items-center justify-end">
           <button onClick={onCerrar} className="btn-secondary text-sm">Cerrar</button>
         </div>
       </div>
