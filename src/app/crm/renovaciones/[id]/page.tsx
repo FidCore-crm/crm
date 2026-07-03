@@ -420,19 +420,26 @@ export default function RenovarPolizaPage() {
       // 2) Crear riesgos ANTES de tocar la origen — si falla, rollback limpio.
       // Cada riesgo conserva su tipo individual (soporte flotas mixtas).
       const detalleDe = (r: FormRiesgo, tipo: string): Record<string,any> => {
+        // Base con las keys extras heredadas de la póliza origen (típicamente
+        // `observaciones` que la IA agregó al importar/procesar PDF, más
+        // cualquier otro campo suelto). Sin este merge, la renovación pierde
+        // toda esa información al reconstruir el detalle_tecnico desde cero.
+        const base = r.detalle_dinamico && typeof r.detalle_dinamico === 'object'
+          ? { ...r.detalle_dinamico }
+          : {}
         if (tipo === 'automotor') {
-          return { patente: r.patente.toUpperCase().replace(/\s/g,''), marca: r.marca, modelo: r.modelo, anio: r.anio, motor: r.motor||null, chasis: r.chasis||null, color: r.color||null, uso: r.uso }
+          return { ...base, patente: r.patente.toUpperCase().replace(/\s/g,''), marca: r.marca, modelo: r.modelo, anio: r.anio, motor: r.motor||null, chasis: r.chasis||null, color: r.color||null, uso: r.uso }
         }
         if (tipo === 'hogar') {
-          return { calle: r.calle, numero: r.numero||null, localidad: r.localidad, provincia: r.provincia, tipo_construccion: r.tipo_construccion, superficie: r.superficie||null, medidas_seguridad: r.medidas_seguridad }
+          return { ...base, calle: r.calle, numero: r.numero||null, localidad: r.localidad, provincia: r.provincia, tipo_construccion: r.tipo_construccion, superficie: r.superficie||null, medidas_seguridad: r.medidas_seguridad }
         }
         if (tipo === 'vida') {
-          return { capital_asegurado: r.capital_asegurado||null, beneficiarios: r.beneficiarios||null }
+          return { ...base, capital_asegurado: r.capital_asegurado||null, beneficiarios: r.beneficiarios||null }
         }
         if (tipo === 'dinamico') {
           return { ...r.detalle_dinamico }
         }
-        return { descripcion: r.descripcion||null }
+        return { ...base, descripcion: r.descripcion||null }
       }
 
       const filasRiesgos = riesgos.map((r, i) => {

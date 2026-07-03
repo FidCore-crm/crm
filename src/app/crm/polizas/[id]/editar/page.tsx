@@ -313,19 +313,57 @@ export default function EditarPolizaPage() {
   }
 
   const detalleDe = (tipo: string, datos: FormRiesgo): Record<string, any> => {
+    // Base: preservamos las keys "extras" que estaban en el detalle_tecnico
+    // original y que este form NO edita (típicamente `observaciones` que
+    // agrega la IA al importar/procesar PDF, más cualquier otro campo suelto
+    // que las compañías incluyen). Sin este merge, al guardar la póliza se
+    // pierde toda esa información.
+    const base = datos.detalle_dinamico && typeof datos.detalle_dinamico === 'object'
+      ? { ...datos.detalle_dinamico }
+      : {}
+
+    // Los campos del form pisan los del base — el form es la fuente de verdad
+    // para las keys que sí edita.
     if (tipo === 'automotor') {
-      return { patente: datos.patente.toUpperCase().replace(/\s/g, ''), marca: datos.marca, modelo: datos.modelo, anio: datos.anio, motor: datos.motor || null, chasis: datos.chasis || null, color: datos.color || null, uso: datos.uso }
+      return {
+        ...base,
+        patente: datos.patente.toUpperCase().replace(/\s/g, ''),
+        marca: datos.marca,
+        modelo: datos.modelo,
+        anio: datos.anio,
+        motor: datos.motor || null,
+        chasis: datos.chasis || null,
+        color: datos.color || null,
+        uso: datos.uso,
+      }
     }
     if (tipo === 'hogar') {
-      return { calle: datos.calle, numero: datos.numero || null, localidad: datos.localidad, provincia: datos.provincia, tipo_construccion: datos.tipo_construccion, superficie: datos.superficie || null, medidas_seguridad: datos.medidas_seguridad }
+      return {
+        ...base,
+        calle: datos.calle,
+        numero: datos.numero || null,
+        localidad: datos.localidad,
+        provincia: datos.provincia,
+        tipo_construccion: datos.tipo_construccion,
+        superficie: datos.superficie || null,
+        medidas_seguridad: datos.medidas_seguridad,
+      }
     }
     if (tipo === 'vida') {
-      return { capital_asegurado: datos.capital_asegurado || null, beneficiarios: datos.beneficiarios || null }
+      return {
+        ...base,
+        capital_asegurado: datos.capital_asegurado || null,
+        beneficiarios: datos.beneficiarios || null,
+      }
     }
     if (tipo === 'dinamico') {
       return { ...datos.detalle_dinamico }
     }
-    return { descripcion: datos.descripcion || null }
+    // Genérico: preserva TODO el base + agrega/pisa descripcion si vino del form.
+    return {
+      ...base,
+      descripcion: datos.descripcion || null,
+    }
   }
 
   const guardar = async (forzar: boolean = false) => {
