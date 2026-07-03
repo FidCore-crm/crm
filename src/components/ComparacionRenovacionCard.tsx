@@ -134,9 +134,8 @@ export default function ComparacionRenovacionCard({
     }
   }
 
-  // No mostrar la card si esta póliza NO es una renovación.
-  if (!polizaOrigenId) return null
-
+  // Derivados (calculamos ANTES del early return para no llamar hooks
+  // condicionalmente — regla de hooks de React).
   const cambios = comparacionIa?.cambios || []
   const materiales = cambios.filter(c => c.tipo === 'material')
   const cosmeticos = cambios.filter(c => c.tipo === 'cosmético')
@@ -151,6 +150,9 @@ export default function ComparacionRenovacionCard({
     }
     return Array.from(map.entries())
   }, [cambiosMostrados])
+
+  // No mostrar la card si esta póliza NO es una renovación.
+  if (!polizaOrigenId) return null
 
   return (
     <div id="comparacion-ia" className="bg-white border border-slate-200 rounded-lg overflow-hidden">
