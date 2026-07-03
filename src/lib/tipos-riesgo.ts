@@ -313,7 +313,7 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
     resumen: 'Para cualquier otro tipo de seguro. El formulario solo va a pedir una descripción libre.',
     ejemplos: ['Cualquier ramo que no encaje en los otros'],
     campos_poliza: [
-      { key: 'descripcion', label: 'Descripción del bien / riesgo asegurado', tipo: 'textarea', requerido: true, placeholder: 'Describí qué se está asegurando…', ancho: 'completo' },
+      { key: 'descripcion', label: 'Descripción del bien asegurado', tipo: 'textarea', requerido: true, placeholder: 'Describí qué se está asegurando…', ancho: 'completo' },
     ],
     campos_siniestro_default: [
       { key: 'descripcion_daños', label: 'Descripción de los daños', tipo: 'textarea', requerido: true, placeholder: 'Detallá los daños resultantes...' },

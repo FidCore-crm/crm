@@ -1299,7 +1299,7 @@ function ResolutorCatalogo({
           />
           {tipo === 'ramo' && (
             <div className="flex items-center gap-2">
-              <label className="text-2xs text-slate-600 min-w-[110px]">Tipo de riesgo:</label>
+              <label className="text-2xs text-slate-600 min-w-[110px]">Tipo de bien:</label>
               <select
                 className="form-input text-xs py-1 flex-1 max-w-[280px]"
                 value={tipoRiesgo}
@@ -1315,7 +1315,7 @@ function ResolutorCatalogo({
           )}
           {tipo === 'ramo' && (
             <p className="text-2xs text-slate-500">
-              El tipo de riesgo define qué campos pide el formulario de pólizas/siniestros para este ramo.
+              El tipo de bien define qué campos pide el formulario de pólizas/siniestros para este ramo.
             </p>
           )}
         </div>
@@ -1383,14 +1383,14 @@ function ResolutorRiesgo({ dudoso, onResolver, onCancelar, resolving }: Resoluto
       <RadioOption
         checked={opt === 'generico'}
         onChange={() => setOpt('generico')}
-        label="Crear riesgo genérico con descripción libre"
+        label="Crear bien genérico con descripción libre"
       >
         <input
           type="text"
           className="form-input text-xs py-1 w-full"
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
-          placeholder="Descripción del riesgo"
+          placeholder="Descripción del bien"
         />
       </RadioOption>
       <RadioOption checked={opt === 'ignorar'} onChange={() => setOpt('ignorar')} label="Ignorar póliza" />

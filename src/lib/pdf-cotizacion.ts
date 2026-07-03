@@ -406,7 +406,7 @@ function construirDocumentoCotizacion(
   y += 4
 
   // ── Datos del riesgo ──
-  y = dibujarTituloSeccion(doc, 'DATOS DEL RIESGO', y, pageWidth)
+  y = dibujarTituloSeccion(doc, 'DATOS DEL BIEN ASEGURADO', y, pageWidth)
 
   // Caja con fondo color claro derivado del color de marca. Los campos
   // (ramo + grilla de 2 columnas) van adentro con un padding consistente.

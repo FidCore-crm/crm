@@ -776,7 +776,7 @@ export default function FichaPolizaPage() {
               <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
                 {iconoRamo(tipoRiesgo)}
                 <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
-                  {riesgosVisibles.length > 1 ? `Riesgos asegurados (${riesgosVisibles.length})` : 'Datos del Riesgo'}
+                  {riesgosVisibles.length > 1 ? `Bienes asegurados (${riesgosVisibles.length})` : 'Datos del Bien Asegurado'}
                 </h3>
               </div>
               <div className="divide-y divide-slate-100">

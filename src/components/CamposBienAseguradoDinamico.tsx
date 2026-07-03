@@ -27,7 +27,7 @@ export function CamposBienAseguradoDinamico({ tipoRiesgo, valores, onChange, err
   if (campos.length === 0) {
     return (
       <p className="text-xs text-slate-500 italic px-1">
-        Este tipo de riesgo no tiene campos definidos. Cargá una descripción en las observaciones de la póliza.
+        Este tipo de bien no tiene campos definidos. Cargá una descripción en las observaciones de la póliza.
       </p>
     )
   }

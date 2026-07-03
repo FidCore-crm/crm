@@ -51,7 +51,7 @@ export default function Polizas() {
 
       <h2>Endosos</h2>
       <p>
-        Cualquier modificación durante la vigencia (cambio de patente, agregar conductor, cambiar domicilio del riesgo, sumar cobertura) se registra como <strong>endoso</strong>. Cada endoso tiene su propio número, fecha, motivo, observaciones y archivos PDF de respaldo.
+        Cualquier modificación durante la vigencia (cambio de patente, agregar conductor, cambiar domicilio del bien asegurado, sumar cobertura) se registra como <strong>endoso</strong>. Cada endoso tiene su propio número, fecha, motivo, observaciones y archivos PDF de respaldo.
       </p>
       <div className="ayuda-tip">
         Subí el PDF del endoso de la compañía como respaldo. Si después hay un siniestro y te discuten condiciones, tenés el documento exacto disponible.

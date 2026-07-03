@@ -16,8 +16,8 @@ export default function Renovaciones() {
       <h2>Cómo es el proceso de renovación</h2>
       <ol>
         <li>Hacés clic en "Renovar" en una póliza que vence.</li>
-        <li>Se abre un formulario precargado con los datos de la actual: ramo, compañía, cobertura, riesgo, asegurado.</li>
-        <li>Ajustás lo que cambió (sumas aseguradas, refacturación, datos del riesgo si renovás un cambio).</li>
+        <li>Se abre un formulario precargado con los datos de la actual: ramo, compañía, cobertura, bien asegurado, asegurado.</li>
+        <li>Ajustás lo que cambió (sumas aseguradas, refacturación, datos del bien asegurado si renovás un cambio).</li>
         <li>Subís el PDF de la renovación nueva en la carpeta de "documentación renovada".</li>
         <li>Se crea una <strong>póliza nueva</strong> en estado RENOVADA, latente, esperando que llegue su fecha de inicio.</li>
       </ol>

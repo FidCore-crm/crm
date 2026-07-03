@@ -602,7 +602,7 @@ function PolizasContent() {
               <th>Compañía</th>
               <th>Ramo</th>
               <th>Cobertura</th>
-              <th>Riesgo</th>
+              <th>Bien asegurado</th>
               <th onClick={() => toggleSort('fecha_fin')} className="cursor-pointer select-none">
                 <div className="flex items-center gap-1">Vigencia <SortIcon field="fecha_fin"/></div>
               </th>

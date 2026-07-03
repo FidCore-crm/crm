@@ -466,7 +466,7 @@ export default function CatalogosPage() {
                 <p>Un ramo es una categoría comercial de seguro: Automotor, Hogar, Moto, Vida, etc. Cada póliza pertenece a un ramo.</p>
                 <p className="mt-1.5">Al crear un ramo definís 2 cosas:</p>
                 <ul className="mt-1 pl-4 list-disc">
-                  <li><strong>Datos del bien asegurado:</strong> qué datos pide el sistema al cargar una póliza de ese ramo (patente y marca para autos, dirección y superficie para hogar, etc.).</li>
+                  <li><strong>Tipo de bien:</strong> qué categoría de datos pide el sistema al cargar una póliza de ese ramo (patente y marca para autos, dirección y superficie para hogar, etc.).</li>
                   <li><strong>Datos del siniestro:</strong> qué información cargar cuando hay un siniestro de ese ramo (lugar del hecho, terceros, etc.).</li>
                 </ul>
               </div>
@@ -632,7 +632,7 @@ export default function CatalogosPage() {
                 <>
                   <div>
                     <label className="text-xs text-slate-600 mb-0.5 block font-medium">
-                      Datos del bien asegurado
+                      Tipo de bien
                       <span className="ml-1 text-slate-400 font-normal">(qué le pide el formulario al cargar una póliza de este ramo)</span>
                     </label>
                     <select className="form-input w-full" value={formTipoRiesgo}
@@ -712,7 +712,7 @@ export default function CatalogosPage() {
                 <thead>
                   <tr>
                     <th>Nombre</th>
-                    {esRamo && <th style={{ width: 200 }}>Datos del bien asegurado</th>}
+                    {esRamo && <th style={{ width: 200 }}>Tipo de bien</th>}
                     {esRamo && <th style={{ width: 130 }}>Campos del siniestro</th>}
                     {esCobertura && <th>Ramos asociados</th>}
                     {esCobertura && <th>Equivalencias</th>}

@@ -614,16 +614,16 @@ export default function EditarPolizaPage() {
             {ICONOS[tipoRiesgo] ?? ICONOS.generico}
             <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
               {riesgos.filter(r => !r.eliminado).length > 1
-                ? `Riesgos (${riesgos.filter(r => !r.eliminado).length}) — ${ramoNombre}`
-                : `Datos del Riesgo — ${ramoNombre}`}
+                ? `Bienes asegurados (${riesgos.filter(r => !r.eliminado).length}) — ${ramoNombre}`
+                : `Datos del Bien Asegurado — ${ramoNombre}`}
             </h3>
             <button
               type="button"
               onClick={agregarRiesgo}
               className="ml-auto btn-secondary text-xs flex items-center gap-1"
-              title="Agregar otro riesgo a esta póliza (flotas, múltiples bienes, etc.)"
+              title="Agregar otro bien a esta póliza (flotas, múltiples bienes, etc.)"
             >
-              <Plus className="h-3 w-3" /> Agregar riesgo
+              <Plus className="h-3 w-3" /> Agregar bien
             </button>
           </div>
 
@@ -639,7 +639,7 @@ export default function EditarPolizaPage() {
                   ? r.datos.patente
                   : renderTipo === 'hogar' && r.datos.calle
                     ? `${r.datos.calle} ${r.datos.numero}`.trim()
-                    : `Riesgo ${numero}`
+                    : `Bien ${numero}`
                 return (
                   <div key={i} className={`flex items-center gap-1 rounded border ${activo ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
                     <button
@@ -653,7 +653,7 @@ export default function EditarPolizaPage() {
                       type="button"
                       onClick={() => eliminarRiesgo(i)}
                       className="px-1.5 py-1 text-slate-400 hover:text-red-600"
-                      title="Eliminar este riesgo"
+                      title="Eliminar este bien"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -763,8 +763,8 @@ export default function EditarPolizaPage() {
             )}
 
             {renderTipo === 'generico' && (
-              <Campo label="Descripción del riesgo" col={2}>
-                <textarea className="form-input w-full resize-none" rows={3} value={datosRiesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describí el bien o riesgo asegurado..." />
+              <Campo label="Descripción del bien asegurado" col={2}>
+                <textarea className="form-input w-full resize-none" rows={3} value={datosRiesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describí el bien asegurado..." />
               </Campo>
             )}
           </div>

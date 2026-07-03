@@ -200,7 +200,7 @@ export default function ExitoPDFPage() {
               {resumenPoliza.riesgo_descripcion && (
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" />
-                  Riesgo: {resumenPoliza.riesgo_descripcion}
+                  Bien asegurado: {resumenPoliza.riesgo_descripcion}
                 </li>
               )}
               {resumenPoliza.compania_nombre && (

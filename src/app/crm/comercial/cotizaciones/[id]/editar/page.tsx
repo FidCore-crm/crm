@@ -660,7 +660,7 @@ export default function EditarCotizacionPage() {
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
           <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            {ICONOS[tipoRiesgo] || <Package className="h-4 w-4 text-slate-400" />} Datos del riesgo
+            {ICONOS[tipoRiesgo] || <Package className="h-4 w-4 text-slate-400" />} Datos del Bien Asegurado
           </h2>
         </div>
         <div className="p-5 space-y-4">
@@ -760,8 +760,8 @@ export default function EditarCotizacionPage() {
 
           {ramoId && renderTipo === 'generico' && (
             <div className="pt-2">
-              <Campo label="Descripcion del riesgo">
-                <textarea className="form-input w-full" rows={3} value={riesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describir el bien o riesgo a asegurar..." />
+              <Campo label="Descripción del bien asegurado">
+                <textarea className="form-input w-full" rows={3} value={riesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describir el bien a asegurar..." />
               </Campo>
             </div>
           )}

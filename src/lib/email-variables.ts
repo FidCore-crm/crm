@@ -64,6 +64,11 @@ export async function obtenerVariablesPoliza(polizaId: string): Promise<Record<s
     ramo: (ramoRes.data as any)?.nombre || '',
     fecha_inicio: formatFechaLocalLarga(poliza.fecha_inicio),
     fecha_fin: formatFechaLocalLarga(poliza.fecha_fin),
+    // `bien_asegurado` es el nombre correcto de la variable (el "riesgo" es
+    // el evento fortuito; el "bien asegurado" es lo que se cubre). Dejamos
+    // `riesgo` como alias legacy para no romper plantillas viejas que aún
+    // referencian {{riesgo}}.
+    bien_asegurado: (riesgoRes.data as any)?.descripcion_corta || '',
     riesgo: (riesgoRes.data as any)?.descripcion_corta || '',
     dias_hasta_vencimiento: String(diasVenc),
   }

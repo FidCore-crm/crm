@@ -971,7 +971,7 @@ export default function FichaCotizacionPage() {
           {/* Card: Datos del riesgo */}
           <div className="bg-white border border-slate-200 rounded p-3">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-              {iconoRamo(tipoRiesgo)} Datos del riesgo
+              {iconoRamo(tipoRiesgo)} Datos del Bien Asegurado
             </h3>
             {cotizacion.ramo && (
               <div className="text-xs text-slate-600 mb-2 font-medium">{cotizacion.ramo.nombre}</div>

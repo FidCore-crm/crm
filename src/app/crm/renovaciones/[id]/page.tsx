@@ -675,15 +675,15 @@ export default function RenovarPolizaPage() {
         <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
           {ICONOS[tipoRiesgo] ?? ICONOS.generico}
           <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-            {riesgos.length > 1 ? `Riesgos (${riesgos.length}) — ${ramoNombre}` : `Datos del Riesgo — ${ramoNombre}`}
+            {riesgos.length > 1 ? `Bienes asegurados (${riesgos.length}) — ${ramoNombre}` : `Datos del Bien Asegurado — ${ramoNombre}`}
           </h3>
           <button
             type="button"
             onClick={agregarRiesgo}
             className="ml-auto btn-secondary text-xs flex items-center gap-1"
-            title="Agregar otro riesgo (flotas, múltiples bienes, etc.)"
+            title="Agregar otro bien (flotas, múltiples bienes, etc.)"
           >
-            <Plus className="h-3 w-3" /> Agregar riesgo
+            <Plus className="h-3 w-3" /> Agregar bien
           </button>
         </div>
 
@@ -697,7 +697,7 @@ export default function RenovarPolizaPage() {
                 ? r.patente
                 : renderIndividual === 'hogar' && r.calle
                   ? `${r.calle}${r.numero ? ' ' + r.numero : ''}`
-                  : `Riesgo ${i + 1}`
+                  : `Bien ${i + 1}`
               return (
                 <div key={i} className={`flex items-center gap-1 rounded border ${activo ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
                   <button
@@ -711,7 +711,7 @@ export default function RenovarPolizaPage() {
                     type="button"
                     onClick={() => eliminarRiesgo(i)}
                     className="px-1.5 py-1 text-slate-400 hover:text-red-600"
-                    title="Eliminar este riesgo"
+                    title="Eliminar este bien"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -821,8 +821,8 @@ export default function RenovarPolizaPage() {
           )}
 
           {renderTipo === 'generico' && (
-            <Campo label="Descripción del riesgo" col={2}>
-              <textarea className="form-input w-full resize-none" rows={3} value={riesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describí el bien o riesgo asegurado..."/>
+            <Campo label="Descripción del bien asegurado" col={2}>
+              <textarea className="form-input w-full resize-none" rows={3} value={riesgo.descripcion} onChange={e => setR('descripcion', e.target.value)} placeholder="Describí el bien asegurado..."/>
             </Campo>
           )}
         </div>

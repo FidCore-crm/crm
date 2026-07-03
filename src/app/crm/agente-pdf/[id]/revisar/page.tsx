@@ -553,7 +553,7 @@ export default function RevisarPDFPage() {
             {/* Sección 4 — Riesgo */}
             <SeccionCard
               icono={<IconoRamo tipo={d.riesgo?.tipo_riesgo || ''} />}
-              titulo={`Datos del riesgo (${d.riesgo?.tipo_riesgo || 'sin tipo'})`}
+              titulo={`Datos del Bien Asegurado (${d.riesgo?.tipo_riesgo || 'sin tipo'})`}
             >
               {['AUTOMOTOR', 'MOTO'].includes(String(d.riesgo?.tipo_riesgo || '').toUpperCase()) ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -588,7 +588,7 @@ export default function RevisarPDFPage() {
                     />
                   ))}
                   {Object.keys(d.riesgo?.detalle_tecnico || {}).length === 0 && (
-                    <p className="col-span-2 text-xs text-slate-400 italic">La IA no extrajo datos específicos del riesgo.</p>
+                    <p className="col-span-2 text-xs text-slate-400 italic">La IA no extrajo datos específicos del bien asegurado.</p>
                   )}
                 </div>
               )}
