@@ -10,7 +10,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const supabase = getSupabaseAdmin()
   const { data: row } = await supabase
     .from('pdf_procesamientos')
-    .select('id, tipo_operacion, poliza_origen_id, poliza_creada_id, endoso_creado_id, estado, nombre_archivo, tamano_archivo, datos_extraidos, mapeos_catalogos, campos_dudosos, tokens_usados, costo_estimado, error_mensaje, usuario_id, created_at, updated_at')
+    .select('id, tipo_operacion, poliza_origen_id, poliza_creada_id, endoso_creado_id, estado, nombre_archivo, tamano_archivo, datos_extraidos, mapeos_catalogos, campos_dudosos, tokens_usados, costo_estimado, error_mensaje, usuario_id, created_at, updated_at, comparacion_resultado')
     .eq('id', id)
     .maybeSingle()
 

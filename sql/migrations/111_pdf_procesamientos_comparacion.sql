@@ -1,0 +1,31 @@
+-- ============================================================
+-- Migración 111 — comparacion_resultado en pdf_procesamientos
+-- ============================================================
+--
+-- La comparación IA de renovaciones ahora corre EN PARALELO con la extracción
+-- de datos, no post-aprobación. El resultado se guarda temporalmente en
+-- pdf_procesamientos durante el procesamiento y se muestra en la pantalla de
+-- revisión (antes del botón Aprobar), no en la ficha de la póliza.
+--
+-- Al aprobar la renovación, el resultado se copia a polizas.comparacion_ia
+-- para que quede como registro histórico consultable desde la ficha.
+--
+-- Shape del JSONB (mismo que polizas.comparacion_ia):
+-- {
+--   "poliza_origen_id": "uuid",
+--   "archivo_viejo_id": "uuid",
+--   "archivo_nuevo_ruta_temporal": "path",  -- se resuelve al aprobar
+--   "estado": "PROCESANDO" | "COMPLETADA" | "FALLIDA" | "SIN_ARCHIVO_PRINCIPAL",
+--   "cambios": [ ... ],
+--   "resumen": "...",
+--   "error": null | "...",
+--   "tokens_usados": 0,
+--   "costo_usd": 0,
+--   "duracion_ms": 0,
+--   "creado_en": "iso",
+--   "completado_en": "iso"
+-- }
+-- ============================================================
+
+ALTER TABLE pdf_procesamientos
+  ADD COLUMN IF NOT EXISTS comparacion_resultado JSONB;

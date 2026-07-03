@@ -5,13 +5,19 @@
 // para la revisión del PAS.
 // ============================================================
 
+import path from 'path'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { encolarEmailSistema } from '@/lib/comunicaciones-sender'
-import { extraerDatosDePDF } from './extractor'
+import { extraerDatosDePDF, compararPolizasConIA } from './extractor'
 import { mapearCatalogos } from './mapeador-catalogos'
 import { validarDatosExtraidosPoliza, validarDatosExtraidosEndoso } from './validador'
 import { notificarPDF } from './notificaciones-helper'
 import { logger } from '@/lib/errores'
+
+const STORAGE_ROOT =
+  process.env.NEXT_STORAGE_PATH ||
+  process.env.STORAGE_ROOT ||
+  path.join(process.cwd(), 'storage')
 import type {
   DatosExtraidosPoliza,
   DatosExtraidosEndoso,
@@ -137,11 +143,82 @@ export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
       contexto = await cargarContextoPolizaOrigen(supabase, polizaOrigenId)
     }
 
-    // 4. Llamar a la IA
+    // 4. Llamar a la IA. Para RENOVACION arrancamos en paralelo la comparación
+    // con el PDF de la póliza anterior (si hay archivo principal marcado en la
+    // póliza origen). Así ambas terminan al mismo tiempo y el PAS ve el
+    // análisis en la pantalla de revisión sin sumar espera.
     const tIA = Date.now()
-    const extraccion = await extraerDatosDePDF(rutaPDF, tipoOperacion, {
-      poliza_origen_descripcion: contexto?.descripcion,
-    })
+
+    let promComparacion: Promise<{
+      poliza_origen_id: string
+      archivo_viejo_id: string
+      estado: 'COMPLETADA' | 'FALLIDA'
+      cambios?: unknown[]
+      resumen?: string
+      error?: string | null
+      tokens_usados?: number
+      costo_usd?: number
+      duracion_ms?: number
+    } | null> | null = null
+
+    if (tipoOperacion === 'RENOVACION' && polizaOrigenId) {
+      const inicioCmp = Date.now()
+      promComparacion = (async () => {
+        try {
+          const { data: principalRow } = await supabase
+            .from('poliza_archivos')
+            .select('id, ruta')
+            .eq('poliza_id', polizaOrigenId)
+            .eq('es_poliza_principal', true)
+            .limit(1)
+            .maybeSingle()
+
+          if (!principalRow) {
+            // Sin PDF principal en la póliza origen → no hay con qué comparar.
+            // La pantalla de revisión mostrará opción para elegir manualmente.
+            return null
+          }
+
+          const rutaViejaAbs = path.resolve(STORAGE_ROOT, (principalRow as { ruta: string }).ruta)
+          if (!rutaViejaAbs.startsWith(STORAGE_ROOT)) return null
+
+          const resultado = await compararPolizasConIA(rutaViejaAbs, rutaPDF)
+          if (!resultado.ok) {
+            return {
+              poliza_origen_id: polizaOrigenId,
+              archivo_viejo_id: (principalRow as { id: string }).id,
+              estado: 'FALLIDA' as const,
+              error: resultado.error || 'Falló la comparación',
+              duracion_ms: Date.now() - inicioCmp,
+            }
+          }
+          return {
+            poliza_origen_id: polizaOrigenId,
+            archivo_viejo_id: (principalRow as { id: string }).id,
+            estado: 'COMPLETADA' as const,
+            cambios: resultado.cambios || [],
+            resumen: resultado.resumen || '',
+            tokens_usados: resultado.tokens_total,
+            costo_usd: resultado.costo_usd,
+            duracion_ms: Date.now() - inicioCmp,
+          }
+        } catch (err: any) {
+          logger.warn({
+            modulo: 'agente-pdf',
+            mensaje: 'Comparación paralela falló (no bloquea el procesamiento)',
+            contexto: { procesamiento_id: procesamientoId, error: String(err?.message || err) },
+          })
+          return null
+        }
+      })()
+    }
+
+    const [extraccion, comparacion] = await Promise.all([
+      extraerDatosDePDF(rutaPDF, tipoOperacion, {
+        poliza_origen_descripcion: contexto?.descripcion,
+      }),
+      promComparacion ?? Promise.resolve(null),
+    ])
     timings.ms_ia = Date.now() - tIA
 
     // Re-chequear cancelación después de la llamada cara a la IA: si el PAS
@@ -177,6 +254,14 @@ export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
 
     // 6. Guardar todo, pero sólo si seguimos siendo los dueños del estado.
     // Si /cancelar nos ganó la carrera, el update no toca nada.
+    // Si corrió la comparación paralela, adjuntamos su resultado y sumamos
+    // los tokens al total.
+    const comparacionResultado = comparacion
+      ? { ...comparacion, creado_en: new Date().toISOString() }
+      : null
+    const tokensExtra = (comparacion?.tokens_usados as number) || 0
+    const costoExtra = (comparacion?.costo_usd as number) || 0
+
     await transicionarEstado(
       supabase,
       procesamientoId,
@@ -186,8 +271,9 @@ export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
         datos_extraidos: extraccion.datos as any,
         mapeos_catalogos: mapeos as any,
         campos_dudosos: dudosos as any,
-        tokens_usados: extraccion.tokens_total,
-        costo_estimado: extraccion.costo_usd,
+        tokens_usados: extraccion.tokens_total + tokensExtra,
+        costo_estimado: extraccion.costo_usd + costoExtra,
+        comparacion_resultado: comparacionResultado,
       },
     )
 

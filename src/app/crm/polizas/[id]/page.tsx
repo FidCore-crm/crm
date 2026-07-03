@@ -12,7 +12,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { formatFecha, formatFechaLocal, formatMoneda, getBadgeClase, getLabelEstado, getPolizaBadgeColor, nombreCompleto, hoyLocal, diasHastaVencimiento } from '@/lib/utils'
 import GestorArchivos from '@/components/GestorArchivos'
 import EndososSection from '@/components/EndososSection'
-import ComparacionRenovacionCard from '@/components/ComparacionRenovacionCard'
+import AnalisisRenovacionModal from '@/components/AnalisisRenovacionModal'
 import ModalEnviarEmail from '@/components/ModalEnviarEmail'
 import ModalRecordarPago from '@/components/ModalRecordarPago'
 import ModalUploadPDF from '@/components/agente-pdf/ModalUploadPDF'
@@ -140,6 +140,9 @@ export default function FichaPolizaPage() {
   const [cadenaRenovaciones, setCadenaRenovaciones] = useState<{ id: string; numero_poliza: string; fecha_inicio: string; fecha_fin: string; estado: string }[]>([])
   const [cargando,   setCargando]   = useState(true)
   const [error,      setError]      = useState('')
+
+  // Modal del análisis IA de renovación (histórico, solo lectura).
+  const [modalAnalisisIa, setModalAnalisisIa] = useState(false)
 
   // Modal cancelar/anular
   const [modalTipo,       setModalTipo]       = useState<'cancelar' | 'anular' | null>(null)
@@ -869,13 +872,22 @@ export default function FichaPolizaPage() {
             </div>
           )}
 
-          {/* Análisis de cambios con IA (solo si la póliza es renovación) */}
-          <ComparacionRenovacionCard
-            polizaId={poliza.id}
-            polizaOrigenId={poliza.poliza_origen_id}
-            comparacionIa={poliza.comparacion_ia}
-            onCambio={cargar}
-          />
+          {/* Link discreto al análisis IA — sólo si esta póliza es una renovación
+              y hay un análisis histórico. Abre modal en modo lectura. */}
+          {poliza.poliza_origen_id && poliza.comparacion_ia && poliza.comparacion_ia.estado === 'COMPLETADA' && (
+            <button
+              onClick={() => setModalAnalisisIa(true)}
+              className="text-xs text-blue-700 hover:text-blue-900 underline self-start inline-flex items-center gap-1"
+            >
+              <Sparkles className="h-3 w-3" />
+              Ver análisis de cambios vs. póliza anterior
+              {poliza.comparacion_ia.cambios && poliza.comparacion_ia.cambios.filter(c => c.tipo === 'material').length > 0 && (
+                <span className="text-slate-400">
+                  · {poliza.comparacion_ia.cambios.filter(c => c.tipo === 'material').length} cambio{poliza.comparacion_ia.cambios.filter(c => c.tipo === 'material').length !== 1 ? 's' : ''} material{poliza.comparacion_ia.cambios.filter(c => c.tipo === 'material').length !== 1 ? 'es' : ''}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* Historial / bitácora de la póliza */}
           <HistorialPoliza polizaId={poliza.id} refreshKey={historialKey} />
@@ -1212,6 +1224,13 @@ export default function FichaPolizaPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {modalAnalisisIa && poliza.comparacion_ia && (
+        <AnalisisRenovacionModal
+          comparacion={poliza.comparacion_ia}
+          onCerrar={() => setModalAnalisisIa(false)}
+        />
       )}
     </div>
   )

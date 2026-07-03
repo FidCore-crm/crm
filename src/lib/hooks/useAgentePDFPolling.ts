@@ -11,6 +11,31 @@ import type {
   CampoDudoso,
 } from '@/lib/agente-pdf/types'
 
+export interface CambioComparacion {
+  categoria: string
+  campo: string
+  antes: string | null
+  ahora: string | null
+  tipo: 'material' | 'cosmético'
+  severidad: 'alta' | 'media' | 'baja'
+  descripcion: string
+}
+
+export interface ComparacionResultado {
+  poliza_origen_id: string
+  archivo_viejo_id: string
+  archivo_nuevo_id?: string
+  estado: 'PROCESANDO' | 'COMPLETADA' | 'FALLIDA'
+  cambios?: CambioComparacion[]
+  resumen?: string
+  error?: string | null
+  tokens_usados?: number
+  costo_usd?: number
+  duracion_ms?: number
+  creado_en?: string
+  completado_en?: string
+}
+
 export interface EstadoPDFPoll {
   id: string
   tipo_operacion: TipoOperacionPDF
@@ -26,6 +51,7 @@ export interface EstadoPDFPoll {
   tokens_usados: number | null
   costo_estimado: number | null
   error_mensaje: string | null
+  comparacion_resultado: ComparacionResultado | null
   usuario_id: string | null
   created_at: string
   updated_at: string

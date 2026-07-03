@@ -3,7 +3,6 @@ import { requireAuth, requireOwnership } from '@/lib/api-auth'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { aplicarPolizaNueva, aplicarRenovacion, aplicarEndoso } from '@/lib/agente-pdf/aplicador'
 import { insertarCatalogoUpsert } from '@/lib/importacion/importacion-final'
-import { iniciarComparacionEnBackground } from '@/lib/agente-pdf/comparador-background'
 import { logger } from '@/lib/errores'
 import { checkLicenciaActiva } from '@/lib/licencia-guard'
 import type {
@@ -159,7 +158,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const supabase = getSupabaseAdmin()
   const { data: proc } = await supabase
     .from('pdf_procesamientos')
-    .select('id, tipo_operacion, poliza_origen_id, estado, ruta_temporal, nombre_archivo, usuario_id')
+    .select('id, tipo_operacion, poliza_origen_id, estado, ruta_temporal, nombre_archivo, usuario_id, comparacion_resultado')
     .eq('id', id)
     .maybeSingle()
 
@@ -310,50 +309,30 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       })
     }
 
-    // Comparación IA en background — sólo si es RENOVACION y hay un archivo
-    // marcado como principal en la póliza origen. Si no hay principal (póliza
-    // legacy cargada a mano), no disparamos automático; el PAS lo puede iniciar
-    // manualmente desde la ficha eligiendo cuál PDF usar como referencia.
+    // Copiar el resultado de la comparación (si corrió durante el
+    // procesamiento) desde pdf_procesamientos.comparacion_resultado hacia
+    // polizas.comparacion_ia. La comparación ya se hizo en paralelo con la
+    // extracción; acá solo persistimos el histórico en la póliza.
     if (tipo === 'RENOVACION' && resultado.poliza_id && resultado.archivo_id_nuevo) {
-      try {
-        const polizaOrigenId = (proc as any).poliza_origen_id as string
-        const { data: principalRow } = await supabase
-          .from('poliza_archivos')
-          .select('id')
-          .eq('poliza_id', polizaOrigenId)
-          .eq('es_poliza_principal', true)
-          .limit(1)
-          .maybeSingle()
-
-        if (principalRow) {
-          const archivoViejoId = (principalRow as { id: string }).id
-          // Fire-and-forget: no await para que la respuesta HTTP sea inmediata.
-          void iniciarComparacionEnBackground({
-            poliza_nueva_id: resultado.poliza_id,
-            poliza_origen_id: polizaOrigenId,
-            archivo_viejo_id: archivoViejoId,
+      const compResultado = (proc as any).comparacion_resultado
+      if (compResultado && typeof compResultado === 'object') {
+        try {
+          const comparacionParaPoliza = {
+            ...compResultado,
             archivo_nuevo_id: resultado.archivo_id_nuevo,
-            usuario_id: usuario.id,
-          })
-          logger.info({
+            completado_en: (compResultado as any).completado_en || new Date().toISOString(),
+          }
+          await supabase
+            .from('polizas')
+            .update({ comparacion_ia: comparacionParaPoliza } as any)
+            .eq('id', resultado.poliza_id)
+        } catch (err) {
+          logger.warn({
             modulo: 'agente-pdf',
-            mensaje: 'Comparación de renovación disparada en background',
-            contexto: { poliza_nueva_id: resultado.poliza_id, archivo_viejo_id: archivoViejoId },
-          })
-        } else {
-          logger.info({
-            modulo: 'agente-pdf',
-            mensaje: 'Renovación aprobada sin comparación auto (póliza origen sin PDF principal)',
-            contexto: { poliza_origen_id: polizaOrigenId },
+            mensaje: 'No se pudo copiar comparacion_resultado a polizas.comparacion_ia',
+            contexto: { poliza_nueva_id: resultado.poliza_id, error: String(err) },
           })
         }
-      } catch (err) {
-        // Fallo del disparo no debe bloquear la aprobación de la renovación.
-        logger.warn({
-          modulo: 'agente-pdf',
-          mensaje: 'No se pudo disparar comparación de renovación en background',
-          contexto: { poliza_nueva_id: resultado.poliza_id, error: String(err) },
-        })
       }
     }
 

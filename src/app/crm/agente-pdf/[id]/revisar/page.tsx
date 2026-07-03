@@ -11,6 +11,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import CampoEditable from '@/components/agente-pdf/CampoEditable'
 import SelectorCatalogoPDF from '@/components/agente-pdf/SelectorCatalogoPDF'
 import ClienteExistenteBanner, { AccionCliente } from '@/components/agente-pdf/ClienteExistenteBanner'
+import ComparacionEnRevision from '@/components/agente-pdf/ComparacionEnRevision'
 import type {
   DatosExtraidosPoliza,
   DatosExtraidosEndoso,
@@ -304,6 +305,17 @@ export default function RevisarPDFPage() {
             : `Hay ${dudosos.length} campos con problemas — revisá con atención.`}
         </p>
       </div>
+
+      {/* Análisis de cambios IA — solo en renovaciones. Se actualiza automáticamente
+          vía Realtime cuando termina la comparación paralela del procesamiento. */}
+      {tipoOp === 'RENOVACION' && estado.poliza_origen_id && (
+        <ComparacionEnRevision
+          procesamientoId={id}
+          polizaOrigenId={estado.poliza_origen_id}
+          comparacion={estado.comparacion_resultado || null}
+          estadoProcesamiento={estado.estado}
+        />
+      )}
 
       {/* ──── ENDOSO ──── */}
       {esEndoso && renderSeccionesEndoso({
