@@ -67,7 +67,7 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1 flex flex-col gap-3">
+        <div className="p-4 overflow-y-auto flex-1 min-h-0 flex flex-col gap-3">
           {comparacion.estado === 'FALLIDA' && (
             <div className="border border-red-200 bg-red-50 rounded p-3 flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
