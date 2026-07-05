@@ -64,8 +64,9 @@ export async function ejecutarCampana(campana_id: string): Promise<ResultadoEjec
   const c = actualizada as any
 
   try {
-    // 2) Resolver destinatarios
+    // 2) Resolver destinatarios (personas + leads)
     let persona_ids: string[] = []
+    let lead_ids: string[] = []
 
     if (c.audiencia_id) {
       const { data: aud } = await supabase
@@ -77,27 +78,43 @@ export async function ejecutarCampana(campana_id: string): Promise<ResultadoEjec
       const a = aud as any
       if (a.tipo === 'MANUAL') {
         persona_ids = (a.ids_personas ?? []) as string[]
+        lead_ids = (a.ids_leads ?? []) as string[]
       } else {
         const res = await aplicarFiltroAudiencia(supabase, a.filtro_jsonb ?? {}, { tamano_muestra: 0 })
         persona_ids = res.ids
+        lead_ids = res.leads_ids ?? []
       }
     } else {
       persona_ids = (c.personas_ids ?? []) as string[]
+      // Campañas ad-hoc sin audiencia solo tienen personas por ahora
     }
 
-    if (persona_ids.length === 0) {
+    const totalDestinatarios = persona_ids.length + lead_ids.length
+    if (totalDestinatarios === 0) {
       await marcarCompletada(supabase, c.id, 0, 0, 0)
       return { ok: true, enviados: 0, fallidos: 0, excluidos: 0, total: 0 }
     }
 
-    // 3) Filtrar los ya procesados (si es reanudación)
-    const yaProcesados = new Set((c.personas_procesadas_ids ?? []) as string[])
-    const pendientes = persona_ids.filter(id => !yaProcesados.has(id))
+    // 3) Filtrar los ya procesados (si es reanudación).
+    // El tracking usa `personas_procesadas_ids` con un prefijo para distinguir:
+    //   "p:<uuid>" para personas
+    //   "l:<uuid>" para leads
+    // Los IDs guardados sin prefijo (de versiones viejas) se asumen personas.
+    const yaProcesadosRaw = (c.personas_procesadas_ids ?? []) as string[]
+    const yaProcesadosPersonas = new Set<string>()
+    const yaProcesadosLeads = new Set<string>()
+    for (const raw of yaProcesadosRaw) {
+      if (raw.startsWith('l:')) yaProcesadosLeads.add(raw.slice(2))
+      else if (raw.startsWith('p:')) yaProcesadosPersonas.add(raw.slice(2))
+      else yaProcesadosPersonas.add(raw) // legacy
+    }
+    const pendientes = persona_ids.filter(id => !yaProcesadosPersonas.has(id))
+    const pendientesLeads = lead_ids.filter(id => !yaProcesadosLeads.has(id))
 
     // Actualizar total_destinatarios si era 0
     if (!c.total_destinatarios || c.total_destinatarios === 0) {
       await (supabase.from('mailing_campanas') as any)
-        .update({ total_destinatarios: persona_ids.length })
+        .update({ total_destinatarios: totalDestinatarios })
         .eq('id', c.id)
     }
 
@@ -161,49 +178,81 @@ export async function ejecutarCampana(campana_id: string): Promise<ResultadoEjec
       .in('estado', ['ENVIADO', 'ENVIANDO'])
     let enviadosHoy = enviosHoy ?? 0
 
-    // 6) Cargar personas pendientes + bajas
-    const { data: personasData } = await supabase
-      .from('personas')
-      .select('id, nombre, apellido, razon_social, email, acepta_marketing')
-      .in('id', pendientes)
-      .is('deleted_at', null)
+    // 6) Cargar personas y leads pendientes + bajas
+    const { data: personasData } = pendientes.length > 0
+      ? await supabase
+          .from('personas')
+          .select('id, nombre, apellido, razon_social, email, acepta_marketing')
+          .in('id', pendientes)
+          .is('deleted_at', null)
+      : { data: [] }
     const personas = (personasData ?? []) as any[]
-    const emails = personas.filter(p => p.email).map(p => p.email.toLowerCase())
+
+    const { data: leadsData } = pendientesLeads.length > 0
+      ? await supabase
+          .from('leads')
+          .select('id, nombre, apellido, email')
+          .in('id', pendientesLeads)
+      : { data: [] }
+    const leads = (leadsData ?? []) as any[]
+
+    const emails = [
+      ...personas.filter(p => p.email).map(p => p.email.toLowerCase()),
+      ...leads.filter(l => l.email).map(l => l.email.toLowerCase()),
+    ]
     const { data: bajasData } = emails.length > 0
       ? await supabase.from('email_bajas').select('email').in('email', emails)
       : { data: [] }
     const emailsBaja = new Set((bajasData ?? []).map((b: any) => b.email))
 
-    // 7) Loop de envío con tracking incremental
+    // 7) Loop de envío con tracking incremental (personas + leads unificados)
     let enviados = c.enviados ?? 0
     let fallidos = c.fallidos ?? 0
     let excluidos = c.excluidos ?? 0
-    const procesadosTracking = new Set<string>(yaProcesados)
+    const procesadosTracking = new Set<string>(yaProcesadosRaw)
 
-    for (const persona of personas) {
+    // Cola unificada — primero personas (más cercanas), después leads
+    type Destinatario =
+      | { tipo: 'persona'; id: string; email: string | null; nombre: string; acepta_marketing: boolean }
+      | { tipo: 'lead'; id: string; email: string | null; nombre: string }
+    const cola: Destinatario[] = [
+      ...personas.map(p => ({
+        tipo: 'persona' as const,
+        id: p.id,
+        email: p.email,
+        nombre: p.razon_social || [p.apellido, p.nombre].filter(Boolean).join(', '),
+        acepta_marketing: p.acepta_marketing !== false,
+      })),
+      ...leads.map(l => ({
+        tipo: 'lead' as const,
+        id: l.id,
+        email: l.email,
+        nombre: [l.apellido, l.nombre].filter(Boolean).join(', '),
+      })),
+    ]
+
+    for (const dst of cola) {
       // Antes de cada envío, verificar que la campaña no fue pausada/cancelada
       const { data: estadoActual } = await supabase
         .from('mailing_campanas').select('estado').eq('id', c.id).maybeSingle()
       const eAct = (estadoActual as any)?.estado
       if (eAct === 'PAUSADA' || eAct === 'CANCELADA') {
-        // Pausamos: guardamos progreso parcial y salimos sin marcar COMPLETADA
         await (supabase.from('mailing_campanas') as any)
           .update({
             personas_procesadas_ids: Array.from(procesadosTracking),
             enviados, fallidos, excluidos,
           })
           .eq('id', c.id)
-        return { ok: true, enviados, fallidos, excluidos, total: persona_ids.length }
+        return { ok: true, enviados, fallidos, excluidos, total: totalDestinatarios }
       }
 
-      const nombreCompleto =
-        persona.razon_social || [persona.apellido, persona.nombre].filter(Boolean).join(', ')
+      const trackingId = `${dst.tipo === 'persona' ? 'p' : 'l'}:${dst.id}`
 
-      if (!persona.email) {
+      if (!dst.email) {
         excluidos++
-      } else if (persona.acepta_marketing === false) {
+      } else if (dst.tipo === 'persona' && !dst.acepta_marketing) {
         excluidos++
-      } else if (emailsBaja.has(persona.email.toLowerCase())) {
+      } else if (emailsBaja.has(dst.email.toLowerCase())) {
         excluidos++
       } else if (enviadosHoy >= limiteDiario) {
         excluidos++
@@ -211,9 +260,10 @@ export async function ejecutarCampana(campana_id: string): Promise<ResultadoEjec
         const resultado = await enviarComunicacion({
           plantilla_codigo: 'notificacion_general',
           destinatario: {
-            email: persona.email,
-            nombre: nombreCompleto,
-            persona_id: persona.id,
+            email: dst.email,
+            nombre: dst.nombre,
+            persona_id: dst.tipo === 'persona' ? dst.id : undefined,
+            lead_id: dst.tipo === 'lead' ? dst.id : undefined,
           },
           campos_editables,
           tipo_envio: 'MASIVO',
@@ -227,12 +277,9 @@ export async function ejecutarCampana(campana_id: string): Promise<ResultadoEjec
         }
       }
 
-      procesadosTracking.add(persona.id)
+      procesadosTracking.add(trackingId)
 
-      // Persistir métricas cada 3 envíos. Es un trade-off entre carga de DB
-      // y pérdida ante un crash: como mucho re-enviamos a 2 personas duplicado
-      // si el container muere a mitad. Antes era cada 10 (hasta 9 duplicados
-      // posibles, considerado demasiado para emails reales a clientes).
+      // Persistir métricas cada 3 envíos
       if (procesadosTracking.size % 3 === 0) {
         await (supabase.from('mailing_campanas') as any)
           .update({
@@ -247,7 +294,7 @@ export async function ejecutarCampana(campana_id: string): Promise<ResultadoEjec
 
     // 8) Marcar COMPLETADA con métricas finales
     await marcarCompletada(supabase, c.id, enviados, fallidos, excluidos, Array.from(procesadosTracking))
-    return { ok: true, enviados, fallidos, excluidos, total: persona_ids.length }
+    return { ok: true, enviados, fallidos, excluidos, total: totalDestinatarios }
   } catch (err: any) {
     logger.error({
       modulo: 'mailings',

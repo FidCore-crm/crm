@@ -387,3 +387,72 @@ export function tipoRenderForm(key: string | null | undefined): 'automotor' | 'h
   ) return 'dinamico'
   return 'generico'
 }
+
+/**
+ * Devuelve una descripción legible del bien asegurado para listados y
+ * tarjetas. Distingue por tipo_riesgo:
+ *   automotor → "Toyota Corolla 2020 · ABC123"
+ *   integrales/hogar → "Casa: Av. Corrientes 1234, CABA"
+ *   personas/vida → "Persona asegurada"
+ *   otros → descripción libre del detalle_tecnico
+ *
+ * Devuelve null si no hay nada que mostrar (así el caller puede renderar "—").
+ */
+export function describirBien(
+  tipoRiesgo: string | null | undefined,
+  detalle: Record<string, any> | null | undefined,
+): string | null {
+  const dt = detalle ?? {}
+  const t = (tipoRiesgo ?? '').toLowerCase()
+
+  // Vehículos (auto y moto)
+  if (t === 'automotor') {
+    const partes: string[] = []
+    const marca = dt.marca?.trim()
+    const modelo = dt.modelo?.trim()
+    const anio = dt.anio ? String(dt.anio).trim() : ''
+    if (marca) partes.push(marca)
+    if (modelo) partes.push(modelo)
+    if (anio) partes.push(anio)
+    const descripcion = partes.join(' ')
+    const patente = dt.patente?.trim()
+    if (descripcion && patente) return `${descripcion} · ${patente}`
+    if (descripcion) return descripcion
+    if (patente) return patente
+    // Puede ser moto — la key `tipo_vehiculo` a veces está seteada
+    if (dt.tipo_vehiculo) return String(dt.tipo_vehiculo)
+    return null
+  }
+
+  // Inmuebles (hogar / comercio / consorcio)
+  if (t === 'integrales' || t === 'hogar') {
+    const partes: string[] = []
+    const calle = dt.calle?.trim()
+    const numero = dt.numero ? String(dt.numero).trim() : ''
+    if (calle) partes.push(numero ? `${calle} ${numero}` : calle)
+    const localidad = dt.localidad?.trim()
+    if (localidad) partes.push(localidad)
+    return partes.length > 0 ? partes.join(', ') : null
+  }
+
+  // Personas (vida, AP, salud, sepelio)
+  if (t === 'personas' || t === 'vida') {
+    if (dt.capital_asegurado) return `Capital: ${dt.capital_asegurado}`
+    return 'Persona asegurada'
+  }
+
+  // Otros (transporte, embarcación, RC, incendio, robo, ART, agropecuario, genérico)
+  // Devolvemos la descripción libre si existe, si no la primera key significativa
+  if (dt.descripcion?.trim()) return dt.descripcion.trim()
+  if (dt.detalle?.trim()) return dt.detalle.trim()
+
+  // Fallback: primera key con valor no vacío que no sea numérica pura
+  for (const [k, v] of Object.entries(dt)) {
+    if (v == null || v === '') continue
+    if (['patente','calle','descripcion'].includes(k)) continue
+    if (Array.isArray(v) && v.length === 0) continue
+    const s = String(v).trim()
+    if (s.length > 0 && s.length < 60) return s
+  }
+  return null
+}

@@ -18,6 +18,7 @@ import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { apiCall } from '@/lib/api-client'
 import { useEsSoloLectura } from '@/contexts/LicenciaContext'
 import AyudaTooltip from '@/components/AyudaTooltip'
+import { describirBien } from '@/lib/tipos-riesgo'
 
 interface Poliza {
   id: string
@@ -29,7 +30,7 @@ interface Poliza {
   compania: { id: string; nombre: string } | null
   ramo: { id: string; nombre: string } | null
   cobertura: { id: string; nombre: string } | null
-  riesgos: { detalle_tecnico: Record<string, any> }[]
+  riesgos: { tipo_riesgo: string | null; detalle_tecnico: Record<string, any> }[]
 }
 
 interface Catalogo { id: string; nombre: string }
@@ -241,7 +242,7 @@ function PolizasContent() {
         compania:catalogos!compania_id (id, nombre),
         ramo:catalogos!ramo_id (id, nombre),
         cobertura:catalogos!cobertura_id (id, nombre),
-        riesgos (detalle_tecnico)
+        riesgos (tipo_riesgo, detalle_tecnico)
       `, { count: 'exact' })
 
     query = filtrarPorPersonas(query, idsPersonas, 'asegurado_id')
@@ -622,8 +623,9 @@ function PolizasContent() {
             {polizas.map(p => {
               const badge   = estadoBadge(p)
               const vencida = ['NO_VIGENTE', 'CANCELADA', 'ANULADA'].includes(p.estado)
-              const dt      = p.riesgos?.[0]?.detalle_tecnico
-              const labelBase = dt?.patente ?? dt?.calle ?? dt?.descripcion ?? '—'
+              const primerRiesgo = p.riesgos?.[0]
+              const dt      = primerRiesgo?.detalle_tecnico ?? {}
+              const labelBase = describirBien(primerRiesgo?.tipo_riesgo, dt) ?? '—'
               const cantRiesgos = p.riesgos?.length ?? 0
               const riesgoLabel = cantRiesgos > 1
                 ? `${labelBase} +${cantRiesgos - 1}`
@@ -653,7 +655,7 @@ function PolizasContent() {
                   <td className="text-xs text-slate-600">{p.compania?.nombre ?? '—'}</td>
                   <td className="text-xs text-slate-600">{p.ramo?.nombre ?? '—'}</td>
                   <td className="text-xs text-slate-600">{p.cobertura?.nombre ?? '—'}</td>
-                  <td className="font-mono text-xs text-slate-500">{riesgoLabel}</td>
+                  <td className="text-xs text-slate-600 truncate max-w-56" title={riesgoLabel}>{riesgoLabel}</td>
                   <td className="text-xs text-slate-600 whitespace-nowrap">
                     {formatFechaLocal(p.fecha_inicio)} → <span className={vencida ? 'text-red-600 font-medium' : ''}>{formatFechaLocal(p.fecha_fin)}</span>
                   </td>

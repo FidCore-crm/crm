@@ -53,12 +53,15 @@ export async function POST(request: NextRequest) {
     const destinatarios_tipo = formData.get('destinatarios_tipo') as string
     const mensaje_tipo = formData.get('mensaje_tipo') as string
 
-    // ── 1) Resolver destinatarios ─────────────────────────────
+    // ── 1) Resolver destinatarios (personas + leads) ──────────
     let persona_ids: string[] = []
+    let lead_ids: string[] = []
 
     if (destinatarios_tipo === 'lista' || destinatarios_tipo === 'individual') {
       const raw = formData.get('persona_ids') as string
       persona_ids = raw ? JSON.parse(raw) : []
+      const rawLeads = formData.get('lead_ids') as string
+      lead_ids = rawLeads ? JSON.parse(rawLeads) : []
     } else if (destinatarios_tipo === 'audiencia') {
       const audiencia_id = formData.get('audiencia_id') as string
       if (!audiencia_id) return NextResponse.json({ ok: false, error: 'Falta audiencia_id' }, { status: 400 })
@@ -68,23 +71,26 @@ export async function POST(request: NextRequest) {
       const a = aud as any
       if (a.tipo === 'MANUAL') {
         persona_ids = (a.ids_personas ?? []) as string[]
+        lead_ids = (a.ids_leads ?? []) as string[]
       } else {
         const res = await aplicarFiltroAudiencia(supabase, a.filtro_jsonb ?? {}, { tamano_muestra: 0 })
         persona_ids = res.ids
+        lead_ids = res.leads_ids ?? []
       }
     } else if (destinatarios_tipo === 'filtro') {
       const raw = formData.get('filtro_jsonb') as string
       const filtro = raw ? JSON.parse(raw) : {}
       const res = await aplicarFiltroAudiencia(supabase, filtro, { tamano_muestra: 0 })
       persona_ids = res.ids
+      lead_ids = res.leads_ids ?? []
     } else {
       return NextResponse.json({ ok: false, error: 'destinatarios_tipo inválido' }, { status: 400 })
     }
 
-    if (persona_ids.length === 0) {
+    if (persona_ids.length === 0 && lead_ids.length === 0) {
       return NextResponse.json({ ok: false, error: 'No hay destinatarios' }, { status: 400 })
     }
-    if (persona_ids.length > MAX_DESTINATARIOS) {
+    if (persona_ids.length + lead_ids.length > MAX_DESTINATARIOS) {
       return NextResponse.json(
         { ok: false, error: `Máximo ${MAX_DESTINATARIOS} destinatarios por envío` },
         { status: 400 }
@@ -171,18 +177,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── 5) Obtener personas + chequeos previos ────────────────
-    const { data: personas } = await supabase
-      .from('personas')
-      .select('id, nombre, apellido, razon_social, email, acepta_marketing')
-      .in('id', persona_ids)
-      .is('deleted_at', null)
-    const lista = (personas ?? []) as any[]
-    if (lista.length === 0) {
-      return NextResponse.json({ ok: false, error: 'No se encontraron personas activas' }, { status: 400 })
+    // ── 5) Obtener personas + leads + chequeos previos ────────
+    const { data: personas } = persona_ids.length > 0
+      ? await supabase
+          .from('personas')
+          .select('id, nombre, apellido, razon_social, email, acepta_marketing')
+          .in('id', persona_ids)
+          .is('deleted_at', null)
+      : { data: [] }
+    const listaPersonas = (personas ?? []) as any[]
+
+    const { data: leads } = lead_ids.length > 0
+      ? await supabase
+          .from('leads')
+          .select('id, nombre, apellido, email')
+          .in('id', lead_ids)
+      : { data: [] }
+    const listaLeads = (leads ?? []) as any[]
+
+    if (listaPersonas.length === 0 && listaLeads.length === 0) {
+      return NextResponse.json({ ok: false, error: 'No se encontraron destinatarios activos' }, { status: 400 })
     }
 
-    const emails = lista.filter(p => p.email).map(p => p.email.toLowerCase())
+    const emails = [
+      ...listaPersonas.filter(p => p.email).map(p => p.email.toLowerCase()),
+      ...listaLeads.filter(l => l.email).map(l => l.email.toLowerCase()),
+    ]
     const { data: bajasData } = emails.length > 0
       ? await supabase.from('email_bajas').select('email').in('email', emails)
       : { data: [] }
@@ -213,41 +233,58 @@ export async function POST(request: NextRequest) {
       .in('estado', ['ENVIADO', 'ENVIANDO'])
     let enviadosHoy = enviosHoy ?? 0
 
-    // ── 6) Loop de envío ──────────────────────────────────────
-    const detalle: Array<{ persona_id: string; nombre: string; estado: string; error?: string }> = []
+    // ── 6) Loop de envío (personas + leads unificados) ────────
+    const detalle: Array<{ id: string; tipo: 'persona' | 'lead'; nombre: string; estado: string; error?: string }> = []
     let enviados = 0, fallidos = 0, excluidos = 0
 
-    for (const persona of lista) {
-      const nombreCompleto =
-        persona.razon_social || [persona.apellido, persona.nombre].filter(Boolean).join(', ')
+    type Dst =
+      | { tipo: 'persona'; id: string; email: string | null; nombre: string; acepta_marketing: boolean }
+      | { tipo: 'lead'; id: string; email: string | null; nombre: string }
+    const cola: Dst[] = [
+      ...listaPersonas.map(p => ({
+        tipo: 'persona' as const,
+        id: p.id,
+        email: p.email,
+        nombre: p.razon_social || [p.apellido, p.nombre].filter(Boolean).join(', '),
+        acepta_marketing: p.acepta_marketing !== false,
+      })),
+      ...listaLeads.map(l => ({
+        tipo: 'lead' as const,
+        id: l.id,
+        email: l.email,
+        nombre: [l.apellido, l.nombre].filter(Boolean).join(', '),
+      })),
+    ]
 
-      if (!persona.email) {
+    for (const dst of cola) {
+      if (!dst.email) {
         excluidos++
-        detalle.push({ persona_id: persona.id, nombre: nombreCompleto, estado: 'sin_email' })
+        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'sin_email' })
         continue
       }
-      if (persona.acepta_marketing === false) {
+      if (dst.tipo === 'persona' && !dst.acepta_marketing) {
         excluidos++
-        detalle.push({ persona_id: persona.id, nombre: nombreCompleto, estado: 'no_marketing' })
+        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'no_marketing' })
         continue
       }
-      if (emailsBaja.has(persona.email.toLowerCase())) {
+      if (emailsBaja.has(dst.email.toLowerCase())) {
         excluidos++
-        detalle.push({ persona_id: persona.id, nombre: nombreCompleto, estado: 'baja' })
+        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'baja' })
         continue
       }
       if (enviadosHoy >= limiteDiario) {
         excluidos++
-        detalle.push({ persona_id: persona.id, nombre: nombreCompleto, estado: 'limite_diario' })
+        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'limite_diario' })
         continue
       }
 
       const resultado = await enviarComunicacion({
-        plantilla_codigo: 'notificacion_general',  // base; todos los textos van por campos_editables
+        plantilla_codigo: 'notificacion_general',
         destinatario: {
-          email: persona.email,
-          nombre: nombreCompleto,
-          persona_id: persona.id,
+          email: dst.email,
+          nombre: dst.nombre,
+          persona_id: dst.tipo === 'persona' ? dst.id : undefined,
+          lead_id: dst.tipo === 'lead' ? dst.id : undefined,
         },
         campos_editables,
         archivos_adjuntos: archivos_adjuntos.length > 0 ? archivos_adjuntos : undefined,
@@ -258,10 +295,10 @@ export async function POST(request: NextRequest) {
       if (resultado.ok) {
         enviados++
         enviadosHoy++
-        detalle.push({ persona_id: persona.id, nombre: nombreCompleto, estado: 'enviado' })
+        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'enviado' })
       } else {
         fallidos++
-        detalle.push({ persona_id: persona.id, nombre: nombreCompleto, estado: 'fallido', error: resultado.error })
+        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'fallido', error: resultado.error })
       }
 
       if (delay > 0) await new Promise(r => setTimeout(r, delay))
@@ -274,7 +311,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      total: lista.length,
+      total: cola.length,
       enviados,
       fallidos,
       excluidos,

@@ -26,25 +26,46 @@ export async function POST(request: NextRequest) {
 
   try {
     if (body.tipo === 'MANUAL') {
-      const ids = (body.ids_personas ?? []) as string[]
-      if (ids.length === 0) {
-        return NextResponse.json({ ok: true, total: 0, ids: [], muestra: [] })
-      }
-      const { data: personas } = await supabase
-        .from('personas')
-        .select('id, nombre, apellido, razon_social, email, acepta_marketing')
-        .in('id', ids)
-        .is('deleted_at', null)
-      const lista = (personas ?? []) as any[]
+      const idsPersonas = Array.isArray(body.ids_personas) ? body.ids_personas : []
+      const idsLeads = Array.isArray(body.ids_leads) ? body.ids_leads : []
+
+      const [personasData, leadsData] = await Promise.all([
+        idsPersonas.length > 0
+          ? supabase
+              .from('personas')
+              .select('id, nombre, apellido, razon_social, email, acepta_marketing')
+              .in('id', idsPersonas)
+              .is('deleted_at', null)
+          : Promise.resolve({ data: [] }),
+        idsLeads.length > 0
+          ? supabase
+              .from('leads')
+              .select('id, nombre, apellido, email, estado, motivo_descarte')
+              .in('id', idsLeads)
+          : Promise.resolve({ data: [] }),
+      ])
+      const personas = (personasData.data ?? []) as any[]
+      const leads = (leadsData.data ?? []) as any[]
+
+      const muestraPersonas = personas.slice(0, 10).map((p: any) => ({
+        id: p.id, tipo: 'persona', nombre: p.nombre, apellido: p.apellido,
+        razon_social: p.razon_social, email: p.email,
+        acepta_marketing: !!p.acepta_marketing,
+      }))
+      const cupo = Math.max(0, 10 - muestraPersonas.length)
+      const muestraLeads = leads.slice(0, cupo).map((l: any) => ({
+        id: l.id, tipo: 'lead', nombre: l.nombre, apellido: l.apellido,
+        razon_social: null, email: l.email,
+        acepta_marketing: true,
+        estado_lead: l.estado, motivo_descarte: l.motivo_descarte,
+      }))
+
       return NextResponse.json({
         ok: true,
-        total: lista.length,
-        ids: lista.map(p => p.id),
-        muestra: lista.slice(0, 10).map(p => ({
-          id: p.id, nombre: p.nombre, apellido: p.apellido,
-          razon_social: p.razon_social, email: p.email,
-          acepta_marketing: !!p.acepta_marketing,
-        })),
+        total: personas.length + leads.length,
+        ids: personas.map((p: any) => p.id),
+        leads_ids: leads.map((l: any) => l.id),
+        muestra: [...muestraPersonas, ...muestraLeads],
       })
     }
 

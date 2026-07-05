@@ -382,17 +382,45 @@ export function Navbar() {
       .ilike('numero_cotizacion', patron)
       .order('created_at', { ascending: false })
       .limit(5)
+
+    // Búsqueda por patente — busca en riesgos.detalle_tecnico->>'patente'
+    // y devuelve las pólizas correspondientes (sin duplicar si hay varios
+    // riesgos con la misma patente en la misma póliza).
+    let qPatentes = supabase
+      .from('riesgos')
+      .select('poliza:polizas!poliza_id(id, numero_poliza, estado, asegurado:personas!asegurado_id(nombre, apellido), compania:catalogos!compania_id(nombre)), detalle_tecnico')
+      .filter('detalle_tecnico->>patente', 'ilike', patron)
+      .limit(5)
     if (filtrar && usuario) {
       qCotizaciones = qCotizaciones.eq("usuario_id", usuario.id)
     }
 
-    const [resPersonas, resPolizas, resSiniestros, resLeads, resCotizaciones] = await Promise.all([
-      qPersonas, qPolizas, qSiniestros, qLeads, qCotizaciones,
+    const [resPersonas, resPolizas, resSiniestros, resLeads, resCotizaciones, resPatentes] = await Promise.all([
+      qPersonas, qPolizas, qSiniestros, qLeads, qCotizaciones, qPatentes,
     ])
+
+    // Combinar pólizas por número + pólizas encontradas por patente,
+    // filtrando duplicados y respetando el filtro de cartera.
+    const polizasPorNumero = (resPolizas.data ?? []) as unknown as PolizaResult[]
+    const polizasPorPatente: PolizaResult[] = ((resPatentes.data ?? []) as any[])
+      .map(r => r.poliza)
+      .filter(Boolean)
+      .filter((pol: any) => {
+        if (!filtrar || ids === null) return true
+        // Filtro de cartera vía asegurado
+        return pol.asegurado?.usuario_id === usuario?.id || ids.includes(pol.asegurado?.id)
+      })
+    const idsPolizasVistas = new Set(polizasPorNumero.map(p => p.id))
+    for (const pol of polizasPorPatente) {
+      if (!idsPolizasVistas.has(pol.id)) {
+        polizasPorNumero.push(pol as PolizaResult)
+        idsPolizasVistas.add(pol.id)
+      }
+    }
 
     setResultados({
       personas: (resPersonas.data ?? []) as unknown as PersonaResult[],
-      polizas: (resPolizas.data ?? []) as unknown as PolizaResult[],
+      polizas: polizasPorNumero.slice(0, 8),
       siniestros: (resSiniestros.data ?? []) as unknown as SiniestroResult[],
       leads: (resLeads.data ?? []) as unknown as LeadResult[],
       oportunidades: [],
@@ -433,7 +461,7 @@ export function Navbar() {
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             onFocus={() => { if (resultados && busqueda.trim().length >= 2) setMostrarDropdown(true) }}
-            placeholder="Buscar personas, polizas, siniestros, leads..."
+            placeholder="Buscar personas, polizas, patentes, siniestros, leads..."
             className="w-full h-7 pl-7 pr-3 text-xs bg-slate-50 border border-slate-200 rounded
                        placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500
                        focus:border-blue-500 focus:bg-white transition-all"

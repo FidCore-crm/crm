@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   const supabase = getSupabaseAdmin()
   let q = supabase
     .from('mailing_audiencias')
-    .select('id, nombre, descripcion, tipo, filtro_jsonb, ids_personas, ultima_cantidad, ultimo_preview_en, activa, created_at, updated_at')
+    .select('id, nombre, descripcion, tipo, filtro_jsonb, ids_personas, ids_leads, ultima_cantidad, ultimo_preview_en, activa, created_at, updated_at')
     .order('updated_at', { ascending: false })
 
   if (!incluirInactivas) q = q.eq('activa', true)
@@ -47,8 +47,12 @@ export async function POST(request: NextRequest) {
   if (body.tipo === 'FILTRO' && !body.filtro_jsonb) {
     return NextResponse.json({ ok: false, error: 'Tipo FILTRO requiere filtro_jsonb' }, { status: 400 })
   }
-  if (body.tipo === 'MANUAL' && (!Array.isArray(body.ids_personas) || body.ids_personas.length === 0)) {
-    return NextResponse.json({ ok: false, error: 'Tipo MANUAL requiere ids_personas no vacío' }, { status: 400 })
+  if (body.tipo === 'MANUAL') {
+    const hayPersonas = Array.isArray(body.ids_personas) && body.ids_personas.length > 0
+    const hayLeads = Array.isArray(body.ids_leads) && body.ids_leads.length > 0
+    if (!hayPersonas && !hayLeads) {
+      return NextResponse.json({ ok: false, error: 'Tipo MANUAL requiere al menos un id de persona o lead' }, { status: 400 })
+    }
   }
 
   const supabase = getSupabaseAdmin()
@@ -58,7 +62,8 @@ export async function POST(request: NextRequest) {
       descripcion: body.descripcion ?? null,
       tipo: body.tipo,
       filtro_jsonb: body.tipo === 'FILTRO' ? body.filtro_jsonb : null,
-      ids_personas: body.tipo === 'MANUAL' ? body.ids_personas : [],
+      ids_personas: body.tipo === 'MANUAL' && Array.isArray(body.ids_personas) ? body.ids_personas : [],
+      ids_leads: body.tipo === 'MANUAL' && Array.isArray(body.ids_leads) ? body.ids_leads : [],
       activa: body.activa ?? true,
       usuario_creador_id: auth.id,
     })

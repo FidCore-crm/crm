@@ -29,6 +29,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export interface FiltroAudiencia {
+  // Destinatarios a incluir. Si ambos son false/undefined, se asume
+  // incluir_personas=true por retrocompatibilidad (audiencias creadas
+  // antes de la migración 114 solo tenían personas).
+  incluir_personas?: boolean
+  incluir_leads?: boolean
+
+  // Criterios sobre personas
   estado_persona?: string[]
   tipo_persona?: string[]
   acepta_marketing?: boolean
@@ -43,20 +50,35 @@ export interface FiltroAudiencia {
   con_polizas_vigentes?: boolean
   antiguedad_cliente_dias_min?: number | null
   antiguedad_cliente_dias_max?: number | null
+
+  // Criterios sobre leads (solo se aplican si incluir_leads=true)
+  leads_estado?: string[]                      // NUEVO / CONTACTADO / CONVERTIDO / DESCARTADO
+  leads_motivo_descarte_ilike?: string          // ILIKE %texto% sobre motivo_descarte
+  leads_fuente?: string[]                       // WEB / REFERIDO / REDES_SOCIALES / etc.
+  leads_nivel_interes?: string[]                // ALTO / MEDIO / BAJO
+}
+
+export interface DestinatarioMuestra {
+  id: string
+  tipo: 'persona' | 'lead'
+  nombre: string | null
+  apellido: string
+  razon_social: string | null
+  email: string | null
+  acepta_marketing: boolean
+  // Solo para leads
+  estado_lead?: string
+  motivo_descarte?: string | null
 }
 
 export interface ResultadoAudiencia {
   total: number
+  /** IDs de personas (compat retro con motor viejo) */
   ids: string[]
-  /** Muestra de hasta N personas para preview */
-  muestra: Array<{
-    id: string
-    nombre: string | null
-    apellido: string
-    razon_social: string | null
-    email: string | null
-    acepta_marketing: boolean
-  }>
+  /** IDs de leads incluidos en la audiencia */
+  leads_ids: string[]
+  /** Muestra combinada de hasta N destinatarios para preview */
+  muestra: DestinatarioMuestra[]
 }
 
 const HOY = () => {
@@ -78,11 +100,19 @@ export async function aplicarFiltroAudiencia(
 ): Promise<ResultadoAudiencia> {
   const tamano_muestra = opciones?.tamano_muestra ?? 10
 
+  // Retrocompatibilidad: si no viene ni incluir_personas ni incluir_leads,
+  // asumimos incluir_personas=true (audiencias creadas antes de la migración
+  // 114 solo tenían personas).
+  const incluirPersonas = filtro.incluir_personas ?? !filtro.incluir_leads
+  const incluirLeads = filtro.incluir_leads ?? false
+
   // ── Paso 1: query base de personas con criterios directos ──
-  let qPersonas = supabase
-    .from('personas')
-    .select('id, nombre, apellido, razon_social, email, acepta_marketing, fecha_alta, tipo_persona, estado, origen, provincia')
-    .is('deleted_at', null)
+  let candidatas: any[] = []
+  if (incluirPersonas) {
+    let qPersonas = supabase
+      .from('personas')
+      .select('id, nombre, apellido, razon_social, email, acepta_marketing, fecha_alta, tipo_persona, estado, origen, provincia')
+      .is('deleted_at', null)
 
   if (filtro.estado_persona?.length) qPersonas = qPersonas.in('estado', filtro.estado_persona)
   if (filtro.tipo_persona?.length) qPersonas = qPersonas.in('tipo_persona', filtro.tipo_persona)
@@ -101,9 +131,10 @@ export async function aplicarFiltroAudiencia(
     qPersonas = qPersonas.gte('fecha_alta', limite.toISOString().slice(0, 10))
   }
 
-  const { data: personasBase, error: errPersonas } = await qPersonas
-  if (errPersonas) throw new Error(`Error consultando personas: ${errPersonas.message}`)
-  let candidatas = (personasBase ?? []) as any[]
+    const { data: personasBase, error: errPersonas } = await qPersonas
+    if (errPersonas) throw new Error(`Error consultando personas: ${errPersonas.message}`)
+    candidatas = (personasBase ?? []) as any[]
+  }
 
   // ── Paso 2: filtros que dependen de pólizas ──
   const necesitaPolizas =
@@ -161,16 +192,54 @@ export async function aplicarFiltroAudiencia(
     candidatas = candidatas.filter(p => !idsConVigente.has(p.id))
   }
 
+  // ── Paso 3: leads (si se incluyen) ──
+  let leadsCandidatos: any[] = []
+  if (incluirLeads) {
+    let qLeads = supabase
+      .from('leads')
+      .select('id, nombre, apellido, email, estado, fuente, nivel_interes, motivo_descarte')
+
+    if (filtro.leads_estado?.length) qLeads = qLeads.in('estado', filtro.leads_estado)
+    if (filtro.leads_fuente?.length) qLeads = qLeads.in('fuente', filtro.leads_fuente)
+    if (filtro.leads_nivel_interes?.length) qLeads = qLeads.in('nivel_interes', filtro.leads_nivel_interes)
+    if (filtro.leads_motivo_descarte_ilike && filtro.leads_motivo_descarte_ilike.trim() !== '') {
+      qLeads = qLeads.ilike('motivo_descarte', `%${filtro.leads_motivo_descarte_ilike.trim()}%`)
+    }
+    // Solo enviamos a leads con email — sin él no hay a dónde
+    qLeads = qLeads.not('email', 'is', null).neq('email', '')
+
+    const { data: leadsData, error: errLeads } = await qLeads
+    if (errLeads) throw new Error(`Error consultando leads: ${errLeads.message}`)
+    leadsCandidatos = (leadsData ?? []) as any[]
+  }
+
+  // ── Preparar muestra combinada ──
+  const muestraPersonas: DestinatarioMuestra[] = candidatas.slice(0, tamano_muestra).map(p => ({
+    id: p.id,
+    tipo: 'persona' as const,
+    nombre: p.nombre,
+    apellido: p.apellido,
+    razon_social: p.razon_social,
+    email: p.email,
+    acepta_marketing: !!p.acepta_marketing,
+  }))
+  const cupoRestante = Math.max(0, tamano_muestra - muestraPersonas.length)
+  const muestraLeads: DestinatarioMuestra[] = leadsCandidatos.slice(0, cupoRestante).map(l => ({
+    id: l.id,
+    tipo: 'lead' as const,
+    nombre: l.nombre,
+    apellido: l.apellido,
+    razon_social: null,
+    email: l.email,
+    acepta_marketing: true, // Los leads no tienen ese campo; asumimos que consintieron al dejar sus datos
+    estado_lead: l.estado,
+    motivo_descarte: l.motivo_descarte ?? null,
+  }))
+
   return {
-    total: candidatas.length,
+    total: candidatas.length + leadsCandidatos.length,
     ids: candidatas.map(p => p.id),
-    muestra: candidatas.slice(0, tamano_muestra).map(p => ({
-      id: p.id,
-      nombre: p.nombre,
-      apellido: p.apellido,
-      razon_social: p.razon_social,
-      email: p.email,
-      acepta_marketing: !!p.acepta_marketing,
-    })),
+    leads_ids: leadsCandidatos.map(l => l.id),
+    muestra: [...muestraPersonas, ...muestraLeads],
   }
 }

@@ -68,7 +68,7 @@ function elegirBaseUrlSegunTipo(
 
 export interface EncolarParams {
   plantilla_codigo: string
-  destinatario: { email: string; nombre?: string; persona_id?: string }
+  destinatario: { email: string; nombre?: string; persona_id?: string; lead_id?: string }
   poliza_id?: string
   tipo_envio: TipoEnvioEmail
   enviado_por_usuario_id?: string
@@ -390,6 +390,7 @@ export async function encolarEmail(params: EncolarParams): Promise<EncolarResult
             destinatario_email: params.destinatario.email,
             destinatario_nombre: params.destinatario.nombre || null,
             persona_id: params.destinatario.persona_id || null,
+            lead_id: params.destinatario.lead_id || null,
             poliza_id: params.poliza_id || null,
             asunto: '',
             tipo_envio: params.tipo_envio,
@@ -426,6 +427,7 @@ export async function encolarEmail(params: EncolarParams): Promise<EncolarResult
             destinatario_email: params.destinatario.email,
             destinatario_nombre: params.destinatario.nombre || null,
             persona_id: params.destinatario.persona_id,
+            lead_id: params.destinatario.lead_id || null,
             poliza_id: params.poliza_id || null,
             asunto: '',
             tipo_envio: params.tipo_envio,
@@ -457,6 +459,7 @@ export async function encolarEmail(params: EncolarParams): Promise<EncolarResult
         destinatario_email: params.destinatario.email,
         destinatario_nombre: params.destinatario.nombre || null,
         persona_id: params.destinatario.persona_id || null,
+        lead_id: params.destinatario.lead_id || null,
         poliza_id: params.poliza_id || null,
         asunto: '',
         tipo_envio: params.tipo_envio,
@@ -719,7 +722,7 @@ async function marcarFalladoConBackoff(
  */
 export async function enviarComunicacion(params: {
   plantilla_codigo: string
-  destinatario: { email: string; nombre?: string; persona_id?: string }
+  destinatario: { email: string; nombre?: string; persona_id?: string; lead_id?: string }
   poliza_id?: string
   campos_editables?: { titulo?: string; cuerpo?: string; cta_texto?: string; cta_url?: string }
   archivos_adjuntos?: Array<{ filename: string; path: string }>

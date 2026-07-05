@@ -41,11 +41,13 @@ interface CatalogoItem { id: string; nombre: string }
 interface PreviewResult {
   total: number
   ids: string[]
-  muestra: Array<{ id: string; nombre: string | null; apellido: string; razon_social: string | null; email: string | null; acepta_marketing: boolean }>
+  leads_ids?: string[]
+  muestra: Array<{ id: string; tipo?: 'persona' | 'lead'; nombre: string | null; apellido: string; razon_social: string | null; email: string | null; acepta_marketing: boolean; estado_lead?: string; motivo_descarte?: string | null }>
 }
 
 const ESTADOS_PERSONA = ['PROSPECTO', 'ACTIVO', 'INACTIVO', 'BLOQUEADO']
 const ESTADOS_POLIZA = ['PROGRAMADA', 'VIGENTE', 'NO_VIGENTE', 'RENOVADA', 'CANCELADA', 'ANULADA']
+const ESTADOS_LEAD = ['NUEVO', 'CONTACTADO', 'CONVERTIDO', 'DESCARTADO']
 
 export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }: Props) {
   const esNueva = audiencia === null
@@ -69,6 +71,13 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
   const [conVigentes, setConVigentes] = useState<boolean | null>(f.con_polizas_vigentes ?? null)
   const [antMin, setAntMin] = useState<string>(f.antiguedad_cliente_dias_min?.toString() ?? '')
   const [antMax, setAntMax] = useState<string>(f.antiguedad_cliente_dias_max?.toString() ?? '')
+
+  // Leads (tipo=FILTRO). Migración 114 — audiencia puede incluir leads
+  // además de personas para enviar campañas a prospectos no convertidos.
+  const [incluirPersonas, setIncluirPersonas] = useState<boolean>(f.incluir_personas ?? !f.incluir_leads)
+  const [incluirLeads, setIncluirLeads] = useState<boolean>(f.incluir_leads ?? false)
+  const [leadsEstado, setLeadsEstado] = useState<string[]>(f.leads_estado ?? ['DESCARTADO'])
+  const [leadsMotivo, setLeadsMotivo] = useState<string>(f.leads_motivo_descarte_ilike ?? '')
 
   // Manual (tipo=MANUAL)
   const [idsManual, setIdsManual] = useState<string[]>(audiencia?.ids_personas ?? [])
@@ -108,6 +117,10 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
   // Construir filtro JSONB actual (memoizable pero simple)
   function construirFiltro(): any {
     const filtro: any = {}
+    // Destinatarios
+    filtro.incluir_personas = incluirPersonas
+    filtro.incluir_leads = incluirLeads
+    // Personas
     if (estadoPersona.length) filtro.estado_persona = estadoPersona
     if (tipoPersona.length) filtro.tipo_persona = tipoPersona
     if (aceptaMarketing != null) filtro.acepta_marketing = aceptaMarketing
@@ -120,6 +133,11 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
     if (conVigentes != null) filtro.con_polizas_vigentes = conVigentes
     if (antMin) filtro.antiguedad_cliente_dias_min = parseInt(antMin, 10)
     if (antMax) filtro.antiguedad_cliente_dias_max = parseInt(antMax, 10)
+    // Leads
+    if (incluirLeads) {
+      if (leadsEstado.length) filtro.leads_estado = leadsEstado
+      if (leadsMotivo.trim()) filtro.leads_motivo_descarte_ilike = leadsMotivo.trim()
+    }
     return filtro
   }
 
@@ -136,7 +154,7 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
     )
     setPreviewCargando(false)
     if (r.ok && r.data) setPreview(r.data)
-  }, [tipo, estadoPersona, tipoPersona, aceptaMarketing, conEmail, companiaIds, ramoIds, estadoPoliza, vencProx, vencHace, conVigentes, antMin, antMax, idsManual])
+  }, [tipo, estadoPersona, tipoPersona, aceptaMarketing, conEmail, companiaIds, ramoIds, estadoPoliza, vencProx, vencHace, conVigentes, antMin, antMax, idsManual, incluirPersonas, incluirLeads, leadsEstado, leadsMotivo])
 
   useEffect(() => {
     const t = setTimeout(ejecutarPreview, 500)
@@ -241,6 +259,83 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
             </button>
           </div>
 
+          {/* Selección de tipos de destinatarios — solo aplica al FILTRO */}
+          {tipo === 'FILTRO' && (
+            <div className="bg-blue-50/50 border border-blue-200 rounded p-3">
+              <p className="text-2xs font-semibold text-slate-700 uppercase mb-2">Destinatarios</p>
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={incluirPersonas}
+                    onChange={e => setIncluirPersonas(e.target.checked)}
+                    className="rounded border-slate-300"
+                  />
+                  <span className="text-xs text-slate-700 font-medium">Clientes / prospectos (personas)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={incluirLeads}
+                    onChange={e => setIncluirLeads(e.target.checked)}
+                    className="rounded border-slate-300"
+                  />
+                  <span className="text-xs text-slate-700 font-medium">Leads (no convertidos)</span>
+                </label>
+              </div>
+              <p className="text-2xs text-slate-500 mt-2">
+                Elegí a qué tipo de destinatarios querés apuntar. Podés combinar ambos en la misma audiencia
+                (ej: clientes ACTIVOS + leads DESCARTADOS para una campaña de reactivación).
+              </p>
+            </div>
+          )}
+
+          {/* Sub-form de criterios para LEADS */}
+          {tipo === 'FILTRO' && incluirLeads && (
+            <div className="bg-amber-50/40 border border-amber-200 rounded p-3">
+              <p className="text-2xs font-semibold text-slate-700 uppercase mb-2">Filtros de leads</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-2xs text-slate-600 mb-1">Estado del lead</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ESTADOS_LEAD.map(est => (
+                      <button
+                        key={est}
+                        type="button"
+                        onClick={() => toggleEn(setLeadsEstado, leadsEstado, est)}
+                        className={`text-2xs px-2 py-1 rounded border transition-colors ${
+                          leadsEstado.includes(est)
+                            ? 'bg-amber-100 text-amber-800 border-amber-300 font-medium'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {est}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-2xs text-slate-500 mt-1">
+                    Si no seleccionás ninguno, se incluyen todos los estados.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-2xs text-slate-600 mb-1">
+                    Motivo de descarte contiene (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={leadsMotivo}
+                    onChange={e => setLeadsMotivo(e.target.value)}
+                    placeholder="Ej: precio, tiempo, competencia"
+                    className="form-input w-full text-sm"
+                  />
+                  <p className="text-2xs text-slate-500 mt-1">
+                    Búsqueda parcial dentro del motivo de descarte. Deja vacío para no filtrar por motivo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Contenido según tipo */}
           {tipo === 'FILTRO' ? (
             <FiltrosForm
@@ -286,20 +381,35 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
             ) : preview ? (
               <>
                 <div className="text-lg font-semibold text-slate-800 font-mono">
-                  {preview.total} {preview.total === 1 ? 'persona' : 'personas'}
+                  {preview.total} destinatario{preview.total === 1 ? '' : 's'}
                 </div>
+                {(preview.ids?.length > 0 || (preview.leads_ids && preview.leads_ids.length > 0)) && (
+                  <div className="text-2xs text-slate-500 mt-0.5">
+                    {preview.ids.length > 0 && <span>{preview.ids.length} persona{preview.ids.length === 1 ? '' : 's'}</span>}
+                    {preview.ids.length > 0 && preview.leads_ids && preview.leads_ids.length > 0 && ' · '}
+                    {preview.leads_ids && preview.leads_ids.length > 0 && (
+                      <span>{preview.leads_ids.length} lead{preview.leads_ids.length === 1 ? '' : 's'}</span>
+                    )}
+                  </div>
+                )}
                 {preview.muestra.length > 0 && (
                   <div className="mt-2 text-2xs text-slate-600">
                     Muestra de los primeros {preview.muestra.length}:
                     <ul className="mt-1 space-y-0.5">
                       {preview.muestra.map(p => (
-                        <li key={p.id} className="flex items-center gap-2">
+                        <li key={`${p.tipo ?? 'persona'}-${p.id}`} className="flex items-center gap-2">
+                          {p.tipo === 'lead' && (
+                            <span className="text-2xs px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 font-medium">Lead</span>
+                          )}
                           <span className="font-medium">
                             {[p.apellido, p.nombre].filter(Boolean).join(', ') || p.razon_social || '—'}
                           </span>
                           {p.email && <span className="text-slate-400">· {p.email}</span>}
-                          {!p.acepta_marketing && (
+                          {p.tipo !== 'lead' && !p.acepta_marketing && (
                             <span className="text-amber-700">· sin opt-in</span>
+                          )}
+                          {p.tipo === 'lead' && p.estado_lead && (
+                            <span className="text-slate-500">· {p.estado_lead}</span>
                           )}
                         </li>
                       ))}

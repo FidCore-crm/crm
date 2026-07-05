@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
   try { body = await request.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
   const update: Record<string, any> = {}
-  for (const k of ['nombre','descripcion','tipo','filtro_jsonb','ids_personas','activa']) {
+  for (const k of ['nombre','descripcion','tipo','filtro_jsonb','ids_personas','ids_leads','activa']) {
     if (k in body) update[k] = body[k]
   }
   if (Object.keys(update).length === 0) {
