@@ -33,6 +33,7 @@ interface PolizaResumen {
   fecha_inicio: string
   fecha_fin: string
   estado: string
+  poliza_origen_id: string | null
   compania: { nombre: string } | null
   ramo: { nombre: string } | null
 }
@@ -92,14 +93,17 @@ interface InteraccionResumen {
 type Tab = 'polizas' | 'siniestros' | 'tareas' | 'comercial' | 'portal' | 'comunicaciones'
 
 // ── Helpers ──────────────────────────────────────────────────
-function estadoPolizaBadge(p: PolizaResumen) {
-  // Estado efectivo — compensa cron que aún no movió VIGENTE con fecha pasada.
-  const estadoEfectivo = getEstadoEfectivoPoliza(p.estado, p.fecha_fin)
+function estadoPolizaBadge(p: PolizaResumen, tieneRenovacionActiva: boolean = false) {
+  // Estado efectivo — considera fecha_fin + tieneRenovacionActiva.
+  const estadoEfectivo = getEstadoEfectivoPoliza(p.estado, p.fecha_fin, tieneRenovacionActiva)
   if (estadoEfectivo === 'VENCIDA') {
     return { label: 'Vencida', color: getPolizaBadgeColor('VENCIDA') }
   }
+  if (estadoEfectivo === 'REEMPLAZADA') {
+    return { label: 'Reemplazada', color: getPolizaBadgeColor('REEMPLAZADA') }
+  }
   const dias = diasHastaVencimiento(p.fecha_fin)
-  if (p.estado === 'VIGENTE' && dias >= 0 && dias <= 30) {
+  if (p.estado === 'VIGENTE' && dias >= 0 && dias <= 30 && !tieneRenovacionActiva) {
     return { label: `Vence en ${dias}d`, color: 'bg-orange-50 text-orange-700 border-orange-200' }
   }
   return { label: getLabelEstado(p.estado), color: getPolizaBadgeColor(p.estado) }
@@ -183,7 +187,7 @@ export default function FichaPersonaPage() {
     const [resPer, resPol, resSin] = await Promise.all([
       supabase.from('personas').select('*').eq('id', id).single(),
       supabase.from('polizas').select(`
-        id, numero_poliza, fecha_inicio, fecha_fin, estado,
+        id, numero_poliza, fecha_inicio, fecha_fin, estado, poliza_origen_id,
         compania:catalogos!compania_id (nombre),
         ramo:catalogos!ramo_id (nombre)
       `).eq('asegurado_id', id).order('fecha_fin', { ascending: false }),
@@ -744,6 +748,14 @@ export default function FichaPersonaPage() {
               : polizas.filter(p => !terminales.includes(p.estado))
             const cantHistoricas = polizas.length - polizas.filter(p => !terminales.includes(p.estado)).length
 
+            // Set de pólizas con renovación activa — para distinguir "Reemplazada"
+            // de "Vencida" en el badge de cada fila.
+            const idsConRenovacion = new Set<string>(
+              polizas
+                .filter(p => p.poliza_origen_id && ['RENOVADA', 'VIGENTE', 'PROGRAMADA'].includes(p.estado))
+                .map(p => p.poliza_origen_id as string),
+            )
+
             return (
             <div className="bg-white border border-slate-200 rounded overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
@@ -796,8 +808,9 @@ export default function FichaPersonaPage() {
                   </thead>
                   <tbody>
                     {polizasVisibles.map(p => {
-                      const badge = estadoPolizaBadge(p)
-                      const vencida = terminales.includes(p.estado)
+                      const tieneRenovacionActiva = idsConRenovacion.has(p.id)
+                      const badge = estadoPolizaBadge(p, tieneRenovacionActiva)
+                      const vencida = terminales.includes(p.estado) && !tieneRenovacionActiva
                       return (
                         <tr key={p.id} className={`${vencida ? 'opacity-55' : ''} cursor-pointer hover:bg-slate-50`} onClick={() => router.push(`/crm/polizas/${p.id}`)}>
                           <td className="font-mono text-xs font-semibold text-blue-600 hover:underline">{p.numero_poliza}</td>

@@ -37,16 +37,20 @@ interface Catalogo { id: string; nombre: string }
 type SortField = 'numero_poliza' | 'fecha_fin'
 type SortDir   = 'asc' | 'desc'
 
-function estadoBadge(poliza: Poliza) {
-  // Compensar el cron: si estado=VIGENTE pero fecha_fin ya pasó, mostramos
-  // "Vencida" en rojo sin esperar a que el cron actualice el estado en DB.
-  const estadoEfectivo = getEstadoEfectivoPoliza(poliza.estado, poliza.fecha_fin)
+function estadoBadge(poliza: Poliza, tieneRenovacionActiva: boolean) {
+  // Estado efectivo — considera fecha_fin (para compensar el cron) y si tiene
+  // renovación activa (para distinguir "Reemplazada" de "Vencida" real).
+  const estadoEfectivo = getEstadoEfectivoPoliza(poliza.estado, poliza.fecha_fin, tieneRenovacionActiva)
   if (estadoEfectivo === 'VENCIDA') {
     return { label: 'Vencida', color: getPolizaBadgeColor('VENCIDA') }
   }
+  if (estadoEfectivo === 'REEMPLAZADA') {
+    return { label: 'Reemplazada', color: getPolizaBadgeColor('REEMPLAZADA') }
+  }
   const dias = diasHastaVencimiento(poliza.fecha_fin)
-  // Para VIGENTE que está por vencer, mostrar indicador de días
-  if (poliza.estado === 'VIGENTE' && dias >= 0 && dias <= 30) {
+  // Para VIGENTE que está por vencer, mostrar indicador de días (siempre y
+  // cuando no tenga renovación activa — sino sería confuso).
+  if (poliza.estado === 'VIGENTE' && dias >= 0 && dias <= 30 && !tieneRenovacionActiva) {
     return { label: `Vence en ${dias}d`, color: 'bg-orange-50 text-orange-700 border-orange-200' }
   }
   return { label: getLabelEstado(poliza.estado), color: getPolizaBadgeColor(poliza.estado) }
@@ -118,6 +122,11 @@ function PolizasContent() {
   const [filtroImportacion, setFiltroImportacion] = useState<{ id: string; fecha: string; archivos: string[]; total: number } | null>(null)
   const [idsImportacion, setIdsImportacion] = useState<string[] | null>(null)
   const [errorImportacion, setErrorImportacion] = useState<string | null>(null)
+
+  // IDs de pólizas que tienen renovación activa (RENOVADA/VIGENTE/PROGRAMADA
+  // como hija). Se usa para distinguir en el badge las "Reemplazadas" (vieja
+  // que ya se renovó) de las "Vencidas" reales (necesitan gestión).
+  const [idsConRenovacion, setIdsConRenovacion] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!importacionId) {
@@ -195,6 +204,25 @@ function PolizasContent() {
   }, [supabase, usuario])
 
   useEffect(() => { cargarKpis() }, [cargarKpis])
+
+  // Cargar IDs de pólizas con renovación activa — para distinguir
+  // "Reemplazadas" de "Vencidas" en el badge del listado.
+  useEffect(() => {
+    async function cargarIdsRenovacion() {
+      const { data } = await supabase
+        .from('polizas')
+        .select('poliza_origen_id')
+        .not('poliza_origen_id', 'is', null)
+        .in('estado', ['RENOVADA', 'VIGENTE', 'PROGRAMADA'])
+      const ids = new Set<string>(
+        ((data ?? []) as Array<{ poliza_origen_id: string | null }>)
+          .map(r => r.poliza_origen_id)
+          .filter((x): x is string => !!x),
+      )
+      setIdsConRenovacion(ids)
+    }
+    cargarIdsRenovacion()
+  }, [supabase])
 
   // Cargar lista de usuarios para el filtro + columna "Asignado a" (admin-only).
   useEffect(() => {
@@ -274,48 +302,23 @@ function PolizasContent() {
 
     if (filtroCompania) query = query.eq('compania_id', filtroCompania)
     if (filtroRamo)     query = query.eq('ramo_id', filtroRamo)
-    if (filtroEstado === 'ACTIVAS') {
-      // Default: ocultamos las terminales para reducir ruido visual.
-      query = query.in('estado', ['VIGENTE', 'PROGRAMADA', 'RENOVADA'])
-    } else if (filtroEstado) {
-      query = query.eq('estado', filtroEstado)
+
+    // "programadas" impone estado y gana sobre filtroEstado. Sin esto, el
+    // default "ACTIVAS" ya lo cubre pero conceptualmente es la misma vista.
+    const temporalImponeEstado = filtroTemporal === 'programadas'
+
+    if (!temporalImponeEstado) {
+      if (filtroEstado === 'ACTIVAS') {
+        // Default: ocultamos las terminales para reducir ruido visual.
+        query = query.in('estado', ['VIGENTE', 'PROGRAMADA', 'RENOVADA'])
+      } else if (filtroEstado) {
+        query = query.eq('estado', filtroEstado)
+      }
     }
 
-    const hoy = hoyLocal()
-    const fmtISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    if (filtroTemporal === 'hoy') {
-      // Vencen hoy — solo VIGENTE con fecha_fin = hoy
-      query = query.eq('estado', 'VIGENTE').eq('fecha_fin', hoy)
-    } else if (filtroTemporal === 'semana') {
-      // Esta semana — VIGENTE con fecha_fin entre hoy y hoy+7
-      const fin = new Date(); fin.setDate(fin.getDate() + 7)
-      query = query.eq('estado', 'VIGENTE').gte('fecha_fin', hoy).lte('fecha_fin', fmtISO(fin))
-    } else if (filtroTemporal === 'mes') {
-      // Este mes — VIGENTE con fecha_fin entre hoy y hoy+30
-      const fin = new Date(); fin.setDate(fin.getDate() + 30)
-      query = query.eq('estado', 'VIGENTE').gte('fecha_fin', hoy).lte('fecha_fin', fmtISO(fin))
-    } else if (filtroTemporal === '10dias') {
-      const fin = new Date(); fin.setDate(fin.getDate() + 10)
-      query = query.eq('estado', 'VIGENTE').gte('fecha_fin', hoy).lte('fecha_fin', fmtISO(fin))
-    } else if (filtroTemporal === 'recientes') {
+    if (filtroTemporal === 'recientes') {
       const desde = new Date(); desde.setDate(desde.getDate() - 30)
       query = query.gte('created_at', desde.toISOString())
-    } else if (filtroTemporal === 'vencidas') {
-      // Vencidas = NO_VIGENTE + VIGENTE con fecha pasada (cron aún no las movió).
-      // Excluimos las que YA tienen renovación activa — el PAS no necesita ver
-      // la vieja NO_VIGENTE si ya fue reemplazada por su renovación.
-      const { data: conRen } = await supabase
-        .from('polizas')
-        .select('poliza_origen_id')
-        .not('poliza_origen_id', 'is', null)
-        .in('estado', ['RENOVADA', 'VIGENTE', 'PROGRAMADA'])
-      const idsRenActiva = ((conRen ?? []) as Array<{ poliza_origen_id: string | null }>)
-        .map(r => r.poliza_origen_id)
-        .filter((x): x is string => !!x)
-      query = query.or(`estado.eq.NO_VIGENTE,and(estado.eq.VIGENTE,fecha_fin.lt.${hoy})`)
-      if (idsRenActiva.length > 0) {
-        query = query.not('id', 'in', `(${idsRenActiva.join(',')})`)
-      }
     } else if (filtroTemporal === 'programadas') {
       query = query.in('estado', ['PROGRAMADA', 'RENOVADA'])
     }
@@ -559,13 +562,8 @@ function PolizasContent() {
         </select>
         <select className="form-input" value={filtroTemporal} onChange={e => { setFiltroTemporal(e.target.value); setKpiActivo(null); setPagina(0) }}>
           <option value="">Todos los períodos</option>
-          <option value="hoy">Vencen hoy</option>
-          <option value="semana">Vencen esta semana (7d)</option>
-          <option value="10dias">Vencen en 10 días</option>
-          <option value="mes">Vencen este mes (30d)</option>
-          <option value="vencidas">Vencidas</option>
-          <option value="programadas">Programadas / Renovadas</option>
-          <option value="recientes">Creadas este mes</option>
+          <option value="recientes">Alta últimos 30 días</option>
+          <option value="programadas">Programadas / Renovadas (latentes)</option>
         </select>
         {isAdmin && usuariosLista.length > 1 && (
           <select
@@ -589,32 +587,6 @@ function PolizasContent() {
         <button onClick={() => { cargarPolizas(); cargarKpis() }} className="btn-secondary h-7 w-7 p-0 flex items-center justify-center ml-auto" title="Actualizar">
           <RefreshCw className="h-3.5 w-3.5"/>
         </button>
-      </div>
-
-      {/* Chips rápidos de filtro temporal — accesos visibles a los casos
-          que el PAS usa a diario. Complementan los selects de arriba. */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-2xs text-slate-500 font-medium uppercase tracking-wide">Ver:</span>
-        {[
-          { valor: '', label: 'Todas', color: 'bg-slate-50 border-slate-200 text-slate-700' },
-          { valor: 'hoy', label: 'Vencen hoy', color: 'bg-red-50 border-red-200 text-red-700' },
-          { valor: 'semana', label: 'Esta semana', color: 'bg-orange-50 border-orange-200 text-orange-700' },
-          { valor: 'mes', label: 'Este mes', color: 'bg-amber-50 border-amber-200 text-amber-700' },
-          { valor: 'vencidas', label: 'Vencidas', color: 'bg-red-100 border-red-300 text-red-800' },
-          { valor: 'programadas', label: 'Programadas / Renovadas', color: 'bg-blue-50 border-blue-200 text-blue-700' },
-        ].map(chip => (
-          <button
-            key={chip.valor}
-            onClick={() => { setFiltroTemporal(chip.valor); setKpiActivo(null); setPagina(0) }}
-            className={`text-xs px-2.5 py-1 rounded border transition-all ${
-              filtroTemporal === chip.valor
-                ? `${chip.color} font-semibold ring-2 ring-offset-1 ring-slate-300`
-                : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            {chip.label}
-          </button>
-        ))}
       </div>
 
       {/* Barra de selección masiva */}
@@ -678,8 +650,12 @@ function PolizasContent() {
           </thead>
           <tbody>
             {polizas.map(p => {
-              const badge   = estadoBadge(p)
-              const vencida = ['NO_VIGENTE', 'CANCELADA', 'ANULADA'].includes(p.estado)
+              const tieneRenovacionActiva = idsConRenovacion.has(p.id)
+              const badge   = estadoBadge(p, tieneRenovacionActiva)
+              // "vencida" para ATENUAR visualmente — usamos NO_VIGENTE/CANCELADA/
+              // ANULADA como estados terminales que se ven en gris. Excluimos las
+              // reemplazadas para NO atenuarlas (aún son parte del histórico útil).
+              const vencida = ['NO_VIGENTE', 'CANCELADA', 'ANULADA'].includes(p.estado) && !tieneRenovacionActiva
               const primerRiesgo = p.riesgos?.[0]
               const dt      = primerRiesgo?.detalle_tecnico ?? {}
               const labelBase = describirBien(primerRiesgo?.tipo_riesgo, dt) ?? '—'

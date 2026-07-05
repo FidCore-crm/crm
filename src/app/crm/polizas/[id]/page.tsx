@@ -94,15 +94,20 @@ interface SiniestroResumen {
 }
 
 // ── Helpers ──────────────────────────────────────────────────
-function estadoPolizaBadge(estado: string, fechaFin: string) {
-  // Estado efectivo — compensa que el cron aún no haya movido a NO_VIGENTE.
-  const estadoEfectivo = getEstadoEfectivoPoliza(estado, fechaFin)
+function estadoPolizaBadge(estado: string, fechaFin: string, tieneRenovacionActiva: boolean = false) {
+  // Estado efectivo — considera fecha_fin + tieneRenovacionActiva.
+  const estadoEfectivo = getEstadoEfectivoPoliza(estado, fechaFin, tieneRenovacionActiva)
   if (estadoEfectivo === 'VENCIDA') {
     return { label: 'Vencida', color: getPolizaBadgeColor('VENCIDA') }
   }
+  if (estadoEfectivo === 'REEMPLAZADA') {
+    return { label: 'Reemplazada', color: getPolizaBadgeColor('REEMPLAZADA') }
+  }
   const dias = diasHastaVencimiento(fechaFin)
-  if (estado === 'VIGENTE' && dias >= 0 && dias <= 7)  return { label: `Vence en ${dias}d`, color: 'bg-red-50 text-red-700 border-red-200' }
-  if (estado === 'VIGENTE' && dias >= 0 && dias <= 30) return { label: `Vence en ${dias}d`, color: 'bg-orange-50 text-orange-700 border-orange-200' }
+  if (estado === 'VIGENTE' && dias >= 0 && dias <= 7 && !tieneRenovacionActiva)
+    return { label: `Vence en ${dias}d`, color: 'bg-red-50 text-red-700 border-red-200' }
+  if (estado === 'VIGENTE' && dias >= 0 && dias <= 30 && !tieneRenovacionActiva)
+    return { label: `Vence en ${dias}d`, color: 'bg-orange-50 text-orange-700 border-orange-200' }
   return { label: getLabelEstado(estado), color: getPolizaBadgeColor(estado) }
 }
 
@@ -341,7 +346,6 @@ export default function FichaPolizaPage() {
     </div>
   )
 
-  const badge      = estadoPolizaBadge(poliza.estado, poliza.fecha_fin)
   const dias       = diasRestantes(poliza.fecha_fin)
   const vencida    = dias < 0
   const diasInicio = diasRestantes(poliza.fecha_inicio)
@@ -351,6 +355,8 @@ export default function FichaPolizaPage() {
     c.fecha_inicio >= poliza.fecha_fin
     && ['RENOVADA', 'VIGENTE', 'PROGRAMADA'].includes(c.estado)
   )
+
+  const badge      = estadoPolizaBadge(poliza.estado, poliza.fecha_fin, tieneRenovacionActiva)
 
   // Card de vigencia sensible al estado real de la póliza.
   type VigenciaCard = { titulo: string; valor: string; sub: string; bg: string; border: string; icon: string; valorColor: string }
