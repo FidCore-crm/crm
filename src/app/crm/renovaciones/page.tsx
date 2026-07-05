@@ -7,7 +7,7 @@ import {
   AlertTriangle, Clock, AlertOctagon, CheckCircle2, Timer, Send
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { formatFechaLocal, hoyAR, diasHastaVencimiento, getLabelEstado, getPolizaBadgeColor, sanitizarBusquedaNormalizada } from '@/lib/utils'
+import { formatFechaLocal, hoyAR, diasHastaVencimiento, getLabelEstado, getPolizaBadgeColor, getEstadoEfectivoPoliza, sanitizarBusquedaNormalizada } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { obtenerIdsPersonas, filtrarPorPersonas } from '@/lib/cartera-filter'
 import ModalEnviarEmailMasivo from '@/components/ModalEnviarEmailMasivo'
@@ -127,16 +127,32 @@ export default function RenovacionesPage() {
       let q30 = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE').gt('fecha_fin', fmt(d15)).lte('fecha_fin', fmt(d30))
       // KPI "vencidas" cuenta ambos casos: NO_VIGENTE + VIGENTE con fecha_fin < hoy
       // (últimas se cuentan porque el cron aún no las movió). Ambos casos
-      // excluyen las que YA tienen renovación creada.
+      // excluyen las que YA tienen renovación activa.
       let qNVReal = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'NO_VIGENTE')
       let qNVSinCron = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE').lt('fecha_fin', hoy)
-      let qRen = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'RENOVADA')
+      // KPI "Renovadas" = renovaciones (hijas) creadas en los últimos 30 días,
+      // en cualquier estado. Antes contaba solo RENOVADA (latentes) — cuando
+      // el cron activaba la hija pasaba a VIGENTE y desaparecía del KPI.
+      // Ahora cuenta el trabajo realizado en el período, independiente del
+      // estado actual.
+      const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30)
+      const hace30Iso = hace30.toISOString()
+      let qRen = supabase.from('polizas').select('id', { count: 'exact', head: true })
+        .not('poliza_origen_id', 'is', null)
+        .gte('created_at', hace30Iso)
 
-      // Excluir las que ya tienen renovación creada
+      // Excluir las que ya tienen renovación activa — aplica a TODOS los KPIs.
+      // Antes solo se excluía en el KPI "vencidas". Ahora también en 7/15/30d
+      // porque una póliza que vence en 5 días pero YA está renovada NO debería
+      // aparecer como "por gestionar".
       const idsRenArr = Array.from(idsRen)
       if (idsRenArr.length > 0) {
-        qNVReal = qNVReal.not('id', 'in', `(${idsRenArr.join(',')})`)
-        qNVSinCron = qNVSinCron.not('id', 'in', `(${idsRenArr.join(',')})`)
+        const filtroExcluir = `(${idsRenArr.join(',')})`
+        q7 = q7.not('id', 'in', filtroExcluir)
+        q15 = q15.not('id', 'in', filtroExcluir)
+        q30 = q30.not('id', 'in', filtroExcluir)
+        qNVReal = qNVReal.not('id', 'in', filtroExcluir)
+        qNVSinCron = qNVSinCron.not('id', 'in', filtroExcluir)
       }
 
       q7 = filtrarPorPersonas(q7, idsPersonas, 'asegurado_id')
@@ -187,47 +203,56 @@ export default function RenovacionesPage() {
         cobertura:catalogos!cobertura_id (id, nombre)
       `, { count: 'exact' })
 
-    // Filtro base: solo renovaciones relevantes
+    // Filtro base: solo renovaciones relevantes.
+    // Todos los sub-filtros excluyen las pólizas que YA tienen renovación
+    // activa (RENOVADA/VIGENTE/PROGRAMADA hija apuntando a ellas). Sin esta
+    // exclusión, aparecen las viejas ya reemplazadas como si necesitaran
+    // gestión.
+    const idsRenArrGlobal = Array.from(idsConRenovacion)
+    const excluirRenGlobal = idsRenArrGlobal.length > 0
+      ? `(${idsRenArrGlobal.join(',')})`
+      : null
+
     if (kpiActivo === 'en7') {
       const d7 = new Date(); d7.setDate(d7.getDate() + 7)
       const fmt7 = `${d7.getFullYear()}-${String(d7.getMonth()+1).padStart(2,'0')}-${String(d7.getDate()).padStart(2,'0')}`
       query = query.eq('estado', 'VIGENTE').gte('fecha_fin', hoy).lte('fecha_fin', fmt7)
+      if (excluirRenGlobal) query = query.not('id', 'in', excluirRenGlobal)
     } else if (kpiActivo === 'en15') {
       const d7  = new Date(); d7.setDate(d7.getDate() + 7)
       const d15 = new Date(); d15.setDate(d15.getDate() + 15)
       const fmt7 = `${d7.getFullYear()}-${String(d7.getMonth()+1).padStart(2,'0')}-${String(d7.getDate()).padStart(2,'0')}`
       const fmt15 = `${d15.getFullYear()}-${String(d15.getMonth()+1).padStart(2,'0')}-${String(d15.getDate()).padStart(2,'0')}`
       query = query.eq('estado', 'VIGENTE').gt('fecha_fin', fmt7).lte('fecha_fin', fmt15)
+      if (excluirRenGlobal) query = query.not('id', 'in', excluirRenGlobal)
     } else if (kpiActivo === 'en30') {
       const d15 = new Date(); d15.setDate(d15.getDate() + 15)
       const fmt15 = `${d15.getFullYear()}-${String(d15.getMonth()+1).padStart(2,'0')}-${String(d15.getDate()).padStart(2,'0')}`
       query = query.eq('estado', 'VIGENTE').gt('fecha_fin', fmt15).lte('fecha_fin', fmt30)
+      if (excluirRenGlobal) query = query.not('id', 'in', excluirRenGlobal)
     } else if (kpiActivo === 'vencidas') {
       // Vencidas = NO_VIGENTE + VIGENTE con fecha_fin < hoy (cron aún no las movió).
-      // Ambas excluyen las que ya tienen renovación creada.
+      // Excluye las que ya tienen renovación activa (fueron reemplazadas).
       query = query.or(`estado.eq.NO_VIGENTE,and(estado.eq.VIGENTE,fecha_fin.lt.${hoy})`)
-      const idsRenArr = Array.from(idsConRenovacion)
-      if (idsRenArr.length > 0) query = query.not('id', 'in', `(${idsRenArr.join(',')})`)
+      if (excluirRenGlobal) query = query.not('id', 'in', excluirRenGlobal)
     } else if (kpiActivo === 'renovadas') {
-      query = query.eq('estado', 'RENOVADA')
+      // Renovaciones (hijas) creadas en los últimos 30 días, cualquier estado.
+      const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30)
+      query = query.not('poliza_origen_id', 'is', null).gte('created_at', hace30.toISOString())
     } else {
       // Default: vencidas + próximas a vencer (30 días) + RENOVADAs latentes.
       // Se INCLUYEN las vencidas al tope de la lista para que el PAS las vea
       // sin tener que hacer click en el KPI. El sort ascendente por fecha_fin
       // hace que las más viejas (más urgentes) aparezcan primero.
-      const idsRenArr = Array.from(idsConRenovacion)
-      const excluirRen = idsRenArr.length > 0 ? idsRenArr : []
-      // OR compuesto: (VIGENTE hasta 30d futuro) + NO_VIGENTE + (VIGENTE con fecha < hoy) + RENOVADA
       query = query.or(
         `and(estado.eq.VIGENTE,fecha_fin.gte.${hoy},fecha_fin.lte.${fmt30}),` +
         `estado.eq.NO_VIGENTE,` +
         `and(estado.eq.VIGENTE,fecha_fin.lt.${hoy}),` +
         `estado.eq.RENOVADA`
       )
-      // Excluir las vencidas que ya tienen renovación creada
-      if (excluirRen.length > 0) {
-        query = query.not('id', 'in', `(${excluirRen.join(',')})`)
-      }
+      // Excluir las pólizas que ya tienen renovación activa — se ven a través
+      // de la hija, no de la vieja.
+      if (excluirRenGlobal) query = query.not('id', 'in', excluirRenGlobal)
     }
 
     query = filtrarPorPersonas(query, idsPersonas, 'asegurado_id')
@@ -256,7 +281,7 @@ export default function RenovacionesPage() {
       setTotal(count ?? 0)
     }
     setCargando(false)
-  }, [supabase, usuario, kpiActivo, filtroCompania, filtroRamo, busquedaDebounce, pagina])
+  }, [supabase, usuario, kpiActivo, filtroCompania, filtroRamo, busquedaDebounce, pagina, idsConRenovacion])
 
   useEffect(() => { cargarPolizas() }, [cargarPolizas])
 
@@ -361,7 +386,7 @@ export default function RenovacionesPage() {
             <CheckCircle2 className="h-3.5 w-3.5 text-violet-600" /> Renovadas
           </span>
           <span className="kpi-value text-violet-700">{kpis.renovadas.toLocaleString('es-AR')}</span>
-          <span className="kpi-sub">pendientes de inicio</span>
+          <span className="kpi-sub">últimos 30 días</span>
         </div>
       </div>
 
@@ -442,6 +467,10 @@ export default function RenovacionesPage() {
               const dias = diasHastaVencimiento(p.fecha_fin)
               const esRenovada = p.estado === 'RENOVADA'
               const yaTieneRenovacion = idsConRenovacion.has(p.id)
+              // Estado efectivo — VIGENTE con fecha_fin < hoy → VENCIDA.
+              // Compensa cron que aún no la movió a NO_VIGENTE.
+              const estadoEfectivo = getEstadoEfectivoPoliza(p.estado, p.fecha_fin)
+              const esVencida = estadoEfectivo === 'VENCIDA' || p.estado === 'NO_VIGENTE'
               const opaca = p.estado === 'NO_VIGENTE'
 
               return (
@@ -470,14 +499,19 @@ export default function RenovacionesPage() {
                   <td className="text-xs text-slate-600">{p.cobertura?.nombre ?? '—'}</td>
                   <td className="text-xs text-slate-600 whitespace-nowrap">{formatFechaLocal(p.fecha_fin)}</td>
                   <td className={`text-xs font-mono whitespace-nowrap ${diasColor(dias, p.estado)}`}>
-                    {esRenovada
-                      ? <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${getPolizaBadgeColor('RENOVADA')}`}>Renovada</span>
-                      : dias < 0 ? `${dias}d` : `${dias}d`
-                    }
+                    {esRenovada ? (
+                      <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${getPolizaBadgeColor('RENOVADA')}`}>Renovada</span>
+                    ) : esVencida ? (
+                      // Póliza ya vencida — los días son irrelevantes, mostramos "—"
+                      <span className="text-slate-400">—</span>
+                    ) : (
+                      // Póliza VIGENTE con fecha futura — mostramos días positivos
+                      `${dias}d`
+                    )}
                   </td>
                   <td>
-                    <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${getPolizaBadgeColor(p.estado)}`}>
-                      {getLabelEstado(p.estado)}
+                    <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${getPolizaBadgeColor(estadoEfectivo)}`}>
+                      {estadoEfectivo === 'VENCIDA' ? 'Vencida' : getLabelEstado(p.estado)}
                     </span>
                   </td>
                   <td onClick={e => e.stopPropagation()}>

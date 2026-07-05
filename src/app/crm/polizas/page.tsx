@@ -301,8 +301,21 @@ function PolizasContent() {
       const desde = new Date(); desde.setDate(desde.getDate() - 30)
       query = query.gte('created_at', desde.toISOString())
     } else if (filtroTemporal === 'vencidas') {
-      // Vencidas = NO_VIGENTE + VIGENTE con fecha pasada (cron aún no las movió)
+      // Vencidas = NO_VIGENTE + VIGENTE con fecha pasada (cron aún no las movió).
+      // Excluimos las que YA tienen renovación activa — el PAS no necesita ver
+      // la vieja NO_VIGENTE si ya fue reemplazada por su renovación.
+      const { data: conRen } = await supabase
+        .from('polizas')
+        .select('poliza_origen_id')
+        .not('poliza_origen_id', 'is', null)
+        .in('estado', ['RENOVADA', 'VIGENTE', 'PROGRAMADA'])
+      const idsRenActiva = ((conRen ?? []) as Array<{ poliza_origen_id: string | null }>)
+        .map(r => r.poliza_origen_id)
+        .filter((x): x is string => !!x)
       query = query.or(`estado.eq.NO_VIGENTE,and(estado.eq.VIGENTE,fecha_fin.lt.${hoy})`)
+      if (idsRenActiva.length > 0) {
+        query = query.not('id', 'in', `(${idsRenActiva.join(',')})`)
+      }
     } else if (filtroTemporal === 'programadas') {
       query = query.in('estado', ['PROGRAMADA', 'RENOVADA'])
     }
