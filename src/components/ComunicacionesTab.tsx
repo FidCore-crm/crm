@@ -18,6 +18,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Mail, CheckCircle, XCircle, Clock, Eye, MousePointerClick, RefreshCw,
   AlertTriangle, ExternalLink, X, Loader2, Archive, RotateCw, Search,
+  ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { getSupabaseClient } from '@/lib/supabase/client'
@@ -28,6 +29,10 @@ interface Props {
   refreshKey?: number
   /** Modo global: omite el filtro de entidad y agrega columna "Destinatario". */
   global?: boolean
+  /** Si true, el header hace de toggle y el body se colapsa. Default: false. */
+  colapsable?: boolean
+  /** Estado inicial cuando es colapsable. Default: true (abierto). */
+  defaultAbierto?: boolean
 }
 
 interface EnvioRow {
@@ -99,7 +104,8 @@ function EstadoBadge({ estado }: { estado: string }) {
   return <span className={`${comun} bg-slate-100 text-slate-600 border-slate-200`}>{estado}</span>
 }
 
-export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, global = false }: Props) {
+export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, global = false, colapsable = false, defaultAbierto = true }: Props) {
+  const [abierto, setAbierto] = useState(defaultAbierto)
   const [envios, setEnvios] = useState<EnvioRow[]>([])
   const [cargando, setCargando] = useState(true)
   const [incluirArchivados, setIncluirArchivados] = useState(false)
@@ -206,12 +212,23 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
   return (
     <div className="bg-white border border-slate-200 rounded overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-slate-100 bg-slate-50">
-        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={colapsable ? () => setAbierto(v => !v) : undefined}
+          className={`flex items-center gap-3 ${colapsable ? 'cursor-pointer' : 'cursor-default'}`}
+          disabled={!colapsable}
+        >
           <span className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
             <Mail className="h-3.5 w-3.5" /> Historial de comunicaciones
           </span>
           <span className="text-2xs text-slate-400">{total} {total === 1 ? 'email' : 'emails'}</span>
-        </div>
+          {colapsable && (
+            abierto
+              ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" />
+              : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+          )}
+        </button>
+        {(!colapsable || abierto) && (<>
         {global && (
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
@@ -279,8 +296,10 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
             <RefreshCw className="h-3 w-3" />
           </button>
         </div>
+        </>)}
       </div>
 
+      {(!colapsable || abierto) && (<>
       {error && (
         <div className="px-3 py-2 text-xs text-red-600 bg-red-50 border-b border-red-200 flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5" /> {error}
@@ -386,6 +405,7 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
           </div>
         </div>
       )}
+      </>)}
 
       {/* Modal detalle */}
       {envioDetalle && (

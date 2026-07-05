@@ -1,13 +1,19 @@
 'use client'
 
 // ============================================================
-// Modal simple que muestra el histórico del análisis de cambios
-// IA de una renovación. Se abre desde un link discreto en la
-// ficha de póliza. Sin polling, sin auto-refresh — solo lectura
-// del resultado ya persistido en polizas.comparacion_ia.
+// Panel lateral (drawer) que muestra el histórico del análisis
+// de cambios IA de una renovación. Se abre desde un link discreto
+// en la ficha de póliza. Sin polling, sin auto-refresh — solo
+// lectura del resultado ya persistido en polizas.comparacion_ia.
+//
+// v1.0.75 — rediseñado como drawer lateral tras que el modal
+// centrado con height fija seguía cortando el contenido en
+// pantallas medianas. El drawer siempre tiene h-screen y usa
+// flex-col con overflow-y-auto en el body — scroll garantizado
+// sin depender de min-h-0 / max-h-[N vh] tricks.
 // ============================================================
 
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { X, Sparkles, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react'
 import { formatFechaLocalLarga } from '@/lib/utils'
 
@@ -54,20 +60,51 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
     return Array.from(map.entries())
   }, [materiales])
 
+  // Cerrar con Escape (accesibilidad)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCerrar()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCerrar])
+
   return (
-    <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col" style={{ height: '85vh' }}>
-        <div className="shrink-0 px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-blue-600" />
-            <h3 className="text-sm font-semibold text-slate-800">Análisis de cambios vs. póliza anterior</h3>
+    <div className="fixed inset-0 z-50">
+      {/* Overlay clickeable para cerrar */}
+      <div
+        className="absolute inset-0 bg-slate-900/40"
+        onClick={onCerrar}
+        aria-hidden="true"
+      />
+
+      {/* Drawer lateral derecho — h-screen garantiza altura completa,
+          overflow-y-auto en el body permite scroll siempre. */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Análisis de cambios vs. póliza anterior"
+        className="absolute right-0 top-0 h-screen w-full sm:w-[540px] bg-white shadow-2xl border-l border-slate-200 flex flex-col"
+      >
+        {/* Header sticky */}
+        <header className="shrink-0 px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="h-4 w-4 text-blue-600 shrink-0" />
+            <h3 className="text-sm font-semibold text-slate-800 truncate">
+              Análisis de cambios vs. póliza anterior
+            </h3>
           </div>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-800">
+          <button
+            onClick={onCerrar}
+            className="text-slate-400 hover:text-slate-800 shrink-0"
+            aria-label="Cerrar"
+          >
             <X className="h-4 w-4" />
           </button>
-        </div>
+        </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-3">
+        {/* Body con scroll natural */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {comparacion.estado === 'FALLIDA' && (
             <div className="border border-red-200 bg-red-50 rounded p-3 flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
@@ -80,6 +117,7 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
 
           {comparacion.estado === 'COMPLETADA' && (
             <>
+              {/* Resumen */}
               <div className={`border rounded p-3 flex items-start gap-2 ${
                 materiales.length === 0
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
@@ -93,6 +131,7 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
                 <p className="text-sm">{comparacion.resumen || 'Análisis completado'}</p>
               </div>
 
+              {/* Contadores */}
               <p className="text-xs text-slate-600">
                 <span className="font-semibold text-slate-800">{materiales.length}</span>{' '}
                 cambio{materiales.length !== 1 ? 's' : ''} material{materiales.length !== 1 ? 'es' : ''}
@@ -103,6 +142,7 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
                 <p className="text-xs text-slate-500 italic">Sin cambios materiales.</p>
               )}
 
+              {/* Grupos por categoría */}
               {porCategoria.map(([categoria, items]) => (
                 <div key={categoria} className="border border-slate-200 rounded overflow-hidden">
                   <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200">
@@ -113,10 +153,10 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
                       <li key={i} className="px-3 py-2.5 flex flex-col gap-1">
                         <span className="text-xs font-medium text-slate-800">{c.campo}</span>
                         {(c.antes || c.ahora) && (
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className="text-slate-500 line-through">{c.antes || '—'}</span>
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="text-slate-500 line-through break-words">{c.antes || '—'}</span>
                             <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
-                            <span className="text-slate-800 font-medium">{c.ahora || '—'}</span>
+                            <span className="text-slate-800 font-medium break-words">{c.ahora || '—'}</span>
                           </div>
                         )}
                         <p className="text-xs text-slate-600 leading-relaxed">{c.descripcion}</p>
@@ -128,6 +168,7 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
             </>
           )}
 
+          {/* Footer discreto — costo/tiempo */}
           <div className="text-2xs text-slate-400 pt-2 border-t border-slate-100">
             Análisis IA
             {comparacion.duracion_ms ? ` · ${Math.round(comparacion.duracion_ms / 1000)}s` : ''}
@@ -136,10 +177,11 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
           </div>
         </div>
 
-        <div className="shrink-0 px-4 py-3 border-t border-slate-200 flex items-center justify-end">
+        {/* Footer sticky con acción de cerrar */}
+        <footer className="shrink-0 px-4 py-3 border-t border-slate-200 flex items-center justify-end bg-white">
           <button onClick={onCerrar} className="btn-secondary text-sm">Cerrar</button>
-        </div>
-      </div>
+        </footer>
+      </aside>
     </div>
   )
 }

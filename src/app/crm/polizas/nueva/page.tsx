@@ -804,7 +804,7 @@ function NuevaPolizaContent() {
           <div>
             <div className="flex items-baseline justify-between mb-1">
               <label className="text-xs text-slate-700 font-medium">Observaciones</label>
-              <span className="text-2xs text-emerald-700 font-medium">👁 Visibles para el asegurado en el portal</span>
+              <span className="text-2xs text-emerald-700 font-medium">Visible en el portal del asegurado</span>
             </div>
             <textarea
               className="form-input w-full resize-none"
@@ -817,7 +817,7 @@ function NuevaPolizaContent() {
           <div>
             <div className="flex items-baseline justify-between mb-1">
               <label className="text-xs text-slate-700 font-medium">Notas internas</label>
-              <span className="text-2xs text-slate-500 font-medium">🔒 Solo para vos — el cliente NO las ve</span>
+              <span className="text-2xs text-slate-500 font-medium">Uso interno · no se comparte con el asegurado</span>
             </div>
             <textarea
               className="form-input w-full resize-none"

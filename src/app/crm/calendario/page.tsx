@@ -489,6 +489,42 @@ export default function CalendarioPage() {
         </div>
       </div>
 
+      {/* Referencia de colores — leyenda siempre visible arriba del calendario.
+          Los colores se usan tanto en la vista calendario como en la vista lista. */}
+      <div className="bg-white border border-slate-200 rounded px-3 py-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-2xs">
+        <span className="text-slate-500 font-semibold uppercase tracking-wide">Referencia:</span>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-100 border border-red-300" />
+          <span className="text-slate-600">Tarea vencida</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-100 border border-amber-300" />
+          <span className="text-slate-600">Tarea de hoy</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-100 border border-blue-300" />
+          <span className="text-slate-600">Tarea próxima</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-slate-100 border border-slate-300" />
+          <span className="text-slate-600">Completada / cancelada</span>
+        </div>
+        <span className="text-slate-300">·</span>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-orange-100 border border-orange-300" />
+          <span className="text-slate-600">Póliza vence en menos de 30 días</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-100 border border-emerald-300" />
+          <span className="text-slate-600">Póliza vence a más de 30 días</span>
+        </div>
+        <span className="text-slate-300">·</span>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-violet-100 border border-violet-300" />
+          <span className="text-slate-600">Contacto comercial</span>
+        </div>
+      </div>
+
       <EstadoCarga
         loading={cargando}
         error={errorCarga}

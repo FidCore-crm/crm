@@ -19,6 +19,7 @@ import ModalUploadPDF from '@/components/agente-pdf/ModalUploadPDF'
 import RehabilitarPolizaModal from '@/components/RehabilitarPolizaModal'
 import HistorialPoliza from '@/components/HistorialPoliza'
 import ComunicacionesTab from '@/components/ComunicacionesTab'
+import CajaColapsable from '@/components/CajaColapsable'
 import { useModuloIAPDF } from '@/lib/hooks/useModuloIAPDF'
 import { useEmailConfigurado } from '@/lib/hooks/useEmailConfigurado'
 import { useAuth } from '@/contexts/AuthContext'
@@ -630,10 +631,7 @@ export default function FichaPolizaPage() {
         <div className="w-[280px] shrink-0 flex flex-col gap-2">
 
           {/* Asegurado */}
-          <div className="bg-white border border-slate-200 rounded overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Asegurado</h3>
-            </div>
+          <CajaColapsable titulo="Asegurado">
             <div className="p-3 flex flex-col gap-1.5">
               <button onClick={() => router.push(`/crm/personas/${asegurado.id}`)}
                 className="flex items-center gap-1.5 text-blue-600 hover:underline text-xs font-medium text-left">
@@ -668,13 +666,10 @@ export default function FichaPolizaPage() {
                 </p>
               )}
             </div>
-          </div>
+          </CajaColapsable>
 
           {/* Datos de la póliza */}
-          <div className="bg-white border border-slate-200 rounded overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Datos de la Póliza</h3>
-            </div>
+          <CajaColapsable titulo="Datos de la Póliza">
             <div className="p-3 flex flex-col gap-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-500">Compañía</span>
@@ -768,17 +763,15 @@ export default function FichaPolizaPage() {
                 <span className="text-slate-700 font-medium">{formatFecha(poliza.created_at)}</span>
               </div>
             </div>
-          </div>
+          </CajaColapsable>
 
           {/* Datos del riesgo (multi-riesgo / flotas) */}
           {riesgosVisibles.length > 0 && (
-            <div className="bg-white border border-slate-200 rounded overflow-hidden">
-              <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-                {iconoRamo(tipoRiesgo)}
-                <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
-                  {riesgosVisibles.length > 1 ? `Bienes asegurados (${riesgosVisibles.length})` : 'Datos del Bien Asegurado'}
-                </h3>
-              </div>
+            <CajaColapsable
+              titulo={riesgosVisibles.length > 1 ? 'Bienes asegurados' : 'Datos del Bien Asegurado'}
+              contador={riesgosVisibles.length > 1 ? riesgosVisibles.length : null}
+              icono={iconoRamo(tipoRiesgo)}
+            >
               <div className="divide-y divide-slate-100">
                 {riesgosVisibles.map((r, idx) => {
                   const dt = r.detalle_tecnico ?? {}
@@ -803,23 +796,52 @@ export default function FichaPolizaPage() {
                           {titulo}
                         </div>
                       )}
-                      {Object.entries(dt)
-                        .filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && v.length === 0))
-                        .map(([k, v]) => (
-                          <div key={k} className="flex justify-between gap-2">
-                            <span className="text-slate-500 shrink-0">
-                              {mapaLabels[k] ?? (k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '))}
-                            </span>
-                            <span className="text-slate-700 font-medium text-right font-mono break-words min-w-0">
-                              {Array.isArray(v) ? v.join(', ') : String(v)}
-                            </span>
-                          </div>
-                        ))}
+                      {(() => {
+                        // Separar campos cortos (línea única flex justify-between)
+                        // de campos largos / texto libre / observaciones (bloque
+                        // full-width con label arriba + contenido whitespace-pre-wrap).
+                        // Motivo: "observaciones" y otros textos largos se veían
+                        // amontonados al meterlos en una sola línea con truncado.
+                        const entries = Object.entries(dt).filter(
+                          ([, v]) => v != null && v !== '' && !(Array.isArray(v) && v.length === 0),
+                        )
+                        const esLargo = (k: string, v: unknown) => {
+                          if (k === 'observaciones' || k === 'observaciones_bien' || k === 'notas') return true
+                          if (typeof v !== 'string') return false
+                          return v.length > 60 || v.includes('\n')
+                        }
+                        const cortos = entries.filter(([k, v]) => !esLargo(k, v))
+                        const largos = entries.filter(([k, v]) => esLargo(k, v))
+                        return (
+                          <>
+                            {cortos.map(([k, v]) => (
+                              <div key={k} className="flex justify-between gap-2">
+                                <span className="text-slate-500 shrink-0">
+                                  {mapaLabels[k] ?? (k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '))}
+                                </span>
+                                <span className="text-slate-700 font-medium text-right font-mono break-words min-w-0">
+                                  {Array.isArray(v) ? v.join(', ') : String(v)}
+                                </span>
+                              </div>
+                            ))}
+                            {largos.map(([k, v]) => (
+                              <div key={k} className="flex flex-col gap-1 pt-1 border-t border-slate-100 first:border-t-0 first:pt-0">
+                                <span className="text-2xs text-slate-500 font-semibold uppercase tracking-wide">
+                                  {mapaLabels[k] ?? (k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '))}
+                                </span>
+                                <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                  {Array.isArray(v) ? v.join(', ') : String(v)}
+                                </p>
+                              </div>
+                            ))}
+                          </>
+                        )
+                      })()}
                     </div>
                   )
                 })}
               </div>
-            </div>
+            </CajaColapsable>
           )}
         </div>
 
@@ -828,34 +850,39 @@ export default function FichaPolizaPage() {
 
           {/* Observaciones (visibles al asegurado en el portal) */}
           {poliza.observaciones && (
-            <div className="bg-white border border-slate-200 rounded p-3">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-2xs text-slate-500 font-semibold uppercase tracking-wide">Observaciones</p>
-                <span className="text-2xs text-emerald-700 font-medium" title="El asegurado ve esto en su portal">👁 Visible al asegurado</span>
+            <CajaColapsable
+              titulo="Observaciones"
+              accion={
+                <span className="text-2xs text-emerald-700 font-medium" title="El asegurado ve esto en su portal">
+                  Visible en el portal del asegurado
+                </span>
+              }
+            >
+              <div className="p-3">
+                <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{poliza.observaciones}</p>
               </div>
-              <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{poliza.observaciones}</p>
-            </div>
+            </CajaColapsable>
           )}
 
           {/* Notas internas (privadas del PAS) */}
           {poliza.notas && (
-            <div className="bg-white border border-slate-200 rounded p-3">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-2xs text-slate-500 font-semibold uppercase tracking-wide">Notas internas</p>
-                <span className="text-2xs text-slate-500 font-medium" title="El asegurado no ve esto">🔒 Solo para vos</span>
+            <CajaColapsable
+              titulo="Notas internas"
+              accion={
+                <span className="text-2xs text-slate-500 font-medium" title="Solo visible para vos y tu equipo">
+                  Uso interno · no se comparte con el asegurado
+                </span>
+              }
+            >
+              <div className="p-3">
+                <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{poliza.notas}</p>
               </div>
-              <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{poliza.notas}</p>
-            </div>
+            </CajaColapsable>
           )}
 
           {/* Historial de renovaciones */}
           {cadenaRenovaciones.length > 0 && (
-            <div className="bg-white border border-slate-200 rounded overflow-hidden">
-              <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-                <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Cadena de Renovaciones
-                </h3>
-              </div>
+            <CajaColapsable titulo="Cadena de Renovaciones" contador={cadenaRenovaciones.length}>
               <div className="divide-y divide-slate-100">
                 {cadenaRenovaciones.map(r => {
                   const esCurrent = r.id === poliza.id
@@ -877,7 +904,7 @@ export default function FichaPolizaPage() {
                   )
                 })}
               </div>
-            </div>
+            </CajaColapsable>
           )}
 
           {/* Link discreto al análisis IA — sólo si esta póliza es una renovación
@@ -901,7 +928,7 @@ export default function FichaPolizaPage() {
           <HistorialPoliza polizaId={poliza.id} refreshKey={historialKey} />
 
           {/* Historial de comunicaciones por email de esta póliza */}
-          <ComunicacionesTab poliza_id={poliza.id} />
+          <ComunicacionesTab poliza_id={poliza.id} colapsable defaultAbierto={false} />
 
           {/* Historial de endosos (con archivos adjuntos) */}
           <EndososSection
@@ -911,6 +938,8 @@ export default function FichaPolizaPage() {
               asegurado_nombre: nombre || '',
               compania_nombre: poliza.compania?.nombre || '—',
             }}
+            colapsable
+            defaultAbierto={false}
           />
 
           {/* Inspección previa */}
@@ -936,17 +965,18 @@ export default function FichaPolizaPage() {
           />
 
           {/* Siniestros relacionados */}
-          <div className="bg-white border border-slate-200 rounded overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
-                Siniestros vinculados
-              </h3>
-              <div className="flex items-center gap-2">
-                <span className="text-2xs text-slate-500">{siniestros.length} siniestro{siniestros.length !== 1 ? 's' : ''}</span>
-                <button onClick={() => router.push(`/crm/siniestros/nuevo?poliza_id=${poliza.id}&persona_id=${asegurado.id}`)}
-                  className="text-xs text-blue-600 hover:underline">+ Nuevo</button>
-              </div>
-            </div>
+          <CajaColapsable
+            titulo="Siniestros vinculados"
+            contador={siniestros.length}
+            accion={
+              <button
+                onClick={() => router.push(`/crm/siniestros/nuevo?poliza_id=${poliza.id}&persona_id=${asegurado.id}`)}
+                className="text-xs text-blue-600 hover:underline"
+              >
+                + Nuevo
+              </button>
+            }
+          >
             {siniestros.length === 0 ? (
               <div className="text-center py-8 text-xs text-slate-500">
                 No tiene siniestros registrados
@@ -982,7 +1012,7 @@ export default function FichaPolizaPage() {
                 </tbody>
               </table>
             )}
-          </div>
+          </CajaColapsable>
         </div>
       </div>
 

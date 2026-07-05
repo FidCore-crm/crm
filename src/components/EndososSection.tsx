@@ -37,6 +37,10 @@ interface Props {
     asegurado_nombre: string
     compania_nombre: string
   }
+  /** Si true, el header hace de toggle y todo el body se colapsa. Default: false. */
+  colapsable?: boolean
+  /** Estado inicial cuando es colapsable. Default: true (abierto). */
+  defaultAbierto?: boolean
 }
 
 function formatBytes(bytes: number | null) {
@@ -50,10 +54,11 @@ function esImagen(mime: string | null) {
   return mime?.startsWith('image/') ?? false
 }
 
-export default function EndososSection({ polizaId, numeroPoliza, polizaContexto }: Props) {
+export default function EndososSection({ polizaId, numeroPoliza, polizaContexto, colapsable = false, defaultAbierto = true }: Props) {
   const supabase = getSupabaseClient()
   const { activo: moduloIAActivo } = useModuloIAPDF()
   const [modalPDFAbierto, setModalPDFAbierto] = useState(false)
+  const [abierto, setAbierto] = useState(defaultAbierto)
 
   const [endosos, setEndosos] = useState<Endoso[]>([])
   const [archivosPorEndoso, setArchivosPorEndoso] = useState<Record<string, EndosoArchivo[]>>({})
@@ -249,13 +254,26 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto 
   return (
     <div className="bg-white border border-slate-200 rounded overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
-        <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
-          Endosos / Modificaciones
-        </h3>
-        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={colapsable ? () => setAbierto(v => !v) : undefined}
+          className={`flex items-center gap-2 ${colapsable ? 'cursor-pointer' : 'cursor-default'}`}
+          disabled={!colapsable}
+        >
+          <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
+            Endosos / Modificaciones
+          </h3>
           <span className="text-2xs text-slate-400">
-            {endosos.length} endoso{endosos.length !== 1 ? 's' : ''}
+            ({endosos.length})
           </span>
+          {colapsable && (
+            abierto
+              ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" />
+              : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+          )}
+        </button>
+        {(!colapsable || abierto) && (
+        <div className="flex items-center gap-2">
           <button
             onClick={() => abrirForm()}
             className="text-xs text-blue-600 hover:underline flex items-center gap-0.5"
@@ -271,8 +289,10 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto 
             </button>
           )}
         </div>
+        )}
       </div>
 
+      {(!colapsable || abierto) && (<>
       {error && (
         <div className="mx-3 mt-3 flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
@@ -502,6 +522,7 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto 
           })}
         </div>
       )}
+      </>)}
 
       <ModalUploadPDF
         abierto={modalPDFAbierto}
