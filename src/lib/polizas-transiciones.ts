@@ -111,6 +111,31 @@ export async function activarRenovadaSiCorresponde(
     await limpiarDocumentacion(supabase, (origenBajada as any).numero_poliza, (pol as any).poliza_origen_id)
   }
 
+  // 6) Migrar tareas PENDIENTE/EN_PROCESO de la origen a la nueva póliza.
+  // Al renovar, las tareas activas (típicamente recurrentes de gestión de
+  // cobranza / seguimiento) tienen que quedar apuntando a la nueva póliza,
+  // no a una que ya está NO_VIGENTE. Las COMPLETADAS/CANCELADAS se dejan
+  // como histórico ligado a la póliza vieja.
+  try {
+    const { data: tareasMigradas } = await supabase
+      .from('tareas')
+      .update({ poliza_id: polizaId })
+      .eq('poliza_id', (pol as any).poliza_origen_id)
+      .in('estado', ['PENDIENTE', 'EN_PROCESO'])
+      .select('id')
+    if (tareasMigradas && tareasMigradas.length > 0) {
+      cambios.push(`${tareasMigradas.length} tarea(s) migrada(s) a la nueva póliza`)
+    }
+  } catch (err) {
+    // No es bloqueante — la póliza ya está VIGENTE y los archivos ya se movieron.
+    // Log para diagnóstico si alguna vez falla.
+    logger.warn({
+      modulo: 'polizas-transiciones',
+      mensaje: 'Falló migración de tareas al activar renovación',
+      contexto: { poliza_id: polizaId, poliza_origen_id: (pol as any).poliza_origen_id, error: String(err) },
+    })
+  }
+
   return { ok: errores.length === 0, cambios, errores: errores.length > 0 ? errores : undefined }
 }
 

@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation'
 import {
   ChevronLeft, ChevronRight, X, Plus, CheckCircle, Edit,
   FileText, ClipboardList, AlertTriangle, Loader2, Repeat,
-  CalendarDays, Eye, List, Target
+  CalendarDays, Eye, List, Target, Sparkles as SparklesIcon,
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { hoyLocal, calcularSiguienteFechaRecurrencia } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { obtenerIdsPersonas, filtrarPorPersonas, obtenerIdsPapelera, excluirPersonasEnPapelera } from '@/lib/cartera-filter'
 import { toast } from '@/lib/toast'
+import { apiCall } from '@/lib/api-client'
 import { EstadoCarga } from '@/components/EstadoCarga'
+import EventoModal, { type Evento } from '@/components/EventoModal'
 
 // ── Tipos ─────────────��──────────────────────────────────────
 interface TareaCal {
@@ -111,6 +113,26 @@ function oportunidadColor(): string {
   return 'bg-violet-100 text-violet-700 border border-violet-300'
 }
 
+function eventoColor(e: EventoCal): string {
+  if (e.estado === 'COMPLETADO' || e.estado === 'CANCELADO')
+    return 'bg-slate-100 text-slate-500'
+  return 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+}
+
+interface EventoCal {
+  id: string
+  titulo: string
+  descripcion: string | null
+  fecha: string
+  hora_inicio: string | null
+  hora_fin: string | null
+  categoria: string | null
+  recurrencia: 'NINGUNA' | 'DIARIA' | 'SEMANAL' | 'MENSUAL' | 'ANUAL'
+  estado: 'PROGRAMADO' | 'COMPLETADO' | 'CANCELADO'
+  compartido: boolean
+  usuario_id: string
+}
+
 // ── Componente ──────────────���────────────────────────────────
 export default function CalendarioPage() {
   const router   = useRouter()
@@ -125,6 +147,7 @@ export default function CalendarioPage() {
   const [tareas,        setTareas]        = useState<TareaCal[]>([])
   const [polizas,       setPolizas]       = useState<PolizaCal[]>([])
   const [oportunidades, setOportunidades] = useState<OportunidadCal[]>([])
+  const [eventos,       setEventos]       = useState<EventoCal[]>([])
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState<{ codigo?: string; mensaje: string } | null>(null)
 
@@ -134,6 +157,7 @@ export default function CalendarioPage() {
   const [mostrarTareas,        setMostrarTareas]        = useState(true)
   const [mostrarPolizas,       setMostrarPolizas]       = useState(true)
   const [mostrarOportunidades, setMostrarOportunidades] = useState(true)
+  const [mostrarEventos,       setMostrarEventos]       = useState(true)
   const [filtroCompania, setFiltroCompania] = useState('')
   const [companias,      setCompanias]      = useState<Catalogo[]>([])
 
@@ -141,6 +165,11 @@ export default function CalendarioPage() {
   const [modalTarea,  setModalTarea]  = useState<TareaCal | null>(null)
   const [notaCierre,  setNotaCierre]  = useState('')
   const [completando, setCompletando] = useState(false)
+
+  // Modal evento (crear/editar)
+  const [modalEvento, setModalEvento] = useState<{ abierto: boolean; evento: Evento | null; fechaInicial?: string }>({
+    abierto: false, evento: null,
+  })
 
   // ── Cargar catálogos ───────────────────────────────────
   useEffect(() => {
@@ -245,7 +274,16 @@ export default function CalendarioPage() {
       'persona_id',
     )
 
-    const [resT, resP, resO] = await Promise.all([queryTareas, queryPolizas, queryOps])
+    const [resT, resP, resO, resEv] = await Promise.all([
+      queryTareas,
+      queryPolizas,
+      queryOps,
+      apiCall<{ eventos: EventoCal[] }>(
+        `/api/eventos?desde=${rangoInicio}&hasta=${rangoFin}`,
+        undefined,
+        { mostrar_toast_en_error: false },
+      ),
+    ])
     const erroresQ = [resT.error, resP.error, resO.error].filter(Boolean)
     if (erroresQ.length > 0) {
       setErrorCarga({ mensaje: erroresQ[0]?.message ?? 'No se pudo cargar el calendario.' })
@@ -255,6 +293,7 @@ export default function CalendarioPage() {
     setTareas((resT.data ?? []) as unknown as TareaCal[])
     setPolizas((resP.data ?? []) as unknown as PolizaCal[])
     setOportunidades((resO.data ?? []) as unknown as OportunidadCal[])
+    setEventos(resEv.ok && resEv.data ? resEv.data.eventos : [])
     setCargando(false)
   }, [supabase, anio, mes, filtroCompania, hoy, usuario])
 
@@ -271,12 +310,16 @@ export default function CalendarioPage() {
   }
   const irAHoy = () => { setAnio(hoyParts[0]); setMes(hoyParts[1] - 1) }
 
-  // ── Eventos por día ─────────────���──────────────────────
+  // ── Eventos por día ─────────────────────────────────────
   const eventosDelDia = (fecha: string) => {
     const tareasDelDia  = mostrarTareas  ? tareas.filter(t => t.fecha_vencimiento.split('T')[0] === fecha) : []
     const polizasDelDia = mostrarPolizas ? polizas.filter(p => p.fecha_fin.split('T')[0] === fecha) : []
     const opsDelDia     = mostrarOportunidades ? oportunidades.filter(o => o.fecha_proximo_contacto.split('T')[0] === fecha) : []
-    return { tareasDelDia, polizasDelDia, opsDelDia, total: tareasDelDia.length + polizasDelDia.length + opsDelDia.length }
+    const evsDelDia     = mostrarEventos ? eventos.filter(e => e.fecha === fecha) : []
+    return {
+      tareasDelDia, polizasDelDia, opsDelDia, evsDelDia,
+      total: tareasDelDia.length + polizasDelDia.length + opsDelDia.length + evsDelDia.length,
+    }
   }
 
   // ── KPIs resumen ───────────────────────────────────────
@@ -393,12 +436,18 @@ export default function CalendarioPage() {
         if (f >= hoy && f <= en30str) fechasSet.add(f)
       })
     }
+    if (mostrarEventos) {
+      eventos.forEach(e => {
+        if (e.fecha >= hoy && e.fecha <= en30str) fechasSet.add(e.fecha)
+      })
+    }
 
     return Array.from(fechasSet).sort().map(fecha => ({
       fecha,
       tareas:  mostrarTareas  ? tareas.filter(t => t.fecha_vencimiento.split('T')[0] === fecha) : [],
       polizas: mostrarPolizas ? polizas.filter(p => p.fecha_fin.split('T')[0] === fecha) : [],
       oportunidades: mostrarOportunidades ? oportunidades.filter(o => o.fecha_proximo_contacto.split('T')[0] === fecha) : [],
+      eventos: mostrarEventos ? eventos.filter(e => e.fecha === fecha) : [],
     }))
   }
 
@@ -465,11 +514,25 @@ export default function CalendarioPage() {
         >
           Oportunidades
         </button>
+        <button
+          onClick={() => setMostrarEventos(v => !v)}
+          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarEventos ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-400 border-slate-200'}`}
+        >
+          Eventos
+        </button>
 
         <select className="form-input" value={filtroCompania} onChange={e => setFiltroCompania(e.target.value)}>
           <option value="">Todas las companias</option>
           {companias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </select>
+
+        <button
+          onClick={() => setModalEvento({ abierto: true, evento: null, fechaInicial: hoy })}
+          className="btn-primary text-xs px-2.5"
+          title="Crear un evento independiente"
+        >
+          <Plus className="h-3.5 w-3.5" /> Nuevo evento
+        </button>
 
         <div className="ml-auto flex items-center gap-0.5 bg-slate-100 p-0.5 rounded">
           <button
@@ -508,9 +571,9 @@ export default function CalendarioPage() {
           {/* Celdas */}
           <div className="grid grid-cols-7">
             {celdas.map((celda, i) => {
-              const { tareasDelDia, polizasDelDia, opsDelDia, total: totalEventos } = eventosDelDia(celda.fecha)
+              const { tareasDelDia, polizasDelDia, opsDelDia, evsDelDia, total: totalEventos } = eventosDelDia(celda.fecha)
               const esHoy = celda.fecha === hoy
-              const eventos = [
+              const eventosDia = [
                 ...tareasDelDia.map(t => ({
                   tipo: 'tarea' as const,
                   label: t.titulo,
@@ -529,9 +592,15 @@ export default function CalendarioPage() {
                   color: oportunidadColor(),
                   tachado: false,
                 })),
+                ...evsDelDia.map(e => ({
+                  tipo: 'evento' as const,
+                  label: e.titulo,
+                  color: eventoColor(e),
+                  tachado: e.estado === 'COMPLETADO' || e.estado === 'CANCELADO',
+                })),
               ]
-              const visible = eventos.slice(0, 3)
-              const extra   = eventos.length - 3
+              const visible = eventosDia.slice(0, 3)
+              const extra   = eventosDia.length - 3
 
               return (
                 <div
@@ -653,6 +722,33 @@ export default function CalendarioPage() {
                     <span className="text-2xs text-violet-600 font-medium">{o.tipo.replace(/_/g, ' ')}</span>
                   </div>
                 ))}
+                {(grupo as any).eventos?.map((e: EventoCal) => (
+                  <div
+                    key={`e-${e.id}`}
+                    onClick={() => setModalEvento({ abierto: true, evento: e, fechaInicial: e.fecha })}
+                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors"
+                  >
+                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      e.estado === 'COMPLETADO' || e.estado === 'CANCELADO' ? 'bg-slate-300' : 'bg-emerald-500'
+                    }`} />
+                    <span className="text-2xs font-semibold text-emerald-700 bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 rounded shrink-0">
+                      Evento
+                    </span>
+                    <span className={`text-xs flex-1 truncate ${
+                      e.estado === 'COMPLETADO' || e.estado === 'CANCELADO' ? 'text-slate-400 line-through' : 'text-slate-700'
+                    }`}>
+                      {e.titulo}
+                    </span>
+                    {(e.hora_inicio || e.hora_fin) && (
+                      <span className="text-2xs text-slate-500 font-mono shrink-0">
+                        {e.hora_inicio?.slice(0, 5)}{e.hora_inicio && e.hora_fin ? '–' : ''}{e.hora_fin?.slice(0, 5)}
+                      </span>
+                    )}
+                    {e.categoria && (
+                      <span className="text-2xs text-emerald-600 font-medium truncate max-w-24">{e.categoria}</span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
@@ -689,12 +785,20 @@ export default function CalendarioPage() {
                 <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-500">
                   <CalendarDays className="h-8 w-8 text-slate-300" />
                   <p className="text-xs">Sin eventos para este dia</p>
-                  <button
-                    onClick={() => router.push(`/crm/tareas/nueva?fecha=${diaSeleccionado}`)}
-                    className="btn-primary"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Nueva tarea para este dia
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push(`/crm/tareas/nueva?fecha=${diaSeleccionado}`)}
+                      className="btn-secondary"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Tarea
+                    </button>
+                    <button
+                      onClick={() => setModalEvento({ abierto: true, evento: null, fechaInicial: diaSeleccionado })}
+                      className="btn-primary"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Evento
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -831,13 +935,81 @@ export default function CalendarioPage() {
                     </div>
                   )}
 
-                  {/* Boton nueva tarea */}
-                  <button
-                    onClick={() => router.push(`/crm/tareas/nueva?fecha=${diaSeleccionado}`)}
-                    className="btn-secondary w-full justify-center"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Nueva tarea para este dia
-                  </button>
+                  {/* Eventos independientes */}
+                  {drawerData && drawerData.evsDelDia && drawerData.evsDelDia.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+                        <CalendarDays className="h-3.5 w-3.5" /> Eventos ({drawerData.evsDelDia.length})
+                      </h4>
+                      <div className="flex flex-col gap-1.5">
+                        {drawerData.evsDelDia.map(e => (
+                          <div key={e.id}
+                            onClick={() => setModalEvento({ abierto: true, evento: e, fechaInicial: e.fecha })}
+                            className={`rounded border p-2.5 cursor-pointer hover:shadow-sm transition-all ${
+                              e.estado === 'COMPLETADO' || e.estado === 'CANCELADO'
+                                ? 'bg-slate-50 border-slate-200'
+                                : 'bg-emerald-50 border-emerald-200 hover:border-emerald-400'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                  {e.categoria && (
+                                    <span className="text-2xs font-semibold px-1.5 py-0.5 rounded border text-emerald-700 bg-white border-emerald-300">
+                                      {e.categoria}
+                                    </span>
+                                  )}
+                                  {e.compartido && (
+                                    <span className="text-2xs text-slate-500 flex items-center gap-0.5" title="Compartido con el equipo">
+                                      Equipo
+                                    </span>
+                                  )}
+                                  {e.recurrencia !== 'NINGUNA' && (
+                                    <span className="text-2xs text-slate-500 flex items-center gap-0.5" title={`Recurrente: ${e.recurrencia.toLowerCase()}`}>
+                                      <Repeat className="h-3 w-3" />
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`text-xs font-medium ${
+                                  e.estado === 'COMPLETADO' || e.estado === 'CANCELADO'
+                                    ? 'line-through text-slate-400'
+                                    : 'text-emerald-900'
+                                }`}>
+                                  {e.titulo}
+                                </p>
+                                {(e.hora_inicio || e.hora_fin) && (
+                                  <p className="text-2xs text-slate-500 mt-0.5">
+                                    {e.hora_inicio && e.hora_inicio.slice(0, 5)}
+                                    {e.hora_inicio && e.hora_fin && ' – '}
+                                    {e.hora_fin && e.hora_fin.slice(0, 5)}
+                                  </p>
+                                )}
+                                {e.descripcion && (
+                                  <p className="text-2xs text-slate-600 mt-1 line-clamp-2">{e.descripcion}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Botones de creación */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push(`/crm/tareas/nueva?fecha=${diaSeleccionado}`)}
+                      className="btn-secondary flex-1 justify-center"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Nueva tarea
+                    </button>
+                    <button
+                      onClick={() => setModalEvento({ abierto: true, evento: null, fechaInicial: diaSeleccionado })}
+                      className="btn-secondary flex-1 justify-center"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Nuevo evento
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -885,6 +1057,16 @@ export default function CalendarioPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Modal crear/editar evento ───────────────────────── */}
+      {modalEvento.abierto && (
+        <EventoModal
+          evento={modalEvento.evento}
+          fechaInicial={modalEvento.fechaInicial}
+          onCerrar={() => setModalEvento({ abierto: false, evento: null })}
+          onGuardado={() => cargarDatos()}
+        />
       )}
     </div>
   )

@@ -122,6 +122,33 @@ export const POST = manejarErrores(async (
     await supabase.from('polizas').delete().eq('id', hija.id)
   }
 
+  // Eliminar tareas PENDIENTE/EN_PROCESO de esta póliza y de las hijas eliminadas.
+  // Las COMPLETADAS/CANCELADAS quedan como histórico (poliza_id queda apuntando
+  // a la póliza CANCELADA, que sigue existiendo).
+  try {
+    const idsPolizas = [id, ...hijas.map(h => h.id)]
+    const { data: tareasElim } = await supabase
+      .from('tareas')
+      .delete()
+      .in('poliza_id', idsPolizas)
+      .in('estado', ['PENDIENTE', 'EN_PROCESO'])
+      .select('id')
+    if (tareasElim && tareasElim.length > 0) {
+      logger.info({
+        modulo: 'polizas',
+        mensaje: `Eliminadas ${tareasElim.length} tarea(s) activa(s) al cancelar póliza`,
+        contexto: { poliza_id: id },
+      })
+    }
+  } catch (err) {
+    // No bloqueante — la cancelación ya se aplicó.
+    logger.warn({
+      modulo: 'polizas',
+      mensaje: 'Falló eliminación de tareas al cancelar póliza',
+      contexto: { poliza_id: id, error: String(err) },
+    })
+  }
+
   // Limpiar notificaciones vinculadas
   await supabase
     .from('notificaciones')
