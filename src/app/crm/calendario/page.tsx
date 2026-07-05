@@ -455,7 +455,7 @@ export default function CalendarioPage() {
         </button>
         <button
           onClick={() => setMostrarPolizas(v => !v)}
-          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarPolizas ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-400 border-slate-200'}`}
+          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarPolizas ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-white text-slate-400 border-slate-200'}`}
         >
           Polizas
         </button>
@@ -484,24 +484,6 @@ export default function CalendarioPage() {
           >
             <List className="h-3.5 w-3.5 inline mr-1" />Lista
           </button>
-        </div>
-      </div>
-
-      {/* Referencia de colores — 3 tipos de evento con 3 colores distintos.
-          Un color por tipo, no por urgencia. */}
-      <div className="bg-white border border-slate-200 rounded px-3 py-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-2xs">
-        <span className="text-slate-500 font-semibold uppercase tracking-wide">Referencia:</span>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-100 border border-blue-300" />
-          <span className="text-slate-600">Tarea</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-orange-100 border border-orange-300" />
-          <span className="text-slate-600">Vencimiento de póliza</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-violet-100 border border-violet-300" />
-          <span className="text-slate-600">Contacto de oportunidad</span>
         </div>
       </div>
 
