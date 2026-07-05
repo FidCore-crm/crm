@@ -118,28 +118,34 @@ export default function RenovacionesPage() {
       let q7 = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE').gte('fecha_fin', hoy).lte('fecha_fin', fmt(d7))
       let q15 = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE').gt('fecha_fin', fmt(d7)).lte('fecha_fin', fmt(d15))
       let q30 = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE').gt('fecha_fin', fmt(d15)).lte('fecha_fin', fmt(d30))
-      let qNV = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'NO_VIGENTE')
+      // KPI "vencidas" cuenta ambos casos: NO_VIGENTE + VIGENTE con fecha_fin < hoy
+      // (últimas se cuentan porque el cron aún no las movió). Ambos casos
+      // excluyen las que YA tienen renovación creada.
+      let qNVReal = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'NO_VIGENTE')
+      let qNVSinCron = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE').lt('fecha_fin', hoy)
       let qRen = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'RENOVADA')
 
-      // KPI "vencidas sin renovar" debe excluir las que ya tienen renovación creada
+      // Excluir las que ya tienen renovación creada
       const idsRenArr = Array.from(idsRen)
       if (idsRenArr.length > 0) {
-        qNV = qNV.not('id', 'in', `(${idsRenArr.join(',')})`)
+        qNVReal = qNVReal.not('id', 'in', `(${idsRenArr.join(',')})`)
+        qNVSinCron = qNVSinCron.not('id', 'in', `(${idsRenArr.join(',')})`)
       }
 
       q7 = filtrarPorPersonas(q7, idsPersonas, 'asegurado_id')
       q15 = filtrarPorPersonas(q15, idsPersonas, 'asegurado_id')
       q30 = filtrarPorPersonas(q30, idsPersonas, 'asegurado_id')
-      qNV = filtrarPorPersonas(qNV, idsPersonas, 'asegurado_id')
+      qNVReal = filtrarPorPersonas(qNVReal, idsPersonas, 'asegurado_id')
+      qNVSinCron = filtrarPorPersonas(qNVSinCron, idsPersonas, 'asegurado_id')
       qRen = filtrarPorPersonas(qRen, idsPersonas, 'asegurado_id')
 
-      const [k7, k15, k30, kNV, kRen] = await Promise.all([q7, q15, q30, qNV, qRen])
+      const [k7, k15, k30, kNVReal, kNVSinCron, kRen] = await Promise.all([q7, q15, q30, qNVReal, qNVSinCron, qRen])
 
       setKpis({
         en7: k7.count ?? 0,
         en15: k15.count ?? 0,
         en30: k30.count ?? 0,
-        vencidas: kNV.count ?? 0,
+        vencidas: (kNVReal.count ?? 0) + (kNVSinCron.count ?? 0),
         renovadas: kRen.count ?? 0,
       })
     }
@@ -190,17 +196,31 @@ export default function RenovacionesPage() {
       const fmt15 = `${d15.getFullYear()}-${String(d15.getMonth()+1).padStart(2,'0')}-${String(d15.getDate()).padStart(2,'0')}`
       query = query.eq('estado', 'VIGENTE').gt('fecha_fin', fmt15).lte('fecha_fin', fmt30)
     } else if (kpiActivo === 'vencidas') {
-      // Solo NO_VIGENTE que NO tienen renovación creada (las que sí ya están "resueltas")
-      query = query.eq('estado', 'NO_VIGENTE')
+      // Vencidas = NO_VIGENTE + VIGENTE con fecha_fin < hoy (cron aún no las movió).
+      // Ambas excluyen las que ya tienen renovación creada.
+      query = query.or(`estado.eq.NO_VIGENTE,and(estado.eq.VIGENTE,fecha_fin.lt.${hoy})`)
       const idsRenArr = Array.from(idsConRenovacion)
       if (idsRenArr.length > 0) query = query.not('id', 'in', `(${idsRenArr.join(',')})`)
     } else if (kpiActivo === 'renovadas') {
       query = query.eq('estado', 'RENOVADA')
     } else {
-      // Default: vigentes que vencen en 30 días + RENOVADAs latentes (a la espera).
-      // NO_VIGENTE no se incluye acá — el PAS las ve haciendo clic en el KPI "Vencidas",
-      // que ya descuenta las que tienen renovación.
-      query = query.or(`and(estado.eq.VIGENTE,fecha_fin.gte.${hoy},fecha_fin.lte.${fmt30}),estado.eq.RENOVADA`)
+      // Default: vencidas + próximas a vencer (30 días) + RENOVADAs latentes.
+      // Se INCLUYEN las vencidas al tope de la lista para que el PAS las vea
+      // sin tener que hacer click en el KPI. El sort ascendente por fecha_fin
+      // hace que las más viejas (más urgentes) aparezcan primero.
+      const idsRenArr = Array.from(idsConRenovacion)
+      const excluirRen = idsRenArr.length > 0 ? idsRenArr : []
+      // OR compuesto: (VIGENTE hasta 30d futuro) + NO_VIGENTE + (VIGENTE con fecha < hoy) + RENOVADA
+      query = query.or(
+        `and(estado.eq.VIGENTE,fecha_fin.gte.${hoy},fecha_fin.lte.${fmt30}),` +
+        `estado.eq.NO_VIGENTE,` +
+        `and(estado.eq.VIGENTE,fecha_fin.lt.${hoy}),` +
+        `estado.eq.RENOVADA`
+      )
+      // Excluir las vencidas que ya tienen renovación creada
+      if (excluirRen.length > 0) {
+        query = query.not('id', 'in', `(${excluirRen.join(',')})`)
+      }
     }
 
     query = filtrarPorPersonas(query, idsPersonas, 'asegurado_id')

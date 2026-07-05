@@ -231,8 +231,40 @@ export function getPolizaBadgeColor(estado: string): string {
     NO_VIGENTE:  'bg-slate-100 text-slate-600 border-slate-200',
     CANCELADA:   'bg-amber-50 text-amber-700 border-amber-200',
     ANULADA:     'bg-red-50 text-red-700 border-red-200',
+    // Estado efectivo especial — VIGENTE con fecha pasada. Usa color
+    // rojizo para diferenciar visualmente de "Vigente" real.
+    VENCIDA:     'bg-red-50 text-red-700 border-red-200',
   }
   return mapa[estado] ?? 'bg-slate-100 text-slate-600 border-slate-200'
+}
+
+/**
+ * Devuelve el estado "efectivo" de una póliza. Compensa las corridas del
+ * cron que aún no movieron VIGENTE con fecha_fin pasada a NO_VIGENTE.
+ *
+ * Ejemplo:
+ *   estado = "VIGENTE", fecha_fin = "2026-01-01" (pasada) → "VENCIDA"
+ *   estado = "VIGENTE", fecha_fin = "2027-01-01" (futura) → "VIGENTE"
+ *   estado = "NO_VIGENTE"                                → "NO_VIGENTE"
+ *
+ * "VENCIDA" NO es un estado real en DB — es solo un valor efectivo para la UI.
+ * Sirve para que los badges, labels y filtros muestren la realidad al PAS
+ * sin depender de que el cron ya haya corrido.
+ */
+export function getEstadoEfectivoPoliza(estado: string, fechaFin: string | null | undefined): string {
+  if (estado === 'VIGENTE' && fechaFin) {
+    const hoy = hoyAR()
+    const soloFecha = String(fechaFin).slice(0, 10)
+    if (soloFecha < hoy) return 'VENCIDA'
+  }
+  return estado
+}
+
+// Label para el estado efectivo "VENCIDA" (no vive en getLabelEstado porque
+// no es un estado real en DB).
+export function getLabelEstadoEfectivo(estadoEfectivo: string): string {
+  if (estadoEfectivo === 'VENCIDA') return 'Vencida'
+  return getLabelEstado(estadoEfectivo)
 }
 
 // =============================================================================

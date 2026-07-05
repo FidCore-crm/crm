@@ -8,7 +8,7 @@ import {
   CheckCircle, Clock, XCircle, CalendarCheck, Send, Download, Loader2
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { formatFecha, formatFechaLocal, hoyLocal, diasHastaVencimiento, getLabelEstado, getPolizaBadgeColor, sanitizarBusquedaNormalizada } from '@/lib/utils'
+import { formatFecha, formatFechaLocal, hoyLocal, diasHastaVencimiento, getLabelEstado, getPolizaBadgeColor, getEstadoEfectivoPoliza, sanitizarBusquedaNormalizada } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { obtenerIdsPersonas, filtrarPorPersonas } from '@/lib/cartera-filter'
 import ModalEnviarEmailMasivo from '@/components/ModalEnviarEmailMasivo'
@@ -38,6 +38,12 @@ type SortField = 'numero_poliza' | 'fecha_fin'
 type SortDir   = 'asc' | 'desc'
 
 function estadoBadge(poliza: Poliza) {
+  // Compensar el cron: si estado=VIGENTE pero fecha_fin ya pasó, mostramos
+  // "Vencida" en rojo sin esperar a que el cron actualice el estado en DB.
+  const estadoEfectivo = getEstadoEfectivoPoliza(poliza.estado, poliza.fecha_fin)
+  if (estadoEfectivo === 'VENCIDA') {
+    return { label: 'Vencida', color: getPolizaBadgeColor('VENCIDA') }
+  }
   const dias = diasHastaVencimiento(poliza.fecha_fin)
   // Para VIGENTE que está por vencer, mostrar indicador de días
   if (poliza.estado === 'VIGENTE' && dias >= 0 && dias <= 30) {
@@ -276,17 +282,27 @@ function PolizasContent() {
     }
 
     const hoy = hoyLocal()
-    if (filtroTemporal === 'mes') {
+    const fmtISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    if (filtroTemporal === 'hoy') {
+      // Vencen hoy — solo VIGENTE con fecha_fin = hoy
+      query = query.eq('estado', 'VIGENTE').eq('fecha_fin', hoy)
+    } else if (filtroTemporal === 'semana') {
+      // Esta semana — VIGENTE con fecha_fin entre hoy y hoy+7
+      const fin = new Date(); fin.setDate(fin.getDate() + 7)
+      query = query.eq('estado', 'VIGENTE').gte('fecha_fin', hoy).lte('fecha_fin', fmtISO(fin))
+    } else if (filtroTemporal === 'mes') {
+      // Este mes — VIGENTE con fecha_fin entre hoy y hoy+30
       const fin = new Date(); fin.setDate(fin.getDate() + 30)
-      query = query.gte('fecha_fin', hoy).lte('fecha_fin', `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, '0')}-${String(fin.getDate()).padStart(2, '0')}`)
+      query = query.eq('estado', 'VIGENTE').gte('fecha_fin', hoy).lte('fecha_fin', fmtISO(fin))
     } else if (filtroTemporal === '10dias') {
       const fin = new Date(); fin.setDate(fin.getDate() + 10)
-      query = query.gte('fecha_fin', hoy).lte('fecha_fin', `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, '0')}-${String(fin.getDate()).padStart(2, '0')}`)
+      query = query.eq('estado', 'VIGENTE').gte('fecha_fin', hoy).lte('fecha_fin', fmtISO(fin))
     } else if (filtroTemporal === 'recientes') {
       const desde = new Date(); desde.setDate(desde.getDate() - 30)
       query = query.gte('created_at', desde.toISOString())
     } else if (filtroTemporal === 'vencidas') {
-      query = query.eq('estado', 'NO_VIGENTE')
+      // Vencidas = NO_VIGENTE + VIGENTE con fecha pasada (cron aún no las movió)
+      query = query.or(`estado.eq.NO_VIGENTE,and(estado.eq.VIGENTE,fecha_fin.lt.${hoy})`)
     } else if (filtroTemporal === 'programadas') {
       query = query.in('estado', ['PROGRAMADA', 'RENOVADA'])
     }
@@ -530,11 +546,13 @@ function PolizasContent() {
         </select>
         <select className="form-input" value={filtroTemporal} onChange={e => { setFiltroTemporal(e.target.value); setKpiActivo(null); setPagina(0) }}>
           <option value="">Todos los períodos</option>
+          <option value="hoy">Vencen hoy</option>
+          <option value="semana">Vencen esta semana (7d)</option>
           <option value="10dias">Vencen en 10 días</option>
-          <option value="mes">Vencen en 30 días</option>
+          <option value="mes">Vencen este mes (30d)</option>
+          <option value="vencidas">Vencidas</option>
           <option value="programadas">Programadas / Renovadas</option>
           <option value="recientes">Creadas este mes</option>
-          <option value="vencidas">No vigentes</option>
         </select>
         {isAdmin && usuariosLista.length > 1 && (
           <select
@@ -558,6 +576,32 @@ function PolizasContent() {
         <button onClick={() => { cargarPolizas(); cargarKpis() }} className="btn-secondary h-7 w-7 p-0 flex items-center justify-center ml-auto" title="Actualizar">
           <RefreshCw className="h-3.5 w-3.5"/>
         </button>
+      </div>
+
+      {/* Chips rápidos de filtro temporal — accesos visibles a los casos
+          que el PAS usa a diario. Complementan los selects de arriba. */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-2xs text-slate-500 font-medium uppercase tracking-wide">Ver:</span>
+        {[
+          { valor: '', label: 'Todas', color: 'bg-slate-50 border-slate-200 text-slate-700' },
+          { valor: 'hoy', label: 'Vencen hoy', color: 'bg-red-50 border-red-200 text-red-700' },
+          { valor: 'semana', label: 'Esta semana', color: 'bg-orange-50 border-orange-200 text-orange-700' },
+          { valor: 'mes', label: 'Este mes', color: 'bg-amber-50 border-amber-200 text-amber-700' },
+          { valor: 'vencidas', label: 'Vencidas', color: 'bg-red-100 border-red-300 text-red-800' },
+          { valor: 'programadas', label: 'Programadas / Renovadas', color: 'bg-blue-50 border-blue-200 text-blue-700' },
+        ].map(chip => (
+          <button
+            key={chip.valor}
+            onClick={() => { setFiltroTemporal(chip.valor); setKpiActivo(null); setPagina(0) }}
+            className={`text-xs px-2.5 py-1 rounded border transition-all ${
+              filtroTemporal === chip.valor
+                ? `${chip.color} font-semibold ring-2 ring-offset-1 ring-slate-300`
+                : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            {chip.label}
+          </button>
+        ))}
       </div>
 
       {/* Barra de selección masiva */}

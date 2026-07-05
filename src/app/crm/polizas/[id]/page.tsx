@@ -9,7 +9,7 @@ import {
   Trash2, FolderOpen, Send, Sparkles, Banknote,
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { formatFecha, formatFechaLocal, formatMoneda, getBadgeClase, getLabelEstado, getPolizaBadgeColor, nombreCompleto, hoyLocal, diasHastaVencimiento } from '@/lib/utils'
+import { formatFecha, formatFechaLocal, formatMoneda, getBadgeClase, getLabelEstado, getPolizaBadgeColor, getEstadoEfectivoPoliza, nombreCompleto, hoyLocal, diasHastaVencimiento } from '@/lib/utils'
 import GestorArchivos from '@/components/GestorArchivos'
 import EndososSection from '@/components/EndososSection'
 import AnalisisRenovacionModal from '@/components/AnalisisRenovacionModal'
@@ -95,6 +95,11 @@ interface SiniestroResumen {
 
 // ── Helpers ──────────────────────────────────────────────────
 function estadoPolizaBadge(estado: string, fechaFin: string) {
+  // Estado efectivo — compensa que el cron aún no haya movido a NO_VIGENTE.
+  const estadoEfectivo = getEstadoEfectivoPoliza(estado, fechaFin)
+  if (estadoEfectivo === 'VENCIDA') {
+    return { label: 'Vencida', color: getPolizaBadgeColor('VENCIDA') }
+  }
   const dias = diasHastaVencimiento(fechaFin)
   if (estado === 'VIGENTE' && dias >= 0 && dias <= 7)  return { label: `Vence en ${dias}d`, color: 'bg-red-50 text-red-700 border-red-200' }
   if (estado === 'VIGENTE' && dias >= 0 && dias <= 30) return { label: `Vence en ${dias}d`, color: 'bg-orange-50 text-orange-700 border-orange-200' }

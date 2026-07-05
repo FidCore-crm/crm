@@ -12,7 +12,7 @@ import {
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal, puedeEliminar } from '@/lib/cartera-filter'
-import { formatFecha, formatFechaLocal, formatMoneda, getBadgeClase, getLabelEstado, getPolizaBadgeColor, getTooltipEstado, nombreCompleto, hoyLocal, diasHastaVencimiento } from '@/lib/utils'
+import { formatFecha, formatFechaLocal, formatMoneda, getBadgeClase, getLabelEstado, getPolizaBadgeColor, getEstadoEfectivoPoliza, getTooltipEstado, nombreCompleto, hoyLocal, diasHastaVencimiento } from '@/lib/utils'
 import type { Persona } from '@/types/database'
 import ModalEnviarEmail from '@/components/ModalEnviarEmail'
 import ModalUploadPDF from '@/components/agente-pdf/ModalUploadPDF'
@@ -93,6 +93,11 @@ type Tab = 'polizas' | 'siniestros' | 'tareas' | 'comercial' | 'portal' | 'comun
 
 // ── Helpers ──────────────────────────────────────────────────
 function estadoPolizaBadge(p: PolizaResumen) {
+  // Estado efectivo — compensa cron que aún no movió VIGENTE con fecha pasada.
+  const estadoEfectivo = getEstadoEfectivoPoliza(p.estado, p.fecha_fin)
+  if (estadoEfectivo === 'VENCIDA') {
+    return { label: 'Vencida', color: getPolizaBadgeColor('VENCIDA') }
+  }
   const dias = diasHastaVencimiento(p.fecha_fin)
   if (p.estado === 'VIGENTE' && dias >= 0 && dias <= 30) {
     return { label: `Vence en ${dias}d`, color: 'bg-orange-50 text-orange-700 border-orange-200' }

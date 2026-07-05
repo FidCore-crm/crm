@@ -41,6 +41,7 @@ function nombreCompleto(p: { apellido: string; nombre: string | null } | null): 
 // Valores por defecto hardcodeados como fallback
 const DEFAULTS: Record<string, { activa: boolean; umbral_dias: number | null; antispam_dias: number }> = {
   POLIZA_VENCIDA:                { activa: true, umbral_dias: null, antispam_dias: 7 },
+  POLIZA_POR_VENCER:             { activa: true, umbral_dias: 30,   antispam_dias: 3 },
   TAREA_VENCIDA:                 { activa: true, umbral_dias: null, antispam_dias: 3 },
   SINIESTRO_30_DIAS:             { activa: true, umbral_dias: 30,   antispam_dias: 10 },
   SINIESTRO_60_DIAS:             { activa: true, umbral_dias: 60,   antispam_dias: 10 },
@@ -102,6 +103,7 @@ export async function GET(request: Request) {
 
   const resultados = {
     polizas_vencidas: 0,
+    polizas_por_vencer: 0,
     tareas_vencidas: 0,
     siniestros_30: 0,
     siniestros_60: 0,
@@ -142,12 +144,13 @@ export async function GET(request: Request) {
     if (!cfgPolVenc.activa) throw { skip: true }
     const yaNotificadas = await idsNotificados('POLIZA_VENCIDA', cfgPolVenc.antispam_dias)
 
-    // Pólizas NO_VIGENTE. Excluimos las cuyo asegurado está en papelera
-    // (deleted_at IS NOT NULL) — el PAS las verá tras restaurar a la persona.
+    // Pólizas efectivamente vencidas: NO_VIGENTE + VIGENTE con fecha_fin < hoy
+    // (últimas son las que el cron de pólizas aún no movió a NO_VIGENTE).
+    // Excluimos las cuyo asegurado está en papelera (deleted_at IS NOT NULL).
     const { data: vencidas } = await supabase
       .from('polizas')
-      .select('id, numero_poliza, fecha_fin, asegurado:personas!asegurado_id(apellido, nombre, usuario_id, deleted_at)')
-      .eq('estado', 'NO_VIGENTE')
+      .select('id, numero_poliza, fecha_fin, estado, asegurado:personas!asegurado_id(apellido, nombre, usuario_id, deleted_at)')
+      .or(`estado.eq.NO_VIGENTE,and(estado.eq.VIGENTE,fecha_fin.lt.${hoy})`)
       .lt('fecha_fin', hoy)
 
     if (vencidas && vencidas.length > 0) {
@@ -183,6 +186,82 @@ export async function GET(request: Request) {
     }
   } catch (e: any) {
     if (!e?.skip) resultados.errores.push(`polizas_vencidas: ${e.message}`)
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 1b. PÓLIZAS POR VENCER (aviso ANTICIPADO)
+  //
+  // Detecta pólizas VIGENTE con fecha_fin en [hoy, hoy+umbral_dias] SIN
+  // renovación creada. Escalado por cercanía:
+  //   • ≤3 días  → CRITICA
+  //   • ≤7 días  → ADVERTENCIA
+  //   • ≤15 días → ADVERTENCIA
+  //   • ≤30 días → INFORMATIVA
+  // Anti-spam por póliza para no saturar al PAS con el mismo aviso.
+  //
+  // Este era el gap principal — el PAS quiere ver el aviso ANTES de que
+  // la póliza venza, no después. Sin esto muchas quedan vencidas sin
+  // renovar porque nadie se enteró.
+  // ══════════════════════════════════════════════════════════════
+  try {
+    const cfgPolPor = getConfig('POLIZA_POR_VENCER')
+    if (!cfgPolPor.activa) throw { skip: true }
+    const umbralDias = cfgPolPor.umbral_dias ?? 30
+    const yaNotificadas = await idsNotificados('POLIZA_POR_VENCER', cfgPolPor.antispam_dias)
+
+    const fechaLimite = new Date()
+    fechaLimite.setDate(fechaLimite.getDate() + umbralDias)
+    const fechaLimiteStr = `${fechaLimite.getFullYear()}-${String(fechaLimite.getMonth()+1).padStart(2,'0')}-${String(fechaLimite.getDate()).padStart(2,'0')}`
+
+    const { data: proximas } = await supabase
+      .from('polizas')
+      .select('id, numero_poliza, fecha_fin, asegurado:personas!asegurado_id(apellido, nombre, usuario_id, deleted_at)')
+      .eq('estado', 'VIGENTE')
+      .gte('fecha_fin', hoy)
+      .lte('fecha_fin', fechaLimiteStr)
+
+    if (proximas && proximas.length > 0) {
+      const ids = proximas.map((p: any) => p.id)
+      const { data: conRenovacion } = await supabase
+        .from('polizas')
+        .select('poliza_origen_id')
+        .in('poliza_origen_id', ids)
+        .in('estado', ['RENOVADA', 'VIGENTE', 'PROGRAMADA'])
+      const idsConRen = new Set((conRenovacion ?? []).map((r: any) => r.poliza_origen_id))
+
+      const hoyDate = new Date()
+      hoyDate.setHours(0, 0, 0, 0)
+
+      for (const p of proximas as any[]) {
+        if (p.asegurado?.deleted_at) continue
+        if (idsConRen.has(p.id)) continue
+        if (yaNotificadas.has(p.id)) continue
+
+        // Días restantes = diff(fecha_fin, hoy)
+        const [y, m, d] = p.fecha_fin.split('-').map(Number)
+        const fechaFin = new Date(y, m - 1, d)
+        const diasRestantes = Math.max(0, Math.round((fechaFin.getTime() - hoyDate.getTime()) / 86400000))
+
+        let prioridad = 'INFORMATIVA'
+        if (diasRestantes <= 3) prioridad = 'CRITICA'
+        else if (diasRestantes <= 15) prioridad = 'ADVERTENCIA'
+
+        const cuantos = diasRestantes === 0 ? 'HOY' : diasRestantes === 1 ? 'mañana' : `en ${diasRestantes} días`
+        await crear({
+          tipo: 'POLIZA_POR_VENCER',
+          prioridad,
+          titulo: diasRestantes <= 3 ? 'Póliza vence pronto' : 'Póliza próxima a vencer',
+          mensaje: `La póliza #${p.numero_poliza} de ${nombreCompleto(p.asegurado)} vence ${cuantos} (${formatFecha(p.fecha_fin)}). Sin renovación creada.`,
+          entidad_tipo: 'poliza',
+          entidad_id: p.id,
+          url: `/crm/renovaciones/${p.id}`,
+          usuario_id: p.asegurado?.usuario_id ?? null,
+        })
+        resultados.polizas_por_vencer++
+      }
+    }
+  } catch (e: any) {
+    if (!e?.skip) resultados.errores.push(`polizas_por_vencer: ${e.message}`)
   }
 
   // ══════════════════════════════════════════════════════════════
