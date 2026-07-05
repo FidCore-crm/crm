@@ -38,14 +38,10 @@ type SortField = 'numero_poliza' | 'fecha_fin'
 type SortDir   = 'asc' | 'desc'
 
 function estadoBadge(poliza: Poliza, tieneRenovacionActiva: boolean) {
-  // Estado efectivo — considera fecha_fin (para compensar el cron) y si tiene
-  // renovación activa (para distinguir "Reemplazada" de "Vencida" real).
+  // Estado efectivo — devuelve "VENCIDA" si venció y no tiene renovación.
   const estadoEfectivo = getEstadoEfectivoPoliza(poliza.estado, poliza.fecha_fin, tieneRenovacionActiva)
   if (estadoEfectivo === 'VENCIDA') {
     return { label: 'Vencida', color: getPolizaBadgeColor('VENCIDA') }
-  }
-  if (estadoEfectivo === 'REEMPLAZADA') {
-    return { label: 'Reemplazada', color: getPolizaBadgeColor('REEMPLAZADA') }
   }
   const dias = diasHastaVencimiento(poliza.fecha_fin)
   // Para VIGENTE que está por vencer, mostrar indicador de días (siempre y
@@ -556,7 +552,7 @@ function PolizasContent() {
           <option value="VIGENTE">Vigente</option>
           <option value="PROGRAMADA">Programada</option>
           <option value="RENOVADA">Renovada</option>
-          <option value="NO_VIGENTE">Vencida</option>
+          <option value="NO_VIGENTE">No Vigente</option>
           <option value="CANCELADA">Cancelada</option>
           <option value="ANULADA">Anulada</option>
         </select>
@@ -652,10 +648,11 @@ function PolizasContent() {
             {polizas.map(p => {
               const tieneRenovacionActiva = idsConRenovacion.has(p.id)
               const badge   = estadoBadge(p, tieneRenovacionActiva)
-              // "vencida" para ATENUAR visualmente — usamos NO_VIGENTE/CANCELADA/
-              // ANULADA como estados terminales que se ven en gris. Excluimos las
-              // reemplazadas para NO atenuarlas (aún son parte del histórico útil).
-              const vencida = ['NO_VIGENTE', 'CANCELADA', 'ANULADA'].includes(p.estado) && !tieneRenovacionActiva
+              const estadoEfectivo = getEstadoEfectivoPoliza(p.estado, p.fecha_fin, tieneRenovacionActiva)
+              // "atenuada" — filas visualmente en gris. Aplica a NO_VIGENTE
+              // (histórica normal), CANCELADA y ANULADA. NO se atenúa "Vencida"
+              // (sin renovación) porque necesita gestión y debe verse claramente.
+              const atenuada = estadoEfectivo !== 'VENCIDA' && ['NO_VIGENTE', 'CANCELADA', 'ANULADA'].includes(p.estado)
               const primerRiesgo = p.riesgos?.[0]
               const dt      = primerRiesgo?.detalle_tecnico ?? {}
               const labelBase = describirBien(primerRiesgo?.tipo_riesgo, dt) ?? '—'
@@ -666,7 +663,7 @@ function PolizasContent() {
 
               return (
                 <tr key={p.id}
-                  className={`cursor-pointer ${vencida ? 'opacity-55' : ''}`}
+                  className={`cursor-pointer ${atenuada ? 'opacity-55' : ''}`}
                   onClick={() => router.push(`/crm/polizas/${p.id}`)}>
                   {isAdmin && comunicacionesActivo && (
                     <td onClick={e => e.stopPropagation()}>
@@ -690,7 +687,7 @@ function PolizasContent() {
                   <td className="text-xs text-slate-600">{p.cobertura?.nombre ?? '—'}</td>
                   <td className="text-xs text-slate-600 truncate max-w-56" title={riesgoLabel}>{riesgoLabel}</td>
                   <td className="text-xs text-slate-600 whitespace-nowrap">
-                    {formatFechaLocal(p.fecha_inicio)} → <span className={vencida ? 'text-red-600 font-medium' : ''}>{formatFechaLocal(p.fecha_fin)}</span>
+                    {formatFechaLocal(p.fecha_inicio)} → <span className={estadoEfectivo === 'VENCIDA' ? 'text-red-600 font-medium' : ''}>{formatFechaLocal(p.fecha_fin)}</span>
                   </td>
                   <td>
                     <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${badge.color}`}>

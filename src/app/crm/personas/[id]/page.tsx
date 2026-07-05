@@ -94,13 +94,9 @@ type Tab = 'polizas' | 'siniestros' | 'tareas' | 'comercial' | 'portal' | 'comun
 
 // ── Helpers ──────────────────────────────────────────────────
 function estadoPolizaBadge(p: PolizaResumen, tieneRenovacionActiva: boolean = false) {
-  // Estado efectivo — considera fecha_fin + tieneRenovacionActiva.
   const estadoEfectivo = getEstadoEfectivoPoliza(p.estado, p.fecha_fin, tieneRenovacionActiva)
   if (estadoEfectivo === 'VENCIDA') {
     return { label: 'Vencida', color: getPolizaBadgeColor('VENCIDA') }
-  }
-  if (estadoEfectivo === 'REEMPLAZADA') {
-    return { label: 'Reemplazada', color: getPolizaBadgeColor('REEMPLAZADA') }
   }
   const dias = diasHastaVencimiento(p.fecha_fin)
   if (p.estado === 'VIGENTE' && dias >= 0 && dias <= 30 && !tieneRenovacionActiva) {
@@ -810,9 +806,12 @@ export default function FichaPersonaPage() {
                     {polizasVisibles.map(p => {
                       const tieneRenovacionActiva = idsConRenovacion.has(p.id)
                       const badge = estadoPolizaBadge(p, tieneRenovacionActiva)
-                      const vencida = terminales.includes(p.estado) && !tieneRenovacionActiva
+                      const estadoEfectivo = getEstadoEfectivoPoliza(p.estado, p.fecha_fin, tieneRenovacionActiva)
+                      // Atenuada: histórica normal. NO atenuar si es "Vencida"
+                      // (necesita gestión).
+                      const atenuada = estadoEfectivo !== 'VENCIDA' && terminales.includes(p.estado)
                       return (
-                        <tr key={p.id} className={`${vencida ? 'opacity-55' : ''} cursor-pointer hover:bg-slate-50`} onClick={() => router.push(`/crm/polizas/${p.id}`)}>
+                        <tr key={p.id} className={`${atenuada ? 'opacity-55' : ''} cursor-pointer hover:bg-slate-50`} onClick={() => router.push(`/crm/polizas/${p.id}`)}>
                           <td className="font-mono text-xs font-semibold text-blue-600 hover:underline">{p.numero_poliza}</td>
                           <td className="text-xs text-slate-600">{p.compania?.nombre ?? '—'}</td>
                           <td className="text-xs text-slate-600">{p.ramo?.nombre ?? '—'}</td>

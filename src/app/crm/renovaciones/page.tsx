@@ -467,10 +467,11 @@ export default function RenovacionesPage() {
               const dias = diasHastaVencimiento(p.fecha_fin)
               const esRenovada = p.estado === 'RENOVADA'
               const yaTieneRenovacion = idsConRenovacion.has(p.id)
-              // Estado efectivo — considera fecha_fin + tieneRenovacionActiva.
               const estadoEfectivo = getEstadoEfectivoPoliza(p.estado, p.fecha_fin, yaTieneRenovacion)
-              const esVencida = estadoEfectivo === 'VENCIDA' || (p.estado === 'NO_VIGENTE' && !yaTieneRenovacion)
-              const opaca = p.estado === 'NO_VIGENTE' && !yaTieneRenovacion
+              const esVencida = estadoEfectivo === 'VENCIDA'
+              // NO_VIGENTE con renovación → histórica, se atenúa. Vencida NO
+              // se atenúa (necesita gestión).
+              const opaca = p.estado === 'NO_VIGENTE' && yaTieneRenovacion
 
               return (
                 <tr key={p.id}
@@ -510,9 +511,7 @@ export default function RenovacionesPage() {
                   </td>
                   <td>
                     <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${getPolizaBadgeColor(estadoEfectivo)}`}>
-                      {estadoEfectivo === 'VENCIDA' ? 'Vencida'
-                        : estadoEfectivo === 'REEMPLAZADA' ? 'Reemplazada'
-                        : getLabelEstado(p.estado)}
+                      {estadoEfectivo === 'VENCIDA' ? 'Vencida' : getLabelEstado(p.estado)}
                     </span>
                   </td>
                   <td onClick={e => e.stopPropagation()}>

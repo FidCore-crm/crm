@@ -204,10 +204,7 @@ export function getLabelEstado(estado: string): string {
     PROGRAMADA: 'Programada',
     RENOVADA: 'Renovada',
     VIGENTE: 'Vigente',
-    // "No Vigente" era confuso: en la práctica una póliza NO_VIGENTE es una
-    // que venció (con o sin renovación creada después). Uso "Vencida" que
-    // es lo que el PAS entiende naturalmente.
-    NO_VIGENTE: 'Vencida',
+    NO_VIGENTE: 'No Vigente',
     CANCELADA: 'Cancelada',
     ANULADA: 'Anulada',
     PROSPECTO: 'Prospecto',
@@ -231,38 +228,34 @@ export function getPolizaBadgeColor(estado: string): string {
     PROGRAMADA:  'bg-blue-50 text-blue-700 border-blue-200',
     RENOVADA:    'bg-violet-50 text-violet-700 border-violet-200',
     VIGENTE:     'bg-emerald-50 text-emerald-700 border-emerald-200',
-    // Antes gris → confundía con estados neutros. Rojo aviso al PAS de que
-    // esta póliza ya venció (con o sin renovación creada).
-    NO_VIGENTE:  'bg-red-50 text-red-700 border-red-200',
+    // Gris tenue — histórica normal. La póliza venció pero fue renovada,
+    // no requiere gestión.
+    NO_VIGENTE:  'bg-slate-100 text-slate-600 border-slate-200',
     CANCELADA:   'bg-amber-50 text-amber-700 border-amber-200',
     ANULADA:     'bg-red-50 text-red-700 border-red-200',
-    // Estado efectivo especial — VIGENTE con fecha pasada. Usa color
-    // rojizo para diferenciar visualmente de "Vigente" real.
+    // Estado efectivo especial: la póliza venció Y no tiene renovación
+    // creada. El PAS tiene que gestionar. Rojo para llamar la atención.
     VENCIDA:     'bg-red-50 text-red-700 border-red-200',
-    // Estado efectivo especial — póliza que ya fue reemplazada por su
-    // renovación. Color violeta suave, mismo que RENOVADA para consistencia.
-    REEMPLAZADA: 'bg-violet-50 text-violet-700 border-violet-200',
   }
   return mapa[estado] ?? 'bg-slate-100 text-slate-600 border-slate-200'
 }
 
 /**
- * Devuelve el estado "efectivo" de una póliza considerando:
- *   1. El estado en DB
- *   2. La fecha_fin (para compensar cron que aún no la movió)
- *   3. Si tiene una renovación activa (hija RENOVADA/VIGENTE/PROGRAMADA)
+ * Devuelve el estado "efectivo" de una póliza para el badge de la UI.
+ *
+ * Solo distingue una situación adicional al estado técnico de DB:
+ *   "VENCIDA" = venció Y no tiene renovación creada. Requiere gestión.
  *
  * Casos:
- *   estado=NO_VIGENTE, tiene_renovacion=true  → "REEMPLAZADA" (violeta)
- *   estado=NO_VIGENTE, tiene_renovacion=false → "NO_VIGENTE" (rojo "Vencida")
- *   estado=VIGENTE, fecha_fin<hoy, con hija  → "REEMPLAZADA"
- *   estado=VIGENTE, fecha_fin<hoy, sin hija  → "VENCIDA"
- *   estado=VIGENTE, fecha_fin>=hoy           → "VIGENTE"
- *   resto                                    → estado original
+ *   estado=VIGENTE, fecha_fin<hoy, sin hija activa → "VENCIDA" (rojo)
+ *   estado=VIGENTE, fecha_fin<hoy, con hija activa → "VIGENTE" (dejamos que
+ *      el cron la mueva a NO_VIGENTE cuando la renovación se active)
+ *   estado=NO_VIGENTE, sin hija activa → "VENCIDA" (rojo — el cron la movió
+ *      pero conceptualmente sigue siendo "venció sin renovar")
+ *   estado=NO_VIGENTE, con hija activa → "NO_VIGENTE" (gris tenue — histórica)
+ *   resto → estado original
  *
- * REEMPLAZADA y VENCIDA NO son estados reales en DB — son valores efectivos
- * para la UI. La distinción evita que el PAS confunda pólizas ya renovadas
- * (histórico normal) con pólizas que necesitan gestión.
+ * "VENCIDA" NO es un estado real en DB, es solo un valor efectivo UI.
  */
 export function getEstadoEfectivoPoliza(
   estado: string,
@@ -272,20 +265,22 @@ export function getEstadoEfectivoPoliza(
   const hoy = hoyAR()
   const soloFecha = fechaFin ? String(fechaFin).slice(0, 10) : ''
 
-  if (estado === 'VIGENTE' && soloFecha && soloFecha < hoy) {
-    return tieneRenovacionActiva ? 'REEMPLAZADA' : 'VENCIDA'
+  // VIGENTE con fecha pasada sin renovación → "Vencida" (compensa el cron)
+  if (estado === 'VIGENTE' && soloFecha && soloFecha < hoy && !tieneRenovacionActiva) {
+    return 'VENCIDA'
   }
-  if (estado === 'NO_VIGENTE' && tieneRenovacionActiva) {
-    return 'REEMPLAZADA'
+  // NO_VIGENTE sin renovación → "Vencida" (el cron ya la movió pero
+  // conceptualmente sigue siendo una que venció y no se gestionó)
+  if (estado === 'NO_VIGENTE' && !tieneRenovacionActiva) {
+    return 'VENCIDA'
   }
   return estado
 }
 
-// Label para el estado efectivo "VENCIDA" / "REEMPLAZADA" (no viven en
-// getLabelEstado porque no son estados reales en DB).
+// Label para el estado efectivo "VENCIDA" (no vive en getLabelEstado porque
+// no es un estado real en DB).
 export function getLabelEstadoEfectivo(estadoEfectivo: string): string {
   if (estadoEfectivo === 'VENCIDA') return 'Vencida'
-  if (estadoEfectivo === 'REEMPLAZADA') return 'Reemplazada'
   return getLabelEstado(estadoEfectivo)
 }
 

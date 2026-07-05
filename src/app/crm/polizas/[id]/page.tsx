@@ -95,13 +95,9 @@ interface SiniestroResumen {
 
 // ── Helpers ──────────────────────────────────────────────────
 function estadoPolizaBadge(estado: string, fechaFin: string, tieneRenovacionActiva: boolean = false) {
-  // Estado efectivo — considera fecha_fin + tieneRenovacionActiva.
   const estadoEfectivo = getEstadoEfectivoPoliza(estado, fechaFin, tieneRenovacionActiva)
   if (estadoEfectivo === 'VENCIDA') {
     return { label: 'Vencida', color: getPolizaBadgeColor('VENCIDA') }
-  }
-  if (estadoEfectivo === 'REEMPLAZADA') {
-    return { label: 'Reemplazada', color: getPolizaBadgeColor('REEMPLAZADA') }
   }
   const dias = diasHastaVencimiento(fechaFin)
   if (estado === 'VIGENTE' && dias >= 0 && dias <= 7 && !tieneRenovacionActiva)
