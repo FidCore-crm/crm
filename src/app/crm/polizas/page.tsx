@@ -540,7 +540,7 @@ function PolizasContent() {
           <option value="VIGENTE">Vigente</option>
           <option value="PROGRAMADA">Programada</option>
           <option value="RENOVADA">Renovada</option>
-          <option value="NO_VIGENTE">No Vigente</option>
+          <option value="NO_VIGENTE">Vencida</option>
           <option value="CANCELADA">Cancelada</option>
           <option value="ANULADA">Anulada</option>
         </select>

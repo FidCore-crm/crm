@@ -204,7 +204,10 @@ export function getLabelEstado(estado: string): string {
     PROGRAMADA: 'Programada',
     RENOVADA: 'Renovada',
     VIGENTE: 'Vigente',
-    NO_VIGENTE: 'No Vigente',
+    // "No Vigente" era confuso: en la práctica una póliza NO_VIGENTE es una
+    // que venció (con o sin renovación creada después). Uso "Vencida" que
+    // es lo que el PAS entiende naturalmente.
+    NO_VIGENTE: 'Vencida',
     CANCELADA: 'Cancelada',
     ANULADA: 'Anulada',
     PROSPECTO: 'Prospecto',
@@ -228,7 +231,9 @@ export function getPolizaBadgeColor(estado: string): string {
     PROGRAMADA:  'bg-blue-50 text-blue-700 border-blue-200',
     RENOVADA:    'bg-violet-50 text-violet-700 border-violet-200',
     VIGENTE:     'bg-emerald-50 text-emerald-700 border-emerald-200',
-    NO_VIGENTE:  'bg-slate-100 text-slate-600 border-slate-200',
+    // Antes gris → confundía con estados neutros. Rojo aviso al PAS de que
+    // esta póliza ya venció (con o sin renovación creada).
+    NO_VIGENTE:  'bg-red-50 text-red-700 border-red-200',
     CANCELADA:   'bg-amber-50 text-amber-700 border-amber-200',
     ANULADA:     'bg-red-50 text-red-700 border-red-200',
     // Estado efectivo especial — VIGENTE con fecha pasada. Usa color

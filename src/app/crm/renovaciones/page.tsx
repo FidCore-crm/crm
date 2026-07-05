@@ -107,11 +107,18 @@ export default function RenovacionesPage() {
       const d30 = new Date(); d30.setDate(d30.getDate() + 30)
       const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 
-      // 1) IDs de pólizas que ya tienen renovación creada (para descontar de "vencidas sin renovar")
+      // 1) IDs de pólizas que ya tienen renovación ACTIVA (para descontar de
+      //    "vencidas sin renovar"). Solo cuentan las hijas en estado activo:
+      //      - RENOVADA (latente esperando activarse)
+      //      - VIGENTE  (renovación ya activada, reemplazó a la origen)
+      //      - PROGRAMADA (rara pero posible)
+      //    NO cuentan las hijas CANCELADA/ANULADA — esas renovaciones se
+      //    cayeron y la póliza origen queda efectivamente vencida sin renovar.
       const { data: conRen } = await supabase
         .from('polizas')
         .select('poliza_origen_id')
         .not('poliza_origen_id', 'is', null)
+        .in('estado', ['RENOVADA', 'VIGENTE', 'PROGRAMADA'])
       const idsRen = new Set<string>((conRen ?? []).map((r: any) => r.poliza_origen_id).filter(Boolean))
       setIdsConRenovacion(idsRen)
 
