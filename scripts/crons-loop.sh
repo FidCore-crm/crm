@@ -1,19 +1,46 @@
 #!/bin/bash
-# Loop wrapper de los crons del CRM cuando corren como container del compose.
-# En el host con systemd, se usa crm-crons.timer + crm-crons.service en su lugar
-# (cada 2h con Persistent=true para catch-up post-reboot).
+# Loop dual de crons del CRM cuando corren como container del compose.
+# En el host con systemd se usa crm-crons.timer + crm-crons.service que dispara
+# startup-crons.sh (rápidos + lentos en un mismo pase).
 #
-# Acá replicamos: ejecutar startup-crons.sh, dormir CRONS_INTERVAL_SECONDS, repetir.
+# Acá separamos:
+#   - Rápidos (polizas, notificaciones, cola emails):  cada CRONS_INTERVAL_RAPIDO
+#   - Lentos (backups, limpiezas, updates, etc.):      cada CRONS_INTERVAL_LENTO
+#
+# La lógica es: correr rápidos siempre. Correr lentos solo cuando pasó el
+# intervalo lento. Simple y sin dependencias externas.
 
 set -u
 
-INTERVAL_SECONDS="${CRONS_INTERVAL_SECONDS:-7200}"  # 2h por defecto
+INTERVAL_RAPIDO="${CRONS_INTERVAL_RAPIDO:-1200}"  # 20 min por defecto
+INTERVAL_LENTO="${CRONS_INTERVAL_LENTO:-7200}"    # 2h por defecto
+# Retrocompatibilidad — si el usuario tenía CRONS_INTERVAL_SECONDS seteado,
+# lo tomamos como intervalo LENTO (ese era el default histórico).
+if [ -n "${CRONS_INTERVAL_SECONDS:-}" ]; then
+  INTERVAL_LENTO="$CRONS_INTERVAL_SECONDS"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "[crons-loop] Iniciando loop cada ${INTERVAL_SECONDS}s"
+echo "[crons-loop] Iniciando loop dual"
+echo "[crons-loop]   Rápidos cada ${INTERVAL_RAPIDO}s (polizas, notificaciones, emails encolados)"
+echo "[crons-loop]   Lentos cada ${INTERVAL_LENTO}s (backups, limpiezas, updates, etc.)"
+
+ultimo_lento=0
 
 while true; do
-  bash "$SCRIPT_DIR/startup-crons.sh" || echo "[crons-loop] startup-crons.sh terminó con error (continuamos)"
-  echo "[crons-loop] Próximo tick en ${INTERVAL_SECONDS}s"
-  sleep "$INTERVAL_SECONDS"
+  # Siempre correr rápidos
+  bash "$SCRIPT_DIR/startup-crons-rapidos.sh" || echo "[crons-loop] startup-crons-rapidos.sh terminó con error (continuamos)"
+
+  # Correr lentos si pasó el intervalo lento (o es la primera vez)
+  ahora=$(date +%s)
+  transcurrido=$((ahora - ultimo_lento))
+  if [ $transcurrido -ge $INTERVAL_LENTO ]; then
+    echo "[crons-loop] Disparando lentos (transcurrido ${transcurrido}s desde el anterior)"
+    bash "$SCRIPT_DIR/startup-crons-lentos.sh" || echo "[crons-loop] startup-crons-lentos.sh terminó con error (continuamos)"
+    ultimo_lento=$(date +%s)
+  fi
+
+  echo "[crons-loop] Próximo tick rápido en ${INTERVAL_RAPIDO}s"
+  sleep "$INTERVAL_RAPIDO"
 done

@@ -724,13 +724,13 @@ export function Navbar() {
                         <Icono className={`h-4 w-4 mt-0.5 flex-shrink-0 ${colorPrioridad(n.prioridad)}`} />
                         {/* Contenido */}
                         <div className="flex-1 min-w-0">
-                          <div className={`text-xs text-slate-700 ${!n.leida ? 'font-semibold' : ''} truncate`}>
+                          <div className={`text-xs text-slate-700 ${!n.leida ? 'font-semibold' : ''} break-words`}>
                             {n.titulo}
                           </div>
-                          <div className="text-2xs text-slate-500 truncate mt-0.5">
+                          <div className="text-2xs text-slate-500 break-words leading-relaxed mt-0.5">
                             {n.mensaje}
                           </div>
-                          <div className="text-2xs text-slate-400 mt-0.5">
+                          <div className="text-2xs text-slate-400 mt-1">
                             {tiempoRelativo(n.created_at)}
                           </div>
                         </div>

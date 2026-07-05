@@ -81,7 +81,9 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       CRM_BASE_URL: "http://crm:3000"
-      CRONS_INTERVAL_SECONDS: "7200"
+      # Loop dual — rápidos afectan operación diaria, lentos son mantenimiento
+      CRONS_INTERVAL_RAPIDO: "1200"   # 20 min — polizas, notificaciones, cola emails
+      CRONS_INTERVAL_LENTO: "7200"    # 2h — backups, limpiezas, updates, etc.
     volumes:
       - ./storage:/app/storage
       - ./tmp:/app/tmp

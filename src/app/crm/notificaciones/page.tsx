@@ -355,11 +355,11 @@ export default function NotificacionesPage() {
                       {tipoInfo.label}
                     </span>
                   </td>
-                  <td>
-                    <div className={`text-xs text-slate-700 ${!n.leida ? 'font-semibold' : ''} truncate max-w-xs`}>
+                  <td className="min-w-0 max-w-2xl">
+                    <div className={`text-xs text-slate-700 ${!n.leida ? 'font-semibold' : ''} break-words`}>
                       {n.titulo}
                     </div>
-                    <div className="text-2xs text-slate-500 truncate max-w-xs mt-0.5">
+                    <div className="text-2xs text-slate-500 break-words leading-relaxed mt-0.5">
                       {n.mensaje}
                     </div>
                   </td>

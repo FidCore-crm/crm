@@ -39,17 +39,31 @@ function nombreCompleto(p: { apellido: string; nombre: string | null } | null): 
 }
 
 // Valores por defecto hardcodeados como fallback
+// Criterio de "alerta ≠ listado": las notificaciones son señales para llamar
+// la atención sobre algo que requiere ACCIÓN puntual. No son listados de todo
+// lo que pasa en el sistema.
+//
+// - POLIZA_VENCIDA: sí, requiere acción inmediata (renovar tarde o marcar como perdida).
+// - POLIZA_POR_VENCER: solo para casos MUY urgentes (≤3 días). Antes disparaba
+//   hasta 30 días → el PAS recibía 30+ notificaciones por mes. Los KPIs y
+//   filtros de /crm/renovaciones cubren el resto.
+// - TAREA_VENCIDA: sí, requiere acción.
+// - SINIESTRO estancado: sí a 30/60 días.
+// - COTIZACION_VENCIDA: sí — el cliente probablemente perdió interés.
+// - COTIZACION_VENCIENDO_PRONTO: sí, para reactivar (3 días antes).
+// - Umbrales aumentados donde había ruido: OPORTUNIDAD_ESTANCADA de 15 a 30 días.
+// - Anti-spam más largo para reducir alertas repetidas.
 const DEFAULTS: Record<string, { activa: boolean; umbral_dias: number | null; antispam_dias: number }> = {
-  POLIZA_VENCIDA:                { activa: true, umbral_dias: null, antispam_dias: 7 },
-  POLIZA_POR_VENCER:             { activa: true, umbral_dias: 30,   antispam_dias: 3 },
-  TAREA_VENCIDA:                 { activa: true, umbral_dias: null, antispam_dias: 3 },
-  SINIESTRO_30_DIAS:             { activa: true, umbral_dias: 30,   antispam_dias: 10 },
-  SINIESTRO_60_DIAS:             { activa: true, umbral_dias: 60,   antispam_dias: 10 },
-  COTIZACION_SIN_RESPUESTA:      { activa: true, umbral_dias: 5,    antispam_dias: 3 },
-  COTIZACION_SIN_SEGUIMIENTO:    { activa: true, umbral_dias: 3,    antispam_dias: 3 },
-  OPORTUNIDAD_ESTANCADA:         { activa: true, umbral_dias: 15,   antispam_dias: 5 },
+  POLIZA_VENCIDA:                { activa: true, umbral_dias: null, antispam_dias: 14 },
+  POLIZA_POR_VENCER:             { activa: true, umbral_dias: 3,    antispam_dias: 3 },  // Solo ≤3 días — antes eran 30
+  TAREA_VENCIDA:                 { activa: true, umbral_dias: null, antispam_dias: 7 },
+  SINIESTRO_30_DIAS:             { activa: true, umbral_dias: 30,   antispam_dias: 14 },
+  SINIESTRO_60_DIAS:             { activa: true, umbral_dias: 60,   antispam_dias: 14 },
+  COTIZACION_SIN_RESPUESTA:      { activa: true, umbral_dias: 5,    antispam_dias: 5 },
+  COTIZACION_SIN_SEGUIMIENTO:    { activa: true, umbral_dias: 5,    antispam_dias: 5 },
+  OPORTUNIDAD_ESTANCADA:         { activa: true, umbral_dias: 30,   antispam_dias: 10 },  // Antes 15 días — muy ruidoso
   COTIZACION_VENCIENDO_PRONTO:   { activa: true, umbral_dias: 3,    antispam_dias: 3 },
-  COTIZACION_VENCIDA:            { activa: true, umbral_dias: null, antispam_dias: 5 },
+  COTIZACION_VENCIDA:            { activa: true, umbral_dias: null, antispam_dias: 10 },
 }
 
 export async function GET(request: Request) {
@@ -189,24 +203,22 @@ export async function GET(request: Request) {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 1b. PÓLIZAS POR VENCER (aviso ANTICIPADO)
+  // 1b. PÓLIZAS POR VENCER — SOLO CASOS URGENTES (≤3 días por default)
   //
-  // Detecta pólizas VIGENTE con fecha_fin en [hoy, hoy+umbral_dias] SIN
-  // renovación creada. Escalado por cercanía:
-  //   • ≤3 días  → CRITICA
-  //   • ≤7 días  → ADVERTENCIA
-  //   • ≤15 días → ADVERTENCIA
-  //   • ≤30 días → INFORMATIVA
-  // Anti-spam por póliza para no saturar al PAS con el mismo aviso.
+  // Criterio: las notificaciones son ALERTAS puntuales, no un listado de
+  // todo. Antes disparaba para pólizas que vencían en hasta 30 días — el
+  // PAS recibía 30+ notificaciones por mes de pólizas que no requerían
+  // acción inmediata. Los KPIs y filtros de /crm/renovaciones ya cubren
+  // ese caso visualmente.
   //
-  // Este era el gap principal — el PAS quiere ver el aviso ANTES de que
-  // la póliza venza, no después. Sin esto muchas quedan vencidas sin
-  // renovar porque nadie se enteró.
+  // Ahora solo dispara si la póliza vence en ≤ umbral_dias (default 3).
+  // Siempre prioridad CRITICA — si el PAS ve esto es porque hay que
+  // gestionar YA.
   // ══════════════════════════════════════════════════════════════
   try {
     const cfgPolPor = getConfig('POLIZA_POR_VENCER')
     if (!cfgPolPor.activa) throw { skip: true }
-    const umbralDias = cfgPolPor.umbral_dias ?? 30
+    const umbralDias = cfgPolPor.umbral_dias ?? 3
     const yaNotificadas = await idsNotificados('POLIZA_POR_VENCER', cfgPolPor.antispam_dias)
 
     const fechaLimite = new Date()
@@ -237,20 +249,15 @@ export async function GET(request: Request) {
         if (idsConRen.has(p.id)) continue
         if (yaNotificadas.has(p.id)) continue
 
-        // Días restantes = diff(fecha_fin, hoy)
         const [y, m, d] = p.fecha_fin.split('-').map(Number)
         const fechaFin = new Date(y, m - 1, d)
         const diasRestantes = Math.max(0, Math.round((fechaFin.getTime() - hoyDate.getTime()) / 86400000))
 
-        let prioridad = 'INFORMATIVA'
-        if (diasRestantes <= 3) prioridad = 'CRITICA'
-        else if (diasRestantes <= 15) prioridad = 'ADVERTENCIA'
-
         const cuantos = diasRestantes === 0 ? 'HOY' : diasRestantes === 1 ? 'mañana' : `en ${diasRestantes} días`
         await crear({
           tipo: 'POLIZA_POR_VENCER',
-          prioridad,
-          titulo: diasRestantes <= 3 ? 'Póliza vence pronto' : 'Póliza próxima a vencer',
+          prioridad: 'CRITICA',
+          titulo: 'Póliza vence pronto',
           mensaje: `La póliza #${p.numero_poliza} de ${nombreCompleto(p.asegurado)} vence ${cuantos} (${formatFecha(p.fecha_fin)}). Sin renovación creada.`,
           entidad_tipo: 'poliza',
           entidad_id: p.id,
