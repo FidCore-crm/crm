@@ -525,13 +525,13 @@ export interface CambioDetectado {
   ahora: string | null
   tipo: 'material' | 'cosmético'
   severidad: 'alta' | 'media' | 'baja'
-  descripcion: string      // frase legible: "La cobertura pasó de CF (Terceros Full) a C (Terceros común). Es un downgrade."
+  descripcion: string      // frase factual y corta: "La cobertura principal pasó de CF (Terceros Full) a C (Terceros común)."
 }
 
 export interface ResultadoComparacion {
   ok: boolean
   cambios?: CambioDetectado[]
-  resumen?: string         // 1-2 líneas de tl;dr para el PAS
+  resumen?: string         // 1 línea factual — QUÉ cambió, sin valoraciones
   error?: string
   tokens_input: number
   tokens_output: number
@@ -545,10 +545,10 @@ const SYSTEM_COMPARADOR = `Sos un asistente especializado en comparar dos versio
 Tu tarea es leer los 2 PDFs adjuntos y devolver un JSON con los cambios materiales que detectes. El PAS que asesora al cliente necesita saber qué cambió para poder avisarle antes de que el cliente firme la renovación.
 
 CONTEXTO IMPORTANTE — nombres de coberturas:
-Las compañías usan nombres/códigos comerciales que varían aunque el producto sea el mismo. Por ejemplo, en San Cristóbal "CM", "Premium Max" y "CF" son variantes del mismo producto "Terceros Full". NO marques como cambio material si el nombre cambia pero el nivel de cobertura es equivalente (ej: "CF" → "Premium Max" en la misma compañía = sin cambio). SÍ marcá como material si el nivel real cambia (ej: "CF" → "C" es un downgrade de Terceros Full a Terceros común).
+Las compañías usan nombres/códigos comerciales que varían aunque el producto sea el mismo. Por ejemplo, en San Cristóbal "CM", "Premium Max" y "CF" son variantes del mismo producto "Terceros Full". NO marques como cambio material si el nombre cambia pero el nivel de cobertura es equivalente (ej: "CF" → "Premium Max" en la misma compañía = sin cambio). SÍ marcá como material si el nivel real cambia (ej: "CF" → "C" pasa de Terceros Full a Terceros común).
 
 QUÉ CONSIDERAR COMO CAMBIO MATERIAL:
-- Cambio de cobertura (upgrade / downgrade / cambio de plan).
+- Cambio de cobertura o plan contratado.
 - Cambio de suma asegurada de la póliza o de una cobertura interna.
 - Cambio de responsabilidad civil (RC): monto, sublímite, exclusiones.
 - Cambio de franquicia.
@@ -565,12 +565,32 @@ QUÉ CONSIDERAR COSMÉTICO (marcá igual, pero con tipo 'cosmético'):
 - Número de recibo, forma de pago si es la misma.
 - Datos del asegurado (dirección, teléfono) si sólo son actualizaciones.
 
+LENGUAJE — MUY IMPORTANTE:
+El PAS es un profesional del rubro. Escribí en tono técnico y factual. Limitate a describir QUÉ cambió, en qué monto o de qué a qué. NO valores el cambio, no digas si es bueno o malo para el cliente. El PAS lo evalúa él.
+
+PALABRAS PROHIBIDAS (no aparecen en el rubro de seguros argentino):
+- "upgrade" / "downgrade" / "downgradear" / "upgradear"
+- "mejora" / "empeora" / "mejor cobertura" / "peor cobertura"
+- "protección" (usar "cobertura")
+- "beneficio" / "beneficios" (usar "cobertura" o "condiciones")
+- "premium" (salvo que sea nombre comercial exacto del producto, como "Premium Max")
+- Adjetivos evaluativos: "mejor", "peor", "conveniente", "favorable", "desfavorable", "positivo", "negativo".
+
 REGLAS DURAS:
 1. Respondé SOLO con JSON válido, sin texto extra, sin fences.
 2. Los 2 PDFs se te pasan en orden: PRIMERO el PDF viejo (póliza vigente), SEGUNDO el PDF nuevo (renovación).
-3. Si no detectás ningún cambio material, devolvé "cambios": [] y un resumen tipo "Sin cambios materiales — la renovación mantiene las mismas condiciones".
+3. El campo "resumen" debe ser UNA sola oración, corta y factual. Mencionar QUÉ cambió, no VALORARLO. Máximo 20 palabras.
+   - Ejemplos VÁLIDOS de resumen:
+     · "Se modificaron las sumas aseguradas de las coberturas y el premio."
+     · "Aumentó el sublímite de RC de $30.000.000 a $50.000.000."
+     · "Cambió la cobertura principal de CF a C y se quitó granizo."
+     · "Sin cambios materiales — la renovación mantiene las mismas condiciones."
+   - Ejemplos INVÁLIDOS (no los uses):
+     · "Se detectaron cambios materiales... representa un upgrade en la protección." (palabras prohibidas)
+     · "La renovación mejora significativamente la cobertura." (valoración)
+     · "El cliente sale beneficiado con esta renovación." (valoración)
 4. Sé preciso con montos. Si en el viejo era $30.000.000 y en el nuevo $50.000.000, escribilo exacto.
-5. En "descripcion" escribí frases claras para el PAS, no tecnicismos.
+5. En "descripcion" también aplicá el mismo tono factual, sin valoraciones ni palabras prohibidas.
 6. Si detectás algo dudoso (no estás seguro si es cambio o no), agregalo con severidad 'baja' y aclará en descripción.
 
 Schema de salida:

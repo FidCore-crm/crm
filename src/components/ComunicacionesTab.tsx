@@ -222,11 +222,6 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
             <Mail className="h-3.5 w-3.5" /> Historial de comunicaciones
           </span>
           <span className="text-2xs text-slate-400">{total} {total === 1 ? 'email' : 'emails'}</span>
-          {colapsable && (
-            abierto
-              ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" />
-              : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-          )}
         </button>
         {(!colapsable || abierto) && (<>
         {global && (
@@ -297,6 +292,16 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
           </button>
         </div>
         </>)}
+        {colapsable && (
+          <button
+            type="button"
+            onClick={() => setAbierto(v => !v)}
+            className="ml-auto p-1 rounded hover:bg-slate-200 text-slate-400"
+            title={abierto ? 'Contraer' : 'Expandir'}
+          >
+            {abierto ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+        )}
       </div>
 
       {(!colapsable || abierto) && (<>

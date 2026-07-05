@@ -266,11 +266,6 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
           <span className="text-2xs text-slate-400">
             ({endosos.length})
           </span>
-          {colapsable && (
-            abierto
-              ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" />
-              : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-          )}
         </button>
         {(!colapsable || abierto) && (
         <div className="flex items-center gap-2">
@@ -289,6 +284,16 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
             </button>
           )}
         </div>
+        )}
+        {colapsable && (
+          <button
+            type="button"
+            onClick={() => setAbierto(v => !v)}
+            className="ml-auto p-1 rounded hover:bg-slate-200 text-slate-400"
+            title={abierto ? 'Contraer' : 'Expandir'}
+          >
+            {abierto ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
         )}
       </div>
 

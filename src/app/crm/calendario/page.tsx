@@ -89,28 +89,26 @@ function diaSemanaLabel(fecha: string): string {
   return d.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-// ── Colores de eventos ──────────���────────────────────────────
-function tareaColor(t: TareaCal, hoy: string): string {
+// ── Colores de eventos ──────────────────────────────────────
+// v1.0.76 — 3 tipos = 3 colores. La urgencia (vencida / hoy / futura)
+// deja de codificarse con color: para tareas COMPLETADAS/CANCELADAS
+// atenuamos con opacity+línea tachada; para el resto se usa el mismo
+// color base según tipo de evento. Colores bien contrastados entre sí:
+//   Tareas       → azul
+//   Vencimientos → naranja
+//   Oportunidades → violeta
+function tareaColor(t: TareaCal, _hoy: string): string {
   if (t.estado === 'COMPLETADA' || t.estado === 'CANCELADA')
     return 'bg-slate-100 text-slate-500'
-  const fechaStr = t.fecha_vencimiento.split('T')[0]
-  if (fechaStr < hoy) return 'bg-red-50 text-red-700'
-  if (fechaStr === hoy) return 'bg-amber-50 text-amber-700'
-  return 'bg-blue-50 text-blue-700'
+  return 'bg-blue-100 text-blue-700 border border-blue-300'
 }
 
-function polizaColor(p: PolizaCal, hoy: string): string {
-  const fechaStr = p.fecha_fin.split('T')[0]
-  if (fechaStr === hoy || (fechaStr > hoy)) {
-    // Check if within 30 days
-    const hoyObj = new Date()
-    hoyObj.setHours(0, 0, 0, 0)
-    const [a, m, d] = fechaStr.split('-').map(Number)
-    const fObj = new Date(a, m - 1, d)
-    const dias = Math.ceil((fObj.getTime() - hoyObj.getTime()) / 86400000)
-    if (dias <= 30 && dias > 0) return 'bg-orange-50 text-orange-700'
-  }
-  return 'bg-emerald-50 text-emerald-700'
+function polizaColor(_p: PolizaCal, _hoy: string): string {
+  return 'bg-orange-100 text-orange-700 border border-orange-300'
+}
+
+function oportunidadColor(): string {
+  return 'bg-violet-100 text-violet-700 border border-violet-300'
 }
 
 // ── Componente ──────────────���────────────────────────────────
@@ -489,39 +487,21 @@ export default function CalendarioPage() {
         </div>
       </div>
 
-      {/* Referencia de colores — leyenda siempre visible arriba del calendario.
-          Los colores se usan tanto en la vista calendario como en la vista lista. */}
+      {/* Referencia de colores — 3 tipos de evento con 3 colores distintos.
+          Un color por tipo, no por urgencia. */}
       <div className="bg-white border border-slate-200 rounded px-3 py-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-2xs">
         <span className="text-slate-500 font-semibold uppercase tracking-wide">Referencia:</span>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-100 border border-red-300" />
-          <span className="text-slate-600">Tarea vencida</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-100 border border-amber-300" />
-          <span className="text-slate-600">Tarea de hoy</span>
-        </div>
-        <div className="flex items-center gap-1.5">
           <span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-100 border border-blue-300" />
-          <span className="text-slate-600">Tarea próxima</span>
+          <span className="text-slate-600">Tarea</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-slate-100 border border-slate-300" />
-          <span className="text-slate-600">Completada / cancelada</span>
-        </div>
-        <span className="text-slate-300">·</span>
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-2.5 h-2.5 rounded-sm bg-orange-100 border border-orange-300" />
-          <span className="text-slate-600">Póliza vence en menos de 30 días</span>
+          <span className="text-slate-600">Vencimiento de póliza</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-100 border border-emerald-300" />
-          <span className="text-slate-600">Póliza vence a más de 30 días</span>
-        </div>
-        <span className="text-slate-300">·</span>
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-2.5 h-2.5 rounded-sm bg-violet-100 border border-violet-300" />
-          <span className="text-slate-600">Contacto comercial</span>
+          <span className="text-slate-600">Contacto de oportunidad</span>
         </div>
       </div>
 
@@ -564,7 +544,7 @@ export default function CalendarioPage() {
                 ...opsDelDia.map(o => ({
                   tipo: 'oportunidad' as const,
                   label: `Contacto: ${nombrePersona(o.persona)}`,
-                  color: 'bg-violet-50 text-violet-700',
+                  color: oportunidadColor(),
                   tachado: false,
                 })),
               ]
@@ -631,11 +611,9 @@ export default function CalendarioPage() {
                     className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors"
                   >
                     <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      t.estado === 'COMPLETADA' ? 'bg-slate-300' :
-                      t.fecha_vencimiento.split('T')[0] < hoy ? 'bg-red-500' :
-                      t.fecha_vencimiento.split('T')[0] === hoy ? 'bg-amber-500' : 'bg-blue-500'
+                      t.estado === 'COMPLETADA' ? 'bg-slate-300' : 'bg-blue-500'
                     }`} />
-                    <span className="text-2xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded shrink-0">
+                    <span className="text-2xs font-semibold text-blue-700 bg-blue-100 border border-blue-300 px-1.5 py-0.5 rounded shrink-0">
                       Tarea
                     </span>
                     <span className={`text-xs flex-1 truncate ${
@@ -652,23 +630,20 @@ export default function CalendarioPage() {
                   </div>
                 ))}
                 {grupo.polizas.map(p => {
+                  // Sub-tipo de evento — el color base es siempre naranja
+                  // (todos son vencimientos/eventos de póliza). Solo cambia
+                  // el label textual según el estado de la póliza.
                   let tipoEvento = 'Vencimiento póliza'
-                  let tipoEventoColor = 'text-orange-700 bg-orange-50 border-orange-200'
-                  if (p.estado === 'PROGRAMADA') {
-                    tipoEvento = 'Inicio póliza'
-                    tipoEventoColor = 'text-blue-700 bg-blue-50 border-blue-200'
-                  } else if (p.estado === 'RENOVADA') {
-                    tipoEvento = 'Activación renovación'
-                    tipoEventoColor = 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                  }
+                  if (p.estado === 'PROGRAMADA') tipoEvento = 'Inicio póliza'
+                  else if (p.estado === 'RENOVADA') tipoEvento = 'Activación renovación'
                   return (
                     <div
                       key={`p-${p.id}`}
                       onClick={() => router.push(`/crm/polizas/${p.id}`)}
                       className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors"
                     >
-                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${polizaColor(p, hoy).includes('orange') ? 'bg-orange-500' : 'bg-emerald-500'}`} />
-                      <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border shrink-0 ${tipoEventoColor}`}>
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-orange-500" />
+                      <span className="text-2xs font-semibold px-1.5 py-0.5 rounded border shrink-0 text-orange-700 bg-orange-100 border-orange-300">
                         {tipoEvento}
                       </span>
                       <span className="text-xs text-slate-700 flex-1 truncate font-mono">
