@@ -27,6 +27,11 @@ import {
 } from '@/lib/importacion/normalizadores'
 import { normalizarRefacturacion } from '@/lib/refacturaciones'
 import { normalizarMedioPago } from '@/lib/medios-pago'
+import {
+  normalizarIdentificadorPersona,
+  variantesBusquedaIdentificador,
+  inferirTipoPersonaDesdeIdentificador,
+} from '@/lib/identificador-persona'
 import type {
   DatosExtraidosPoliza,
   DatosExtraidosEndoso,
@@ -173,8 +178,23 @@ export type AccionEjecutada =
   | 'ACTUALIZADA'
   | 'CREADA_NUEVA'
 
-function normalizarDNI(v: string | null | undefined): string {
-  return (v || '').toString().replace(/\D/g, '')
+/**
+ * Resuelve el tipo de persona respetando el valor extraído por la IA cuando existe,
+ * y cayendo a inferencia desde el identificador si no viene.
+ */
+function resolverTipoPersona(datos: DatosExtraidosPoliza['asegurado']): 'FISICA' | 'JURIDICA' {
+  const rawTipo = (datos as unknown as Record<string, unknown>).tipo_persona as
+    | string
+    | null
+    | undefined
+  const inferido = inferirTipoPersonaDesdeIdentificador(datos.dni_cuil)
+  // Si la razón social existe y no hay apellido/nombre, asumimos jurídica.
+  const pareceJuridica = !!datos.razon_social && !datos.apellido && !datos.nombre
+  return normalizarTipoPersona(rawTipo, datos.dni_cuil || undefined) === 'JURIDICA'
+    ? 'JURIDICA'
+    : pareceJuridica
+      ? 'JURIDICA'
+      : (inferido ?? 'FISICA')
 }
 
 async function insertarPersona(
@@ -183,8 +203,15 @@ async function insertarPersona(
   usuarioId: string | null,
   extras: Record<string, any> = {}
 ): Promise<string> {
-  const dni = normalizarDNI(datos.dni_cuil)
-  if (!dni) throw new Error('No se puede crear persona sin DNI/CUIT')
+  const tipoPersona = resolverTipoPersona(datos)
+  const identificador = normalizarIdentificadorPersona(datos.dni_cuil, tipoPersona)
+  if (!identificador) {
+    throw new Error(
+      tipoPersona === 'FISICA'
+        ? 'No se puede crear persona sin DNI válido'
+        : 'No se puede crear persona sin CUIT válido',
+    )
+  }
 
   const apellidoRaw = datos.apellido || datos.nombre_completo || datos.razon_social || 'Sin apellido'
   // Normalizadores tolerantes igual que el importador: si la IA extrae
@@ -197,11 +224,8 @@ async function insertarPersona(
   const { data: creada, error } = await supabase
     .from('personas')
     .insert({
-      tipo_persona: normalizarTipoPersona(
-        (datos as unknown as Record<string, unknown>).tipo_persona as string | null | undefined,
-        dni,
-      ),
-      dni_cuil: dni,
+      tipo_persona: tipoPersona,
+      dni_cuil: identificador,
       apellido: toTitleCase(apellidoRaw) || apellidoRaw,
       nombre: toTitleCase(datos.nombre) || null,
       razon_social: toTitleCase(datos.razon_social) || null,
@@ -265,20 +289,45 @@ async function actualizarPersonaConDatosPDF(
  * Resuelve el asegurado principal respetando la decisión del PAS.
  * Devuelve el persona_id y qué acción se ejecutó efectivamente.
  */
+/**
+ * Busca una persona existente aplicando las variantes canónicas del
+ * identificador (DNI, CUIL derivable, formato con guiones, etc). Cubre el caso
+ * legacy: registros creados antes del fix pueden tener CUIL cuando debían
+ * tener DNI.
+ */
+async function buscarPersonaExistente(
+  supabase: any,
+  raw: string | null | undefined,
+  tipo: 'FISICA' | 'JURIDICA',
+): Promise<{ id: string; dni_cuil: string } | null> {
+  const variantes = variantesBusquedaIdentificador(raw, tipo)
+  if (variantes.length === 0) return null
+  const { data } = await supabase
+    .from('personas')
+    .select('id, dni_cuil')
+    .in('dni_cuil', variantes)
+    .limit(1)
+    .maybeSingle()
+  return (data as any) ?? null
+}
+
 export async function resolverPersonaAsegurado(
   supabase: any,
   datos: DatosExtraidosPoliza['asegurado'],
   accion: AccionCliente,
   usuarioId: string | null
 ): Promise<{ persona_id: string; accion_ejecutada: AccionEjecutada }> {
-  const dni = normalizarDNI(datos.dni_cuil)
-  if (!dni) throw new Error('No se puede resolver persona sin DNI/CUIT')
+  const tipoPersona = resolverTipoPersona(datos)
+  const identificador = normalizarIdentificadorPersona(datos.dni_cuil, tipoPersona)
+  if (!identificador) {
+    throw new Error(
+      tipoPersona === 'FISICA'
+        ? 'No se puede resolver persona sin DNI válido'
+        : 'No se puede resolver persona sin CUIT válido',
+    )
+  }
 
-  const { data: existente } = await supabase
-    .from('personas')
-    .select('id')
-    .eq('dni_cuil', dni)
-    .maybeSingle()
+  const existente = await buscarPersonaExistente(supabase, datos.dni_cuil, tipoPersona)
 
   // Si no existe, siempre creamos nueva (independiente de la acción)
   if (!existente) {
@@ -286,8 +335,17 @@ export async function resolverPersonaAsegurado(
     return { persona_id, accion_ejecutada: 'CREADA_NUEVA' }
   }
 
-  // Existe → aplicar la decisión
-  const existenteId = (existente as any).id
+  const existenteId = existente.id
+
+  // Auto-corrección de identificador legacy: si el registro existente está
+  // guardado con CUIL siendo una persona física, lo migramos al DNI canónico.
+  if (
+    tipoPersona === 'FISICA' &&
+    existente.dni_cuil !== identificador &&
+    existente.dni_cuil.length === 11
+  ) {
+    await supabase.from('personas').update({ dni_cuil: identificador }).eq('id', existenteId)
+  }
 
   if (accion === 'ACTUALIZAR') {
     await actualizarPersonaConDatosPDF(supabase, existenteId, datos)
@@ -300,21 +358,24 @@ export async function resolverPersonaAsegurado(
 
 /**
  * Fallback para tomador y otros flujos que no necesitan la decisión del PAS:
- * busca por DNI y crea si no existe.
+ * busca por identificador (con variantes) y crea si no existe.
  */
 async function buscarOCrearPersona(
   supabase: any,
   datos: DatosExtraidosPoliza['asegurado'],
   usuarioId: string | null
 ): Promise<string> {
-  const dni = normalizarDNI(datos.dni_cuil)
-  if (!dni) throw new Error('No se puede crear persona sin DNI/CUIT')
-  const { data: existente } = await supabase
-    .from('personas')
-    .select('id')
-    .eq('dni_cuil', dni)
-    .maybeSingle()
-  if (existente) return (existente as any).id
+  const tipoPersona = resolverTipoPersona(datos)
+  const identificador = normalizarIdentificadorPersona(datos.dni_cuil, tipoPersona)
+  if (!identificador) {
+    throw new Error(
+      tipoPersona === 'FISICA'
+        ? 'No se puede crear persona sin DNI válido'
+        : 'No se puede crear persona sin CUIT válido',
+    )
+  }
+  const existente = await buscarPersonaExistente(supabase, datos.dni_cuil, tipoPersona)
+  if (existente) return existente.id
   return insertarPersona(supabase, datos, usuarioId)
 }
 

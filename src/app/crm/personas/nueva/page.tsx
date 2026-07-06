@@ -4,6 +4,7 @@ import { useState, useEffect, useId, cloneElement, isValidElement, type ReactEle
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, Loader2, AlertCircle, CheckCircle, User, Building2 } from 'lucide-react'
 import { validarCUIT } from '@/lib/importacion/validators'
+import { normalizarIdentificadorPersona } from '@/lib/identificador-persona'
 import { apiCall } from '@/lib/api-client'
 
 // ── Tipos del formulario ─────────────────────────────────────
@@ -194,12 +195,17 @@ export default function NuevaPersonaPage() {
     setGuardando(true)
     setErrorGral('')
 
+    // Canonicalización: si el PAS pega un CUIL en una persona física, guardamos
+    // el DNI del medio (evita duplicados con altas por PDF/importador).
+    const dniCanonico =
+      normalizarIdentificadorPersona(form.dni_cuil, form.tipo_persona) ?? form.dni_cuil
+
     const payload = {
       tipo_persona:     form.tipo_persona,
       apellido:         form.tipo_persona === 'FISICA' ? form.apellido : form.razon_social,
       nombre:           form.tipo_persona === 'FISICA' ? form.nombre : null,
       razon_social:     form.tipo_persona === 'JURIDICA' ? form.razon_social : null,
-      dni_cuil:         form.dni_cuil,
+      dni_cuil:         dniCanonico,
       fecha_nacimiento: form.tipo_persona === 'FISICA' && form.fecha_nacimiento ? form.fecha_nacimiento : null,
       email:            form.email,
       email_secundario: form.email_secundario,

@@ -6,6 +6,7 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { validarYNormalizarPersona } from '@/lib/personas-validacion'
 import { registrarEventoBitacoraPersona } from '@/lib/bitacora-persona'
 import { requireLicenciaActiva } from '@/lib/licencia-guard'
+import { variantesBusquedaIdentificador } from '@/lib/identificador-persona'
 
 // Obtener toda la cadena de renovaciones hacia abajo (iterativa).
 // Usado solo por el GET de preview de eliminación.
@@ -307,18 +308,21 @@ export const PATCH = manejarErrores(async (request: NextRequest, { params }: { p
     }
   }
 
-  // Si cambió el dni_cuil, chequear duplicado contra el resto de la tabla.
+  // Si cambió el dni_cuil, chequear duplicado con variantes (DNI ⇄ CUIL derivable).
   if (datos.dni_cuil && datos.dni_cuil !== (actual as any).dni_cuil) {
-    const { data: existente } = await supabase
-      .from('personas')
-      .select('id')
-      .eq('dni_cuil', datos.dni_cuil)
-      .neq('id', id)
-      .limit(1)
-    if (existente && existente.length > 0) {
-      return respuestaError(ERRORES.DB_REGISTRO_DUPLICADO, {
-        campos: { dni_cuil: 'Ya existe un cliente con este DNI/CUIT' },
-      })
+    const variantesDupe = variantesBusquedaIdentificador(datos.dni_cuil, datos.tipo_persona)
+    if (variantesDupe.length > 0) {
+      const { data: existente } = await supabase
+        .from('personas')
+        .select('id')
+        .in('dni_cuil', variantesDupe)
+        .neq('id', id)
+        .limit(1)
+      if (existente && existente.length > 0) {
+        return respuestaError(ERRORES.DB_REGISTRO_DUPLICADO, {
+          campos: { dni_cuil: 'Ya existe un cliente con este DNI/CUIT' },
+        })
+      }
     }
   }
 

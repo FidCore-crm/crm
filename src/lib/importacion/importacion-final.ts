@@ -14,6 +14,7 @@ import {
   normalizarCanalPreferido,
 } from '@/lib/importacion/normalizadores';
 import { normalizarMedioPago } from '@/lib/medios-pago';
+import { normalizarIdentificadorPersona } from '@/lib/identificador-persona';
 import type {
   DudosoRow,
   EstadisticasImportacion,
@@ -537,16 +538,22 @@ async function aprenderEquivalenciasCoberturasImportador(
  */
 function mapeoPersona(p: PersonaImportada, usuario_id?: string | null): Record<string, unknown> {
   const pr = p as Record<string, unknown>;
+  // Resolver tipo primero — puede corregir "FISICA" mal declarado si el
+  // documento es un CUIT jurídico o viceversa.
+  const tipoResuelto = normalizarTipoPersona(
+    pr.tipo_persona as string | null | undefined,
+    pr.dni_cuil as string | null | undefined,
+  );
+  // Canonicalizar identificador defensivamente por si algún caller antiguo
+  // dejó un CUIL crudo cuando debía ser DNI (o viceversa).
+  const dniCanonico =
+    normalizarIdentificadorPersona(pr.dni_cuil as string | null | undefined, tipoResuelto) ??
+    (pr.dni_cuil as string | null | undefined) ??
+    null;
+
   const out: Record<string, unknown> = {
-    // Los valores de enum ya vinieron normalizados por `normalizarPersonaImportada`
-    // (los 4 CHECK constraint válidos), pero re-aplicamos los normalizadores como
-    // red de seguridad antes del INSERT — sirve para callers que entren acá sin
-    // pasar por el normalizador (importaciones viejas o reanudaciones).
-    tipo_persona: normalizarTipoPersona(
-      pr.tipo_persona as string | null | undefined,
-      pr.dni_cuil as string | null | undefined,
-    ),
-    dni_cuil: pr.dni_cuil,
+    tipo_persona: tipoResuelto,
+    dni_cuil: dniCanonico,
     apellido: pr.apellido || pr.razon_social || 'S/D',
     pais: pr.pais || 'Argentina',
     estado: normalizarEstadoPersona(pr.estado as string | null | undefined),

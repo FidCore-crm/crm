@@ -12,6 +12,11 @@ import {
 import { normalizarEntidadesRegistro } from '@/lib/importacion/normalizadores';
 import { normalizarRefacturacion } from '@/lib/refacturaciones';
 import { normalizarMedioPago } from '@/lib/medios-pago';
+import {
+  normalizarIdentificadorPersona,
+  variantesBusquedaIdentificador,
+  inferirTipoPersonaDesdeIdentificador,
+} from '@/lib/identificador-persona';
 import { getSupabaseAdmin } from '@/lib/supabase/server';
 import {
   validarDNI,
@@ -317,23 +322,54 @@ function validarEntidades(reg: RegistroProcesado): void {
   // --- persona ---
   if (persona) {
     if (persona.dni_cuil) {
-      const r = validarDNI(persona.dni_cuil);
-      if (!r.valido) {
-        // Tal vez sea CUIT
-        const rC = validarCUIT(persona.dni_cuil);
-        if (rC.valido) {
-          persona.dni_cuil = rC.normalizado ?? persona.dni_cuil;
-        } else {
-          reg.problemas.push({
-            tipo_entidad: 'PERSONA',
-            tipo_problema: 'DNI_INVALIDO',
-            descripcion: r.motivo || 'DNI/CUIT inválido',
-            campo: 'dni_cuil',
-            valor_original: persona.dni_cuil,
-          });
-        }
+      // Determinar el tipo de persona real: respeta lo que trajo el archivo
+      // si es válido, sino lo infiere del identificador crudo.
+      const tipoDeclarado = (persona as unknown as Record<string, unknown>).tipo_persona as
+        | string
+        | null
+        | undefined;
+      let tipoResolucion: 'FISICA' | 'JURIDICA' =
+        tipoDeclarado === 'JURIDICA' || tipoDeclarado === 'FISICA'
+          ? tipoDeclarado
+          : (inferirTipoPersonaDesdeIdentificador(persona.dni_cuil) ?? 'FISICA');
+
+      // Regla dura: si viene razón social sin apellido/nombre, es jurídica.
+      if (
+        !persona.apellido &&
+        !persona.nombre &&
+        typeof (persona as unknown as Record<string, unknown>).razon_social === 'string' &&
+        (persona as unknown as Record<string, unknown>).razon_social
+      ) {
+        tipoResolucion = 'JURIDICA';
+      }
+
+      // Canonicalizar: FISICA guarda DNI (extraído del CUIL si viene entero),
+      // JURIDICA guarda CUIT. Este helper es la fuente única de verdad.
+      const canonico = normalizarIdentificadorPersona(persona.dni_cuil, tipoResolucion);
+
+      if (canonico) {
+        persona.dni_cuil = canonico;
+        (persona as unknown as Record<string, unknown>).tipo_persona = tipoResolucion;
       } else {
-        persona.dni_cuil = r.normalizado ?? persona.dni_cuil;
+        // Fallback: intentar los validadores viejos por si el input tiene
+        // formatos raros que no cubre el helper (ej: CUIT con prefijo 25/26).
+        const r = validarDNI(persona.dni_cuil);
+        if (r.valido) {
+          persona.dni_cuil = r.normalizado ?? persona.dni_cuil;
+        } else {
+          const rC = validarCUIT(persona.dni_cuil);
+          if (rC.valido) {
+            persona.dni_cuil = String(rC.normalizado ?? persona.dni_cuil).replace(/\D/g, '');
+          } else {
+            reg.problemas.push({
+              tipo_entidad: 'PERSONA',
+              tipo_problema: 'DNI_INVALIDO',
+              descripcion: r.motivo || 'DNI/CUIT inválido',
+              campo: 'dni_cuil',
+              valor_original: persona.dni_cuil,
+            });
+          }
+        }
       }
     } else {
       reg.problemas.push({
@@ -538,33 +574,57 @@ async function detectarDuplicadosCRM(
   const supa = getSupabaseAdmin();
   const esIncremental = tipoImportacion === 'INCREMENTAL';
 
-  // Personas por DNI
-  const dnis = Array.from(
-    new Set(
-      registros
-        .map((r) => r.entidades.persona?.dni_cuil)
-        .filter((d): d is string => typeof d === 'string' && d.length > 0)
-    )
-  );
+  // Personas por identificador (con variantes tolerantes: cubre el caso
+  // donde el mismo humano fue cargado en el pasado con CUIL en lugar de DNI).
+  const identificadoresPorRegistro = new Map<
+    RegistroProcesado,
+    { canonico: string; variantes: string[] }
+  >();
+  const setVariantes = new Set<string>();
+
+  for (const reg of registros) {
+    const p = reg.entidades.persona;
+    if (!p?.dni_cuil) continue;
+    const tipo =
+      ((p as unknown as Record<string, unknown>).tipo_persona as
+        | 'FISICA'
+        | 'JURIDICA'
+        | undefined) ||
+      inferirTipoPersonaDesdeIdentificador(p.dni_cuil) ||
+      'FISICA';
+    const variantes = variantesBusquedaIdentificador(p.dni_cuil, tipo);
+    if (variantes.length === 0) continue;
+    identificadoresPorRegistro.set(reg, { canonico: p.dni_cuil, variantes });
+    for (const v of variantes) setVariantes.add(v);
+  }
 
   const personasExistentesById = new Map<string, PersonaDbRow>();
 
-  if (dnis.length > 0) {
+  if (setVariantes.size > 0) {
     try {
       const { data } = await supa
         .from('personas')
         .select(esIncremental ? '*' : 'id, dni_cuil')
-        .in('dni_cuil', dnis);
-      const mapa = new Map<string, PersonaDbRow>();
+        .in('dni_cuil', Array.from(setVariantes));
+      const mapaPorVariante = new Map<string, PersonaDbRow>();
       const rows = (data || []) as unknown as PersonaDbRow[];
       rows.forEach((p) => {
-        mapa.set(p.dni_cuil, p);
+        mapaPorVariante.set(p.dni_cuil, p);
         personasExistentesById.set(p.id, p);
       });
       for (const reg of registros) {
-        const d = reg.entidades.persona?.dni_cuil;
-        if (typeof d === 'string' && mapa.has(d)) {
-          const existente = mapa.get(d)!;
+        const info = identificadoresPorRegistro.get(reg);
+        if (!info) continue;
+        // Buscar el primer match entre las variantes del registro y los rows encontrados
+        let existente: PersonaDbRow | undefined;
+        for (const v of info.variantes) {
+          const m = mapaPorVariante.get(v);
+          if (m) {
+            existente = m;
+            break;
+          }
+        }
+        if (existente) {
           reg.match_existente = reg.match_existente || {};
           reg.match_existente.persona_id = existente.id;
 

@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Save, Loader2, AlertCircle, CheckCircle, User, Building2 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { validarCUIT } from '@/lib/importacion/validators'
+import { normalizarIdentificadorPersona } from '@/lib/identificador-persona'
 import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { nombreCompleto } from '@/lib/utils'
@@ -260,12 +261,18 @@ export default function EditarPersonaPage() {
     setGuardando(true)
     setErrorGral('')
 
+    // Canonicalización: DNI para físicas, CUIT para jurídicas. Si el PAS pegó
+    // un CUIL en una física, extraemos el DNI del medio para evitar duplicados
+    // con altas por PDF/importador.
+    const dniCanonico =
+      normalizarIdentificadorPersona(form.dni_cuil, form.tipo_persona) ?? form.dni_cuil
+
     const payload: Record<string, any> = {
       tipo_persona:     form.tipo_persona,
       apellido:         form.tipo_persona === 'FISICA' ? form.apellido : form.razon_social,
       nombre:           form.tipo_persona === 'FISICA' ? form.nombre : null,
       razon_social:     form.tipo_persona === 'JURIDICA' ? form.razon_social : null,
-      dni_cuil:         form.dni_cuil,
+      dni_cuil:         dniCanonico,
       fecha_nacimiento: form.tipo_persona === 'FISICA' && form.fecha_nacimiento ? form.fecha_nacimiento : null,
       email:            form.email,
       email_secundario: form.email_secundario,

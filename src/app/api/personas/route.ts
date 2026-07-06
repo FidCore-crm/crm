@@ -12,6 +12,7 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { validarYNormalizarPersona } from '@/lib/personas-validacion'
 import { registrarEventoBitacoraPersona } from '@/lib/bitacora-persona'
 import { requireLicenciaActiva } from '@/lib/licencia-guard'
+import { variantesBusquedaIdentificador } from '@/lib/identificador-persona'
 
 export const POST = manejarErrores(async (request: NextRequest) => {
   const usuario = await obtenerUsuarioDesdeRequest(request)
@@ -32,19 +33,22 @@ export const POST = manejarErrores(async (request: NextRequest) => {
 
   const supabase = getSupabaseAdmin()
 
-  // Chequeo de duplicado por dni_cuil exacto (no usamos ilike % % para evitar
-  // falsos positivos cuando un DNI es subset de otro).
-  const { data: existente } = await supabase
-    .from('personas')
-    .select('id, usuario_id')
-    .eq('dni_cuil', datos.dni_cuil)
-    .limit(1)
+  // Chequeo de duplicado con variantes: cubre el caso donde ya existe un
+  // registro legacy guardado con CUIL en lugar de DNI (o viceversa).
+  const variantesDupe = variantesBusquedaIdentificador(datos.dni_cuil, datos.tipo_persona)
+  if (variantesDupe.length > 0) {
+    const { data: existente } = await supabase
+      .from('personas')
+      .select('id, usuario_id')
+      .in('dni_cuil', variantesDupe)
+      .limit(1)
 
-  if (existente && existente.length > 0) {
-    // No exponer apellido/nombre del registro ajeno (PII de clientes de otros agentes).
-    return respuestaError(ERRORES.DB_REGISTRO_DUPLICADO, {
-      campos: { dni_cuil: 'Ya existe un cliente con este DNI/CUIT' },
-    })
+    if (existente && existente.length > 0) {
+      // No exponer apellido/nombre del registro ajeno (PII de clientes de otros agentes).
+      return respuestaError(ERRORES.DB_REGISTRO_DUPLICADO, {
+        campos: { dni_cuil: 'Ya existe un cliente con este DNI/CUIT' },
+      })
+    }
   }
 
   // Asignación de owner: si el usuario no tiene acceso total, se autoasigna.

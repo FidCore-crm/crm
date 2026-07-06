@@ -10,6 +10,7 @@
 
 import { validarCUIT, validarEmail } from '@/lib/importacion/validators'
 import { toTitleCase, normalizarEmail } from '@/lib/importacion/normalizadores'
+import { normalizarIdentificadorPersona } from '@/lib/identificador-persona'
 
 export interface PersonaInput {
   tipo_persona?: 'FISICA' | 'JURIDICA'
@@ -181,12 +182,17 @@ export function validarYNormalizarPersona(
   const nombreNorm = tipo_persona === 'FISICA' ? (toTitleCase(nombreIn) ?? null) : null
   const razonNorm = tipo_persona === 'JURIDICA' && razonIn ? razonIn.toUpperCase() : null
 
+  // Canonicalización definitiva del identificador: DNI para físicas
+  // (extraído del CUIL si viene entero), CUIT para jurídicas. Es la última
+  // línea de defensa antes de tocar la DB.
+  const dniCanonico = normalizarIdentificadorPersona(dniDigitos, tipo_persona) ?? dniDigitos
+
   const datos: PersonaNormalizada = {
     tipo_persona,
     apellido: apellidoNorm,
     nombre: nombreNorm,
     razon_social: razonNorm,
-    dni_cuil: dniDigitos,
+    dni_cuil: dniCanonico,
     fecha_nacimiento:
       tipo_persona === 'JURIDICA'
         ? null
