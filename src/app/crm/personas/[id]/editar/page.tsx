@@ -196,18 +196,28 @@ export default function EditarPersonaPage() {
     if (errores[campo as keyof FormData]) setErrores(e => ({ ...e, [campo]: '' }))
   }
 
-  // ── Validación onBlur del DNI/CUIL para feedback inmediato ──
+  // ── Validación onBlur del DNI/CUIT para feedback inmediato ──
   const validarDniOnBlur = () => {
     if (!form) return
     const digitos = form.dni_cuil.replace(/\D/g, '')
     if (!digitos) return
-    if (digitos.length < 7) {
-      setErrores(e => ({ ...e, dni_cuil: 'DNI/CUIL inválido (mínimo 7 dígitos)' }))
-    } else if (digitos.length === 11) {
-      const r = validarCUIT(digitos)
-      if (!r.valido) setErrores(e => ({ ...e, dni_cuil: r.motivo || 'CUIL/CUIT inválido' }))
-    } else if (digitos.length > 8 && digitos.length !== 11) {
-      setErrores(e => ({ ...e, dni_cuil: 'DNI debe tener 7-8 dígitos o CUIL/CUIT 11 dígitos' }))
+    const esFisica = form.tipo_persona === 'FISICA'
+    if (esFisica) {
+      if (digitos.length < 7) {
+        setErrores(e => ({ ...e, dni_cuil: 'DNI inválido (mínimo 7 dígitos)' }))
+      } else if (digitos.length === 11) {
+        const r = validarCUIT(digitos)
+        if (!r.valido) setErrores(e => ({ ...e, dni_cuil: r.motivo || 'CUIL inválido' }))
+      } else if (digitos.length > 8) {
+        setErrores(e => ({ ...e, dni_cuil: 'DNI debe tener 7-8 dígitos (o pegá el CUIL completo de 11)' }))
+      }
+    } else {
+      if (digitos.length !== 11) {
+        setErrores(e => ({ ...e, dni_cuil: 'El CUIT debe tener 11 dígitos' }))
+      } else {
+        const r = validarCUIT(digitos)
+        if (!r.valido) setErrores(e => ({ ...e, dni_cuil: r.motivo || 'CUIT inválido' }))
+      }
     }
   }
 
@@ -224,26 +234,40 @@ export default function EditarPersonaPage() {
     if (!form) return false
     const e: Partial<Record<keyof FormData, string>> = {}
 
-    if (form.tipo_persona === 'FISICA') {
+    const esFisica = form.tipo_persona === 'FISICA'
+
+    if (esFisica) {
       if (!form.apellido.trim()) e.apellido = 'El apellido es obligatorio'
       if (!form.nombre.trim())   e.nombre   = 'El nombre es obligatorio'
     } else {
       if (!form.razon_social.trim()) e.razon_social = 'La razón social es obligatoria'
     }
 
+    const label = esFisica ? 'DNI' : 'CUIT'
     if (!form.dni_cuil.trim()) {
-      e.dni_cuil = 'El DNI/CUIL es obligatorio'
+      e.dni_cuil = `El ${label} es obligatorio`
     } else {
       const digitos = form.dni_cuil.replace(/\D/g, '')
-      if (digitos.length < 7) {
-        e.dni_cuil = 'DNI/CUIL inválido (mínimo 7 dígitos)'
-      } else if (digitos.length === 11) {
-        const res = validarCUIT(digitos)
-        if (!res.valido) {
-          e.dni_cuil = res.motivo || 'CUIL/CUIT inválido (dígito verificador incorrecto)'
+      if (esFisica) {
+        if (digitos.length < 7) {
+          e.dni_cuil = 'DNI inválido (mínimo 7 dígitos)'
+        } else if (digitos.length === 11) {
+          const res = validarCUIT(digitos)
+          if (!res.valido) {
+            e.dni_cuil = res.motivo || 'CUIL inválido (dígito verificador incorrecto)'
+          }
+        } else if (digitos.length > 8) {
+          e.dni_cuil = 'DNI debe tener 7-8 dígitos (o pegá el CUIL completo de 11)'
         }
-      } else if (digitos.length > 8 && digitos.length !== 11) {
-        e.dni_cuil = 'DNI debe tener 7-8 dígitos o CUIL/CUIT 11 dígitos'
+      } else {
+        if (digitos.length !== 11) {
+          e.dni_cuil = 'El CUIT debe tener 11 dígitos'
+        } else {
+          const res = validarCUIT(digitos)
+          if (!res.valido) {
+            e.dni_cuil = res.motivo || 'CUIT inválido (dígito verificador incorrecto)'
+          }
+        }
       }
     }
 
@@ -406,7 +430,7 @@ export default function EditarPersonaPage() {
         <div className="p-4 flex flex-col gap-2">
           <div className="flex gap-3">
             {[
-              { valor: 'FISICA',   label: 'Persona Física',   sub: 'DNI / CUIL', icono: <User className="h-4 w-4" /> },
+              { valor: 'FISICA',   label: 'Persona Física',   sub: 'DNI',  icono: <User className="h-4 w-4" /> },
               { valor: 'JURIDICA', label: 'Persona Jurídica', sub: 'CUIT',       icono: <Building2 className="h-4 w-4" /> },
             ].map((t) => {
               const bloqueado = polizasAsociadas > 0 && form.tipo_persona !== t.valor
@@ -486,13 +510,17 @@ export default function EditarPersonaPage() {
             </div>
           )}
 
-          <Campo label="DNI / CUIL" required error={errores.dni_cuil}>
+          <Campo
+            label={form.tipo_persona === 'FISICA' ? 'DNI' : 'CUIT'}
+            required
+            error={errores.dni_cuil}
+          >
             <input
               className={`${inputClass('dni_cuil')} font-mono`}
               value={form.dni_cuil}
               onChange={(e) => set('dni_cuil', e.target.value.replace(/\D/g, ''))}
               onBlur={validarDniOnBlur}
-              placeholder="20-12345678-9"
+              placeholder={form.tipo_persona === 'FISICA' ? '12345678' : '30-12345678-9'}
               maxLength={13}
             />
           </Campo>

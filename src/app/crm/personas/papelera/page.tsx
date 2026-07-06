@@ -153,7 +153,7 @@ export default function PapeleraPersonasPage() {
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre o DNI/CUIL..."
+            placeholder="Buscar por nombre o DNI/CUIT..."
             className="search-input w-full pl-6"
           />
         </div>
@@ -185,7 +185,7 @@ export default function PapeleraPersonasPage() {
               <thead>
                 <tr>
                   <th style={{ width: 220 }}>Apellido y Nombre</th>
-                  <th style={{ width: 130 }}>DNI / CUIL</th>
+                  <th style={{ width: 130 }}>DNI / CUIT</th>
                   <th style={{ width: 130 }}>Eliminado</th>
                   <th style={{ width: 160 }}>Eliminado por</th>
                   <th style={{ width: 130 }}>Días restantes</th>

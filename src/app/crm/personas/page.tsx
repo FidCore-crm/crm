@@ -518,7 +518,7 @@ function PersonasContent() {
             type="text"
             value={busquedaInput}
             onChange={(e) => setBusquedaInput(e.target.value)}
-            placeholder="Buscar por DNI/CUIL, nombre, teléfono, email..."
+            placeholder="Buscar por DNI/CUIT, nombre, teléfono, email..."
             className="search-input w-full pl-6"
           />
         </div>
@@ -605,7 +605,7 @@ function PersonasContent() {
                   </th>
                 )}
                 <th style={{ width: 200 }}>Apellido y Nombre</th>
-                <th style={{ width: 120 }}>DNI / CUIL</th>
+                <th style={{ width: 120 }}>DNI / CUIT</th>
                 <th style={{ width: 130 }}>Teléfono</th>
                 <th style={{ width: 200 }}>Email</th>
                 <th style={{ width: 100 }}>Localidad</th>
@@ -736,7 +736,7 @@ function PersonaFila({
         </div>
       </td>
 
-      {/* DNI/CUIL */}
+      {/* DNI/CUIT */}
       <td>
         <span className="font-mono text-xs text-slate-600">
           {persona.cuil_formateado ?? persona.dni_cuil}
