@@ -302,7 +302,8 @@ export default function EditarPersonaPage() {
       email_secundario: form.email_secundario,
       telefono:         form.telefono,
       whatsapp:         form.whatsapp,
-      estado:           form.estado,
+      // `estado` no se envía: el backend lo ignora en el PATCH. Cambios manuales
+      // van por los endpoints /bloquear y /desbloquear.
       origen:           form.origen,
       segmento:         form.segmento,
       canal_preferido:  form.canal_preferido,
@@ -537,16 +538,29 @@ export default function EditarPersonaPage() {
             </Campo>
           )}
 
-          <Campo label="Estado" required>
-            <select
-              className="form-input"
-              value={form.estado}
-              onChange={(e) => set('estado', e.target.value)}
-            >
-              <option value="ACTIVO">Asegurado</option>
-              <option value="INACTIVO">Inactivo</option>
-              <option value="BLOQUEADO">Bloqueado</option>
-            </select>
+          <Campo label="Estado">
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${
+                  form.estado === 'ACTIVO'
+                    ? 'border-green-200 bg-green-50 text-green-700'
+                    : form.estado === 'BLOQUEADO'
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : 'border-slate-200 bg-slate-50 text-slate-600'
+                }`}
+              >
+                {form.estado === 'ACTIVO'
+                  ? 'Asegurado'
+                  : form.estado === 'BLOQUEADO'
+                    ? 'Bloqueado'
+                    : 'Inactivo'}
+              </span>
+              <span className="text-xs text-slate-500">
+                {form.estado === 'BLOQUEADO'
+                  ? 'Bloqueado manualmente'
+                  : 'Se calcula automáticamente según las pólizas'}
+              </span>
+            </div>
           </Campo>
 
           <Campo label="Origen del contacto">
@@ -771,7 +785,7 @@ export default function EditarPersonaPage() {
           campos={[
             'tipo_persona', 'apellido', 'nombre', 'razon_social', 'dni_cuil',
             'email', 'email_secundario', 'telefono', 'whatsapp',
-            'estado', 'origen', 'segmento', 'canal_preferido', 'acepta_marketing',
+            'origen', 'segmento', 'canal_preferido', 'acepta_marketing',
             'calle', 'numero', 'piso_depto', 'barrio', 'localidad', 'provincia', 'codigo_postal',
           ]}
           onCerrar={() => setConflicto(null)}

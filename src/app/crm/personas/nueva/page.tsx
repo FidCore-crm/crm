@@ -19,7 +19,6 @@ interface FormData {
   email_secundario: string
   telefono:       string
   whatsapp:       string
-  estado:         'ACTIVO' | 'INACTIVO'
   origen:         string
   // Dirección
   calle:          string
@@ -44,7 +43,6 @@ const FORM_INICIAL: FormData = {
   email_secundario:'',
   telefono:        '',
   whatsapp:        '',
-  estado:          'ACTIVO',
   origen:          'REFERIDO',
   calle:           '',
   numero:          '',
@@ -236,7 +234,8 @@ export default function NuevaPersonaPage() {
       email_secundario: form.email_secundario,
       telefono:         form.telefono,
       whatsapp:         form.whatsapp,
-      estado:           form.estado,
+      // El backend hardcodea el estado a INACTIVO. El trigger lo pasa a
+      // ACTIVO cuando se cree la primera póliza.
       origen:           form.origen,
       canal_preferido:  'WHATSAPP',
       acepta_marketing: true,
@@ -418,17 +417,6 @@ export default function NuevaPersonaPage() {
               />
             </Campo>
           )}
-
-          <Campo label="Estado" required>
-            <select
-              className="form-input"
-              value={form.estado}
-              onChange={(e) => set('estado', e.target.value)}
-            >
-              <option value="ACTIVO">Asegurado</option>
-              <option value="INACTIVO">Inactivo</option>
-            </select>
-          </Campo>
 
           <Campo label="Origen del contacto">
             <select

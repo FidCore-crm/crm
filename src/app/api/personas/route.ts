@@ -63,6 +63,11 @@ export const POST = manejarErrores(async (request: NextRequest) => {
     ...datos,
     usuario_id,
     fecha_alta: new Date().toISOString(),
+    // El estado se computa automáticamente: si el body trae ACTIVO/INACTIVO/BLOQUEADO,
+    // lo ignoramos y arrancamos INACTIVO. Cuando se cree la primera póliza el trigger
+    // fn_sincronizar_estado_persona lo va a pasar a ACTIVO. Para BLOQUEADO existe el
+    // endpoint dedicado /api/personas/[id]/bloquear.
+    estado: 'INACTIVO',
   }
   // Limpio campos undefined (de email/email_secundario en modo crear no aplican,
   // pero mantengo la simetría con PATCH).

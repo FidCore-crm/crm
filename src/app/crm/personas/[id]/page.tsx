@@ -529,6 +529,40 @@ export default function FichaPersonaPage() {
           <button onClick={() => router.push(`/crm/personas/${id}/editar`)} className="btn-primary">
             <Edit className="h-3 w-3" /> Editar
           </button>
+          {!enPapelera && persona.estado === 'BLOQUEADO' && (
+            <button
+              onClick={async () => {
+                if (!confirm(`¿Desbloquear a ${persona.apellido}${persona.nombre ? ', ' + persona.nombre : ''}? El estado va a recalcularse según sus pólizas.`)) return
+                const r = await apiCall<{ estado: string }>(`/api/personas/${id}/desbloquear`, { method: 'POST' })
+                if (r.ok) {
+                  toast.exito(`Cliente desbloqueado (estado: ${r.data?.estado === 'ACTIVO' ? 'Asegurado' : 'Inactivo'})`)
+                  cargar()
+                }
+              }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded border border-emerald-300 text-emerald-700 text-xs font-medium hover:bg-emerald-50 transition-colors"
+            >
+              <Check className="h-3 w-3" /> Desbloquear
+            </button>
+          )}
+          {!enPapelera && persona.estado !== 'BLOQUEADO' && (
+            <button
+              onClick={async () => {
+                const motivo = prompt(`Bloquear a ${persona.apellido}${persona.nombre ? ', ' + persona.nombre : ''}.\nEste estado es manual — el sistema NO va a cambiarlo automáticamente aunque cambien las pólizas.\n\nMotivo (opcional):`)
+                if (motivo === null) return
+                const r = await apiCall<{ estado: string }>(`/api/personas/${id}/bloquear`, {
+                  method: 'POST',
+                  body: { motivo: motivo || undefined },
+                })
+                if (r.ok) {
+                  toast.exito('Cliente bloqueado')
+                  cargar()
+                }
+              }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors"
+            >
+              <Ban className="h-3 w-3" /> Bloquear
+            </button>
+          )}
           {puedeEliminar(usuario) && !enPapelera && (
             <button
               onClick={async () => {

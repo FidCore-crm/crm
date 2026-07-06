@@ -327,12 +327,16 @@ export const PATCH = manejarErrores(async (request: NextRequest, { params }: { p
   }
 
   // Construir payload de update — solo claves presentes en el body (PATCH parcial).
+  //
+  // NOTA: `estado` NO está en la lista. Se computa automáticamente vía el trigger
+  // fn_sincronizar_estado_persona ante cambios en pólizas. Para cambios manuales
+  // usar los endpoints dedicados `/api/personas/[id]/bloquear` y `/desbloquear`.
   const payload: Record<string, any> = {}
   const camposPosibles: Array<keyof typeof datos> = [
     'tipo_persona', 'apellido', 'nombre', 'razon_social', 'dni_cuil',
     'fecha_nacimiento',
     'email', 'email_secundario', 'telefono', 'telefono_secundario', 'whatsapp',
-    'estado', 'origen', 'segmento', 'canal_preferido', 'acepta_marketing',
+    'origen', 'segmento', 'canal_preferido', 'acepta_marketing',
     'calle', 'numero', 'piso_depto', 'barrio', 'localidad', 'provincia',
     'codigo_postal', 'pais',
   ]
