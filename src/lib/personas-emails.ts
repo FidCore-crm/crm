@@ -14,6 +14,7 @@
 
 import { encolarEmail } from '@/lib/comunicaciones-sender'
 import { logger } from '@/lib/errores'
+import { notificarBienvenidaSinEmail } from '@/lib/bienvenida-alertas'
 
 /**
  * Encola la bienvenida del cliente para una persona. Idempotente: si la
@@ -52,15 +53,33 @@ export async function encolarBienvenidaCliente(
     // 3) Verificar persona: existe + tiene email + no es importada + no recibió bienvenida
     const { data: persona } = await supabase
       .from('personas')
-      .select('id, nombre, apellido, razon_social, email, origen_creacion, bienvenida_cliente_encolada_en')
+      .select('id, nombre, apellido, razon_social, email, origen_creacion, bienvenida_cliente_encolada_en, usuario_id')
       .eq('id', persona_id)
       .maybeSingle()
 
     if (!persona) return
     const per = persona as any
-    if (!per.email) return
+    // Los importados NO deben recibir bienvenida (vienen de otra cartera).
     if (per.origen_creacion === 'IMPORTACION') return
-    if (per.bienvenida_cliente_encolada_en) return // ya se encoló antes
+    // Idempotencia: si ya se encoló antes (o si ya se emitió una alerta que
+    // marcó el timestamp), no hacemos nada.
+    if (per.bienvenida_cliente_encolada_en) return
+    if (!per.email) {
+      // Fail-visible: alerta in-app y marcamos el timestamp para no repetir
+      // la alerta en cada cron (el anti-spam del helper también lo cubre,
+      // pero doble protección no cuesta).
+      await notificarBienvenidaSinEmail({
+        persona: {
+          id: per.id,
+          nombre: per.nombre,
+          apellido: per.apellido,
+          razon_social: per.razon_social,
+          usuario_id: per.usuario_id,
+        },
+        contexto: 'CLIENTE',
+      })
+      return
+    }
 
     // 4) Marcar el timestamp ANTES de encolar para garantizar idempotencia
     // bajo carreras del cron. Si dos workers llaman a la vez, solo el primero

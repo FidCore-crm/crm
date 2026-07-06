@@ -7,6 +7,7 @@
 
 import { encolarEmail } from '@/lib/comunicaciones-sender'
 import { logger } from '@/lib/errores'
+import { notificarBienvenidaSinEmail } from '@/lib/bienvenida-alertas'
 
 export type TipoEmailAutomaticoPoliza = 'AUTOMATICO_BIENVENIDA' | 'AUTOMATICO_RENOVACION'
 
@@ -51,12 +52,27 @@ export async function encolarEmailAutomaticoPoliza(
 
     const { data: persona } = await supabase
       .from('personas')
-      .select('id, nombre, apellido, razon_social, email')
+      .select('id, nombre, apellido, razon_social, email, usuario_id')
       .eq('id', p.asegurado_id)
       .maybeSingle()
     if (!persona) return
     const per = persona as any
-    if (!per.email) return
+    if (!per.email) {
+      // Fail-visible: alerta in-app para que el PAS cargue el email
+      // y pueda comunicarse. Sin esto el evento queda invisible.
+      await notificarBienvenidaSinEmail({
+        persona: {
+          id: per.id,
+          nombre: per.nombre,
+          apellido: per.apellido,
+          razon_social: per.razon_social,
+          usuario_id: per.usuario_id,
+        },
+        contexto: tipoEnvio === 'AUTOMATICO_RENOVACION' ? 'RENOVACION' : 'POLIZA',
+        poliza_numero: p.numero_poliza,
+      })
+      return
+    }
 
     const nombre = per.razon_social
       || [per.apellido, per.nombre].filter(Boolean).join(', ')
