@@ -8,7 +8,7 @@ import {
   CalendarDays, Eye, List, Target, Sparkles as SparklesIcon,
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { hoyLocal, calcularSiguienteFechaRecurrencia } from '@/lib/utils'
+import { hoyLocal, calcularSiguienteFechaRecurrencia, getEstadoEfectivoPoliza } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { obtenerIdsPersonas, filtrarPorPersonas, obtenerIdsPapelera, excluirPersonasEnPapelera } from '@/lib/cartera-filter'
 import { toast } from '@/lib/toast'
@@ -39,6 +39,7 @@ interface PolizaCal {
   numero_poliza: string
   fecha_fin: string
   estado: string
+  tiene_renovacion_activa: boolean
   asegurado: { id: string; apellido: string; nombre: string | null; razon_social: string | null }
   compania: { id: string; nombre: string } | null
   ramo: { id: string; nombre: string } | null
@@ -105,8 +106,14 @@ function tareaColor(t: TareaCal, _hoy: string): string {
   return 'bg-blue-100 text-blue-700 border border-blue-300'
 }
 
-function polizaColor(_p: PolizaCal, _hoy: string): string {
+function polizaColor(p: PolizaCal, hoy: string): string {
+  // Vencida sin renovar (mismo criterio que en /crm/renovaciones y /crm/polizas):
+  // no está "cerrada" hasta que el PAS la renueve, cancele o anule.
+  // Se pinta en rojo para llamar la atención — es gestión pendiente, no evento futuro.
+  const efectivo = getEstadoEfectivoPoliza(p.estado, p.fecha_fin, p.tiene_renovacion_activa)
+  if (efectivo === 'VENCIDA') return 'bg-red-100 text-red-700 border border-red-300'
   return 'bg-orange-100 text-orange-700 border border-orange-300'
+  void hoy
 }
 
 function oportunidadColor(): string {
@@ -233,6 +240,11 @@ export default function CalendarioPage() {
       'persona_id',
     )
 
+    // Incluimos NO_VIGENTE porque el criterio del CRM es: una póliza que
+    // venció y NO se renovó sigue siendo gestión pendiente ("Vencida"). Solo
+    // desaparece del calendario cuando aparece una hija RENOVADA/VIGENTE que
+    // la reemplaza — igual que en el listado de renovaciones y en el helper
+    // getEstadoEfectivoPoliza. Ver [[patron_estado_efectivo_poliza]].
     let queryPolizas = supabase
       .from('polizas')
       .select(`
@@ -243,7 +255,7 @@ export default function CalendarioPage() {
       `)
       .gte('fecha_fin', rangoInicio)
       .lte('fecha_fin', rangoFin)
-      .in('estado', ['VIGENTE', 'PROGRAMADA', 'RENOVADA'])
+      .in('estado', ['VIGENTE', 'PROGRAMADA', 'RENOVADA', 'NO_VIGENTE'])
       .order('fecha_fin')
 
     queryPolizas = excluirPersonasEnPapelera(
@@ -274,7 +286,18 @@ export default function CalendarioPage() {
       'persona_id',
     )
 
-    const [resT, resP, resO, resEv] = await Promise.all([
+    // idsConRenovacion: pólizas origen que tienen al menos una hija en
+    // estado ACTIVO (RENOVADA latente, o VIGENTE/PROGRAMADA ya activada).
+    // Se usa para distinguir "No Vigente histórica" (con hija activa → no
+    // se muestra en el calendario) de "Vencida" (sin renovación → se muestra
+    // en rojo como gestión pendiente). Mismo criterio que en /crm/renovaciones.
+    const queryRenov = supabase
+      .from('polizas')
+      .select('poliza_origen_id')
+      .not('poliza_origen_id', 'is', null)
+      .in('estado', ['RENOVADA', 'VIGENTE', 'PROGRAMADA'])
+
+    const [resT, resP, resO, resEv, resRen] = await Promise.all([
       queryTareas,
       queryPolizas,
       queryOps,
@@ -283,6 +306,7 @@ export default function CalendarioPage() {
         undefined,
         { mostrar_toast_en_error: false },
       ),
+      queryRenov,
     ])
     const erroresQ = [resT.error, resP.error, resO.error].filter(Boolean)
     if (erroresQ.length > 0) {
@@ -290,8 +314,23 @@ export default function CalendarioPage() {
       setCargando(false)
       return
     }
+
+    const idsConRenovacion = new Set<string>(
+      ((resRen.data ?? []) as Array<{ poliza_origen_id: string | null }>)
+        .map((r) => r.poliza_origen_id)
+        .filter((v): v is string => !!v),
+    )
+
+    // Filtrar: NO_VIGENTE con renovación activa → históricas, no aparecen.
+    // NO_VIGENTE sin renovación (o VIGENTE con fecha_fin pasada sin renovación)
+    // aparecen como "Vencida" (gestión pendiente).
+    const polizasRaw = (resP.data ?? []) as unknown as Array<Omit<PolizaCal, 'tiene_renovacion_activa'>>
+    const polizasFiltradas: PolizaCal[] = polizasRaw
+      .map((p) => ({ ...p, tiene_renovacion_activa: idsConRenovacion.has(p.id) }))
+      .filter((p) => !(p.estado === 'NO_VIGENTE' && p.tiene_renovacion_activa))
+
     setTareas((resT.data ?? []) as unknown as TareaCal[])
-    setPolizas((resP.data ?? []) as unknown as PolizaCal[])
+    setPolizas(polizasFiltradas)
     setOportunidades((resO.data ?? []) as unknown as OportunidadCal[])
     setEventos(resEv.ok && resEv.data ? resEv.data.eventos : [])
     setCargando(false)
@@ -861,12 +900,19 @@ export default function CalendarioPage() {
                       </h4>
                       <div className="flex flex-col gap-1.5">
                         {drawerData.polizasDelDia.map(p => {
-                          // Tipo de evento según el estado de la póliza. El día
-                          // del drawer siempre coincide con fecha_fin (esa es la
-                          // query) — por eso para VIGENTE marcamos vencimiento.
+                          // Tipo de evento según el estado efectivo de la póliza.
+                          // El día del drawer siempre coincide con fecha_fin.
+                          // - VIGENTE con fecha_fin >= hoy → "Vencimiento" (naranja).
+                          // - NO_VIGENTE sin renovación / VIGENTE con fecha_fin < hoy sin renovación → "Vencida" (rojo).
+                          // - PROGRAMADA → "Inicio (programada)" (azul).
+                          // - RENOVADA → "Activación de renovación" (verde).
+                          const efectivo = getEstadoEfectivoPoliza(p.estado, p.fecha_fin, p.tiene_renovacion_activa)
                           let tipoEvento = 'Vencimiento'
                           let tipoEventoColor = 'text-orange-700 bg-orange-50 border-orange-200'
-                          if (p.estado === 'PROGRAMADA') {
+                          if (efectivo === 'VENCIDA') {
+                            tipoEvento = 'Vencida'
+                            tipoEventoColor = 'text-red-700 bg-red-50 border-red-200'
+                          } else if (p.estado === 'PROGRAMADA') {
                             tipoEvento = 'Inicio (programada)'
                             tipoEventoColor = 'text-blue-700 bg-blue-50 border-blue-200'
                           } else if (p.estado === 'RENOVADA') {
