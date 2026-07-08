@@ -319,46 +319,74 @@ function armarHtml(params: {
   const tieneDatosContacto = organizacion.telefono || organizacion.email
   const contactoHtml = tieneDatosContacto
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:24px;background-color:#fafaf7;border-left:3px solid ${tonos.base};border-radius:4px;">
-         <tr><td style="padding:14px 18px;">
+         <tr><td class="fc-contacto-td" style="padding:14px 18px;">
            <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1px;color:${tonos.base};text-transform:uppercase;">Contacto</p>
-           ${organizacion.telefono ? `<p style="margin:2px 0;font-size:13px;color:#475569;line-height:1.6;">📞 <a href="tel:${escapeHtml(organizacion.telefono.replace(/\s+/g, ''))}" style="color:#334155;text-decoration:none;font-weight:600;">${escapeHtml(organizacion.telefono)}</a></p>` : ''}
-           ${organizacion.email ? `<p style="margin:2px 0;font-size:13px;color:#475569;line-height:1.6;">✉️ <a href="mailto:${escapeHtml(organizacion.email)}" style="color:#334155;text-decoration:none;font-weight:600;">${escapeHtml(organizacion.email)}</a></p>` : ''}
+           ${organizacion.telefono ? `<p class="fc-contacto-line" style="margin:2px 0;font-size:13px;color:#475569;line-height:1.6;word-break:break-word;">📞 <a href="tel:${escapeHtml(organizacion.telefono.replace(/\s+/g, ''))}" style="color:#334155;text-decoration:none;font-weight:600;word-break:break-word;">${escapeHtml(organizacion.telefono)}</a></p>` : ''}
+           ${organizacion.email ? `<p class="fc-contacto-line" style="margin:2px 0;font-size:13px;color:#475569;line-height:1.6;word-break:break-word;">✉️ <a href="mailto:${escapeHtml(organizacion.email)}" style="color:#334155;text-decoration:none;font-weight:600;word-break:break-word;">${escapeHtml(organizacion.email)}</a></p>` : ''}
          </td></tr>
        </table>`
     : ''
 
+  // Media query embebida para clientes que la soportan (Apple Mail, Gmail
+  // app iOS/Android, Outlook mobile). Reduce paddings y ajusta font-sizes
+  // en pantallas chicas para que la tarjeta de contacto y el cuerpo no
+  // queden apretados. Aplica solo a <=520px (típico smartphone en portrait).
+  // Gmail Web ignora media queries pero el ancho ahí no es problema (mucho
+  // espacio libre). Los clientes que ignoran también reciben la versión
+  // desktop normal — nada se rompe.
+  const estilosResponsive = `
+    @media only screen and (max-width:520px) {
+      .fc-outer-td { padding:16px 8px !important; }
+      .fc-container { border-radius:10px !important; }
+      .fc-pad-lg { padding-left:20px !important; padding-right:20px !important; }
+      .fc-pad-lg-top { padding-top:24px !important; }
+      .fc-saludo { font-size:18px !important; }
+      .fc-body-text { font-size:14.5px !important; line-height:1.7 !important; }
+      .fc-contacto-td { padding:12px 14px !important; }
+      .fc-contacto-line { font-size:13px !important; word-break:break-word !important; }
+      .fc-footer { padding:22px 18px !important; }
+      .fc-footer-nombre { font-size:12.5px !important; }
+    }
+  `
+
   return `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${escapeHtml(asuntoPlano)}</title></head>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="x-apple-disable-message-reformatting">
+<title>${escapeHtml(asuntoPlano)}</title>
+<style>${estilosResponsive}</style>
+</head>
 <body style="margin:0;padding:0;background-color:#faf8f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#faf8f3;">
-<tr><td align="center" style="padding:40px 16px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(15,23,42,0.10),0 4px 10px rgba(15,23,42,0.05);${borderTopContenedor}">
+<tr><td align="center" class="fc-outer-td" style="padding:40px 16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="fc-container" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(15,23,42,0.10),0 4px 10px rgba(15,23,42,0.05);${borderTopContenedor}">
 
 ${headerHtml}
 
 <!-- Saludo con jerarquía + barra decorativa de marca -->
-<tr><td style="padding:40px 40px 0;">
-<p style="margin:0;font-size:22px;font-weight:bold;color:${tonos.base};line-height:1.3;letter-spacing:-0.3px;">${saludoHtml}</p>
+<tr><td class="fc-pad-lg fc-pad-lg-top" style="padding:40px 40px 0;">
+<p class="fc-saludo" style="margin:0;font-size:22px;font-weight:bold;color:${tonos.base};line-height:1.3;letter-spacing:-0.3px;">${saludoHtml}</p>
 ${acentoSaludoHtml}
 </td></tr>
 
 <!-- Cuerpo -->
-<tr><td style="padding:24px 40px 32px;">
-<div style="margin:0;font-size:15.5px;line-height:1.75;color:#334155;">${cuerpoHtml}</div>
+<tr><td class="fc-pad-lg" style="padding:24px 40px 32px;">
+<div class="fc-body-text" style="margin:0;font-size:15.5px;line-height:1.75;color:#334155;">${cuerpoHtml}</div>
 </td></tr>
 
 ${bloqueExtra}
 
 <!-- Cierre con tarjeta de contacto destacada -->
-<tr><td style="padding:0 40px 40px;">
-<div style="margin:0;font-size:15.5px;line-height:1.75;color:#334155;">${cierreHtml}</div>
+<tr><td class="fc-pad-lg" style="padding:0 40px 40px;">
+<div class="fc-body-text" style="margin:0;font-size:15.5px;line-height:1.75;color:#334155;">${cierreHtml}</div>
 ${contactoHtml}
 </td></tr>
 
 <!-- Footer con jerarquía -->
-<tr><td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:28px 32px;text-align:center;">
-<p style="margin:0;font-size:13px;font-weight:700;color:${tonos.base};letter-spacing:0.3px;line-height:1.5;">${escapeHtml(organizacion.nombre)}</p>
+<tr><td class="fc-footer" style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:28px 32px;text-align:center;">
+<p class="fc-footer-nombre" style="margin:0;font-size:13px;font-weight:700;color:${tonos.base};letter-spacing:0.3px;line-height:1.5;word-break:break-word;">${escapeHtml(organizacion.nombre)}</p>
 <p style="margin:6px 0 0;font-size:11px;color:#94a3b8;line-height:1.5;">Este email fue enviado automáticamente desde el sistema de gestión.</p>
 ${unsubscribeLine}
 ${esModoVps() ? `<p style="margin:14px 0 0;font-size:9px;color:#cbd5e1;letter-spacing:0.5px;line-height:1.4;">Tecnología FidCore</p>` : ''}

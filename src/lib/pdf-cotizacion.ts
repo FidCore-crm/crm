@@ -23,6 +23,10 @@ interface DatosDestinatario {
 interface CompaniaCotizada {
   compania_nombre: string
   cobertura_id?: string | null
+  // Nombre genérico de la cobertura del catálogo (ej: "Terceros Completo").
+  // Si está presente y difiere de `cobertura_nombre`, se muestra combinado
+  // como "Terceros Completo — CF" en el PDF.
+  cobertura_nombre_generico?: string | null
   cobertura_nombre: string | null
   cobertura_descripcion?: string | null
   cobertura_cubre?: string[] | null
@@ -62,6 +66,22 @@ const COLOR_TEXTO_TENUE:    [number, number, number] = [140, 140, 140]
 const COLOR_LINEA_SUTIL:    [number, number, number] = [220, 220, 220]
 const COLOR_LINEA_SECCION:  [number, number, number] = [180, 180, 180]
 
+// Aclaraciones legales que van al final de todas las cotizaciones.
+// Son de compliance típico del rubro (SSN + cobertura sujeta a inspección
+// + validez + variabilidad). Si el PAS pide personalizarlas más adelante,
+// se puede mover a `configuracion` con un campo TEXT y fallback a este array.
+const ACLARACIONES_COTIZACION: string[] = [
+  'Se deja expresa constancia que las sumas informadas para cotizar, al momento de la emisión pueden ser adecuadas por la compañía de seguros.',
+  'El otorgamiento de la cobertura quedará sujeto al resultado de la inspección previa satisfactoria de la/s unidad/es, de corresponder. La cobertura cotizada podrá sufrir modificaciones en base al resultado de la inspección.',
+  'La presente cotización se encuentra sujeta a las condiciones generales y particulares de la póliza aprobadas por la Superintendencia de Seguros de la Nación.',
+  'Esta propuesta no constituye una cobertura de seguros sino una cotización de la misma, y tiene validez por un plazo determinado. Después de dicha fecha la/s Aseguradoras podrán retirar o modificar los términos previamente ofertados.',
+  'Los costos indicados precedentemente corresponden al período de vigencia de cobertura informado.',
+  'Inspección previa: si la cobertura seleccionada requiere inspección previa, recuerde que hasta tanto no cumpla con dicho trámite la póliza no será emitida por la Aseguradora.',
+  'Instalación de dispositivo de rastreo satelital: las aseguradoras podrán exigir la instalación de un dispositivo de rastreo, cuyo costo de instalación y abono por servicio estará a cargo del asegurado. Consulte alcances y condiciones.',
+  'Esta cotización está basada en la información suministrada por ustedes, por lo que si considera que existen variaciones que puedan modificar el riesgo la cotización podría variar.',
+  'Para mayor información, comuníquese con nosotros por cualquiera de nuestros canales de atención.',
+]
+
 function formatMonedaPDF(monto: number): string {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency', currency: 'ARS',
@@ -72,6 +92,19 @@ function formatMonedaPDF(monto: number): string {
 function formatFechaPDF(f: string): string {
   const [anio, mes, dia] = f.split('T')[0].split('-')
   return `${dia}/${mes}/${anio}`
+}
+
+// Nombre a mostrar en la columna Cobertura y en el detalle de cada opción.
+// Si el catálogo tiene equivalencia comercial distinta al nombre genérico,
+// devuelve "Genérico — Comercial" (ej: "Terceros Completo — CF"). Si son
+// iguales o falta uno, devuelve el que exista.
+function nombreCoberturaCompleto(op: CompaniaCotizada): string {
+  const generico = (op.cobertura_nombre_generico ?? '').trim()
+  const comercial = (op.cobertura_nombre ?? '').trim()
+  if (generico && comercial && generico.toLowerCase() !== comercial.toLowerCase()) {
+    return `${generico} — ${comercial}`
+  }
+  return comercial || generico || '—'
 }
 
 function getRiesgoTexto(datos: Record<string, any>, tipo: string): Array<[string, string]> {
@@ -203,45 +236,35 @@ function pintarFooterTodasPaginas(
   }
 }
 
-// ── Helpers de marca: banner, franja, caja, tag, fila destacada ──
+// ── Helpers de marca: header, franja, caja, tag, fila destacada ──
 
-// Dibuja el banner superior con color pleno. A la izquierda el logo (si hay)
-// dentro de una caja blanca. A la derecha nombre + contacto + matrícula.
-function dibujarBannerMarca(
+// Header superior en fondo blanco (sin rectángulo de color). Logo a la
+// izquierda con su tamaño natural, nombre + contacto + matrícula a la
+// derecha en texto oscuro. Cerrado con una línea sutil color de marca.
+function dibujarHeader(
   doc: jsPDF,
   pageWidth: number,
   organizacion: DatosOrganizacion,
   pleno: { r: number; g: number; b: number },
-  textoBanner: { r: number; g: number; b: number },
 ): number {
-  const altoBanner = 30
-  // Rectángulo color pleno full-width desde y=0
-  doc.setFillColor(pleno.r, pleno.g, pleno.b)
-  doc.rect(0, 0, pageWidth, altoBanner, 'F')
-
   const padX = 14
-  const padY = 6
+  const padY = 10
   let textoX = padX
 
-  // Logo (si el PAS lo configuró) en caja blanca 18×18mm
+  const cajaLogo = 26   // logo bastante más grande que el anterior (era 18)
+
+  // Logo con aspect ratio respetado, sobre fondo blanco (sin caja de color).
   if (organizacion.logo_data_url) {
     try {
       const m = organizacion.logo_data_url.match(/^data:image\/(\w+);/i)
       const ext = (m?.[1] ?? 'png').toUpperCase()
       const formato = ext === 'JPG' ? 'JPEG' : ext
 
-      const cajaLogo = 18
-      // Fondo blanco para el cuadrado del logo
-      doc.setFillColor(255, 255, 255)
-      doc.rect(padX, padY, cajaLogo, cajaLogo, 'F')
-
-      // Logo respeta aspect ratio dentro de la caja (con margen interno)
-      const padInterno = 1.5
-      const maxLogo = cajaLogo - padInterno * 2
-      const dim = calcularTamanioLogo(doc, organizacion.logo_data_url, maxLogo, maxLogo)
+      const dim = calcularTamanioLogo(doc, organizacion.logo_data_url, cajaLogo, cajaLogo)
       if (dim) {
-        const xLogo = padX + padInterno + (maxLogo - dim.w) / 2
-        const yLogo = padY + padInterno + (maxLogo - dim.h) / 2
+        // Centro vertical dentro del bloque del header
+        const xLogo = padX
+        const yLogo = padY + (cajaLogo - dim.h) / 2
         doc.addImage(organizacion.logo_data_url, formato, xLogo, yLogo, dim.w, dim.h)
       }
       textoX = padX + cajaLogo + 6
@@ -250,19 +273,17 @@ function dibujarBannerMarca(
     }
   }
 
-  // Nombre organización — texto sobre color del banner
+  // Nombre organización — en color de marca sobre blanco
   const nombre = organizacion.razon_social || organizacion.nombre || 'Mi Organización'
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(textoBanner.r, textoBanner.g, textoBanner.b)
+  doc.setTextColor(pleno.r, pleno.g, pleno.b)
   doc.text(nombre, textoX, padY + 6)
 
-  // Contacto y matrícula — mismo color pero más chico (sin alfa porque
-  // jsPDF no soporta opacidad bien; los colores del helper textoBanner
-  // tienen buen contraste a tamaño 8).
+  // Contacto y matrícula en gris para no competir con el nombre
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(textoBanner.r, textoBanner.g, textoBanner.b)
+  doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
 
   const lineas: string[] = []
   const contactoPartes: string[] = []
@@ -278,7 +299,16 @@ function dibujarBannerMarca(
     yLinea += 4
   }
 
-  return altoBanner
+  // Alto del header — se toma el mayor entre el bloque de texto y la caja del logo
+  const altoBloqueTexto = yLinea - padY
+  const altoHeader = padY + Math.max(cajaLogo, altoBloqueTexto) + 3
+
+  // Línea sutil color de marca al pie del header — divide sin cargar
+  doc.setDrawColor(pleno.r, pleno.g, pleno.b)
+  doc.setLineWidth(0.6)
+  doc.line(padX, altoHeader, pageWidth - padX, altoHeader)
+
+  return altoHeader + 2
 }
 
 // Franja angosta debajo del banner con número de cotización + fecha emisión.
@@ -361,8 +391,8 @@ function construirDocumentoCotizacion(
   // amarillo/celeste pastel cambia (el oscuro de un claro puede ser distinto).
   const textoFranja = hexARgb(textoSobreColor(tonos.oscuro))
 
-  // ── Banner de marca ──
-  let y = dibujarBannerMarca(doc, pageWidth, organizacion, pleno, textoBanner)
+  // ── Header con fondo blanco ──
+  let y = dibujarHeader(doc, pageWidth, organizacion, pleno)
 
   // ── Franja del número ──
   y = dibujarFranjaNumero(doc, pageWidth, y, cotizacion.numero_cotizacion, formatFechaPDF(cotizacion.fecha), oscuro, textoFranja)
@@ -452,7 +482,7 @@ function construirDocumentoCotizacion(
     head: [['Compañía', 'Cobertura', 'Precio', 'Detalle']],
     body: companias.map(c => [
       c.compania_nombre,
-      c.cobertura_nombre ?? '—',
+      nombreCoberturaCompleto(c),
       formatMonedaPDF(c.precio),
       c.detalle ?? '—',
     ]),
@@ -562,7 +592,7 @@ function construirDocumentoCotizacion(
       } else {
         doc.setTextColor(...COLOR_TEXTO_CUERPO)
       }
-      const tituloOpcion = `${op.compania_nombre} — ${op.cobertura_nombre ?? '—'}`
+      const tituloOpcion = `${op.compania_nombre} — ${nombreCoberturaCompleto(op)}`
       doc.text(tituloOpcion, 14, y)
 
       // Tag "RECOMENDADA" al lado del título si aplica
@@ -643,6 +673,42 @@ function construirDocumentoCotizacion(
     const notasLineas = doc.splitTextToSize(cotizacion.notas, pageWidth - 28)
     doc.text(notasLineas, 14, y)
     y += notasLineas.length * 4 + 4
+  }
+
+  // ── Aclaraciones importantes ──
+  // Bloque legal fijo — reglas del rubro que aplican siempre. Empieza en
+  // página nueva si el remanente es poco, para que quede como bloque
+  // completo y fácil de encontrar. Cada punto va con bullet.
+  {
+    // Estimación aproximada de alto necesario para al menos 3 puntos
+    if (y > pageHeight - 60) {
+      doc.addPage()
+      y = 18
+    }
+    y = dibujarTituloSeccion(doc, 'ACLARACIONES IMPORTANTES', y, pageWidth)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
+
+    const anchoTexto = pageWidth - 28 - 5   // ancho útil (28 = 14+14 margen, 5 = padBullet)
+    const altoLinea = 3.6
+    for (const aclaracion of ACLARACIONES_COTIZACION) {
+      const lineas = doc.splitTextToSize(aclaracion, anchoTexto)
+      const altoBloque = lineas.length * altoLinea + 2.5
+      // Salto de página defensivo si no entra el bloque completo
+      if (y + altoBloque > pageHeight - 25) {
+        doc.addPage()
+        y = 18
+      }
+      // Cuadradito color de marca como viñeta
+      doc.setFillColor(pleno.r, pleno.g, pleno.b)
+      doc.rect(14, y - 2.2, 1.4, 1.4, 'F')
+      // Texto en gris suave
+      doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
+      doc.text(lineas, 19, y)
+      y += altoBloque
+    }
+    y += 2
   }
 
   // ── Footer en todas las páginas ──

@@ -477,6 +477,10 @@ export default function FichaCotizacionPage() {
       return {
         compania_nombre: o.compania?.nombre ?? '—',
         cobertura_id: o.cobertura?.id ?? null,
+        // Nombre genérico del catálogo (ej: "Terceros Completo"). El PDF lo
+        // combina con el comercial cuando difieren para que quede claro qué
+        // producto de la compañía es. Ej: "Terceros Completo — CF".
+        cobertura_nombre_generico: o.cobertura?.nombre ?? null,
         cobertura_nombre: nombreCobParaPdf,
         cobertura_descripcion: typeof meta.descripcion === 'string' ? meta.descripcion : null,
         cobertura_cubre: cubreRaw ? cubreRaw.map((x: any) => String(x)).filter((x: string) => x.trim()) : null,
