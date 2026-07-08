@@ -429,6 +429,10 @@ export default function FichaPolizaPage() {
   const nombre     = nombreCompleto(asegurado.apellido, asegurado.nombre, asegurado.razon_social)
   const siniestrosAbiertos = siniestros.filter(s => !['FINALIZADO', 'RECHAZADO'].includes(s.estado)).length
   const puedeGestionarBaja = ['VIGENTE', 'PROGRAMADA', 'RENOVADA'].includes(poliza.estado)
+  // Renovar aplica también a NO_VIGENTE (vencida sin renovar) — mismo criterio que /crm/renovaciones y el calendario.
+  const puedeRenovar =
+    !tieneRenovacionActiva
+    && ['VIGENTE', 'PROGRAMADA', 'RENOVADA', 'NO_VIGENTE'].includes(poliza.estado)
 
   const abrirWhatsApp = async () => {
     const tel = asegurado.whatsapp ?? asegurado.telefono ?? ''
@@ -517,7 +521,7 @@ export default function FichaPolizaPage() {
             className="btn-secondary">
             <AlertTriangle className="h-3 w-3" /> Siniestro
           </button>
-          {puedeGestionarBaja && (
+          {puedeRenovar && (
             <button
               onClick={() => router.push(`/crm/renovaciones/${id}`)}
               className="btn-secondary"
@@ -526,7 +530,7 @@ export default function FichaPolizaPage() {
               <RefreshCw className="h-3 w-3" /> Renovar
             </button>
           )}
-          {moduloIAActivo && puedeGestionarBaja && (
+          {moduloIAActivo && puedeRenovar && (
             <button
               onClick={() => setModalRenovarPDF(true)}
               className="btn-secondary text-blue-600 border-blue-200"
