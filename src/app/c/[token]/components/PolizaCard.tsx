@@ -160,40 +160,40 @@ export default function PolizaCard({
         {poliza.compania && (
           <div className="flex items-start gap-2">
             <span className="text-xs text-slate-500 w-24 shrink-0">Compañía</span>
-            <span className="text-sm font-medium text-slate-800">{poliza.compania}</span>
+            <span className="text-sm font-medium text-slate-800 min-w-0 break-words">{poliza.compania}</span>
           </div>
         )}
         {poliza.cobertura && (
           <div className="flex items-start gap-2">
             <span className="text-xs text-slate-500 w-24 shrink-0">Cobertura</span>
-            <span className="text-sm text-slate-700">{poliza.cobertura}</span>
+            <span className="text-sm text-slate-700 min-w-0 break-words">{poliza.cobertura}</span>
           </div>
         )}
         {/* 1 riesgo: línea inline. Flota (>1): bloque completo abajo */}
         {!esFlota && cantidadRiesgos === 1 && (
           <div className="flex items-start gap-2">
             <span className="text-xs text-slate-500 w-24 shrink-0">Bien aseg.</span>
-            <span className="text-sm text-slate-700">{resumenRiesgo(poliza.riesgos[0])}</span>
+            <span className="text-sm text-slate-700 min-w-0 break-words">{resumenRiesgo(poliza.riesgos[0])}</span>
           </div>
         )}
         {poliza.suma_asegurada && poliza.suma_asegurada > 0 && (
           <div className="flex items-start gap-2">
             <span className="text-xs text-slate-500 w-24 shrink-0">Suma aseg.</span>
-            <span className="text-sm font-mono font-medium text-slate-800">
+            <span className="text-sm font-mono font-medium text-slate-800 min-w-0 break-words">
               {formatoMonto(poliza.suma_asegurada, poliza.moneda)}
             </span>
           </div>
         )}
         <div className="flex items-start gap-2">
           <span className="text-xs text-slate-500 w-24 shrink-0">Vigencia</span>
-          <span className="text-sm text-slate-700">
+          <span className="text-sm text-slate-700 min-w-0 break-words">
             {formatFechaLocalLarga(poliza.fecha_inicio)} → {formatFechaLocalLarga(poliza.fecha_fin)}
           </span>
         </div>
         {poliza.observaciones && (
           <div className="flex items-start gap-2 pt-2 border-t border-slate-100 mt-1">
             <span className="text-xs text-slate-500 w-24 shrink-0">Observaciones</span>
-            <span className="text-sm text-slate-700 whitespace-pre-wrap">{poliza.observaciones}</span>
+            <span className="text-sm text-slate-700 whitespace-pre-wrap min-w-0 break-words">{poliza.observaciones}</span>
           </div>
         )}
       </div>
@@ -223,12 +223,12 @@ export default function PolizaCard({
                         {lineas.map((l, j) => (
                           <div key={j} className="flex items-baseline gap-2 text-xs">
                             <span className="text-slate-500 w-20 shrink-0">{l.label}</span>
-                            <span className="text-slate-800 font-medium truncate">{l.valor}</span>
+                            <span className="text-slate-800 font-medium min-w-0 break-words">{l.valor}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-700 mt-0.5">{resumenRiesgo(r)}</p>
+                      <p className="text-sm text-slate-700 mt-0.5 break-words">{resumenRiesgo(r)}</p>
                     )}
                   </div>
                 </li>

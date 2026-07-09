@@ -204,13 +204,13 @@ export default function SiniestroCard({
           {tipoLegible && (
             <div className="flex items-start gap-2">
               <span className="text-xs text-slate-500 w-28 shrink-0">Tipo</span>
-              <span className="text-sm font-medium text-slate-800">{tipoLegible}</span>
+              <span className="text-sm font-medium text-slate-800 min-w-0 break-words">{tipoLegible}</span>
             </div>
           )}
           <div className="flex items-start gap-2">
             <span className="text-xs text-slate-500 w-28 shrink-0">Fecha denuncia</span>
-            <span className="text-sm text-slate-700 inline-flex items-center gap-1">
-              <Calendar className="h-3 w-3 text-slate-400" />
+            <span className="text-sm text-slate-700 inline-flex items-center gap-1 min-w-0 break-words">
+              <Calendar className="h-3 w-3 text-slate-400 shrink-0" />
               {formatoFecha(siniestro.fecha_denuncia)}
             </span>
           </div>

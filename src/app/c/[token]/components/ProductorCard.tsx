@@ -38,8 +38,8 @@ export default function ProductorCard({
           )}
         </div>
 
-        <div>
-          <h3 className="text-base font-semibold text-slate-800">{organizacion.nombre}</h3>
+        <div className="min-w-0 w-full">
+          <h3 className="text-base font-semibold text-slate-800 break-words">{organizacion.nombre}</h3>
           <p className="text-xs text-slate-500 mt-0.5">Tu productor de seguros</p>
         </div>
       </div>
@@ -51,7 +51,7 @@ export default function ProductorCard({
             className="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 active:bg-slate-100 min-h-[48px]"
           >
             <Phone className="h-4 w-4 text-slate-400 shrink-0" />
-            <span>{organizacion.telefono}</span>
+            <span className="min-w-0 break-words">{organizacion.telefono}</span>
           </a>
         )}
         {organizacion.email && (
@@ -60,7 +60,7 @@ export default function ProductorCard({
             className="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 active:bg-slate-100 min-h-[48px]"
           >
             <Mail className="h-4 w-4 text-slate-400 shrink-0" />
-            <span className="truncate">{organizacion.email}</span>
+            <span className="min-w-0 break-all">{organizacion.email}</span>
           </a>
         )}
       </div>

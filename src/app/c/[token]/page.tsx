@@ -160,11 +160,11 @@ export default function PortalAseguradoPage() {
           </div>
 
           {/* Saludo prominente */}
-          <div className="mt-6">
+          <div className="mt-6 min-w-0">
             <p className="text-sm font-medium" style={{ color: textoSecundarioHero }}>Hola</p>
-            <h1 className="text-2xl font-bold mt-0.5">{nombreCliente}</h1>
+            <h1 className="text-2xl font-bold mt-0.5 break-words">{nombreCliente}</h1>
             {data.portal.texto_bienvenida && (
-              <p className="text-sm mt-2 leading-relaxed" style={{ color: textoSecundarioHero }}>
+              <p className="text-sm mt-2 leading-relaxed break-words" style={{ color: textoSecundarioHero }}>
                 {data.portal.texto_bienvenida}
               </p>
             )}

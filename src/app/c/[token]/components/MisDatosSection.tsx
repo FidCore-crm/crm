@@ -111,7 +111,7 @@ export default function MisDatosSection({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-2xs uppercase tracking-wide text-slate-400">Teléfono</p>
-                <p className="text-sm text-slate-800 truncate">{datos.telefono}</p>
+                <p className="text-sm text-slate-800 break-words">{datos.telefono}</p>
               </div>
             </div>
           )}
@@ -122,7 +122,7 @@ export default function MisDatosSection({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-2xs uppercase tracking-wide text-slate-400">Email</p>
-                <p className="text-sm text-slate-800 truncate">{datos.email}</p>
+                <p className="text-sm text-slate-800 break-all">{datos.email}</p>
               </div>
             </div>
           )}
@@ -133,7 +133,7 @@ export default function MisDatosSection({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-2xs uppercase tracking-wide text-slate-400">Dirección</p>
-                <p className="text-sm text-slate-800">{direccion}</p>
+                <p className="text-sm text-slate-800 break-words">{direccion}</p>
               </div>
             </div>
           )}

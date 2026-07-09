@@ -20,12 +20,12 @@ export default function FooterPortal({
         {(organizacion.nombre || organizacion.telefono || organizacion.email) && (
           <div className="flex flex-col gap-1">
             {organizacion.nombre && (
-              <p className="text-sm font-semibold text-slate-700">{organizacion.nombre}</p>
+              <p className="text-sm font-semibold text-slate-700 break-words">{organizacion.nombre}</p>
             )}
             <div className="flex items-center justify-center flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-              {organizacion.telefono && <span>{organizacion.telefono}</span>}
+              {organizacion.telefono && <span className="break-words">{organizacion.telefono}</span>}
               {organizacion.telefono && organizacion.email && <span className="text-slate-300">•</span>}
-              {organizacion.email && <span className="truncate">{organizacion.email}</span>}
+              {organizacion.email && <span className="break-all">{organizacion.email}</span>}
             </div>
             {organizacion.matriculado && (
               <div className="inline-flex items-center justify-center gap-1.5 mt-1 text-2xs text-slate-500">
