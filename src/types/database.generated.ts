@@ -276,6 +276,7 @@ export type Database = {
           anthropic_uso_total_costo: number | null
           anthropic_uso_total_tokens: number | null
           color_marca: string
+          cotizacion_aclaraciones: string | null
           cotizacion_email_asunto_template: string | null
           cotizacion_email_cuerpo_template: string | null
           cotizacion_whatsapp_template: string | null
@@ -286,12 +287,15 @@ export type Database = {
           email: string | null
           email_header_estilo: string
           email_header_subtitulo: string
+          estado_servicio: string
           facebook: string | null
+          fecha_suspension: string | null
           id: string
           instagram: string | null
           logo_path: string | null
           matricula_ssn: string | null
           modulo_ia_pdf_polizas_activo: boolean | null
+          motivo_suspension: string | null
           nombre: string | null
           notificaciones_activas: boolean | null
           onboarding_completado_at: string | null
@@ -324,6 +328,7 @@ export type Database = {
           anthropic_uso_total_costo?: number | null
           anthropic_uso_total_tokens?: number | null
           color_marca?: string
+          cotizacion_aclaraciones?: string | null
           cotizacion_email_asunto_template?: string | null
           cotizacion_email_cuerpo_template?: string | null
           cotizacion_whatsapp_template?: string | null
@@ -334,12 +339,15 @@ export type Database = {
           email?: string | null
           email_header_estilo?: string
           email_header_subtitulo?: string
+          estado_servicio?: string
           facebook?: string | null
+          fecha_suspension?: string | null
           id?: string
           instagram?: string | null
           logo_path?: string | null
           matricula_ssn?: string | null
           modulo_ia_pdf_polizas_activo?: boolean | null
+          motivo_suspension?: string | null
           nombre?: string | null
           notificaciones_activas?: boolean | null
           onboarding_completado_at?: string | null
@@ -372,6 +380,7 @@ export type Database = {
           anthropic_uso_total_costo?: number | null
           anthropic_uso_total_tokens?: number | null
           color_marca?: string
+          cotizacion_aclaraciones?: string | null
           cotizacion_email_asunto_template?: string | null
           cotizacion_email_cuerpo_template?: string | null
           cotizacion_whatsapp_template?: string | null
@@ -382,12 +391,15 @@ export type Database = {
           email?: string | null
           email_header_estilo?: string
           email_header_subtitulo?: string
+          estado_servicio?: string
           facebook?: string | null
+          fecha_suspension?: string | null
           id?: string
           instagram?: string | null
           logo_path?: string | null
           matricula_ssn?: string | null
           modulo_ia_pdf_polizas_activo?: boolean | null
+          motivo_suspension?: string | null
           nombre?: string | null
           notificaciones_activas?: boolean | null
           onboarding_completado_at?: string | null
@@ -779,6 +791,7 @@ export type Database = {
           cotizacion_id: string
           created_at: string | null
           detalle: string | null
+          es_recomendada: boolean
           id: string
           precio: number
           seleccionada: boolean | null
@@ -789,6 +802,7 @@ export type Database = {
           cotizacion_id: string
           created_at?: string | null
           detalle?: string | null
+          es_recomendada?: boolean
           id?: string
           precio: number
           seleccionada?: boolean | null
@@ -799,6 +813,7 @@ export type Database = {
           cotizacion_id?: string
           created_at?: string | null
           detalle?: string | null
+          es_recomendada?: boolean
           id?: string
           precio?: number
           seleccionada?: boolean | null
@@ -1035,6 +1050,7 @@ export type Database = {
           fecha_primer_click: string | null
           id: string
           intentos: number | null
+          lead_id: string | null
           persona_id: string | null
           plantilla_codigo: string
           poliza_id: string | null
@@ -1064,6 +1080,7 @@ export type Database = {
           fecha_primer_click?: string | null
           id?: string
           intentos?: number | null
+          lead_id?: string | null
           persona_id?: string | null
           plantilla_codigo: string
           poliza_id?: string | null
@@ -1093,6 +1110,7 @@ export type Database = {
           fecha_primer_click?: string | null
           id?: string
           intentos?: number | null
+          lead_id?: string | null
           persona_id?: string | null
           plantilla_codigo?: string
           poliza_id?: string | null
@@ -1108,6 +1126,13 @@ export type Database = {
             columns: ["enviado_por_usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios_perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_envios_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {
@@ -1239,6 +1264,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "errores_sistema_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios_perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eventos: {
+        Row: {
+          categoria: string | null
+          compartido: boolean
+          created_at: string
+          descripcion: string | null
+          estado: string
+          fecha: string
+          hora_fin: string | null
+          hora_inicio: string | null
+          id: string
+          nota_cierre: string | null
+          recurrencia: string
+          titulo: string
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          categoria?: string | null
+          compartido?: boolean
+          created_at?: string
+          descripcion?: string | null
+          estado?: string
+          fecha: string
+          hora_fin?: string | null
+          hora_inicio?: string | null
+          id?: string
+          nota_cierre?: string | null
+          recurrencia?: string
+          titulo: string
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          categoria?: string | null
+          compartido?: boolean
+          created_at?: string
+          descripcion?: string | null
+          estado?: string
+          fecha?: string
+          hora_fin?: string | null
+          hora_inicio?: string | null
+          id?: string
+          nota_cierre?: string | null
+          recurrencia?: string
+          titulo?: string
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios_perfil"
@@ -1884,6 +1968,7 @@ export type Database = {
           descripcion: string | null
           filtro_jsonb: Json | null
           id: string
+          ids_leads: string[]
           ids_personas: string[] | null
           nombre: string
           tipo: string
@@ -1898,6 +1983,7 @@ export type Database = {
           descripcion?: string | null
           filtro_jsonb?: Json | null
           id?: string
+          ids_leads?: string[]
           ids_personas?: string[] | null
           nombre: string
           tipo: string
@@ -1912,6 +1998,7 @@ export type Database = {
           descripcion?: string | null
           filtro_jsonb?: Json | null
           id?: string
+          ids_leads?: string[]
           ids_personas?: string[] | null
           nombre?: string
           tipo?: string
@@ -2235,6 +2322,7 @@ export type Database = {
       pdf_procesamientos: {
         Row: {
           campos_dudosos: Json | null
+          comparacion_resultado: Json | null
           costo_estimado: number | null
           created_at: string | null
           datos_extraidos: Json | null
@@ -2255,6 +2343,7 @@ export type Database = {
         }
         Insert: {
           campos_dudosos?: Json | null
+          comparacion_resultado?: Json | null
           costo_estimado?: number | null
           created_at?: string | null
           datos_extraidos?: Json | null
@@ -2275,6 +2364,7 @@ export type Database = {
         }
         Update: {
           campos_dudosos?: Json | null
+          comparacion_resultado?: Json | null
           costo_estimado?: number | null
           created_at?: string | null
           datos_extraidos?: Json | null
@@ -2652,6 +2742,7 @@ export type Database = {
           categoria: string
           created_at: string | null
           endoso_id: string | null
+          es_poliza_principal: boolean
           id: string
           mime_type: string | null
           nombre: string
@@ -2663,6 +2754,7 @@ export type Database = {
           categoria: string
           created_at?: string | null
           endoso_id?: string | null
+          es_poliza_principal?: boolean
           id?: string
           mime_type?: string | null
           nombre: string
@@ -2674,6 +2766,7 @@ export type Database = {
           categoria?: string
           created_at?: string | null
           endoso_id?: string | null
+          es_poliza_principal?: boolean
           id?: string
           mime_type?: string | null
           nombre?: string
@@ -2768,6 +2861,7 @@ export type Database = {
           asegurado_id: string
           cobertura_id: string | null
           compania_id: string | null
+          comparacion_ia: Json | null
           created_at: string
           estado: string
           fecha_baja: string | null
@@ -2777,6 +2871,7 @@ export type Database = {
           id: string
           medio_pago: string | null
           moneda: string
+          mostrar_suma_asegurada_portal: boolean
           motivo_baja: string | null
           notas: string | null
           numero_certificado: string | null
@@ -2796,6 +2891,7 @@ export type Database = {
           asegurado_id: string
           cobertura_id?: string | null
           compania_id?: string | null
+          comparacion_ia?: Json | null
           created_at?: string
           estado?: string
           fecha_baja?: string | null
@@ -2805,6 +2901,7 @@ export type Database = {
           id?: string
           medio_pago?: string | null
           moneda?: string
+          mostrar_suma_asegurada_portal?: boolean
           motivo_baja?: string | null
           notas?: string | null
           numero_certificado?: string | null
@@ -2824,6 +2921,7 @@ export type Database = {
           asegurado_id?: string
           cobertura_id?: string | null
           compania_id?: string | null
+          comparacion_ia?: Json | null
           created_at?: string
           estado?: string
           fecha_baja?: string | null
@@ -2833,6 +2931,7 @@ export type Database = {
           id?: string
           medio_pago?: string | null
           moneda?: string
+          mostrar_suma_asegurada_portal?: boolean
           motivo_baja?: string | null
           notas?: string | null
           numero_certificado?: string | null
@@ -4060,6 +4159,10 @@ export type Database = {
           numero_poliza: string
           poliza_origen_id: string
         }[]
+      }
+      fn_recalcular_estado_persona: {
+        Args: { p_persona_id: string }
+        Returns: string
       }
       fn_rol_actual: { Args: never; Returns: string }
       fn_setear_password_directo: {

@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { hexARgb, normalizarColorMarca, COLOR_MARCA_DEFAULT, derivarTonos, textoSobreColor } from './color-marca'
+import { ACLARACIONES_COTIZACION_DEFAULT_TEXTO } from './cotizacion-aclaraciones'
 
 interface DatosCotizacion {
   numero_cotizacion: string
@@ -51,6 +52,11 @@ interface DatosOrganizacion {
   // se usa el navy por defecto. Solo afecta título principal, nombre
   // organización y header de la tabla.
   color_marca?: string | null
+  // Aclaraciones legales editadas por el PAS desde su perfil
+  // (`configuracion.cotizacion_aclaraciones`). Texto plano con párrafos
+  // separados por línea en blanco. Si viene null/vacío se usan las
+  // aclaraciones default del rubro (ver ACLARACIONES_DEFAULT).
+  cotizacion_aclaraciones?: string | null
 }
 
 // Colores de tipografía:
@@ -66,21 +72,19 @@ const COLOR_TEXTO_TENUE:    [number, number, number] = [140, 140, 140]
 const COLOR_LINEA_SUTIL:    [number, number, number] = [220, 220, 220]
 const COLOR_LINEA_SECCION:  [number, number, number] = [180, 180, 180]
 
-// Aclaraciones legales que van al final de todas las cotizaciones.
-// Son de compliance típico del rubro (SSN + cobertura sujeta a inspección
-// + validez + variabilidad). Si el PAS pide personalizarlas más adelante,
-// se puede mover a `configuracion` con un campo TEXT y fallback a este array.
-const ACLARACIONES_COTIZACION: string[] = [
-  'Se deja expresa constancia que las sumas informadas para cotizar, al momento de la emisión pueden ser adecuadas por la compañía de seguros.',
-  'El otorgamiento de la cobertura quedará sujeto al resultado de la inspección previa satisfactoria de la/s unidad/es, de corresponder. La cobertura cotizada podrá sufrir modificaciones en base al resultado de la inspección.',
-  'La presente cotización se encuentra sujeta a las condiciones generales y particulares de la póliza aprobadas por la Superintendencia de Seguros de la Nación.',
-  'Esta propuesta no constituye una cobertura de seguros sino una cotización de la misma, y tiene validez por un plazo determinado. Después de dicha fecha la/s Aseguradoras podrán retirar o modificar los términos previamente ofertados.',
-  'Los costos indicados precedentemente corresponden al período de vigencia de cobertura informado.',
-  'Inspección previa: si la cobertura seleccionada requiere inspección previa, recuerde que hasta tanto no cumpla con dicho trámite la póliza no será emitida por la Aseguradora.',
-  'Instalación de dispositivo de rastreo satelital: las aseguradoras podrán exigir la instalación de un dispositivo de rastreo, cuyo costo de instalación y abono por servicio estará a cargo del asegurado. Consulte alcances y condiciones.',
-  'Esta cotización está basada en la información suministrada por ustedes, por lo que si considera que existen variaciones que puedan modificar el riesgo la cotización podría variar.',
-  'Para mayor información, comuníquese con nosotros por cualquiera de nuestros canales de atención.',
-]
+// Las aclaraciones default viven en `./cotizacion-aclaraciones` (módulo puro
+// sin jsPDF) — así el perfil puede importarlas sin arrastrar dependencias.
+
+// Convierte el TEXT del PAS en párrafos. Cada bloque separado por línea
+// en blanco es un párrafo. Filtra líneas huérfanas para tolerar formato
+// inconsistente. Si el texto está vacío devuelve array vacío.
+function parsearAclaraciones(texto: string | null | undefined): string[] {
+  if (!texto || !texto.trim()) return []
+  return texto
+    .split(/\n\s*\n/)                    // párrafos separados por línea en blanco
+    .map(p => p.replace(/\s+/g, ' ').trim())
+    .filter(p => p.length > 0)
+}
 
 function formatMonedaPDF(monto: number): string {
   return new Intl.NumberFormat('es-AR', {
@@ -675,40 +679,43 @@ function construirDocumentoCotizacion(
     y += notasLineas.length * 4 + 4
   }
 
-  // ── Aclaraciones importantes ──
-  // Bloque legal fijo — reglas del rubro que aplican siempre. Empieza en
-  // página nueva si el remanente es poco, para que quede como bloque
-  // completo y fácil de encontrar. Cada punto va con bullet.
+  // ── Aclaraciones ──
+  // Bloque legal editable por el PAS desde `/crm/configuracion/perfil`.
+  // Si no configuró nada, usa el default hardcoded. Renderizado con tono
+  // tenue (gris suave, tamaño chico), sin viñetas ni destacados — es
+  // info de compliance, no debe robar atención al contenido comercial.
   {
-    // Estimación aproximada de alto necesario para al menos 3 puntos
-    if (y > pageHeight - 60) {
-      doc.addPage()
-      y = 18
-    }
-    y = dibujarTituloSeccion(doc, 'ACLARACIONES IMPORTANTES', y, pageWidth)
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
-
-    const anchoTexto = pageWidth - 28 - 5   // ancho útil (28 = 14+14 margen, 5 = padBullet)
-    const altoLinea = 3.6
-    for (const aclaracion of ACLARACIONES_COTIZACION) {
-      const lineas = doc.splitTextToSize(aclaracion, anchoTexto)
-      const altoBloque = lineas.length * altoLinea + 2.5
-      // Salto de página defensivo si no entra el bloque completo
-      if (y + altoBloque > pageHeight - 25) {
+    const textoAclaraciones = organizacion.cotizacion_aclaraciones ?? ACLARACIONES_COTIZACION_DEFAULT_TEXTO
+    const aclaraciones = parsearAclaraciones(textoAclaraciones)
+    if (aclaraciones.length > 0) {
+      // Estimación aproximada de alto necesario antes de decidir salto
+      if (y > pageHeight - 60) {
         doc.addPage()
         y = 18
       }
-      // Cuadradito color de marca como viñeta
-      doc.setFillColor(pleno.r, pleno.g, pleno.b)
-      doc.rect(14, y - 2.2, 1.4, 1.4, 'F')
-      // Texto en gris suave
-      doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
-      doc.text(lineas, 19, y)
-      y += altoBloque
+      // Título discreto — mismo estilo que otras secciones pero el
+      // contenido va con menos peso visual que las secciones comerciales.
+      y = dibujarTituloSeccion(doc, 'Aclaraciones', y, pageWidth)
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...COLOR_TEXTO_TENUE)
+
+      const anchoTexto = pageWidth - 28
+      const altoLinea = 3.3
+      const separacionParrafo = 1.8
+      for (const aclaracion of aclaraciones) {
+        const lineas = doc.splitTextToSize(aclaracion, anchoTexto)
+        const altoBloque = lineas.length * altoLinea + separacionParrafo
+        // Salto de página defensivo si no entra el bloque completo
+        if (y + altoBloque > pageHeight - 25) {
+          doc.addPage()
+          y = 18
+        }
+        doc.text(lineas, 14, y)
+        y += altoBloque
+      }
+      y += 2
     }
-    y += 2
   }
 
   // ── Footer en todas las páginas ──

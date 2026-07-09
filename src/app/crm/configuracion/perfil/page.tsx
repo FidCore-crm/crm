@@ -15,6 +15,7 @@ import {
   PALETA_COLORES_MARCA, COLOR_MARCA_DEFAULT,
   derivarTonos, normalizarColorMarca,
 } from '@/lib/color-marca'
+import { ACLARACIONES_COTIZACION_DEFAULT_TEXTO } from '@/lib/cotizacion-aclaraciones'
 
 interface Socio {
   nombre: string
@@ -77,6 +78,10 @@ export default function PerfilPage() {
   const [cotEmailAsuntoTemplate, setCotEmailAsuntoTemplate] = useState('')
   const [cotEmailCuerpoTemplate, setCotEmailCuerpoTemplate] = useState('')
 
+  // Aclaraciones legales al pie del PDF de cotización — editable con default
+  // razonable de plaza. Texto plano con párrafos separados por línea en blanco.
+  const [cotAclaraciones, setCotAclaraciones] = useState('')
+
   // Logo preview
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [subiendoLogo, setSubiendoLogo] = useState(false)
@@ -113,6 +118,7 @@ export default function PerfilPage() {
         setCotWspTemplate(data.cotizacion_whatsapp_template ?? '')
         setCotEmailAsuntoTemplate(data.cotizacion_email_asunto_template ?? '')
         setCotEmailCuerpoTemplate(data.cotizacion_email_cuerpo_template ?? '')
+        setCotAclaraciones((data as any).cotizacion_aclaraciones ?? '')
         if (data.logo_path) setLogoPreview(`/api/storage/${data.logo_path}`)
       }
       setCargando(false)
@@ -203,6 +209,7 @@ export default function PerfilPage() {
         cotizacion_whatsapp_template:     cotWspTemplate.trim() || null,
         cotizacion_email_asunto_template: cotEmailAsuntoTemplate.trim() || null,
         cotizacion_email_cuerpo_template: cotEmailCuerpoTemplate.trim() || null,
+        cotizacion_aclaraciones:          cotAclaraciones.trim() || null,
       }
 
       if (registroId) {
@@ -567,6 +574,44 @@ export default function PerfilPage() {
               Cuerpo del email que recibe tu cliente. El PDF de la cotización va adjunto.
               Requiere SMTP configurado en Configuración → Correos para que se mande.
             </p>
+          </Campo>
+        </div>
+      </div>
+
+      {/* ── Aclaraciones al pie del PDF de cotización ───────── */}
+      <div className="bg-white border border-slate-200 rounded overflow-hidden">
+        <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-3.5 w-3.5 text-slate-500" />
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Aclaraciones al pie del PDF de cotización</h3>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary text-2xs"
+            onClick={() => {
+              if (cotAclaraciones.trim() && cotAclaraciones !== ACLARACIONES_COTIZACION_DEFAULT_TEXTO) {
+                if (!confirm('¿Reemplazar el texto actual por las aclaraciones default del rubro?')) return
+              }
+              setCotAclaraciones(ACLARACIONES_COTIZACION_DEFAULT_TEXTO)
+            }}
+          >
+            Restaurar default
+          </button>
+        </div>
+        <div className="p-4 flex flex-col gap-3">
+          <div className="bg-slate-50 border border-slate-200 rounded p-2 text-2xs text-slate-600">
+            Este texto aparece al final del PDF de cada cotización, con tono discreto. Separá cada aclaración con una <strong>línea en blanco</strong> —
+            cada bloque queda como un párrafo aparte. Dejalo vacío si preferís que no aparezcan aclaraciones.
+          </div>
+
+          <Campo label="Aclaraciones">
+            <textarea
+              className="form-input w-full text-xs"
+              rows={12}
+              value={cotAclaraciones}
+              onChange={e => setCotAclaraciones(e.target.value)}
+              placeholder={ACLARACIONES_COTIZACION_DEFAULT_TEXTO.slice(0, 200) + '...'}
+            />
           </Campo>
         </div>
       </div>

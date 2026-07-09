@@ -428,7 +428,7 @@ export default function FichaCotizacionPage() {
 
     const { data: config } = await supabase
       .from('configuracion')
-      .select('nombre, razon_social, telefono, email, direccion, matricula_ssn, logo_path, color_marca, usar_logo')
+      .select('nombre, razon_social, telefono, email, direccion, matricula_ssn, logo_path, color_marca, usar_logo, cotizacion_aclaraciones')
       .limit(1)
       .single()
     const c = (config as any) ?? {}
@@ -446,6 +446,7 @@ export default function FichaCotizacionPage() {
       matricula_ssn: c.matricula_ssn ?? null,
       logo_data_url: logoDataUrl,
       color_marca: c.color_marca ?? null,
+      cotizacion_aclaraciones: c.cotizacion_aclaraciones ?? null,
     }
 
     const tipoRiesgo = (cotizacion.ramo?.metadata ?? {}).tipo_riesgo ?? 'generico'
