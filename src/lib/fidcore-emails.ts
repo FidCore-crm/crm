@@ -84,47 +84,77 @@ function armarHtmlFidCore(params: {
 
   const waUrl = `https://wa.me/${FIDCORE_TELEFONO_WHATSAPP_E164}`
 
+  // Media query embebida — mismo criterio que el renderer principal:
+  // clientes que la soportan (Apple Mail, Gmail app iOS/Android, Outlook
+  // mobile) reciben paddings más chicos y fuentes ajustadas; el resto ve
+  // el layout desktop y no se rompe. Junto con `word-break` universal en
+  // los enlaces del bloque de contacto, garantiza que emails largos o
+  // teléfonos con formato completo no desborden en smartphones angostos.
+  const estilosResponsive = `
+    @media only screen and (max-width:520px) {
+      .fc-outer-td { padding:16px 8px !important; }
+      .fc-container { border-radius:6px !important; }
+      .fc-header { padding:22px 18px !important; }
+      .fc-header-titulo { font-size:18px !important; letter-spacing:0.3px !important; }
+      .fc-header-sub { font-size:11px !important; }
+      .fc-saludo-td { padding:24px 20px 12px !important; }
+      .fc-saludo { font-size:15px !important; }
+      .fc-cuerpo-td { padding:0 20px 20px !important; }
+      .fc-cuerpo-text { font-size:14.5px !important; line-height:1.7 !important; }
+      .fc-contacto-wrap { padding:0 20px 24px !important; }
+      .fc-contacto-td { padding:14px 16px !important; }
+      .fc-contacto-line { font-size:13px !important; word-break:break-word !important; }
+      .fc-footer { padding:18px 20px !important; }
+    }
+  `
+
   return `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${escapeHtml(asunto)}</title></head>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="x-apple-disable-message-reformatting">
+<title>${escapeHtml(asunto)}</title>
+<style>${estilosResponsive}</style>
+</head>
 <body style="margin:0;padding:0;background-color:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f1f5f9;">
-<tr><td align="center" style="padding:24px 16px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+<tr><td align="center" class="fc-outer-td" style="padding:24px 16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="fc-container" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
 
 <!-- Header -->
-<tr><td style="background-color:#0A1628;padding:28px 32px;text-align:center;">
-<p style="margin:0;font-size:22px;font-weight:bold;color:#ffffff;letter-spacing:0.5px;">FidCore</p>
-<p style="margin:4px 0 0;font-size:12px;color:#94a3b8;">CRM para Productores de Seguros</p>
+<tr><td class="fc-header" style="background-color:#0A1628;padding:28px 32px;text-align:center;">
+<p class="fc-header-titulo" style="margin:0;font-size:22px;font-weight:bold;color:#ffffff;letter-spacing:0.5px;">FidCore</p>
+<p class="fc-header-sub" style="margin:4px 0 0;font-size:12px;color:#94a3b8;">CRM para Productores de Seguros</p>
 </td></tr>
 
 <!-- Saludo -->
-<tr><td style="padding:32px 32px 16px;">
-<p style="margin:0;font-size:16px;font-weight:bold;color:#0A1628;line-height:1.4;">${escapeHtml(saludo)}</p>
+<tr><td class="fc-saludo-td" style="padding:32px 32px 16px;">
+<p class="fc-saludo" style="margin:0;font-size:16px;font-weight:bold;color:#0A1628;line-height:1.4;word-break:break-word;">${escapeHtml(saludo)}</p>
 </td></tr>
 
 <!-- Cuerpo -->
-<tr><td style="padding:0 32px 24px;">
-<div style="margin:0;font-size:15px;line-height:1.6;color:#334155;">${cuerpo}</div>
+<tr><td class="fc-cuerpo-td" style="padding:0 32px 24px;">
+<div class="fc-cuerpo-text" style="margin:0;font-size:15px;line-height:1.6;color:#334155;word-break:break-word;overflow-wrap:break-word;">${cuerpo}</div>
 </td></tr>
 
 <!-- Contacto FidCore -->
-<tr><td style="padding:0 32px 32px;">
+<tr><td class="fc-contacto-wrap" style="padding:0 32px 32px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
-<tr><td style="padding:16px 20px;">
+<tr><td class="fc-contacto-td" style="padding:16px 20px;">
 <p style="margin:0 0 8px;font-size:13px;font-weight:bold;color:#0A1628;">¿Tenés dudas o querés renovar?</p>
-<p style="margin:0 0 4px;font-size:13px;color:#334155;">
-  📧 <a href="mailto:${FIDCORE_EMAIL_CONTACTO}" style="color:#0A1628;text-decoration:none;">${FIDCORE_EMAIL_CONTACTO}</a>
+<p class="fc-contacto-line" style="margin:0 0 4px;font-size:13px;color:#334155;word-break:break-word;">
+  📧 <a href="mailto:${FIDCORE_EMAIL_CONTACTO}" style="color:#0A1628;text-decoration:none;word-break:break-word;">${FIDCORE_EMAIL_CONTACTO}</a>
 </p>
-<p style="margin:0;font-size:13px;color:#334155;">
-  📱 WhatsApp: <a href="${waUrl}" style="color:#0A1628;text-decoration:none;">${FIDCORE_TELEFONO_WHATSAPP}</a>
+<p class="fc-contacto-line" style="margin:0;font-size:13px;color:#334155;word-break:break-word;">
+  📱 WhatsApp: <a href="${waUrl}" style="color:#0A1628;text-decoration:none;word-break:break-word;">${FIDCORE_TELEFONO_WHATSAPP}</a>
 </p>
 </td></tr>
 </table>
 </td></tr>
 
 <!-- Footer -->
-<tr><td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center;">
+<tr><td class="fc-footer" style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center;">
 <p style="margin:0;font-size:11px;color:#94a3b8;">Este email fue enviado automáticamente por FidCore.</p>
 </td></tr>
 

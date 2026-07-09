@@ -23,17 +23,44 @@ function escapeHtml(value: string): string {
  */
 function renderPage(contenido: string, organizacionNombre: string): Response {
   const safeNombre = escapeHtml(organizacionNombre)
+  // Página HTML (no email) — el browser mobile SIEMPRE respeta media queries,
+  // así que acá el responsive es más agresivo. Los botones se apilan en
+  // pantallas chicas para que no se apretujen con dedos.
+  const estilos = `
+    body { margin:0; padding:0; background-color:#f1f5f9; font-family:Arial,Helvetica,sans-serif; }
+    .u-wrap { padding:48px 16px; }
+    .u-card { width:480px; max-width:100%; background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+    .u-header { background-color:#0A1628; padding:20px 32px; text-align:center; }
+    .u-header-nombre { font-size:18px; font-weight:bold; color:#ffffff; word-break:break-word; }
+    .u-body { padding:32px; }
+    .u-email { word-break:break-all; }
+    .u-btn { display:inline-block; padding:12px 32px; font-size:14px; font-weight:bold; border-radius:6px; cursor:pointer; text-decoration:none; }
+    .u-btn-primary { background-color:#dc2626; color:#ffffff; border:none; margin-right:8px; }
+    .u-btn-secondary { background-color:#e2e8f0; color:#334155; }
+    @media only screen and (max-width:480px) {
+      .u-wrap { padding:24px 12px; }
+      .u-body { padding:24px 20px; }
+      .u-header { padding:16px 20px; }
+      .u-header-nombre { font-size:16px; }
+      .u-btn { display:block; margin:0 0 10px 0 !important; padding:14px 20px; text-align:center; }
+    }
+  `
   const html = `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Baja de emails - ${safeNombre}</title></head>
-<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Baja de emails - ${safeNombre}</title>
+<style>${estilos}</style>
+</head>
+<body>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f1f5f9;min-height:100vh;">
-<tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="480" style="max-width:480px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-<tr><td style="background-color:#0A1628;padding:20px 32px;text-align:center;">
-<span style="font-size:18px;font-weight:bold;color:#ffffff;">${safeNombre}</span>
+<tr><td align="center" class="u-wrap">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" class="u-card">
+<tr><td class="u-header">
+<span class="u-header-nombre">${safeNombre}</span>
 </td></tr>
-<tr><td style="padding:32px;">
+<tr><td class="u-body">
 ${contenido}
 </td></tr>
 </table>
@@ -95,12 +122,12 @@ export async function GET(
 
   return renderPage(
     `<div style="text-align:center;">
-<p style="font-size:16px;color:#334155;margin:0 0 8px;">¿Confirmás que querés dejar de recibir emails de <strong>${safeNombre}</strong>?</p>
-<p style="font-size:13px;color:#64748b;margin:0 0 24px;">Email: ${safeEmail}</p>
+<p style="font-size:16px;color:#334155;margin:0 0 8px;word-break:break-word;">¿Confirmás que querés dejar de recibir emails de <strong>${safeNombre}</strong>?</p>
+<p style="font-size:13px;color:#64748b;margin:0 0 24px;">Email: <span class="u-email">${safeEmail}</span></p>
 <form method="POST" style="display:inline;">
-<button type="submit" style="display:inline-block;padding:12px 32px;background-color:#dc2626;color:#ffffff;font-size:14px;font-weight:bold;border:none;border-radius:6px;cursor:pointer;margin-right:8px;">Sí, dar de baja</button>
+<button type="submit" class="u-btn u-btn-primary">Sí, dar de baja</button>
 </form>
-<a href="javascript:window.close()" style="display:inline-block;padding:12px 32px;background-color:#e2e8f0;color:#334155;font-size:14px;font-weight:bold;text-decoration:none;border-radius:6px;">Cancelar</a>
+<a href="javascript:window.close()" class="u-btn u-btn-secondary">Cancelar</a>
 </div>`,
     organizacionNombre
   )
@@ -150,7 +177,7 @@ export async function POST(
 <span style="font-size:24px;color:#16a34a;">&#10003;</span>
 </div>
 <p style="font-size:16px;color:#334155;margin:0 0 8px;font-weight:bold;">Te diste de baja correctamente</p>
-<p style="font-size:14px;color:#64748b;margin:0;">No recibirás más emails de ${safeNombrePost}.</p>
+<p style="font-size:14px;color:#64748b;margin:0;word-break:break-word;">No recibirás más emails de ${safeNombrePost}.</p>
 </div>`,
     organizacionNombre
   )

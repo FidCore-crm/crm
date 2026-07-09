@@ -178,11 +178,11 @@ function generarHeaderHtml(
       : `<span style="color:${tonos.base};font-weight:bold;font-size:18px;font-family:${stack};">${inicial}</span>`
     return `
 <!-- HEADER: compacto -->
-<tr><td style="${gradient}padding:18px 24px;">
+<tr><td class="fc-header-compacto" style="${gradient}padding:18px 24px;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
     <tr>
       <td valign="middle">
-        <span style="font-size:16px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;font-family:${stack};">${nombreEscapado}</span>
+        <span class="fc-header-nombre" style="font-size:16px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
       </td>
       <td width="42" align="right" valign="middle" style="width:42px;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:9px;width:42px;height:42px;">
@@ -208,7 +208,7 @@ function generarHeaderHtml(
       : `<span style="color:#ffffff;font-weight:bold;font-size:22px;font-family:${stack};">${inicial}</span>`
     return `
 <!-- HEADER: lateral (fondo blanco; el border-top de marca va en el contenedor de 600px) -->
-<tr><td style="background-color:#ffffff;padding:22px 24px 0;">
+<tr><td class="fc-header-lateral" style="background-color:#ffffff;padding:22px 24px 0;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
     <tr>
       <td width="56" valign="middle" style="width:56px;">
@@ -220,7 +220,7 @@ function generarHeaderHtml(
       </td>
       <td width="14" style="width:14px;font-size:0;line-height:0;">&nbsp;</td>
       <td valign="middle">
-        <span style="font-size:17px;font-weight:bold;color:${tonos.base};font-family:${stack};">${nombreEscapado}</span>
+        <span class="fc-header-nombre" style="font-size:17px;font-weight:bold;color:${tonos.base};font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
       </td>
     </tr>
   </table>
@@ -234,7 +234,7 @@ function generarHeaderHtml(
     : `<span style="color:${tonos.base};font-weight:bold;font-size:26px;font-family:${stack};">${inicial}</span>`
   return `
 <!-- HEADER: banda horizontal -->
-<tr><td style="${gradient}padding:26px 26px;">
+<tr><td class="fc-header-banda" style="${gradient}padding:26px 26px;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
     <tr>
       <td width="64" valign="middle" style="width:64px;">
@@ -246,8 +246,8 @@ function generarHeaderHtml(
       </td>
       <td width="16" style="width:16px;font-size:0;line-height:0;">&nbsp;</td>
       <td valign="middle">
-        <p style="margin:0;font-size:20px;font-weight:bold;color:#ffffff;line-height:1.15;font-family:${stack};">${nombreEscapado}</p>
-        ${subtituloBanda ? `<p style="margin:4px 0 0;font-size:11px;color:#cbd5e1;letter-spacing:1px;text-transform:uppercase;font-family:${stack};">${escapeHtml(subtituloBanda)}</p>` : ''}
+        <p class="fc-header-nombre" style="margin:0;font-size:20px;font-weight:bold;color:#ffffff;line-height:1.15;font-family:${stack};word-break:break-word;">${nombreEscapado}</p>
+        ${subtituloBanda ? `<p class="fc-header-subtitulo" style="margin:4px 0 0;font-size:11px;color:#cbd5e1;letter-spacing:1px;text-transform:uppercase;font-family:${stack};word-break:break-word;">${escapeHtml(subtituloBanda)}</p>` : ''}
       </td>
     </tr>
   </table>
@@ -334,10 +334,21 @@ function armarHtml(params: {
   // Gmail Web ignora media queries pero el ancho ahí no es problema (mucho
   // espacio libre). Los clientes que ignoran también reciben la versión
   // desktop normal — nada se rompe.
+  //
+  // Los estilos `word-break: break-word` ya van inline en el HTML de cada
+  // elemento crítico (nombre header, saludo, cuerpo, contacto, footer)
+  // porque son universales — deben aplicar siempre, no solo en mobile.
+  // La media query aporta lo que SÍ depende del viewport: paddings más
+  // chicos, tipografías reducidas.
   const estilosResponsive = `
     @media only screen and (max-width:520px) {
       .fc-outer-td { padding:16px 8px !important; }
       .fc-container { border-radius:10px !important; }
+      .fc-header-banda { padding:18px 18px !important; }
+      .fc-header-compacto { padding:14px 16px !important; }
+      .fc-header-lateral { padding:18px 18px 0 !important; }
+      .fc-header-nombre { font-size:16px !important; line-height:1.25 !important; }
+      .fc-header-subtitulo { font-size:10px !important; letter-spacing:0.5px !important; }
       .fc-pad-lg { padding-left:20px !important; padding-right:20px !important; }
       .fc-pad-lg-top { padding-top:24px !important; }
       .fc-saludo { font-size:18px !important; }
@@ -346,6 +357,11 @@ function armarHtml(params: {
       .fc-contacto-line { font-size:13px !important; word-break:break-word !important; }
       .fc-footer { padding:22px 18px !important; }
       .fc-footer-nombre { font-size:12.5px !important; }
+      /* Bloque del Portal del Asegurado (se inyecta como bloqueExtraHtml). */
+      .fc-bloque-portal { padding:14px 16px !important; }
+      .fc-bloque-portal-cta { display:block !important; padding:14px 16px !important; }
+      /* Botón CTA de auth (recuperar, invitación, confirmar email). */
+      .fc-cta-btn { padding:14px 20px !important; font-size:14.5px !important; }
     }
   `
 
@@ -367,20 +383,20 @@ ${headerHtml}
 
 <!-- Saludo con jerarquía + barra decorativa de marca -->
 <tr><td class="fc-pad-lg fc-pad-lg-top" style="padding:40px 40px 0;">
-<p class="fc-saludo" style="margin:0;font-size:22px;font-weight:bold;color:${tonos.base};line-height:1.3;letter-spacing:-0.3px;">${saludoHtml}</p>
+<p class="fc-saludo" style="margin:0;font-size:22px;font-weight:bold;color:${tonos.base};line-height:1.3;letter-spacing:-0.3px;word-break:break-word;">${saludoHtml}</p>
 ${acentoSaludoHtml}
 </td></tr>
 
 <!-- Cuerpo -->
 <tr><td class="fc-pad-lg" style="padding:24px 40px 32px;">
-<div class="fc-body-text" style="margin:0;font-size:15.5px;line-height:1.75;color:#334155;">${cuerpoHtml}</div>
+<div class="fc-body-text" style="margin:0;font-size:15.5px;line-height:1.75;color:#334155;word-break:break-word;overflow-wrap:break-word;">${cuerpoHtml}</div>
 </td></tr>
 
 ${bloqueExtra}
 
 <!-- Cierre con tarjeta de contacto destacada -->
 <tr><td class="fc-pad-lg" style="padding:0 40px 40px;">
-<div class="fc-body-text" style="margin:0;font-size:15.5px;line-height:1.75;color:#334155;">${cierreHtml}</div>
+<div class="fc-body-text" style="margin:0;font-size:15.5px;line-height:1.75;color:#334155;word-break:break-word;overflow-wrap:break-word;">${cierreHtml}</div>
 ${contactoHtml}
 </td></tr>
 

@@ -273,13 +273,13 @@ export async function obtenerBloquePortalAsegurado(
     const acento = colorMarca && /^#[0-9a-fA-F]{6}$/.test(colorMarca) ? colorMarca : '#0A1628'
 
     return `
-      <div style="margin-top:8px;border:1px solid #dbeafe;background:#eff6ff;border-radius:10px;padding:18px 20px;">
+      <div class="fc-bloque-portal" style="margin-top:8px;border:1px solid #dbeafe;background:#eff6ff;border-radius:10px;padding:18px 20px;">
         <p style="margin:0;font-size:11px;color:#1e40af;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Portal del Asegurado</p>
-        <h3 style="margin:6px 0 8px;font-size:18px;color:#1e3a8a;">Tenés tu información a un toque</h3>
+        <h3 style="margin:6px 0 8px;font-size:18px;color:#1e3a8a;word-break:break-word;">Tenés tu información a un toque</h3>
         <p style="margin:0;font-size:14px;color:#334155;line-height:1.55;">
           Desde tu Portal del Asegurado podés:
         </p>
-        <ul style="margin:8px 0 12px;padding-left:20px;font-size:13px;color:#334155;line-height:1.7;">
+        <ul style="margin:8px 0 12px;padding-left:20px;font-size:13px;color:#334155;line-height:1.7;word-break:break-word;">
           <li>Ver tus pólizas y descargar la documentación</li>
           <li>Hacer una denuncia de siniestro</li>
           <li>Seguir el estado de tus siniestros y leer las novedades del trámite</li>
@@ -288,18 +288,18 @@ export async function obtenerBloquePortalAsegurado(
         <p style="margin:0 0 14px;font-size:13px;color:#334155;line-height:1.55;">
           <strong>Instalalo en tu celular como app</strong> para tenerlo siempre a mano:
         </p>
-        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;font-size:12px;color:#475569;line-height:1.5;">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;font-size:12px;color:#475569;line-height:1.5;width:100%;">
           <tr>
-            <td style="padding:0 12px 6px 0;font-weight:600;color:#1e3a8a;white-space:nowrap;">Android</td>
-            <td style="padding:0 0 6px;">Abrí el link, tocá el menú del navegador y elegí <em>Instalar app</em> o <em>Agregar a pantalla de inicio</em>.</td>
+            <td style="padding:0 12px 6px 0;font-weight:600;color:#1e3a8a;white-space:nowrap;vertical-align:top;">Android</td>
+            <td style="padding:0 0 6px;word-break:break-word;">Abrí el link, tocá el menú del navegador y elegí <em>Instalar app</em> o <em>Agregar a pantalla de inicio</em>.</td>
           </tr>
           <tr>
-            <td style="padding:0 12px 0 0;font-weight:600;color:#1e3a8a;white-space:nowrap;">iPhone</td>
-            <td style="padding:0;">En Safari tocá el botón <em>Compartir</em> y elegí <em>Agregar a pantalla de inicio</em>.</td>
+            <td style="padding:0 12px 0 0;font-weight:600;color:#1e3a8a;white-space:nowrap;vertical-align:top;">iPhone</td>
+            <td style="padding:0;word-break:break-word;">En Safari tocá el botón <em>Compartir</em> y elegí <em>Agregar a pantalla de inicio</em>.</td>
           </tr>
         </table>
         <p style="margin:0;text-align:center;">
-          <a href="${escapeHtml(urlPortal)}" style="display:inline-block;background:${escapeHtml(acento)};color:#ffffff;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;">
+          <a href="${escapeHtml(urlPortal)}" class="fc-bloque-portal-cta" style="display:inline-block;background:${escapeHtml(acento)};color:#ffffff;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;word-break:break-word;">
             Abrir mi Portal del Asegurado
           </a>
         </p>
@@ -560,16 +560,16 @@ export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boo
       adjuntos = info.adjuntos
       if (info.excedio_limite) {
         const listaExcluidosHtml = info.excluidos
-          .map((x) => `<li style="margin:2px 0;">${escapeHtml(x.filename)}</li>`)
+          .map((x) => `<li style="margin:2px 0;word-break:break-word;">${escapeHtml(x.filename)}</li>`)
           .join('')
         const linkHtml = info.url_portal
-          ? `<p style="margin:8px 0 0;">Podés descargarlos desde tu Portal del Asegurado:</p>
-             <p style="margin:8px 0 0;"><a href="${escapeHtml(info.url_portal)}" style="color:#0052CC;font-weight:bold;">Abrir mi Portal del Asegurado</a></p>`
-          : `<p style="margin:8px 0 0;">Contactanos si necesitás recibirlos por otro medio.</p>`
+          ? `<p style="margin:8px 0 0;font-size:14px;color:#64748b;">Podés descargarlos desde tu Portal del Asegurado:</p>
+             <p style="margin:8px 0 0;"><a href="${escapeHtml(info.url_portal)}" style="color:#0052CC;font-weight:bold;word-break:break-word;overflow-wrap:break-word;">Abrir mi Portal del Asegurado</a></p>`
+          : `<p style="margin:8px 0 0;font-size:14px;color:#64748b;">Contactanos si necesitás recibirlos por otro medio.</p>`
         bloqueExtraHtml = `
           <div style="border-top:1px solid #e2e8f0;padding-top:16px;">
-            <p style="margin:0;font-size:14px;color:#64748b;"><strong>Algunos archivos no entraron en este email por superar el tamaño máximo:</strong></p>
-            <ul style="margin:8px 0 0;padding-left:20px;font-size:13px;color:#64748b;">${listaExcluidosHtml}</ul>
+            <p style="margin:0;font-size:14px;color:#64748b;word-break:break-word;"><strong>Algunos archivos no entraron en este email por superar el tamaño máximo:</strong></p>
+            <ul style="margin:8px 0 0;padding-left:20px;font-size:13px;color:#64748b;word-break:break-word;overflow-wrap:break-word;">${listaExcluidosHtml}</ul>
             ${linkHtml}
           </div>
         `
