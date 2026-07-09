@@ -13,10 +13,14 @@ export async function GET(request: NextRequest) {
 
   // Excluye plantillas internas que el PAS NO debe poder elegir como
   // envío manual a un cliente:
-  //  - `sistema_*` → notificaciones técnicas al admin (backup, PDF, errores,
-  //                  rollback, restauración, etc.).
-  //  - `auth_*`    → emails de autenticación (recuperar password, invitación,
-  //                  confirmación de cambio de email).
+  //  - `sistema_*`    → notificaciones técnicas al admin (backup, PDF, errores,
+  //                     rollback, restauración, etc.).
+  //  - `auth_*`       → emails de autenticación (recuperar password, invitación,
+  //                     confirmación de cambio de email).
+  //  - `cotizacion_*` → plantillas que solo tienen sentido dentro del flujo de
+  //                     cotización (requieren número, ramo, cantidad de
+  //                     opciones — variables que sólo existen si el envío se
+  //                     dispara desde la ficha de una cotización).
   // Estas plantillas usan variables específicas que no se completan en el
   // contexto de un envío manual a cliente: si el PAS las eligiera por error,
   // el email saldría sin contenido real y con datos irrelevantes para el
@@ -27,6 +31,7 @@ export async function GET(request: NextRequest) {
     .eq('activa', true)
     .not('codigo', 'like', 'sistema_%')
     .not('codigo', 'like', 'auth_%')
+    .not('codigo', 'like', 'cotizacion_%')
     .order('created_at', { ascending: true })
 
   if (contexto) {

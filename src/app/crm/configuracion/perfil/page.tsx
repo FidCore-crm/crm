@@ -73,10 +73,9 @@ export default function PerfilPage() {
   const [emailHeaderEstilo, setEmailHeaderEstilo] = useState<'banda' | 'compacto' | 'lateral'>('banda')
   const [emailHeaderSubtitulo, setEmailHeaderSubtitulo] = useState('')
 
-  // Mensajes predefinidos al enviar cotizaciones (WhatsApp + email)
+  // Mensaje pre-armado del envío por WhatsApp (el email de cotización se
+  // edita como plantilla desde /crm/configuracion/comunicaciones).
   const [cotWspTemplate, setCotWspTemplate] = useState('')
-  const [cotEmailAsuntoTemplate, setCotEmailAsuntoTemplate] = useState('')
-  const [cotEmailCuerpoTemplate, setCotEmailCuerpoTemplate] = useState('')
 
   // Aclaraciones legales al pie del PDF de cotización — editable con default
   // razonable de plaza. Texto plano con párrafos separados por línea en blanco.
@@ -116,8 +115,6 @@ export default function PerfilPage() {
         }
         setEmailHeaderSubtitulo((data as any).email_header_subtitulo ?? '')
         setCotWspTemplate(data.cotizacion_whatsapp_template ?? '')
-        setCotEmailAsuntoTemplate(data.cotizacion_email_asunto_template ?? '')
-        setCotEmailCuerpoTemplate(data.cotizacion_email_cuerpo_template ?? '')
         setCotAclaraciones((data as any).cotizacion_aclaraciones ?? '')
         if (data.logo_path) setLogoPreview(`/api/storage/${data.logo_path}`)
       }
@@ -207,8 +204,6 @@ export default function PerfilPage() {
         email_header_estilo: emailHeaderEstilo,
         email_header_subtitulo: emailHeaderSubtitulo.trim().slice(0, 80),
         cotizacion_whatsapp_template:     cotWspTemplate.trim() || null,
-        cotizacion_email_asunto_template: cotEmailAsuntoTemplate.trim() || null,
-        cotizacion_email_cuerpo_template: cotEmailCuerpoTemplate.trim() || null,
         cotizacion_aclaraciones:          cotAclaraciones.trim() || null,
       }
 
@@ -517,25 +512,25 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      {/* ── Mensajes predefinidos para cotizaciones ────────────── */}
+      {/* ── Mensaje pre-armado del envío por WhatsApp ────────── */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">
         <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
           <MessageSquare className="h-3.5 w-3.5 text-slate-500" />
-          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Mensajes predefinidos para cotizaciones</h3>
+          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Mensaje de WhatsApp para cotizaciones</h3>
         </div>
         <div className="p-4 flex flex-col gap-3">
           <div className="bg-blue-50 border border-blue-200 rounded p-2 text-2xs text-blue-800">
-            Estos textos se usan al apretar <strong>"Enviar por WhatsApp"</strong> o <strong>"Enviar por email"</strong> desde la ficha de una cotización.
-            Podés usar las siguientes variables — el sistema las reemplaza automáticamente:
+            Texto que aparece pre-cargado en el chat cuando apretás <strong>"Enviar por WhatsApp"</strong> desde la ficha de una cotización.
+            El PDF se descarga y vos lo adjuntás manualmente. Podés usar estas variables:
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               <code className="bg-white border border-blue-200 px-1.5 py-0.5 rounded font-mono">{'{nombre}'}</code>
               <span className="text-blue-700">primer nombre del destinatario</span>
               <code className="bg-white border border-blue-200 px-1.5 py-0.5 rounded font-mono ml-2">{'{numero}'}</code>
               <span className="text-blue-700">número de cotización</span>
               <code className="bg-white border border-blue-200 px-1.5 py-0.5 rounded font-mono ml-2">{'{ramo}'}</code>
-              <span className="text-blue-700">ramo (Automotor, Hogar, etc.)</span>
+              <span className="text-blue-700">ramo</span>
               <code className="bg-white border border-blue-200 px-1.5 py-0.5 rounded font-mono ml-2">{'{opciones}'}</code>
-              <span className="text-blue-700">cantidad de compañías comparadas</span>
+              <span className="text-blue-700">cantidad de compañías</span>
             </div>
           </div>
 
@@ -547,34 +542,13 @@ export default function PerfilPage() {
               onChange={e => setCotWspTemplate(e.target.value)}
               placeholder="Hola {nombre}, te paso la cotización N° {numero}..."
             />
-            <p className="text-2xs text-slate-500 mt-1">
-              Texto que aparece pre-cargado en el chat de WhatsApp cuando apretás "Enviar por WhatsApp".
-              El PDF se descarga automáticamente y vos lo adjuntás manualmente al chat.
-            </p>
           </Campo>
 
-          <Campo label="Asunto del email">
-            <input
-              className="form-input w-full font-mono text-xs"
-              value={cotEmailAsuntoTemplate}
-              onChange={e => setCotEmailAsuntoTemplate(e.target.value)}
-              placeholder="Cotización {numero} - {ramo}"
-            />
-          </Campo>
-
-          <Campo label="Cuerpo del email">
-            <textarea
-              className="form-input w-full font-mono text-xs"
-              rows={3}
-              value={cotEmailCuerpoTemplate}
-              onChange={e => setCotEmailCuerpoTemplate(e.target.value)}
-              placeholder="Hola {nombre}, adjuntamos la cotización N° {numero}..."
-            />
-            <p className="text-2xs text-slate-500 mt-1">
-              Cuerpo del email que recibe tu cliente. El PDF de la cotización va adjunto.
-              Requiere SMTP configurado en Configuración → Correos para que se mande.
-            </p>
-          </Campo>
+          <div className="bg-slate-50 border border-slate-200 rounded p-2 text-2xs text-slate-600">
+            <strong>Email de cotización:</strong> el asunto, saludo, cuerpo y cierre del email se editan
+            desde <a href="/crm/configuracion/comunicaciones" className="text-blue-600 underline">Configuración → Comunicaciones</a>{' '}
+            en la plantilla <code className="bg-white border border-slate-200 px-1 py-0.5 rounded font-mono">cotizacion_manual</code>.
+          </div>
         </div>
       </div>
 

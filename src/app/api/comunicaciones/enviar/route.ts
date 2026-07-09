@@ -25,6 +25,11 @@ export async function POST(request: NextRequest) {
     const asunto = formData.get('asunto') as string | null
     const campos_editables_raw = formData.get('campos_editables') as string
     const campos_editables = campos_editables_raw ? JSON.parse(campos_editables_raw) : {}
+    // Variables extra que el caller inyecta directo al renderer (ej: número
+    // de cotización, ramo, cantidad de opciones — datos que no son del
+    // dominio persona/póliza pero que la plantilla necesita).
+    const variables_extra_raw = formData.get('variables_extra') as string | null
+    const variables_extra = variables_extra_raw ? JSON.parse(variables_extra_raw) : {}
     // Soporte para destinatarios sin persona en DB (leads, contactos sueltos).
     // Si no hay persona_id, el caller debe enviar email_directo + nombre_directo.
     const email_directo = formData.get('email_directo') as string | null
@@ -144,6 +149,7 @@ export async function POST(request: NextRequest) {
       },
       poliza_id: poliza_id || undefined,
       campos_editables,
+      variables_extra: Object.keys(variables_extra).length > 0 ? variables_extra : undefined,
       archivos_adjuntos: archivos_adjuntos.length > 0 ? archivos_adjuntos : undefined,
       tipo_envio: 'MANUAL',
       enviado_por_usuario_id: usuario.id,

@@ -589,31 +589,28 @@ export default function FichaCotizacionPage() {
         datos.organizacion,
       )
 
-      // Cargamos los templates configurados por el PAS. Si no hay (default
-      // antiguo o limpiados), usamos los textos default razonables.
-      const { data: cfg } = await supabase
-        .from('configuracion')
-        .select('cotizacion_email_asunto_template, cotizacion_email_cuerpo_template')
-        .limit(1)
-        .single()
-      const asuntoTemplate = (cfg as any)?.cotizacion_email_asunto_template
-        || 'Cotización {numero} - {ramo}'
-      const cuerpoTemplate = (cfg as any)?.cotizacion_email_cuerpo_template
-        || 'Hola {nombre}, adjuntamos la cotización N° {numero} solicitada para su evaluación. Quedamos a disposición para cualquier consulta.'
-
-      const asunto = aplicarTemplate(asuntoTemplate)
-      const cuerpoMensaje = aplicarTemplate(cuerpoTemplate)
+      // Ahora usamos la plantilla real `cotizacion_manual` (editable por el
+      // PAS desde /crm/configuracion/comunicaciones con los mismos 4 campos
+      // que las demás: asunto, saludo, cuerpo, cierre). Le pasamos las
+      // variables que la plantilla puede usar via {{}} — el sender las
+      // combina con las variables de persona y de organización.
+      const nombrePila = cotizacion.persona?.nombre
+        || cotizacion.persona?.apellido
+        || cotizacion.lead?.nombre
+        || cotizacion.lead?.apellido
+        || ''
+      const variablesExtra = {
+        nombre: nombrePila,
+        apellido: cotizacion.persona?.apellido ?? cotizacion.lead?.apellido ?? '',
+        numero_cotizacion: cotizacion.numero_cotizacion,
+        ramo: cotizacion.ramo?.nombre ?? '',
+        cantidad_opciones: String(opciones.length),
+      }
 
       const formData = new FormData()
-      // Plantilla: usamos `notificacion_general` (única plantilla genérica
-      // disponible en DB para envíos manuales con título + cuerpo).
-      formData.append('plantilla_codigo', 'notificacion_general')
+      formData.append('plantilla_codigo', 'cotizacion_manual')
       if (cotizacion.persona_id) formData.append('persona_id', cotizacion.persona_id)
-      formData.append('asunto', asunto)
-      formData.append('campos_editables', JSON.stringify({
-        titulo: asunto,
-        cuerpo_mensaje: cuerpoMensaje,
-      }))
+      formData.append('variables_extra', JSON.stringify(variablesExtra))
       // Para destinatarios sin persona en DB (leads), el endpoint acepta
       // email_directo + nombre_directo.
       if (!cotizacion.persona_id) {
