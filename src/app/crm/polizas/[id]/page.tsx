@@ -281,26 +281,10 @@ export default function FichaPolizaPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Realtime: solo escuchamos cambios de la ficha ACTUAL (por poliza_id),
-  // no de todas las pólizas del sistema. Sin el filter, los crons y otras
-  // sesiones disparaban cargar() constantemente — desmontando GestorArchivos
-  // en medio de uploads y cancelando fetches.
-  //
-  // Nota: `poliza_bitacora` y `poliza_archivos` filtran por poliza_id (columna
-  // directa). `riesgos` y `endosos` idem. `polizas` filtra por id.
-  // `siniestros` y `tareas` no tienen poliza_id directo — se cubren por
-  // Realtime en otras pantallas y no son críticos acá; los sacamos para
-  // evitar sobre-suscripción.
-  useRealtimeRefresh({
-    tablas: ['polizas'],
-    filter: `id=eq.${id}`,
-    onCambio: cargar,
-  })
-  useRealtimeRefresh({
-    tablas: ['riesgos', 'endosos', 'poliza_bitacora', 'poliza_archivos'],
-    filter: `poliza_id=eq.${id}`,
-    onCambio: cargar,
-  })
+  // Realtime removido temporalmente hasta identificar por qué el filter
+  // no está frenando el loop de recargas que rompe uploads.
+  // Trade-off aceptado: la ficha no se auto-refresca si otro usuario/proceso
+  // toca la póliza — hay que salir y volver para ver los cambios.
 
   useEffect(() => {
     if (isAdmin) {
