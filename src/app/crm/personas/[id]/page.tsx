@@ -231,10 +231,26 @@ export default function FichaPersonaPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Realtime: cambios en el cliente + sus pólizas/siniestros/tareas y bitácora
-  // se reflejan en la ficha sin refresh manual.
+  // Realtime: cambios en ESTA persona + sus relaciones. Filtrado por id/asegurado_id/persona_id
+  // para no re-cargar la ficha ante cambios de otras personas del sistema.
   useRealtimeRefresh({
-    tablas: ['personas', 'polizas', 'siniestros', 'tareas', 'persona_bitacora'],
+    tablas: ['personas'],
+    filter: `id=eq.${id}`,
+    onCambio: cargar,
+  })
+  useRealtimeRefresh({
+    tablas: ['persona_bitacora'],
+    filter: `persona_id=eq.${id}`,
+    onCambio: cargar,
+  })
+  useRealtimeRefresh({
+    tablas: ['polizas'],
+    filter: `asegurado_id=eq.${id}`,
+    onCambio: cargar,
+  })
+  useRealtimeRefresh({
+    tablas: ['siniestros', 'tareas'],
+    filter: `persona_id=eq.${id}`,
     onCambio: cargar,
   })
 

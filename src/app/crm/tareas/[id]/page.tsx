@@ -116,8 +116,9 @@ export default function FichaTareaPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Realtime: cambios en la tarea se reflejan al instante.
-  useRealtimeRefresh({ tablas: ['tareas'], onCambio: cargar })
+  // Realtime: cambios en ESTA tarea se reflejan al instante. Filtrado por id
+  // para no re-cargar la ficha ante cambios de otras tareas del sistema.
+  useRealtimeRefresh({ tablas: ['tareas'], filter: `id=eq.${id}`, onCambio: cargar })
 
   const completarTarea = async () => {
     if (!tarea) return

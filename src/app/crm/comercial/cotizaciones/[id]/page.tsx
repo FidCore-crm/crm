@@ -205,11 +205,17 @@ export default function FichaCotizacionPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Realtime: cambios en la cotización y sus opciones (cotizacion_companias)
-  // se reflejan al instante — clave para el flujo colaborativo cuando el PAS
-  // gestiona respuestas de compañías desde otro dispositivo.
+  // Realtime: cambios en ESTA cotización y sus opciones (cotizacion_companias).
+  // Filtrado por id/cotizacion_id para no re-cargar la ficha ante cambios de
+  // otras cotizaciones del sistema.
   useRealtimeRefresh({
-    tablas: ['cotizaciones', 'cotizacion_companias'],
+    tablas: ['cotizaciones'],
+    filter: `id=eq.${id}`,
+    onCambio: cargar,
+  })
+  useRealtimeRefresh({
+    tablas: ['cotizacion_companias'],
+    filter: `cotizacion_id=eq.${id}`,
     onCambio: cargar,
   })
 

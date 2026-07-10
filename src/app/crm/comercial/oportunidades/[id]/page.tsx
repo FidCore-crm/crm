@@ -172,10 +172,17 @@ export default function FichaOportunidadPage() {
 
   useEffect(() => { cargarDatos() }, [cargarDatos])
 
-  // Realtime: cambios en la oportunidad + interacciones + tareas relacionadas
-  // se reflejan al instante.
+  // Realtime: cambios en ESTA oportunidad y sus relaciones (interacciones,
+  // cotizaciones). Filtrado por oportunidad_id para no re-cargar la ficha ante
+  // cambios de otras oportunidades del sistema.
   useRealtimeRefresh({
-    tablas: ['oportunidades', 'interacciones', 'tareas', 'cotizaciones'],
+    tablas: ['oportunidades'],
+    filter: `id=eq.${id}`,
+    onCambio: cargarDatos,
+  })
+  useRealtimeRefresh({
+    tablas: ['interacciones', 'cotizaciones'],
+    filter: `oportunidad_id=eq.${id}`,
     onCambio: cargarDatos,
   })
 

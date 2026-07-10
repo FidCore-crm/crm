@@ -281,11 +281,24 @@ export default function FichaPolizaPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Realtime: cambios en polizas (esta y hijas), riesgos, endosos, siniestros
-  // vinculados, o tareas asociadas fuerzan un refetch para que la ficha
-  // siempre esté al día si otro usuario está tocando la misma póliza.
+  // Realtime: solo escuchamos cambios de la ficha ACTUAL (por poliza_id),
+  // no de todas las pólizas del sistema. Sin el filter, los crons y otras
+  // sesiones disparaban cargar() constantemente — desmontando GestorArchivos
+  // en medio de uploads y cancelando fetches.
+  //
+  // Nota: `poliza_bitacora` y `poliza_archivos` filtran por poliza_id (columna
+  // directa). `riesgos` y `endosos` idem. `polizas` filtra por id.
+  // `siniestros` y `tareas` no tienen poliza_id directo — se cubren por
+  // Realtime en otras pantallas y no son críticos acá; los sacamos para
+  // evitar sobre-suscripción.
   useRealtimeRefresh({
-    tablas: ['polizas', 'riesgos', 'endosos', 'siniestros', 'tareas', 'poliza_bitacora', 'poliza_archivos'],
+    tablas: ['polizas'],
+    filter: `id=eq.${id}`,
+    onCambio: cargar,
+  })
+  useRealtimeRefresh({
+    tablas: ['riesgos', 'endosos', 'poliza_bitacora', 'poliza_archivos'],
+    filter: `poliza_id=eq.${id}`,
     onCambio: cargar,
   })
 

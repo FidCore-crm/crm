@@ -324,10 +324,16 @@ export default function FichaSiniestroPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Realtime: cambios en el siniestro, bitácora y archivos se reflejan en el acto
-  // aunque otro usuario/proceso los toque.
+  // Realtime: cambios en ESTE siniestro + bitácora + archivos. Filtrado por id/siniestro_id
+  // para no re-cargar la ficha ante cambios de otros siniestros del sistema.
   useRealtimeRefresh({
-    tablas: ['siniestros', 'siniestro_bitacora', 'siniestro_archivos'],
+    tablas: ['siniestros'],
+    filter: `id=eq.${id}`,
+    onCambio: cargar,
+  })
+  useRealtimeRefresh({
+    tablas: ['siniestro_bitacora', 'siniestro_archivos'],
+    filter: `siniestro_id=eq.${id}`,
     onCambio: cargar,
   })
 

@@ -213,9 +213,15 @@ export default function FichaLeadPage() {
 
   useEffect(() => { cargarDatos() }, [cargarDatos])
 
-  // Realtime: lead + sus interacciones cambian en el acto.
+  // Realtime: ESTE lead + sus interacciones. Filtrado por id/lead_id.
   useRealtimeRefresh({
-    tablas: ['leads', 'interacciones'],
+    tablas: ['leads'],
+    filter: `id=eq.${id}`,
+    onCambio: cargarDatos,
+  })
+  useRealtimeRefresh({
+    tablas: ['interacciones'],
+    filter: `lead_id=eq.${id}`,
     onCambio: cargarDatos,
   })
 
