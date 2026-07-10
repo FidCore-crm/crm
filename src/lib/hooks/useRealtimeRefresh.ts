@@ -25,7 +25,11 @@ interface Opciones {
    *  Default true. */
   enabled?: boolean
   /** Si true, escucha `window focus` y llama `onCambio` (fallback ante reconexión
-   *  del WS). Default true. */
+   *  del WS). Default FALSE porque en pantallas con file pickers (upload de
+   *  archivos), el picker de Windows/mobile roba el foco → al recuperarlo dispara
+   *  onCambio → la ficha se re-monta → cancela el fetch del upload en curso.
+   *  Activar SOLO en pantallas sin uploads donde el refresh on focus aporta
+   *  (dashboards, listados con contadores dinámicos). */
   refetchOnFocus?: boolean
 }
 
@@ -58,7 +62,7 @@ export function useRealtimeRefresh({
   prefijoCanal = 'rt',
   filter,
   enabled = true,
-  refetchOnFocus = true,
+  refetchOnFocus = false,
 }: Opciones) {
   const onCambioRef = useRef(onCambio)
   onCambioRef.current = onCambio

@@ -281,10 +281,20 @@ export default function FichaPolizaPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Realtime removido temporalmente hasta identificar por qué el filter
-  // no está frenando el loop de recargas que rompe uploads.
-  // Trade-off aceptado: la ficha no se auto-refresca si otro usuario/proceso
-  // toca la póliza — hay que salir y volver para ver los cambios.
+  // Realtime: escuchamos cambios de la ficha ACTUAL (filter por id/poliza_id).
+  // El default `refetchOnFocus: false` del hook evita que el file picker
+  // (Windows/mobile) cause recargas al recuperar foco — problema que rompía
+  // uploads en v1.0.97-103.
+  useRealtimeRefresh({
+    tablas: ['polizas'],
+    filter: `id=eq.${id}`,
+    onCambio: cargar,
+  })
+  useRealtimeRefresh({
+    tablas: ['riesgos', 'endosos', 'poliza_bitacora', 'poliza_archivos'],
+    filter: `poliza_id=eq.${id}`,
+    onCambio: cargar,
+  })
 
   useEffect(() => {
     if (isAdmin) {
