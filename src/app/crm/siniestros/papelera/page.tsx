@@ -13,6 +13,7 @@ import { getEstadoBadge } from '@/lib/siniestros-config'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { EstadoCarga } from '@/components/EstadoCarga'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 interface SiniestroPapelera {
   id: string
@@ -96,6 +97,8 @@ export default function PapeleraSiniestrosPage() {
   }, [supabase, usuario])
 
   useEffect(() => { cargar() }, [cargar])
+
+  useRealtimeRefresh({ tablas: ['siniestros'], onCambio: cargar })
 
   async function restaurar(id: string, numeroCaso: string) {
     setRestaurandoId(id)

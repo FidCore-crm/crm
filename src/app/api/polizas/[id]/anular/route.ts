@@ -32,7 +32,7 @@ export const POST = manejarErrores(async (
   // Cargar póliza con datos de ownership
   const { data: poliza, error: errPol } = await supabase
     .from('polizas')
-    .select('id, estado, numero_poliza, asegurado:personas!asegurado_id (id, usuario_id)')
+    .select('id, estado, numero_poliza, updated_at, asegurado:personas!asegurado_id (id, usuario_id)')
     .eq('id', id)
     .single()
 
@@ -47,6 +47,20 @@ export const POST = manejarErrores(async (
     usuario_id: (poliza as any).asegurado?.usuario_id ?? null,
   })
   if (owns) return owns
+
+  const body = await request.json()
+
+  // Optimistic concurrency (#81). Ver /cancelar/route.ts para el patrón.
+  if (
+    body.if_match_updated_at &&
+    !body.force_overwrite &&
+    (poliza as any).updated_at &&
+    body.if_match_updated_at !== (poliza as any).updated_at
+  ) {
+    return respuestaError(ERRORES.NEG_CONFLICTO_CONCURRENCIA, {
+      registro_actual: poliza,
+    })
+  }
 
   // Validar estado
   if (!ESTADOS_BAJA_PERMITIDA.includes((poliza as any).estado)) {
@@ -67,7 +81,6 @@ export const POST = manejarErrores(async (
     })
   }
 
-  const body = await request.json()
   const { motivo_baja, observaciones_baja, fecha_baja } = body
 
   if (!motivo_baja) {

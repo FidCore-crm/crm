@@ -670,6 +670,10 @@ export type TipoEnvioEmail =
   | 'SISTEMA_ROLLBACK_UPDATE'
   // Lead recibido desde formulario web público (migración 103)
   | 'SISTEMA_LEAD_WEB_RECIBIDO'
+  // Denuncia de siniestro por formulario público (migración 122) — post-hoc,
+  // registrado con `registrarEnvioDirecto` para tracking + auditoría.
+  | 'SINIESTRO_DENUNCIA_CLIENTE'
+  | 'SINIESTRO_DENUNCIA_PAS'
 
 export type PrioridadEmailEnvio = 'ALTA' | 'NORMAL'
 

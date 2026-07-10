@@ -64,7 +64,7 @@ export const POST = manejarErrores(async (
     .from('polizas')
     .select(`
       id, numero_poliza, estado, fecha_inicio, fecha_fin,
-      motivo_baja, fecha_baja, observaciones_baja,
+      motivo_baja, fecha_baja, observaciones_baja, updated_at,
       asegurado:personas!asegurado_id (id, usuario_id)
     `)
     .eq('id', id)
@@ -76,6 +76,19 @@ export const POST = manejarErrores(async (
     usuario_id: (poliza as any).asegurado?.usuario_id ?? null,
   })
   if (owns) return owns
+
+  // Optimistic concurrency (#81). Solo en la operación real, no en el preview.
+  if (
+    body?.preview !== true &&
+    body?.if_match_updated_at &&
+    !body?.force_overwrite &&
+    (poliza as any).updated_at &&
+    body.if_match_updated_at !== (poliza as any).updated_at
+  ) {
+    return respuestaError(ERRORES.NEG_CONFLICTO_CONCURRENCIA, {
+      registro_actual: poliza,
+    })
+  }
 
   const estadoActual = (poliza as any).estado as string
   if (estadoActual !== 'CANCELADA' && estadoActual !== 'ANULADA') {

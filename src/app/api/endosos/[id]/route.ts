@@ -15,7 +15,7 @@ async function cargarEndoso(supabase: any, id: string) {
   const { data } = await supabase
     .from('endosos')
     .select(
-      'id, poliza_id, numero_endoso, fecha, motivo, observaciones, created_at, polizas:polizas!poliza_id (id, numero_poliza, asegurado:personas!asegurado_id (usuario_id))',
+      'id, poliza_id, numero_endoso, fecha, motivo, observaciones, created_at, updated_at, polizas:polizas!poliza_id (id, numero_poliza, asegurado:personas!asegurado_id (usuario_id))',
     )
     .eq('id', id)
     .maybeSingle()
@@ -48,6 +48,18 @@ export const PATCH = manejarErrores(async (
     usuario_id: (existente as any).polizas?.asegurado?.usuario_id ?? null,
   })
   if (owns) return owns
+
+  // Optimistic concurrency (#81)
+  if (
+    body?.if_match_updated_at &&
+    !body?.force_overwrite &&
+    (existente as any).updated_at &&
+    body.if_match_updated_at !== (existente as any).updated_at
+  ) {
+    return respuestaError(ERRORES.NEG_CONFLICTO_CONCURRENCIA, {
+      registro_actual: existente,
+    })
+  }
 
   const patch: any = {}
   if (typeof body.motivo === 'string') patch.motivo = body.motivo.trim()

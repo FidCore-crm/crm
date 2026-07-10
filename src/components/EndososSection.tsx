@@ -18,6 +18,7 @@ interface Endoso {
   motivo: string
   observaciones: string | null
   created_at: string
+  updated_at?: string | null
 }
 
 interface EndosoArchivo {
@@ -175,11 +176,23 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
     try {
       let endosoId = editandoId
       if (editandoId) {
+        // Optimistic concurrency (#81): mandamos el updated_at que teníamos al abrir el form.
+        const endosoActual = endosos.find(e => e.id === editandoId)
         const r = await apiCall(`/api/endosos/${editandoId}`, {
           method: 'PATCH',
-          body: { motivo: formMotivo.trim(), fecha: formFecha, observaciones: formObs.trim() || null },
+          body: {
+            motivo: formMotivo.trim(),
+            fecha: formFecha,
+            observaciones: formObs.trim() || null,
+            if_match_updated_at: endosoActual?.updated_at ?? undefined,
+          },
         }, { mostrar_toast_en_error: false })
-        if (!r.ok) throw new Error(r.error?.mensaje || 'Error al editar endoso')
+        if (!r.ok) {
+          if (r.error?.codigo === 'ERR_NEG_004') {
+            throw new Error('Este endoso fue modificado por otro usuario mientras completabas la edición. Cerrá el form y volvé a abrirlo con los datos actuales.')
+          }
+          throw new Error(r.error?.mensaje || 'Error al editar endoso')
+        }
       } else {
         const r = await apiCall<{ endoso: { id: string } }>('/api/endosos', {
           method: 'POST',

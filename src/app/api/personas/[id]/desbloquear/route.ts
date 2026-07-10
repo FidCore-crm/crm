@@ -19,8 +19,8 @@ import { requireLicenciaActiva } from '@/lib/licencia-guard'
  * una póliza VIGENTE o PROGRAMADA, INACTIVO si no.
  */
 export const POST = manejarErrores(
-  async (_request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
-    const usuario = await obtenerUsuarioDesdeRequest(_request)
+  async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+    const usuario = await obtenerUsuarioDesdeRequest(request)
     if (!usuario) return respuestaError(ERRORES.AUTH_TOKEN_INVALIDO)
 
     await requireLicenciaActiva()
@@ -30,7 +30,7 @@ export const POST = manejarErrores(
 
     const { data: actual } = await supabase
       .from('personas')
-      .select('id, estado, usuario_id')
+      .select('id, estado, usuario_id, updated_at')
       .eq('id', id)
       .maybeSingle()
 
@@ -38,6 +38,20 @@ export const POST = manejarErrores(
 
     if (!tieneAccesoTotal(usuario) && (actual as any).usuario_id !== usuario.id) {
       return respuestaError(ERRORES.PERM_RECURSO_AJENO)
+    }
+
+    const body = await request.json().catch(() => ({}))
+
+    // Optimistic concurrency (#81)
+    if (
+      body?.if_match_updated_at &&
+      !body?.force_overwrite &&
+      (actual as any).updated_at &&
+      body.if_match_updated_at !== (actual as any).updated_at
+    ) {
+      return respuestaError(ERRORES.NEG_CONFLICTO_CONCURRENCIA, {
+        registro_actual: actual,
+      })
     }
 
     const estadoAnterior = (actual as any).estado

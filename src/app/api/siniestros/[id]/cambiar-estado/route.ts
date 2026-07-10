@@ -53,7 +53,7 @@ export const POST = manejarErrores(async (
   // Cargar siniestro actual con info de propiedad y montos.
   const { data: siniestro, error: errSel } = await supabase
     .from('siniestros')
-    .select('id, estado, persona_id, monto_estimado, monto_liquidado, fecha_denuncia')
+    .select('id, estado, persona_id, monto_estimado, monto_liquidado, fecha_denuncia, updated_at, numero_caso, numero_siniestro')
     .eq('id', id)
     .is('deleted_at', null)
     .single()
@@ -69,6 +69,21 @@ export const POST = manejarErrores(async (
     if (persona && (persona as any).usuario_id && (persona as any).usuario_id !== usuario.id) {
       return respuestaError(ERRORES.PERM_RECURSO_AJENO)
     }
+  }
+
+  // Optimistic concurrency check (#81). Si el cliente mandó if_match_updated_at,
+  // exigimos que coincida con el updated_at actual del siniestro. Si no coincide,
+  // otro usuario cambió el siniestro entre el load y el submit → devolvemos el
+  // registro actual para que el frontend muestre modal de conflicto.
+  if (
+    body.if_match_updated_at &&
+    !body.force_overwrite &&
+    (siniestro as any).updated_at &&
+    body.if_match_updated_at !== (siniestro as any).updated_at
+  ) {
+    return respuestaError(ERRORES.NEG_CONFLICTO_CONCURRENCIA, {
+      registro_actual: siniestro,
+    })
   }
 
   const estadoActual = (siniestro as any).estado as string

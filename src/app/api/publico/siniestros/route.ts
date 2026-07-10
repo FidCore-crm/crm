@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { generarNumeroCaso } from '@/lib/numero-caso'
 import { generarPDFSiniestro, type DatosPDFSiniestro } from '@/lib/pdf-siniestro'
 import { enviarEmail } from '@/lib/email-sender'
+import { registrarEnvioDirecto } from '@/lib/comunicaciones-sender'
 import { mkdir, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
@@ -767,9 +768,10 @@ export async function POST(request: NextRequest) {
             numeroCaso, persona, poliza: poliza as any, companiaNombre, ramoNombre,
             tipo_siniestro, fecha_siniestro, archivosInfo, tonos,
           })
+          const asuntoCliente = `Confirmación de denuncia - Caso ${numeroCaso}`
           const resCliente = await enviarEmail({
             to: email.trim(),
-            subject: `Confirmación de denuncia - Caso ${numeroCaso}`,
+            subject: asuntoCliente,
             html: htmlCliente,
             attachments,
           })
@@ -777,6 +779,20 @@ export async function POST(request: NextRequest) {
           else {
             logger.error({ modulo: 'formulario-publico', mensaje: 'Error email cliente', contexto: { numero_caso: numeroCaso, error: resCliente.error } })
           }
+          // Registrar post-hoc en email_envios para tener tracking + auditoría
+          // en el tab Comunicaciones de la ficha del cliente.
+          await registrarEnvioDirecto({
+            destinatario_email: email.trim(),
+            destinatario_nombre: nombreCliente,
+            persona_id: persona.id,
+            poliza_id: (poliza as any).id,
+            asunto: asuntoCliente,
+            tipo_envio: 'SINIESTRO_DENUNCIA_CLIENTE',
+            estado: resCliente.ok ? 'ENVIADO' : 'FALLIDO',
+            error: resCliente.ok ? undefined : resCliente.error,
+            archivos_adjuntos: attachments.map(a => ({ filename: a.filename })),
+            variables_extra: { numero_caso: numeroCaso },
+          })
         }
 
         if (enviarAlPAS) {
@@ -794,15 +810,28 @@ export async function POST(request: NextRequest) {
             tipo_vivienda, que_paso, ambiente_afectado, causa_siniestro,
             archivosInfo, ip, tonos,
           })
+          const asuntoPAS = `Nueva denuncia - ${numeroCaso} - ${persona.apellido} ${persona.nombre || ''}`
           const resPAS = await enviarEmail({
             to: configCorreos.from_email,
-            subject: `Nueva denuncia - ${numeroCaso} - ${persona.apellido} ${persona.nombre || ''}`,
+            subject: asuntoPAS,
             html: htmlPAS,
             attachments,
           })
           if (!resPAS.ok) {
             logger.error({ modulo: 'formulario-publico', mensaje: 'Error email PAS', contexto: { numero_caso: numeroCaso, error: resPAS.error } })
           }
+          await registrarEnvioDirecto({
+            destinatario_email: configCorreos.from_email,
+            destinatario_nombre: null,
+            persona_id: persona.id,
+            poliza_id: (poliza as any).id,
+            asunto: asuntoPAS,
+            tipo_envio: 'SINIESTRO_DENUNCIA_PAS',
+            estado: resPAS.ok ? 'ENVIADO' : 'FALLIDO',
+            error: resPAS.ok ? undefined : resPAS.error,
+            archivos_adjuntos: attachments.map(a => ({ filename: a.filename })),
+            variables_extra: { numero_caso: numeroCaso },
+          })
         }
       }
     } catch (err: any) {

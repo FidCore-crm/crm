@@ -12,6 +12,7 @@ import {
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { TIPOS_RIESGO, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 import { generarCodigoUnico } from '@/lib/catalogos-codigo'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface TipoCatalogo { id: string; codigo: string; descripcion: string | null }
@@ -268,6 +269,10 @@ export default function CatalogosPage() {
   }, [supabase, tipoActivo])
 
   useEffect(() => { cargarCatalogos() }, [cargarCatalogos])
+
+  // Realtime: cambios de otros admins se reflejan en el acto (además el resto
+  // del CRM se entera vía la publicación — dropdowns de ramo/cobertura, etc.).
+  useRealtimeRefresh({ tablas: ['catalogos'], onCambio: cargarCatalogos })
 
   // Cargar ramos y compañías disponibles (para vincular coberturas)
   useEffect(() => {

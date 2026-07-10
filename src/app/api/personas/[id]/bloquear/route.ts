@@ -30,7 +30,7 @@ export const POST = manejarErrores(
 
     const { data: actual } = await supabase
       .from('personas')
-      .select('id, estado, usuario_id, apellido, nombre')
+      .select('id, estado, usuario_id, apellido, nombre, updated_at')
       .eq('id', id)
       .maybeSingle()
 
@@ -40,12 +40,24 @@ export const POST = manejarErrores(
       return respuestaError(ERRORES.PERM_RECURSO_AJENO)
     }
 
+    const body = await request.json().catch(() => ({}))
+    const motivo: string | null = typeof body?.motivo === 'string' ? body.motivo.trim() : null
+
+    // Optimistic concurrency (#81)
+    if (
+      body?.if_match_updated_at &&
+      !body?.force_overwrite &&
+      (actual as any).updated_at &&
+      body.if_match_updated_at !== (actual as any).updated_at
+    ) {
+      return respuestaError(ERRORES.NEG_CONFLICTO_CONCURRENCIA, {
+        registro_actual: actual,
+      })
+    }
+
     if ((actual as any).estado === 'BLOQUEADO') {
       return respuestaExito({ estado: 'BLOQUEADO', ya_bloqueado: true })
     }
-
-    const body = await request.json().catch(() => ({}))
-    const motivo: string | null = typeof body?.motivo === 'string' ? body.motivo.trim() : null
 
     const estadoAnterior = (actual as any).estado
     await supabase.from('personas').update({ estado: 'BLOQUEADO' }).eq('id', id)

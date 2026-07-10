@@ -20,6 +20,7 @@ interface Props {
     fecha_baja: string | null
     observaciones_baja: string | null
     asegurado_nombre: string
+    updated_at?: string | null
   }
   onRehabilitada: () => void
 }
@@ -78,10 +79,17 @@ export default function RehabilitarPolizaModal({ abierto, onCerrar, poliza, onRe
         preview: false,
         motivo: motivo.trim() || 'Rehabilitación manual',
         observaciones: observaciones.trim() || null,
+        // Optimistic concurrency (#81): si la póliza cambió mientras el modal
+        // estaba abierto, evitamos rehabilitar sobre un estado stale.
+        if_match_updated_at: poliza.updated_at ?? undefined,
       },
     }, { mostrar_toast_en_error: false })
     if (!r.ok) {
-      setError(r.error?.mensaje ?? 'No se pudo rehabilitar')
+      if (r.error?.codigo === 'ERR_NEG_004') {
+        setError('La póliza cambió mientras este modal estaba abierto. Cerralo y volvé a abrirlo con los datos actualizados.')
+      } else {
+        setError(r.error?.mensaje ?? 'No se pudo rehabilitar')
+      }
       setEjecutando(false)
       return
     }

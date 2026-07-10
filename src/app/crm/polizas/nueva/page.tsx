@@ -384,6 +384,17 @@ function NuevaPolizaContent() {
         await supabase.from('cotizaciones').update({ poliza_generada_id: polizaId }).eq('id', fromCotizacionId)
       }
 
+      // Si la póliza nace VIGENTE, encolamos bienvenida al instante (fire-and-forget).
+      // Sin esto la bienvenida dependía del cron cada 2h. Toma el mismo camino que
+      // usa el agente PDF y el PATCH con cambio de fechas — misma UX en todos los
+      // canales de creación.
+      if (estadoCalculado === 'VIGENTE') {
+        fetch(`/api/polizas/${polizaId}/encolar-bienvenida`, {
+          method: 'POST',
+          credentials: 'include',
+        }).catch(() => { /* no bloquea el flujo del PAS */ })
+      }
+
       setExito(true)
       setTimeout(() => router.push(`/crm/personas/${poliza.persona_id}`), 1200)
     } catch(err: any) {

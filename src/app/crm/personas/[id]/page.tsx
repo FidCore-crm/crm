@@ -541,9 +541,15 @@ export default function FichaPersonaPage() {
             <button
               onClick={async () => {
                 if (!confirm(`¿Desbloquear a ${persona.apellido}${persona.nombre ? ', ' + persona.nombre : ''}? El estado va a recalcularse según sus pólizas.`)) return
-                const r = await apiCall<{ estado: string }>(`/api/personas/${id}/desbloquear`, { method: 'POST' })
+                const r = await apiCall<{ estado: string }>(`/api/personas/${id}/desbloquear`, {
+                  method: 'POST',
+                  body: { if_match_updated_at: (persona as any).updated_at ?? undefined },
+                })
                 if (r.ok) {
                   toast.exito(`Cliente desbloqueado (estado: ${r.data?.estado === 'ACTIVO' ? 'Asegurado' : 'Inactivo'})`)
+                  cargar()
+                } else if (r.error?.codigo === 'ERR_NEG_004') {
+                  toast.warning('Otro usuario modificó al cliente mientras tanto. Se refrescó la ficha; volvé a intentar.')
                   cargar()
                 }
               }}
@@ -559,10 +565,16 @@ export default function FichaPersonaPage() {
                 if (motivo === null) return
                 const r = await apiCall<{ estado: string }>(`/api/personas/${id}/bloquear`, {
                   method: 'POST',
-                  body: { motivo: motivo || undefined },
+                  body: {
+                    motivo: motivo || undefined,
+                    if_match_updated_at: (persona as any).updated_at ?? undefined,
+                  },
                 })
                 if (r.ok) {
                   toast.exito('Cliente bloqueado')
+                  cargar()
+                } else if (r.error?.codigo === 'ERR_NEG_004') {
+                  toast.warning('Otro usuario modificó al cliente mientras tanto. Se refrescó la ficha; volvé a intentar.')
                   cargar()
                 }
               }}

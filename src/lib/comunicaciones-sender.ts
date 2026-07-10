@@ -484,6 +484,61 @@ export async function encolarEmail(params: EncolarParams): Promise<EncolarResult
 }
 
 // ---------------------------------------------------------------------------
+// Registrar un envío directo (post-hoc)
+// ---------------------------------------------------------------------------
+
+/**
+ * Registra en `email_envios` un email que YA fue enviado directo con
+ * `enviarEmail()` sin pasar por la cola (formularios públicos, admin FidCore,
+ * etc.). Sin retry, solo tracking + auditabilidad + integración con el tab
+ * Comunicaciones de la ficha.
+ *
+ * `estado` debe ser 'ENVIADO' o 'FALLIDO'. Si es 'FALLIDO', pasar `error`.
+ */
+export async function registrarEnvioDirecto(params: {
+  destinatario_email: string
+  destinatario_nombre?: string | null
+  persona_id?: string | null
+  poliza_id?: string | null
+  asunto: string
+  tipo_envio: TipoEnvioEmail
+  estado: 'ENVIADO' | 'FALLIDO'
+  error?: string
+  archivos_adjuntos?: Array<{ filename: string; size?: number }>
+  variables_extra?: Record<string, unknown>
+}): Promise<void> {
+  try {
+    const supabase = getSupabaseAdmin()
+    const ahora = new Date().toISOString()
+    await supabase.from('email_envios').insert({
+      token_tracking: randomUUID(),
+      plantilla_codigo: 'inline',
+      destinatario_email: params.destinatario_email,
+      destinatario_nombre: params.destinatario_nombre ?? null,
+      persona_id: params.persona_id ?? null,
+      poliza_id: params.poliza_id ?? null,
+      asunto: params.asunto,
+      tipo_envio: params.tipo_envio,
+      prioridad: 'NORMAL',
+      estado: params.estado,
+      enviar_despues_de: ahora,
+      variables_usadas: params.variables_extra ?? {},
+      archivos_adjuntos: params.archivos_adjuntos ?? null,
+      fecha_envio: params.estado === 'ENVIADO' ? ahora : null,
+      error_ultimo_intento: params.estado === 'FALLIDO' ? params.error ?? null : null,
+    } as any)
+  } catch (err) {
+    // Nunca tirar — el email real ya se envió (o no), la falla de tracking no
+    // debe romper el flujo del caller.
+    logger.warn({
+      modulo: 'comunicaciones',
+      mensaje: 'No se pudo registrar envío directo en email_envios',
+      contexto: { destinatario: params.destinatario_email, error: String(err) },
+    })
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Procesar un envío ENCOLADO
 // ---------------------------------------------------------------------------
 

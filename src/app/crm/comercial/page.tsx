@@ -13,6 +13,7 @@ import { aplicarFiltroCartera } from '@/lib/cartera-filter'
 import { sanitizarBusquedaNormalizada } from '@/lib/utils'
 import { EstadoCarga } from '@/components/EstadoCarga'
 import EmbudoTab from './_embudo'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // ── Tipos ──────────────────────────────────────────────
 interface ItemComercial {
@@ -110,6 +111,9 @@ export default function ComercialPage() {
   // Contadores para accesos rápidos
   const [contadores, setContadores] = useState({ leads: 0, ops: 0, cots: 0, pipeline: 0 })
 
+  // Tick que Realtime incrementa para forzar refetch de KPIs.
+  const [refreshTick, setRefreshTick] = useState(0)
+
   useEffect(() => {
     clearTimeout(searchRef.current)
     searchRef.current = setTimeout(() => { setBusquedaDebounce(busqueda); setPagina(0) }, 350)
@@ -156,7 +160,8 @@ export default function ComercialPage() {
       })
     }
     cargar()
-  }, [supabase, usuario])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, usuario, refreshTick])
 
   // Lista combinada
   const cargarItems = useCallback(async () => {
@@ -268,6 +273,13 @@ export default function ComercialPage() {
   }, [supabase, filtroTipo, filtroEstado, filtroFuente, busquedaDebounce, pagina, usuario])
 
   useEffect(() => { cargarItems() }, [cargarItems])
+
+  // Realtime: cualquier cambio en las 3 tablas comerciales refresca dashboard
+  // (KPIs vía tick + lista combinada).
+  useRealtimeRefresh({
+    tablas: ['leads', 'oportunidades', 'cotizaciones'],
+    onCambio: () => { cargarItems(); setRefreshTick(t => t + 1) },
+  })
 
   const limpiarFiltros = () => { setBusqueda(''); setFiltroTipo(''); setFiltroEstado(''); setFiltroFuente(''); setPagina(0) }
   const hayFiltros = busqueda || filtroTipo || filtroEstado || filtroFuente

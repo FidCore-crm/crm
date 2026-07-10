@@ -11,6 +11,7 @@ import { formatFechaLocalLarga, hoyLocal, sanitizarBusquedaNormalizada } from '@
 import { useAuth } from '@/contexts/AuthContext'
 import { aplicarFiltroCartera, obtenerIdsPapelera, excluirPersonasEnPapelera, puedeEliminar } from '@/lib/cartera-filter'
 import { toast } from '@/lib/toast'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 interface Cotizacion {
   id: string
@@ -57,6 +58,8 @@ export default function CotizacionesPage() {
 
   const [kpis, setKpis] = useState({ borradores: 0, enviadas: 0, enProceso: 0, ganadasMes: 0, perdidasMes: 0, vencidas: 0 })
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
+  // Tick para forzar refetch de KPIs desde Realtime.
+  const [refreshTick, setRefreshTick] = useState(0)
 
   // IDs de personas en papelera. La cartera (usuario_id) la maneja
   // `aplicarFiltroCartera`; este helper adicional evita que cotizaciones
@@ -108,7 +111,8 @@ export default function CotizacionesPage() {
       setKpis({ borradores: b.count ?? 0, enviadas: e.count ?? 0, enProceso: ep.count ?? 0, ganadasMes: g.count ?? 0, perdidasMes: p.count ?? 0, vencidas: v.count ?? 0 })
     }
     cargarKpis()
-  }, [supabase, usuario, papeleraIds, papeleraCargada])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, usuario, papeleraIds, papeleraCargada, refreshTick])
 
   const cargarCotizaciones = useCallback(async () => {
     if (!papeleraCargada) return
@@ -217,6 +221,12 @@ export default function CotizacionesPage() {
   }, [supabase, filtroEstado, filtroRamo, busquedaDebounce, pagina, usuario, papeleraIds, papeleraCargada])
 
   useEffect(() => { cargarCotizaciones() }, [cargarCotizaciones])
+
+  // Realtime: cambios en cotizaciones + opciones por compañía refrescan listado + KPIs.
+  useRealtimeRefresh({
+    tablas: ['cotizaciones', 'cotizacion_companias'],
+    onCambio: () => { cargarCotizaciones(); setRefreshTick(t => t + 1) },
+  })
 
   const eliminar = async (e: React.MouseEvent, c: Cotizacion) => {
     e.stopPropagation()

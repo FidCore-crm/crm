@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/lib/toast'
 import { EstadoCarga } from '@/components/EstadoCarga'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
@@ -171,6 +172,12 @@ export default function FacturacionPage() {
   }, [supabase, filtroAnio, filtroCompania, mesActual])
 
   useEffect(() => { cargarDatos() }, [cargarDatos])
+
+  // Realtime: la facturación es admin-only pero multi-admin; cambios se ven al instante.
+  useRealtimeRefresh({
+    tablas: ['facturacion'],
+    onCambio: cargarDatos,
+  })
 
   // Datos del gráfico
   const datosGrafico = MESES_CORTOS.map((nombre, i) => {

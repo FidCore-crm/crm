@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   Loader2,
@@ -11,6 +11,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { useImportacionPolling } from '@/lib/hooks/useImportacionPolling';
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import { apiCall } from '@/lib/api-client';
 import type { IdsCreadosActualizados } from '@/lib/importacion/types';
 
@@ -27,37 +28,42 @@ export default function ImportandoPage() {
   const { estado, error } = useImportacionPolling(id, { intervaloMs: 1000 });
   const [resumen, setResumen] = useState<ResumenParcial | null>(null);
 
-  // Poll resumen en paralelo para contadores parciales
-  useEffect(() => {
+  // Fetch de resumen. Antes esto era polling de 2s; ahora se dispara por
+  // Realtime cada vez que el runner actualiza la fila `importaciones`.
+  const fetchResumen = useCallback(async () => {
     if (!id) return;
-    let alive = true;
-    async function fetchResumen() {
-      type ResumenResp = {
-        importacion?: {
-          clientes_creados: number | null;
-          polizas_creadas: number | null;
-          ids_creados: IdsCreadosActualizados | null;
-        };
+    type ResumenResp = {
+      importacion?: {
+        clientes_creados: number | null;
+        polizas_creadas: number | null;
+        ids_creados: IdsCreadosActualizados | null;
       };
-      const r = await apiCall<ResumenResp>(`/api/importar/${id}/resumen`, {
-        cache: 'no-store',
-      }, { mostrar_toast_en_error: false });
-      if (alive && r.ok && r.data?.importacion) {
-        const imp = r.data.importacion;
-        setResumen({
-          clientes_creados: imp.clientes_creados ?? 0,
-          polizas_creadas: imp.polizas_creadas ?? 0,
-          ids_creados: imp.ids_creados ?? null,
-        });
-      }
-    }
-    fetchResumen();
-    const t = setInterval(fetchResumen, 2000);
-    return () => {
-      alive = false;
-      clearInterval(t);
     };
+    const r = await apiCall<ResumenResp>(`/api/importar/${id}/resumen`, {
+      cache: 'no-store',
+    }, { mostrar_toast_en_error: false });
+    if (r.ok && r.data?.importacion) {
+      const imp = r.data.importacion;
+      setResumen({
+        clientes_creados: imp.clientes_creados ?? 0,
+        polizas_creadas: imp.polizas_creadas ?? 0,
+        ids_creados: imp.ids_creados ?? null,
+      });
+    }
   }, [id]);
+
+  useEffect(() => { fetchResumen(); }, [fetchResumen]);
+
+  // Realtime: la fila `importaciones` cambia cada vez que el runner completa
+  // un lote (actualiza clientes_creados, polizas_creadas, ids_creados). Cada
+  // update dispara refetch sin polling. Filter por id para no escuchar otras
+  // importaciones concurrentes de otros usuarios.
+  useRealtimeRefresh({
+    tablas: ['importaciones'],
+    filter: `id=eq.${id}`,
+    onCambio: fetchResumen,
+    debounceMs: 200, // más agresivo que el default para reflejar contadores en el acto
+  });
 
   useEffect(() => {
     if (!estado) return;

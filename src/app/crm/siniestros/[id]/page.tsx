@@ -24,6 +24,7 @@ import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { extraerCamposCustom, mapaLabelsPorKey, labelDeCampo } from '@/lib/siniestros-campos-custom'
+import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface Siniestro {
@@ -48,6 +49,7 @@ interface Siniestro {
   tercero_telefono: string | null
   tercero_patente: string | null
   deleted_at: string | null
+  updated_at: string | null
   origen_creacion: 'MANUAL_PAS' | 'PORTAL_CLIENTE'
   revisado_por_pas: boolean
   fecha_revision: string | null
@@ -254,6 +256,10 @@ export default function FichaSiniestroPage() {
   const [motivoRechazo, setMotivoRechazo] = useState('')
   const [guardandoNota, setGuardandoNota] = useState(false)
   const [guardandoEstado, setGuardandoEstado] = useState(false)
+  // Estado del conflicto de concurrencia al cambiar estado de siniestro.
+  // Si el backend devuelve 409 (NEG_CONFLICTO_CONCURRENCIA), guardamos el registro
+  // actual y abrimos el modal para que el usuario decida recargar o sobreescribir.
+  const [conflictoEstado, setConflictoEstado] = useState<{ registro_actual: any } | null>(null)
   const [error, setError] = useState('')
 
   // Número de siniestro de la compañía (se carga después de la denuncia administrativa)
@@ -295,7 +301,7 @@ export default function FichaSiniestroPage() {
         descripcion, detalle_siniestro,
         lugar_siniestro, localidad_siniestro,
         tercero_nombre, tercero_dni, tercero_telefono, tercero_patente,
-        deleted_at,
+        deleted_at, updated_at,
         origen_creacion, revisado_por_pas, fecha_revision,
         asegurado:personas!persona_id (id, apellido, nombre, razon_social, telefono, whatsapp, usuario_id),
         poliza:polizas!poliza_id (
@@ -374,6 +380,11 @@ export default function FichaSiniestroPage() {
       return
     }
 
+    await ejecutarCambioEstado({ force_overwrite: false })
+  }
+
+  const ejecutarCambioEstado = async ({ force_overwrite }: { force_overwrite: boolean }) => {
+    if (!siniestro) return
     setGuardandoEstado(true); setError('')
 
     const r = await apiCall<{ estado_nuevo: string; fecha_cierre: string | null }>(
@@ -384,6 +395,11 @@ export default function FichaSiniestroPage() {
           estado_nuevo: nuevoEstado,
           monto_liquidado: montoActualizado || undefined,
           motivo_rechazo: nuevoEstado === 'RECHAZADO' ? motivoRechazo.trim() : undefined,
+          // Optimistic concurrency (#81): mandamos el updated_at del siniestro que
+          // el usuario tenía cargado. Si otro usuario cambió el estado entre medio,
+          // el backend devuelve 409 con `registro_actual` y abrimos modal.
+          if_match_updated_at: siniestro.updated_at ?? undefined,
+          force_overwrite: force_overwrite || undefined,
         },
       },
       { mostrar_toast_en_error: false },
@@ -391,6 +407,12 @@ export default function FichaSiniestroPage() {
 
     if (!r.ok) {
       const err = r.error
+      // 409: otro usuario cambió el siniestro. Abrimos modal de conflicto.
+      if (err?.codigo === 'ERR_NEG_004' && (err as any)?.registro_actual) {
+        setConflictoEstado({ registro_actual: (err as any).registro_actual })
+        setGuardandoEstado(false)
+        return
+      }
       const msg = err?.campos
         ? Object.values(err.campos).join(' · ')
         : err?.mensaje ?? 'No se pudo cambiar el estado'
@@ -403,6 +425,7 @@ export default function FichaSiniestroPage() {
       } : s)
       setMontoActualizado('')
       setMotivoRechazo('')
+      setConflictoEstado(null)
       await recargarBitacora()
       toast.exito(`Estado actualizado a ${getEstadoBadge(nuevoEstado).label}`)
     }
@@ -1082,6 +1105,25 @@ export default function FichaSiniestroPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {conflictoEstado && siniestro && (
+        <ModalConflictoEdicion
+          valoresTuyos={{ estado: nuevoEstado, monto_liquidado: montoActualizado }}
+          registroActual={conflictoEstado.registro_actual}
+          labels={{ estado: 'Estado', monto_liquidado: 'Monto liquidado' }}
+          campos={['estado', 'monto_liquidado']}
+          onCerrar={() => setConflictoEstado(null)}
+          onRecargar={async () => {
+            setConflictoEstado(null)
+            await cargar()
+            toast.info('Datos actualizados con la versión más reciente')
+          }}
+          onSobreescribir={async () => {
+            setConflictoEstado(null)
+            await ejecutarCambioEstado({ force_overwrite: true })
+          }}
+        />
       )}
     </div>
   )

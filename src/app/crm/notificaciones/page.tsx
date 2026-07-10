@@ -13,6 +13,7 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { emitirBroadcastNotificaciones, useBroadcastNotificaciones } from '@/lib/broadcast-notificaciones'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // ── Tipos ──
 interface Notificacion {
@@ -174,6 +175,14 @@ export default function NotificacionesPage() {
   useEffect(() => {
     cargarDatos()
   }, [cargarDatos])
+
+  // Realtime: la campana del navbar ya escucha, pero esta pantalla también:
+  // el usuario puede tener la página abierta mientras trabaja en otra tab y
+  // volver a esta esperando ver los últimos avisos sin refrescar.
+  useRealtimeRefresh({
+    tablas: ['notificaciones'],
+    onCambio: cargarDatos,
+  })
 
   useEffect(() => {
     setPagina(0)

@@ -308,6 +308,7 @@ export default function FichaPolizaPage() {
 
   const confirmarBaja = async () => {
     if (!modalMotivo) { setError('Seleccioná un motivo'); return }
+    if (!poliza) return
     setGuardandoModal(true); setError('')
     const endpoint = modalTipo === 'cancelar' ? 'cancelar' : 'anular'
 
@@ -318,10 +319,20 @@ export default function FichaPolizaPage() {
           motivo_baja: modalMotivo,
           fecha_baja: modalFecha,
           observaciones_baja: modalObs.trim() || null,
+          // Optimistic concurrency (#81)
+          if_match_updated_at: poliza.updated_at,
         },
       }, { mostrar_toast_en_error: false })
       if (!r.ok) {
-        setError(r.error?.mensaje ?? 'Error al procesar la baja')
+        // 409: otro usuario tocó la póliza mientras el modal estaba abierto.
+        // Refrescamos la ficha y mostramos aviso — el PAS puede reintentar
+        // con la data fresca.
+        if (r.error?.codigo === 'ERR_NEG_004') {
+          setError('La póliza fue modificada por otro usuario mientras completabas este formulario. Se recargó la ficha; revisá el estado actual antes de reintentar.')
+          await cargar()
+        } else {
+          setError(r.error?.mensaje ?? 'Error al procesar la baja')
+        }
       } else {
         toast.exito(endpoint === 'cancelar' ? 'Póliza cancelada' : 'Póliza anulada')
         setModalTipo(null)
@@ -1105,6 +1116,7 @@ export default function FichaPolizaPage() {
             fecha_baja: poliza.fecha_baja,
             observaciones_baja: poliza.observaciones_baja,
             asegurado_nombre: nombre || '',
+            updated_at: poliza.updated_at,
           }}
           onRehabilitada={() => {
             setHistorialKey(k => k + 1)

@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { filtrarPorPersonas, puedeEliminar, obtenerIdsPersonas, obtenerIdsPapelera, excluirPersonasEnPapelera } from '@/lib/cartera-filter'
 import { toast } from '@/lib/toast'
 import { EstadoCarga } from '@/components/EstadoCarga'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // Formato compacto para mostrar montos grandes en cards estrechas (KPIs).
 // Ej: 1234567 → "$1,2 M". Mantiene consistencia visual con los otros KPIs
@@ -249,6 +250,13 @@ export default function OportunidadesPage() {
   }, [supabase, filtroEstado, filtroTipo, filtroFuente, busquedaDebounce, pagina, idsPersonas, papeleraIds, idsPersonasCargados])
 
   useEffect(() => { cargarOportunidades() }, [cargarOportunidades])
+
+  // Realtime: cualquier cambio en oportunidades refresca listado + KPIs
+  // (kpisVersion se bumpea para que el useEffect de KPIs también corra).
+  useRealtimeRefresh({
+    tablas: ['oportunidades'],
+    onCambio: () => { cargarOportunidades(); setKpisVersion(v => v + 1) },
+  })
 
   // Cargar detecciones (Tab 2)
   const cargarDetecciones = useCallback(async () => {

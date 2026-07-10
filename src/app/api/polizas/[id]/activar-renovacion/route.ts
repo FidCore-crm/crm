@@ -31,10 +31,18 @@ export const POST = manejarErrores(async (
   const { id } = await params
   const supabase = getSupabaseAdmin()
 
+  // Body opcional (para optimistic locking + force_overwrite)
+  let body: any = {}
+  try {
+    body = await request.json()
+  } catch {
+    // POST sin body también válido — cliente puede llamar sin optimistic check.
+  }
+
   // Verificar ownership a través del asegurado de la póliza
   const { data: poliza } = await supabase
     .from('polizas')
-    .select('id, asegurado_id, origen_creacion, asegurado:personas!asegurado_id (usuario_id)')
+    .select('id, asegurado_id, origen_creacion, updated_at, asegurado:personas!asegurado_id (usuario_id)')
     .eq('id', id)
     .maybeSingle()
 
@@ -44,6 +52,20 @@ export const POST = manejarErrores(async (
     usuario_id: (poliza as any).asegurado?.usuario_id ?? null,
   })
   if (owns) return owns
+
+  // Optimistic concurrency (#81). Evita que dos requests en paralelo activen la
+  // misma renovación y encolen emails duplicados (el helper tiene anti-spam pero
+  // preferimos rechazar antes con feedback claro).
+  if (
+    body?.if_match_updated_at &&
+    !body?.force_overwrite &&
+    (poliza as any).updated_at &&
+    body.if_match_updated_at !== (poliza as any).updated_at
+  ) {
+    return respuestaError(ERRORES.NEG_CONFLICTO_CONCURRENCIA, {
+      registro_actual: poliza,
+    })
+  }
 
   const resultado = await activarRenovadaSiCorresponde(supabase, id, usuario.id)
 

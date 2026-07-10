@@ -11,6 +11,7 @@ import { formatFechaLocalLarga, formatMoneda, hoyLocal } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { aplicarFiltroCartera, obtenerIdsPapelera, excluirPersonasEnPapelera } from '@/lib/cartera-filter'
 import { EstadoCarga } from '@/components/EstadoCarga'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 interface CotCard {
   id: string
@@ -159,6 +160,13 @@ export default function PipelinePage() {
   }, [supabase, filtroRamo, usuario])
 
   useEffect(() => { cargarDatos() }, [cargarDatos])
+
+  // Realtime: kanban debe reflejar cambios en el acto. Si otro PAS avanza una
+  // cotización desde su vista, esta la muestra en la columna correcta sin F5.
+  useRealtimeRefresh({
+    tablas: ['cotizaciones', 'cotizacion_companias'],
+    onCambio: cargarDatos,
+  })
 
   // ── Drag & Drop handlers ──
   const handleDragStart = (e: React.DragEvent, cotId: string) => {

@@ -11,6 +11,7 @@ import { formatFechaLocalLarga, sanitizarBusquedaNormalizada } from '@/lib/utils
 import { useAuth } from '@/contexts/AuthContext'
 import { aplicarFiltroCartera, puedeEliminar } from '@/lib/cartera-filter'
 import { EstadoCarga } from '@/components/EstadoCarga'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 interface Lead {
   id: string
@@ -81,6 +82,10 @@ export default function LeadsPage() {
 
   const [kpis, setKpis] = useState({ nuevos: 0, contactados: 0, convertidosMes: 0, descartados: 0 })
 
+  // Tick que Realtime incrementa para forzar refetch de KPIs (el useEffect
+  // los usa como dependencia).
+  const [refreshTick, setRefreshTick] = useState(0)
+
   useEffect(() => {
     clearTimeout(searchRef.current)
     searchRef.current = setTimeout(() => { setBusquedaDebounce(busqueda); setPagina(0) }, 350)
@@ -106,7 +111,8 @@ export default function LeadsPage() {
       })
     }
     cargarKpis()
-  }, [supabase, usuario])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, usuario, refreshTick])
 
   // Cargar leads
   const cargarLeads = useCallback(async () => {
@@ -146,6 +152,12 @@ export default function LeadsPage() {
   }, [supabase, filtroEstado, filtroInteres, filtroFuente, busquedaDebounce, pagina, usuario])
 
   useEffect(() => { cargarLeads() }, [cargarLeads])
+
+  // Realtime: cualquier INSERT/UPDATE/DELETE en leads refresca listado + KPIs.
+  useRealtimeRefresh({
+    tablas: ['leads'],
+    onCambio: () => { cargarLeads(); setRefreshTick(t => t + 1) },
+  })
 
   const eliminar = async (e: React.MouseEvent, lead: Lead) => {
     e.stopPropagation()

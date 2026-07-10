@@ -12,6 +12,7 @@ import { formatFecha, nombreCompleto } from '@/lib/utils'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { EstadoCarga } from '@/components/EstadoCarga'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 interface PersonaPapelera {
   id: string
@@ -88,6 +89,9 @@ export default function PapeleraPersonasPage() {
   }, [supabase, usuario])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Realtime: restauraciones/eliminaciones desde otras sesiones se reflejan aquí.
+  useRealtimeRefresh({ tablas: ['personas'], onCambio: cargar })
 
   async function restaurar(id: string, nombre: string) {
     setRestaurandoId(id)

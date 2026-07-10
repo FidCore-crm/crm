@@ -53,12 +53,18 @@ export default function PortalAseguradoPage() {
   const [data, setData] = useState<PortalData | null>(null)
 
   useEffect(() => {
-    async function cargar() {
+    let alive = true
+
+    async function cargar(esRefetch = false) {
       try {
         const res = await fetch(`/api/publico/portal-cliente/validar/${encodeURIComponent(token)}`)
         const json = await res.json()
+        if (!alive) return
 
         if (!res.ok || !json.ok) {
+          // En el refetch silencioso NO pisamos data cargada si vino un error
+          // transitorio — el usuario tiene información válida en pantalla.
+          if (esRefetch) return
           if (res.status === 503) {
             setError({
               titulo: 'Portal temporalmente no disponible',
@@ -79,16 +85,33 @@ export default function PortalAseguradoPage() {
 
         setData(json as PortalData)
       } catch {
-        setError({
-          titulo: 'Error de conexión',
-          mensaje: 'No pudimos cargar tu portal. Verificá tu conexión e intentá nuevamente.',
-          soft: true,
-        })
+        if (!esRefetch) {
+          setError({
+            titulo: 'Error de conexión',
+            mensaje: 'No pudimos cargar tu portal. Verificá tu conexión e intentá nuevamente.',
+            soft: true,
+          })
+        }
       } finally {
-        setCargando(false)
+        if (!esRefetch) setCargando(false)
       }
     }
-    cargar()
+
+    cargar(false)
+
+    // El portal público no puede suscribirse a Realtime (WS anon no pasa las
+    // policies con auth.uid()). En su lugar, refetcheamos cuando la ventana
+    // vuelve a foco — cubre el caso "el cliente dejó abierto el portal, después
+    // el PAS cambió la póliza, el cliente vuelve a la tab". El intervalo largo
+    // (5 min) también compensa reconexión mobile / suspend.
+    const onFocus = () => cargar(true)
+    const interval = setInterval(() => cargar(true), 5 * 60 * 1000)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      alive = false
+      window.removeEventListener('focus', onFocus)
+      clearInterval(interval)
+    }
   }, [token])
 
   if (cargando) {
