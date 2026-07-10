@@ -290,8 +290,12 @@ export default function FichaPolizaPage() {
     filter: `id=eq.${id}`,
     onCambio: cargar,
   })
+  // riesgos siguen viviendo directo en esta ficha, así que los seguimos escuchando acá.
+  // endosos, poliza_bitacora y poliza_archivos ahora los escuchan sus componentes hijos
+  // autónomos (EndososSection, HistorialPoliza, GestorArchivos) para evitar el flash
+  // de re-render de la ficha completa post-upload / post-alta de endoso.
   useRealtimeRefresh({
-    tablas: ['riesgos', 'endosos', 'poliza_bitacora', 'poliza_archivos'],
+    tablas: ['riesgos'],
     filter: `poliza_id=eq.${id}`,
     onCambio: cargar,
   })

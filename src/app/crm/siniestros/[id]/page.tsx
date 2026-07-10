@@ -331,10 +331,13 @@ export default function FichaSiniestroPage() {
     filter: `id=eq.${id}`,
     onCambio: cargar,
   })
+  // siniestro_archivos ahora la escucha el hijo GestorArchivos (evita re-render
+  // completo post-upload). La bitácora se refresca aislada con `recargarBitacora`
+  // en lugar de re-cargar la ficha entera → evita el flash.
   useRealtimeRefresh({
-    tablas: ['siniestro_bitacora', 'siniestro_archivos'],
+    tablas: ['siniestro_bitacora'],
     filter: `siniestro_id=eq.${id}`,
-    onCambio: cargar,
+    onCambio: () => { void recargarBitacora() },
   })
 
   const recargarBitacora = async () => {

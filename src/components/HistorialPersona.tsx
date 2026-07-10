@@ -5,6 +5,7 @@ import {
   UserPlus, Pencil, RefreshCw, Trash2, Undo2, ShieldOff, Loader2, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 interface EventoBitacora {
   id: string
@@ -82,6 +83,14 @@ export default function HistorialPersona({ personaId, refreshKey = 0 }: Props) {
   }, [personaId])
 
   useEffect(() => { cargar() }, [cargar, refreshKey])
+
+  // Realtime: solo escuchamos INSERTs en bitácora de esta persona.
+  // El componente se refresca sin re-cargar la ficha padre (evita flash).
+  useRealtimeRefresh({
+    tablas: ['persona_bitacora'],
+    filter: `persona_id=eq.${personaId}`,
+    onCambio: cargar,
+  })
 
   return (
     <div className="bg-white border border-slate-200 rounded overflow-hidden">

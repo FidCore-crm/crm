@@ -6,6 +6,7 @@ import {
   Download, Trash2, Upload, AlertCircle, Edit2, Paperclip, X, Eye, Sparkles,
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { formatFecha, hoyLocal } from '@/lib/utils'
 import { useModuloIAPDF } from '@/lib/hooks/useModuloIAPDF'
 import ModalUploadPDF from '@/components/agente-pdf/ModalUploadPDF'
@@ -116,6 +117,15 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
   }, [supabase, polizaId])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Realtime: escuchamos cambios en endosos y en poliza_archivos filtrados
+  // por esta póliza. Los cambios refrescan solo esta sección sin re-cargar
+  // la ficha padre entera (evita el flash post-alta/eliminación de endoso).
+  useRealtimeRefresh({
+    tablas: ['endosos', 'poliza_archivos'],
+    filter: `poliza_id=eq.${polizaId}`,
+    onCambio: cargar,
+  })
 
   function toggleExpandido(id: string) {
     setExpandidos(prev => {

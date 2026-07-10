@@ -5,6 +5,7 @@ import {
   FileText, Ban, XCircle, Undo2, RefreshCw, Zap, Loader2, ChevronDown, ChevronUp, Pencil,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 interface EventoBitacora {
   id: string
@@ -85,6 +86,14 @@ export default function HistorialPoliza({ polizaId, refreshKey = 0 }: Props) {
   }, [polizaId])
 
   useEffect(() => { cargar() }, [cargar, refreshKey])
+
+  // Realtime: solo escuchamos INSERTs en bitácora de esta póliza.
+  // Se agrega un evento sin re-cargar toda la ficha padre (evita flash).
+  useRealtimeRefresh({
+    tablas: ['poliza_bitacora'],
+    filter: `poliza_id=eq.${polizaId}`,
+    onCambio: cargar,
+  })
 
   return (
     <div className="bg-white border border-slate-200 rounded overflow-hidden">

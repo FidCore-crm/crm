@@ -238,11 +238,8 @@ export default function FichaPersonaPage() {
     filter: `id=eq.${id}`,
     onCambio: cargar,
   })
-  useRealtimeRefresh({
-    tablas: ['persona_bitacora'],
-    filter: `persona_id=eq.${id}`,
-    onCambio: cargar,
-  })
+  // persona_bitacora ahora la escucha el componente hijo autónomo HistorialPersona
+  // (evita re-render de toda la ficha post-evento).
   useRealtimeRefresh({
     tablas: ['polizas'],
     filter: `asegurado_id=eq.${id}`,

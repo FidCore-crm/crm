@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { apiCall } from '@/lib/api-client'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 interface Archivo {
   id: string
@@ -86,6 +87,17 @@ export default function GestorArchivos({ polizaId, numeroPoliza, polizaRaizId, p
   }, [supabase, tabla, fkColumn, fkValue, categoria])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Realtime: escuchamos SOLO cambios en la tabla propia del componente
+  // filtrado por el fk correspondiente. Así, cuando otro usuario/proceso sube
+  // o borra un archivo de este recurso, la lista se refresca sin necesidad
+  // de que la ficha padre entera se re-cargue (evita el "flash" post-upload).
+  useRealtimeRefresh({
+    tablas: [tabla],
+    filter: fkValue ? `${fkColumn}=eq.${fkValue}` : undefined,
+    onCambio: cargar,
+    enabled: !!fkValue,
+  })
 
   // Escape cierra el lightbox cuando está abierto
   useEffect(() => {
