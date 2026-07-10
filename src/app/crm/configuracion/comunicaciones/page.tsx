@@ -62,6 +62,8 @@ export default function ComunicacionesPage() {
   const [notifPdfOk, setNotifPdfOk] = useState(false)
   const [notifPdfFallido, setNotifPdfFallido] = useState(false)
   const [notifEmailFallido, setNotifEmailFallido] = useState(false)
+  // Lead entrante desde formulario web público (migración 103)
+  const [notifLeadWeb, setNotifLeadWeb] = useState(false)
 
   // Toggles para emails del formulario público de denuncia
   const [denunciaEmailCliente, setDenunciaEmailCliente] = useState(false)
@@ -124,6 +126,7 @@ export default function ComunicacionesPage() {
         setNotifPdfOk(c.notificar_admin_pdf_procesado ?? false)
         setNotifPdfFallido(c.notificar_admin_pdf_fallido ?? false)
         setNotifEmailFallido(c.notificar_admin_email_automatico_fallido ?? false)
+        setNotifLeadWeb(c.notificar_admin_lead_web ?? true)
         setDenunciaEmailCliente(c.envio_automatico_denuncia_publica_cliente ?? false)
         setDenunciaEmailPas(c.envio_automatico_denuncia_publica_pas ?? false)
       } else if (!configRes.ok) {
@@ -745,7 +748,7 @@ export default function ComunicacionesPage() {
 
               {/* Atajos: activar/desactivar todos los informativos de un saque */}
               {(() => {
-                const informativos = [notifBackupOk, notifRestauracionIni, notifRestauracionOk, notifPdfOk, notifPdfFallido, notifEmailFallido]
+                const informativos = [notifBackupOk, notifRestauracionIni, notifRestauracionOk, notifPdfOk, notifPdfFallido, notifEmailFallido, notifLeadWeb]
                 const activados = informativos.filter(Boolean).length
                 const todosActivos = activados === informativos.length
                 const ninguno = activados === 0
@@ -753,6 +756,7 @@ export default function ComunicacionesPage() {
                 function setearTodos(valor: boolean) {
                   setNotifBackupOk(valor); setNotifRestauracionIni(valor); setNotifRestauracionOk(valor)
                   setNotifPdfOk(valor); setNotifPdfFallido(valor); setNotifEmailFallido(valor)
+                  setNotifLeadWeb(valor)
                   immediateSave({
                     notificar_admin_backup_completado: valor,
                     notificar_admin_restauracion_iniciada: valor,
@@ -760,6 +764,7 @@ export default function ComunicacionesPage() {
                     notificar_admin_pdf_procesado: valor,
                     notificar_admin_pdf_fallido: valor,
                     notificar_admin_email_automatico_fallido: valor,
+                    notificar_admin_lead_web: valor,
                   })
                 }
 
@@ -904,6 +909,26 @@ export default function ComunicacionesPage() {
                       onChange={e => {
                         setNotifEmailFallido(e.target.checked)
                         immediateSave({ notificar_admin_email_automatico_fallido: e.target.checked })
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-slate-300 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5" />
+                  </label>
+                </div>
+
+                {/* Lead entrante desde formulario web público */}
+                <div className="flex items-center justify-between gap-4 py-1.5">
+                  <div>
+                    <p className="text-xs text-slate-700">Nuevo lead desde el formulario web público</p>
+                    <p className="text-2xs text-slate-400">Email al admin cada vez que llega un lead nuevo por el endpoint público (<code className="font-mono text-2xs">/api/publico/leads</code>). El ícono Inbox del navbar y las notificaciones in-app siguen apareciendo aunque este toggle esté apagado. Recomendado activado si el sitio web del PAS recibe leads con frecuencia.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={notifLeadWeb}
+                      onChange={e => {
+                        setNotifLeadWeb(e.target.checked)
+                        immediateSave({ notificar_admin_lead_web: e.target.checked })
                       }}
                       className="sr-only peer"
                     />

@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { actualizarConOptimistic } from '@/lib/optimistic-update'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { mensajeErrorAmigable } from '@/lib/utils'
 
 // ── Tipos ────────────────────────────────────────────────────
@@ -195,10 +196,13 @@ export default function EditarTareaPage() {
             <p className="text-xs text-slate-500">Modificá los datos de la tarea</p>
           </div>
         </div>
-        <button onClick={() => guardar()} disabled={guardando} className="btn-primary px-5">
-          {guardando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-          {guardando ? 'Guardando...' : 'Guardar Cambios'}
-        </button>
+        <div className="flex items-center gap-3">
+          <PresenciaEnFicha tipoEntidad="tarea" entidadId={id} modo="editando" />
+          <button onClick={() => guardar()} disabled={guardando} className="btn-primary px-5">
+            {guardando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+            {guardando ? 'Guardando...' : 'Guardar Cambios'}
+          </button>
+        </div>
       </div>
 
       {errorGral && (

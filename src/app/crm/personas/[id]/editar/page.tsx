@@ -11,6 +11,7 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { nombreCompleto } from '@/lib/utils'
 import { apiCall } from '@/lib/api-client'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import type { Persona } from '@/types/database'
 
 // ── Tipos del formulario ─────────────────────────────────────
@@ -406,14 +407,17 @@ export default function EditarPersonaPage() {
             <p className="text-xs text-slate-500">{nombre}</p>
           </div>
         </div>
-        <button
-          onClick={() => guardar()}
-          disabled={guardando}
-          className="btn-primary"
-        >
-          {guardando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-          {guardando ? 'Guardando...' : 'Guardar Cambios'}
-        </button>
+        <div className="flex items-center gap-3">
+          <PresenciaEnFicha tipoEntidad="persona" entidadId={id} modo="editando" />
+          <button
+            onClick={() => guardar()}
+            disabled={guardando}
+            className="btn-primary"
+          >
+            {guardando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+            {guardando ? 'Guardando...' : 'Guardar Cambios'}
+          </button>
+        </div>
       </div>
 
       {/* Error general */}

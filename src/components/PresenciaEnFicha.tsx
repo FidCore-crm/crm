@@ -1,10 +1,14 @@
 'use client'
 
-import { usePresencia, type TipoEntidadPresencia } from '@/lib/hooks/usePresencia'
+import { usePresencia, type TipoEntidadPresencia, type ModoPresencia } from '@/lib/hooks/usePresencia'
+import { Pencil } from 'lucide-react'
 
 interface Props {
   tipoEntidad: TipoEntidadPresencia
   entidadId: string | null | undefined
+  /** Modo en el que ESTE cliente se anuncia. Default 'viendo'.
+   *  Los formularios de edición pasan 'editando'. */
+  modo?: ModoPresencia
 }
 
 // Paleta determinística de colores para el avatar de cada usuario, basada en
@@ -39,32 +43,54 @@ const VISIBLES_MAX = 3
  * mismo recurso (persona/póliza/siniestro/etc.). Se oculta si nadie más está
  * conectado.
  *
+ * Cuando alguno de los otros usuarios está en modo 'editando', se destaca con
+ * ring ámbar + ícono de lápiz + banner explicativo. Ayuda a prevenir conflictos
+ * antes que ocurran — el usuario ve que otro está editando y puede esperar en
+ * vez de tirar un conflict al guardar.
+ *
  * Usa Supabase Realtime Presence — la lista se actualiza al instante cuando
  * alguien entra o sale (incluso por cierre de pestaña).
  */
-export function PresenciaEnFicha({ tipoEntidad, entidadId }: Props) {
-  const otros = usePresencia(tipoEntidad, entidadId)
+export function PresenciaEnFicha({ tipoEntidad, entidadId, modo = 'viendo' }: Props) {
+  const otros = usePresencia(tipoEntidad, entidadId, modo)
   if (otros.length === 0) return null
+
+  const editando = otros.filter((u) => u.modo === 'editando')
+  const viendo = otros.filter((u) => u.modo !== 'editando')
 
   const visibles = otros.slice(0, VISIBLES_MAX)
   const restantes = otros.length - visibles.length
+  const hayEditando = editando.length > 0
 
   return (
-    <div
-      className="flex items-center gap-2"
-      title={`${otros.length} ${otros.length === 1 ? 'persona' : 'personas'} viendo esta ficha`}
-    >
-      <span className="text-xs text-slate-500">Viendo:</span>
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-slate-500">
+        {hayEditando
+          ? editando.length === 1
+            ? '1 editando:'
+            : `${editando.length} editando:`
+          : 'Viendo:'}
+      </span>
       <div className="flex -space-x-2">
-        {visibles.map((u) => (
-          <div
-            key={u.user_id}
-            className={`h-7 w-7 rounded-full ${colorPara(u.user_id)} text-white text-xs font-medium flex items-center justify-center ring-2 ring-white`}
-            title={`${u.nombre} ${u.apellido}`}
-          >
-            {iniciales(u.nombre, u.apellido)}
-          </div>
-        ))}
+        {visibles.map((u) => {
+          const editandoEste = u.modo === 'editando'
+          return (
+            <div
+              key={u.user_id}
+              className={`relative h-7 w-7 rounded-full ${colorPara(u.user_id)} text-white text-xs font-medium flex items-center justify-center ring-2 ${
+                editandoEste ? 'ring-amber-400' : 'ring-white'
+              }`}
+              title={`${u.nombre} ${u.apellido}${editandoEste ? ' (editando)' : ''}`}
+            >
+              {iniciales(u.nombre, u.apellido)}
+              {editandoEste && (
+                <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-amber-500 ring-1 ring-white">
+                  <Pencil className="h-2 w-2 text-white" />
+                </span>
+              )}
+            </div>
+          )
+        })}
         {restantes > 0 && (
           <div
             className="h-7 w-7 rounded-full bg-slate-200 text-slate-700 text-2xs font-medium flex items-center justify-center ring-2 ring-white"
@@ -74,6 +100,16 @@ export function PresenciaEnFicha({ tipoEntidad, entidadId }: Props) {
           </div>
         )}
       </div>
+      {hayEditando && (
+        <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-2xs font-medium text-amber-700">
+          <Pencil className="h-2.5 w-2.5" />
+          Otro usuario está editando
+        </span>
+      )}
+      {/* Contador oculto para lectores de pantalla y hover completo */}
+      <span className="sr-only">
+        {viendo.length} viendo, {editando.length} editando
+      </span>
     </div>
   )
 }

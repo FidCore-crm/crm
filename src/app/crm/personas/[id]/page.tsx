@@ -256,14 +256,32 @@ export default function FichaPersonaPage() {
   async function ejecutarReasignacion() {
     if (!persona) return
     setAsignandoLoading(true)
-    const r = await apiCall('/api/personas/asignar', {
-      method: 'POST',
-      body: { ids: [persona.id], usuario_id: usuarioElegidoAsignar || null },
-    }, { mostrar_toast_en_error: true })
+    const r = await apiCall<{ asignados: number; conflictos: string[]; omitidos: any[] }>(
+      '/api/personas/asignar',
+      {
+        method: 'POST',
+        body: {
+          ids: [persona.id],
+          usuario_id: usuarioElegidoAsignar || null,
+          // Optimistic concurrency: si otro admin tocó a esta persona mientras
+          // el modal estaba abierto, el endpoint devuelve conflictos y no
+          // sobreescribe.
+          if_match_map: { [persona.id]: (persona as any).updated_at },
+        },
+      },
+      { mostrar_toast_en_error: true },
+    )
     setAsignandoLoading(false)
     if (r.ok) {
+      const conflictos = r.data?.conflictos ?? []
+      if (conflictos.length > 0) {
+        toast.warning('Otro admin modificó al cliente mientras tanto. Refrescamos la ficha; volvé a reasignarlo si querés.')
+        const { data } = await supabase.from('personas').select('*').eq('id', persona.id).single()
+        if (data) setPersona(data as Persona)
+        setModalAsignar(false)
+        return
+      }
       setModalAsignar(false)
-      // Refrescar la persona desde DB
       const { data } = await supabase.from('personas').select('*').eq('id', persona.id).single()
       if (data) setPersona(data as Persona)
     }

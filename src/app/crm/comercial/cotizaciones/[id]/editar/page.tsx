@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { actualizarConOptimistic } from '@/lib/optimistic-update'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 
@@ -550,6 +551,7 @@ export default function EditarCotizacionPage() {
             <p className="text-xs text-slate-500">Modificar datos de la cotizacion en borrador</p>
           </div>
         </div>
+        <PresenciaEnFicha tipoEntidad="cotizacion" entidadId={id} modo="editando" />
       </div>
 
       {/* Mensajes */}

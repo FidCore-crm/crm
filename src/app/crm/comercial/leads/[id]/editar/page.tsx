@@ -6,6 +6,7 @@ import { ArrowLeft, Save, Loader2, AlertCircle, CheckCircle, Lock } from 'lucide
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { actualizarConOptimistic } from '@/lib/optimistic-update'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 
 interface FormData {
   nombre: string
@@ -212,12 +213,15 @@ export default function EditarLeadPage() {
             <p className="text-xs text-slate-500">Modificar datos del lead</p>
           </div>
         </div>
-        {!soloLectura && (
-          <button onClick={() => guardar()} disabled={guardando} className="btn-primary">
-            {guardando ? <Loader2 className="h-3 w-3 animate-spin"/> : <Save className="h-3 w-3"/>}
-            {guardando ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <PresenciaEnFicha tipoEntidad="lead" entidadId={id} modo="editando" />
+          {!soloLectura && (
+            <button onClick={() => guardar()} disabled={guardando} className="btn-primary">
+              {guardando ? <Loader2 className="h-3 w-3 animate-spin"/> : <Save className="h-3 w-3"/>}
+              {guardando ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          )}
+        </div>
       </div>
 
       {soloLectura && (

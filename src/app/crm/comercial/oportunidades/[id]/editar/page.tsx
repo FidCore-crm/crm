@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { actualizarConOptimistic } from '@/lib/optimistic-update'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 
 function Campo({ label, required, error, children }: {
   label: string; required?: boolean; error?: string; children: React.ReactNode
@@ -177,12 +178,15 @@ export default function EditarOportunidadPage() {
             <p className="text-xs text-slate-500">Cliente: {personaNombre}</p>
           </div>
         </div>
-        {!cerrada && (
-          <button onClick={() => guardar()} disabled={guardando} className="btn-primary">
-            {guardando ? <Loader2 className="h-3 w-3 animate-spin"/> : <Save className="h-3 w-3"/>}
-            {guardando ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <PresenciaEnFicha tipoEntidad="oportunidad" entidadId={id} modo="editando" />
+          {!cerrada && (
+            <button onClick={() => guardar()} disabled={guardando} className="btn-primary">
+              {guardando ? <Loader2 className="h-3 w-3 animate-spin"/> : <Save className="h-3 w-3"/>}
+              {guardando ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          )}
+        </div>
       </div>
 
       {cerrada && (

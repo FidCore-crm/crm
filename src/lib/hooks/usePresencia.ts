@@ -4,15 +4,19 @@ import { useEffect, useState } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 
+export type ModoPresencia = 'viendo' | 'editando'
+
 // Tipo de presencia que se trackea por usuario en un canal de ficha.
-// Lo mantengo chico — solo lo necesario para renderizar el avatar y el
-// tooltip. Si más adelante hace falta diferenciar modo (viendo/editando),
-// agregar acá y en `<PresenciaEnFicha />`.
+// El `modo` distingue si el usuario tiene la ficha abierta en modo lectura
+// (ficha detalle) o modo edición (formulario `[id]/editar`). Sirve para
+// prevenir conflictos de concurrencia antes que ocurran — la UI muestra
+// visualmente si otro usuario está editando el mismo recurso.
 export interface PresenciaUsuario {
   user_id: string
   nombre: string
   apellido: string
   joined_at: string
+  modo: ModoPresencia
 }
 
 export type TipoEntidadPresencia =
@@ -30,6 +34,11 @@ export type TipoEntidadPresencia =
  * mismo canal — excluye al usuario propio para que la UI muestre solo
  * "quiénes más están acá".
  *
+ * El parámetro `modo` (default 'viendo') indica en qué modo entra este cliente.
+ * Los formularios de edición pasan 'editando' para que los demás usuarios vean
+ * la advertencia antes de abrir el mismo form. El backend tiene optimistic
+ * locking igual — esto es UX preventivo.
+ *
  * Implementado sobre Supabase Realtime Presence. Cada cliente se anuncia con
  * track() al subscribe, y todos reciben eventos `sync` cuando alguien entra
  * o sale (incluso si cerró la pestaña sin signout — Realtime detecta la
@@ -37,7 +46,8 @@ export type TipoEntidadPresencia =
  */
 export function usePresencia(
   tipoEntidad: TipoEntidadPresencia,
-  entidadId: string | null | undefined
+  entidadId: string | null | undefined,
+  modo: ModoPresencia = 'viendo',
 ): PresenciaUsuario[] {
   const { usuario } = useAuth()
   const [otros, setOtros] = useState<PresenciaUsuario[]>([])
@@ -73,6 +83,7 @@ export function usePresencia(
             nombre: usuario.nombre,
             apellido: usuario.apellido,
             joined_at: new Date().toISOString(),
+            modo,
           })
         }
       })
@@ -82,7 +93,11 @@ export function usePresencia(
       // desconectarse el socket también.
       supabase.removeChannel(canal)
     }
-  }, [tipoEntidad, entidadId, usuario])
+    // Nota: si `modo` cambia mid-vida (ej: usuario abrió modal edit sin
+    // desmontar la ficha) hay que re-suscribirse. Como en el CRM los forms de
+    // edición son páginas propias (`[id]/editar/page.tsx`), esto no pasa —
+    // el remount natural del hook cubre el cambio.
+  }, [tipoEntidad, entidadId, usuario, modo])
 
   return otros
 }

@@ -13,6 +13,7 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { apiCall } from '@/lib/api-client'
 import BuscadorPersona from '@/components/BuscadorPersona'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
@@ -491,10 +492,13 @@ export default function EditarPolizaPage() {
             <p className="text-xs text-slate-500 font-mono">{poliza.numero_poliza}</p>
           </div>
         </div>
-        <button onClick={() => guardar()} disabled={guardando} className="btn-primary px-5">
-          {guardando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-          {guardando ? 'Guardando...' : 'Guardar Cambios'}
-        </button>
+        <div className="flex items-center gap-3">
+          <PresenciaEnFicha tipoEntidad="poliza" entidadId={id} modo="editando" />
+          <button onClick={() => guardar()} disabled={guardando} className="btn-primary px-5">
+            {guardando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+            {guardando ? 'Guardando...' : 'Guardar Cambios'}
+          </button>
+        </div>
       </div>
 
       {errorGral && (

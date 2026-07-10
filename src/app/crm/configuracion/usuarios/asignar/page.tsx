@@ -20,6 +20,7 @@ interface PersonaRow {
   nombre: string | null
   dni_cuil: string
   usuario_id: string | null
+  updated_at: string | null
   _polizas_vigentes: number
   _usuario_nombre: string | null
 }
@@ -68,7 +69,7 @@ export default function AsignarClientesPage() {
 
     let query = supabase
       .from('personas')
-      .select('id, apellido, nombre, dni_cuil, usuario_id', { count: 'exact' })
+      .select('id, apellido, nombre, dni_cuil, usuario_id, updated_at', { count: 'exact' })
 
     if (filtroUsuario === 'SIN_ASIGNAR') {
       query = query.is('usuario_id', null)
@@ -145,18 +146,43 @@ export default function AsignarClientesPage() {
     setAsignando(true)
 
     const ids = Array.from(seleccionados)
-    const r = await apiCall<{ asignados: number }>('/api/personas/asignar', {
-      method: 'POST',
-      body: { ids, usuario_id: asignarA === 'QUITAR' ? null : asignarA },
-    }, { mostrar_toast_en_error: false })
+    // Construir map { id: updated_at } para optimistic per-item. Si otro admin
+    // reasignó estas mismas personas mientras teníamos la lista abierta, sus
+    // updated_at cambiaron y el backend devuelve conflictos.
+    const ifMatchMap: Record<string, string> = {}
+    for (const p of personas) {
+      if (seleccionados.has(p.id) && p.updated_at) {
+        ifMatchMap[p.id] = p.updated_at
+      }
+    }
+
+    const r = await apiCall<{ asignados: number; conflictos: string[]; omitidos: any[] }>(
+      '/api/personas/asignar',
+      {
+        method: 'POST',
+        body: {
+          ids,
+          usuario_id: asignarA === 'QUITAR' ? null : asignarA,
+          if_match_map: ifMatchMap,
+        },
+      },
+      { mostrar_toast_en_error: false },
+    )
 
     setAsignando(false)
     if (r.ok) {
       const dest = asignarA === 'QUITAR'
         ? 'Sin asignar'
         : usuarios.find(u => u.id === asignarA)?.nombre ?? ''
-      setToast(`${ids.length} cliente(s) asignado(s) a ${dest}`)
-      setTimeout(() => setToast(''), 3000)
+      const asignados = r.data?.asignados ?? 0
+      const conflictos = r.data?.conflictos ?? []
+      if (conflictos.length > 0) {
+        setToast(`${asignados} asignado(s) a ${dest}. ${conflictos.length} en conflicto (otro admin los cambió) — se refresca la lista.`)
+        setTimeout(() => setToast(''), 6000)
+      } else {
+        setToast(`${asignados} cliente(s) asignado(s) a ${dest}`)
+        setTimeout(() => setToast(''), 3000)
+      }
       setSeleccionados(new Set())
       cargarPersonas()
     } else {

@@ -167,6 +167,8 @@ export async function PATCH(request: NextRequest) {
       campos.notificar_admin_pdf_fallido = body.notificar_admin_pdf_fallido === true
     if (body.notificar_admin_email_automatico_fallido !== undefined)
       campos.notificar_admin_email_automatico_fallido = body.notificar_admin_email_automatico_fallido === true
+    if (body.notificar_admin_lead_web !== undefined)
+      campos.notificar_admin_lead_web = body.notificar_admin_lead_web === true
     // Toggles para el formulario público de denuncia
     if (body.envio_automatico_denuncia_publica_cliente !== undefined)
       campos.envio_automatico_denuncia_publica_cliente = body.envio_automatico_denuncia_publica_cliente === true
