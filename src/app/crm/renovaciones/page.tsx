@@ -14,6 +14,7 @@ import ModalEnviarEmailMasivo from '@/components/ModalEnviarEmailMasivo'
 import { EstadoCarga } from '@/components/EstadoCarga'
 import { apiCall } from '@/lib/api-client'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 interface Poliza {
   id: string
@@ -284,6 +285,10 @@ export default function RenovacionesPage() {
   }, [supabase, usuario, kpiActivo, filtroCompania, filtroRamo, busquedaDebounce, pagina, idsConRenovacion])
 
   useEffect(() => { cargarPolizas() }, [cargarPolizas])
+
+  // Realtime: cualquier alta/renovación/baja/edición de póliza refresca el listado
+  // para que no dependa de F5. Filosofía general del sistema: cambios se ven en el acto.
+  useRealtimeRefresh({ tablas: ['polizas'], onCambio: cargarPolizas })
 
   useEffect(() => {
     apiCall<{ activo: boolean }>('/api/comunicaciones/estado', {}, { mostrar_toast_en_error: false })

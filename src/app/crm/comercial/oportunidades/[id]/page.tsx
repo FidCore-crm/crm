@@ -11,6 +11,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { formatFechaLocalLarga, hoyLocal, formatMoneda, nowLocalDatetimeInput } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal, puedeEliminar } from '@/lib/cartera-filter'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // ── Tipos ──────────────────────────────────────────────
 interface OportunidadData {
@@ -170,6 +171,13 @@ export default function FichaOportunidadPage() {
   }, [supabase, id])
 
   useEffect(() => { cargarDatos() }, [cargarDatos])
+
+  // Realtime: cambios en la oportunidad + interacciones + tareas relacionadas
+  // se reflejan al instante.
+  useRealtimeRefresh({
+    tablas: ['oportunidades', 'interacciones', 'tareas', 'cotizaciones'],
+    onCambio: cargarDatos,
+  })
 
   // Access check
   useEffect(() => {

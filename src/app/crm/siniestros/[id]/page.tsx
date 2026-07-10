@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import {
   ArrowLeft, Save, Loader2, AlertCircle, AlertTriangle, Car, Home,
@@ -20,6 +20,7 @@ import EditarSiniestroModal from '@/components/EditarSiniestroModal'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { formatFecha } from '@/lib/utils'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { extraerCamposCustom, mapaLabelsPorKey, labelDeCampo } from '@/lib/siniestros-campos-custom'
@@ -284,39 +285,45 @@ export default function FichaSiniestroPage() {
   }, [modalEliminar])
 
   // ── Cargar datos ───────────────────────────────────────
-  useEffect(() => {
-    async function cargar() {
-      const [{ data: sin }, rBit] = await Promise.all([
-        supabase.from('siniestros').select(`
-          id, numero_caso, numero_siniestro,
-          fecha_ocurrencia, fecha_denuncia, hora_siniestro,
-          tipo_siniestro, estado,
-          monto_estimado, monto_liquidado, franquicia_aplicada, monto_cobrado,
-          descripcion, detalle_siniestro,
-          lugar_siniestro, localidad_siniestro,
-          tercero_nombre, tercero_dni, tercero_telefono, tercero_patente,
-          deleted_at,
-          origen_creacion, revisado_por_pas, fecha_revision,
-          asegurado:personas!persona_id (id, apellido, nombre, razon_social, telefono, whatsapp, usuario_id),
-          poliza:polizas!poliza_id (
-            id, numero_poliza,
-            compania:catalogos!compania_id (nombre),
-            ramo:catalogos!ramo_id (nombre, metadata),
-            riesgos (tipo_riesgo, detalle_tecnico)
-          )
-        `).eq('id', id).single(),
-        apiCall<{ eventos: EntradaBitacora[] }>(
-          `/api/siniestros/${id}/bitacora`,
-          { cache: 'no-store' },
-          { mostrar_toast_en_error: false },
-        ),
-      ])
-      if (sin) { setSiniestro(sin as unknown as Siniestro); setNuevoEstado(sin.estado) }
-      if (rBit.ok && rBit.data) setBitacora(rBit.data.eventos ?? [])
-      setCargando(false)
-    }
-    cargar()
+  const cargar = useCallback(async () => {
+    const [{ data: sin }, rBit] = await Promise.all([
+      supabase.from('siniestros').select(`
+        id, numero_caso, numero_siniestro,
+        fecha_ocurrencia, fecha_denuncia, hora_siniestro,
+        tipo_siniestro, estado,
+        monto_estimado, monto_liquidado, franquicia_aplicada, monto_cobrado,
+        descripcion, detalle_siniestro,
+        lugar_siniestro, localidad_siniestro,
+        tercero_nombre, tercero_dni, tercero_telefono, tercero_patente,
+        deleted_at,
+        origen_creacion, revisado_por_pas, fecha_revision,
+        asegurado:personas!persona_id (id, apellido, nombre, razon_social, telefono, whatsapp, usuario_id),
+        poliza:polizas!poliza_id (
+          id, numero_poliza,
+          compania:catalogos!compania_id (nombre),
+          ramo:catalogos!ramo_id (nombre, metadata),
+          riesgos (tipo_riesgo, detalle_tecnico)
+        )
+      `).eq('id', id).single(),
+      apiCall<{ eventos: EntradaBitacora[] }>(
+        `/api/siniestros/${id}/bitacora`,
+        { cache: 'no-store' },
+        { mostrar_toast_en_error: false },
+      ),
+    ])
+    if (sin) { setSiniestro(sin as unknown as Siniestro); setNuevoEstado(sin.estado) }
+    if (rBit.ok && rBit.data) setBitacora(rBit.data.eventos ?? [])
+    setCargando(false)
   }, [supabase, id])
+
+  useEffect(() => { cargar() }, [cargar])
+
+  // Realtime: cambios en el siniestro, bitácora y archivos se reflejan en el acto
+  // aunque otro usuario/proceso los toque.
+  useRealtimeRefresh({
+    tablas: ['siniestros', 'siniestro_bitacora', 'siniestro_archivos'],
+    onCambio: cargar,
+  })
 
   const recargarBitacora = async () => {
     // AbortController para cancelar la query previa si el usuario dispara

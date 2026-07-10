@@ -16,6 +16,7 @@ import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { tipoRenderForm, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // ── Tipos locales ────────────────────────────────────────────
 interface CotizacionDetalle {
@@ -203,6 +204,14 @@ export default function FichaCotizacionPage() {
   }, [supabase, id])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Realtime: cambios en la cotización y sus opciones (cotizacion_companias)
+  // se reflejan al instante — clave para el flujo colaborativo cuando el PAS
+  // gestiona respuestas de compañías desde otro dispositivo.
+  useRealtimeRefresh({
+    tablas: ['cotizaciones', 'cotizacion_companias'],
+    onCambio: cargar,
+  })
 
   // Helper: nombre comercial de una cobertura para una compañía específica.
   // Cada cobertura del catálogo puede tener `metadata.equivalencias` (array

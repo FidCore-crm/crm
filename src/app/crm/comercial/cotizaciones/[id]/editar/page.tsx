@@ -737,10 +737,8 @@ export default function EditarCotizacionPage() {
           )}
 
           {ramoId && renderTipo === 'vida' && (
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <Campo label="Capital asegurado">
-                <input className="form-input w-full font-mono" type="number" value={riesgo.capital_asegurado} onChange={e => setR('capital_asegurado', e.target.value)} />
-              </Campo>
+            <div className="grid grid-cols-1 gap-4 pt-2">
+              {/* Capital asegurado: se ingresa a nivel cotización (Suma asegurada). Evitamos duplicarlo. */}
               <Campo label="Beneficiarios">
                 <input className="form-input w-full" value={riesgo.beneficiarios} onChange={e => setR('beneficiarios', e.target.value)} placeholder="Nombre(s) de beneficiarios" />
               </Campo>

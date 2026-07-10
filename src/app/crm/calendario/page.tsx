@@ -15,6 +15,7 @@ import { toast } from '@/lib/toast'
 import { apiCall } from '@/lib/api-client'
 import { EstadoCarga } from '@/components/EstadoCarga'
 import EventoModal, { type Evento } from '@/components/EventoModal'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // ── Tipos ─────────────��──────────────────────────────────────
 interface TareaCal {
@@ -337,6 +338,13 @@ export default function CalendarioPage() {
   }, [supabase, anio, mes, filtroCompania, hoy, usuario])
 
   useEffect(() => { cargarDatos() }, [cargarDatos])
+
+  // Realtime: cualquier alta/edición/borrado de tarea o cambio en pólizas
+  // refresca la vista (afecta al render mensual + panel lateral).
+  useRealtimeRefresh({
+    tablas: ['tareas', 'polizas'],
+    onCambio: cargarDatos,
+  })
 
   // ── Navegación de mes ───────���──────────────────────────
   const mesAnterior = () => {

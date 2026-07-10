@@ -25,6 +25,7 @@ import { toast } from '@/lib/toast'
 import { copiarAlPortapapeles } from '@/lib/copiar-portapapeles'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // ── Tipos locales para las queries con joins ─────────────────
 interface PolizaResumen {
@@ -229,6 +230,13 @@ export default function FichaPersonaPage() {
   }, [supabase, id])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Realtime: cambios en el cliente + sus pólizas/siniestros/tareas y bitácora
+  // se reflejan en la ficha sin refresh manual.
+  useRealtimeRefresh({
+    tablas: ['personas', 'polizas', 'siniestros', 'tareas', 'persona_bitacora'],
+    onCambio: cargar,
+  })
 
   // Cargar lista de usuarios (admin) para el botón "Reasignar"
   useEffect(() => {

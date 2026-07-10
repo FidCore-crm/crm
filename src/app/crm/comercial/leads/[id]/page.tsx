@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { apiCall } from '@/lib/api-client'
 import { emitirBroadcastMensajesWeb } from '@/lib/broadcast-mensajes-web'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 interface LeadData {
   id: string
@@ -211,6 +212,12 @@ export default function FichaLeadPage() {
   }, [supabase, id, usuario, router])
 
   useEffect(() => { cargarDatos() }, [cargarDatos])
+
+  // Realtime: lead + sus interacciones cambian en el acto.
+  useRealtimeRefresh({
+    tablas: ['leads', 'interacciones'],
+    onCambio: cargarDatos,
+  })
 
   // Nueva interacción
   const abrirFormInteraccion = () => {

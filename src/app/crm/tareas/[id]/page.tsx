@@ -11,6 +11,7 @@ import {
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { formatFechaLocalLarga, hoyLocal, calcularSiguienteFechaRecurrencia } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface Tarea {
@@ -114,6 +115,9 @@ export default function FichaTareaPage() {
   }, [supabase, id])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Realtime: cambios en la tarea se reflejan al instante.
+  useRealtimeRefresh({ tablas: ['tareas'], onCambio: cargar })
 
   const completarTarea = async () => {
     if (!tarea) return

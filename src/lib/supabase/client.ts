@@ -17,6 +17,10 @@ import { resolverUrlSupabaseBrowser } from './url-resolver'
  *    `Authorization: Bearer <jwt>`.
  *  - Si la query devuelve 401 (JWT vencido), pide al backend que refresque
  *    (`/api/auth/refrescar-token`) y reintenta UNA vez con el nuevo JWT.
+ *  - Para Realtime (WebSocket), llamamos `realtime.setAuth(jwt)` al crear
+ *    el cliente y cada vez que el JWT se renueva. Sin esto el WS queda
+ *    autenticado con anon_key y las policies con `auth.uid()` filtran
+ *    todos los eventos, cortando el flujo Realtime del sistema.
  *
  * Esto permite que RLS use `auth.uid()` y los custom claims del JWT
  * (rol, acceso_cartera) inyectados por el hook de la migración 055.
@@ -52,8 +56,25 @@ async function refrescarJwt(): Promise<boolean> {
   }
 }
 
+/** Última JWT sincronizada al canal Realtime — evita llamar setAuth con el
+ *  mismo token repetidamente. */
+let ultimoJwtRealtime: string | null = null
+
+/** Sincroniza el JWT del usuario al cliente Realtime.
+ *  Sin esto el WS queda autenticado con anon_key y las policies RLS con
+ *  `auth.uid()` no dejan pasar eventos.
+ *  El tipo `any` es intencional: el cliente en runtime es el correcto pero
+ *  los genéricos de v2 chocan con la firma explícita del wrapper. */
+function sincronizarJwtRealtime(cliente: any): void {
+  const jwt = leerCookie('fidcore_jwt')
+  if (jwt && jwt !== ultimoJwtRealtime) {
+    cliente.realtime.setAuth(jwt)
+    ultimoJwtRealtime = jwt
+  }
+}
+
 export function createClient() {
-  return createSupabaseClient(
+  const cliente = createSupabaseClient(
     resolverUrlSupabaseBrowser(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -77,6 +98,9 @@ export function createClient() {
               const nuevoJwt = leerCookie('fidcore_jwt')
               if (nuevoJwt && nuevoJwt !== jwt) {
                 headers.set('Authorization', `Bearer ${nuevoJwt}`)
+                // Sincronizar el nuevo JWT al WS de Realtime para que los canales
+                // suscritos sigan recibiendo eventos después del refresh.
+                sincronizarJwtRealtime(cliente)
                 response = await fetch(input, { ...init, headers })
               }
             }
@@ -87,6 +111,7 @@ export function createClient() {
       },
     },
   )
+  return cliente
 }
 
 // Singleton para componentes cliente
@@ -96,5 +121,8 @@ export function getSupabaseClient() {
   if (!client) {
     client = createClient()
   }
+  // Cada vez que se pide el cliente, resincronizamos por si el JWT cambió
+  // (login, refresh manual, cambio de sesión). Es no-op si el JWT es el mismo.
+  sincronizarJwtRealtime(client)
   return client
 }

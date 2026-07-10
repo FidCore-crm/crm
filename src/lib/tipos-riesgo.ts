@@ -133,7 +133,7 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
     resumen: 'Para seguros sobre la persona. El formulario pide capital asegurado y beneficiarios.',
     ejemplos: ['Vida', 'Sepelio', 'Accidentes Personales', 'Salud'],
     campos_poliza: [
-      { key: 'capital_asegurado', label: 'Capital asegurado', tipo: 'number', requerido: false, placeholder: '5000000', ancho: 'mitad' },
+      // NOTA: sacamos "capital_asegurado" porque duplica `suma_asegurada` de la póliza.
       { key: 'plan', label: 'Plan / Cobertura', tipo: 'text', requerido: false, placeholder: 'Plan 200, Premium, etc.', ancho: 'mitad' },
       { key: 'prestador', label: 'Prestador (si aplica)', tipo: 'text', requerido: false, placeholder: 'Sanatorio o prestador', ancho: 'completo' },
       { key: 'beneficiarios', label: 'Beneficiarios', tipo: 'textarea', requerido: false, placeholder: 'Nombre, DNI, parentesco, %', ancho: 'completo' },
@@ -153,8 +153,10 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
     resumen: 'Para seguros de mercadería en viaje. El formulario pide tipo de mercadería, valor y origen-destino.',
     ejemplos: ['Transporte de mercadería', 'Logística', 'Importación', 'Exportación'],
     campos_poliza: [
+      // NOTA: sacamos "valor_mercaderia" porque duplica el campo `suma_asegurada`
+      // de la póliza base. La única fuente de verdad es la caja "Suma asegurada"
+      // que se carga arriba, en Datos de la póliza.
       { key: 'tipo_mercaderia', label: 'Tipo de mercadería', tipo: 'text', requerido: true, placeholder: 'Electrodomésticos, alimentos, etc.', ancho: 'completo' },
-      { key: 'valor_mercaderia', label: 'Valor de la mercadería', tipo: 'number', requerido: false, placeholder: '0', ancho: 'mitad' },
       { key: 'medio_transporte', label: 'Medio de transporte', tipo: 'select', requerido: false, opciones: ['Terrestre', 'Marítimo', 'Aéreo', 'Multimodal'], ancho: 'mitad' },
       { key: 'origen', label: 'Origen', tipo: 'text', requerido: false, placeholder: 'Buenos Aires, Argentina', ancho: 'mitad' },
       { key: 'destino', label: 'Destino', tipo: 'text', requerido: false, placeholder: 'San Pablo, Brasil', ancho: 'mitad' },
@@ -242,12 +244,12 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
     resumen: 'Para coberturas de robo sobre objetos puntuales (bicicletas, teléfonos, notebooks, etc.). No usar para locales o casas — eso va en Integrales.',
     ejemplos: [],
     campos_poliza: [
+      // NOTA: sacamos "valor_asegurado" porque duplica `suma_asegurada` de la póliza.
       { key: 'descripcion_objeto', label: 'Descripción del objeto asegurado', tipo: 'textarea', requerido: true, placeholder: 'Ej: Bicicleta Trek Marlin 7 rodado 29 / iPhone 14 Pro 256GB', ancho: 'completo' },
       { key: 'marca', label: 'Marca', tipo: 'text', requerido: false, ancho: 'mitad' },
       { key: 'modelo', label: 'Modelo', tipo: 'text', requerido: false, ancho: 'mitad' },
       { key: 'numero_serie', label: 'Nro. de serie / IMEI / chasis', tipo: 'text', requerido: false, ancho: 'mitad' },
       { key: 'anio', label: 'Año', tipo: 'number', requerido: false, ancho: 'mitad' },
-      { key: 'valor_asegurado', label: 'Valor asegurado', tipo: 'number', requerido: false, ancho: 'mitad' },
       { key: 'lugar_guarda', label: 'Lugar habitual de guarda', tipo: 'text', requerido: false, placeholder: 'Ej: cochera del edificio, oficina, mochila', ancho: 'mitad' },
     ],
     campos_siniestro_default: [
@@ -289,12 +291,12 @@ export const TIPOS_RIESGO: TipoRiesgoDef[] = [
     resumen: 'Para seguros del campo: cultivos, animales, maquinaria agrícola, granizo, multirriesgo.',
     ejemplos: ['Granizo', 'Multirriesgo agrícola', 'Animales', 'Maquinaria agrícola'],
     campos_poliza: [
+      // NOTA: sacamos "valor_asegurado" porque duplica `suma_asegurada` de la póliza.
       { key: 'ubicacion', label: 'Ubicación (calle/ruta del establecimiento)', tipo: 'text', requerido: false, ancho: 'mitad' },
       { key: 'partido', label: 'Partido / departamento', tipo: 'text', requerido: false, ancho: 'mitad' },
       { key: 'provincia', label: 'Provincia', tipo: 'text', requerido: false, ancho: 'mitad' },
       { key: 'tipo_cobertura', label: 'Tipo de cobertura específica', tipo: 'select', requerido: false, opciones: ['Granizo', 'Multirriesgo', 'Animales', 'Maquinaria', 'Otro'], ancho: 'mitad' },
       { key: 'superficie_ha', label: 'Superficie (hectáreas)', tipo: 'number', requerido: false, ancho: 'mitad' },
-      { key: 'valor_asegurado', label: 'Valor asegurado', tipo: 'number', requerido: false, ancho: 'mitad' },
       { key: 'cultivo_actividad', label: 'Cultivo / especie / actividad', tipo: 'textarea', requerido: false, placeholder: 'Ej: soja, trigo, ganado vacuno', ancho: 'completo' },
     ],
     campos_siniestro_default: [

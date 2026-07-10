@@ -15,6 +15,7 @@ import { obtenerIdsPersonas, filtrarPorPersonas, puedeEliminar } from '@/lib/car
 import { EstadoCarga } from '@/components/EstadoCarga'
 import { toast } from '@/lib/toast'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface Tarea {
@@ -221,6 +222,13 @@ export default function TareasPage() {
   }, [supabase, idsPersonas, idsPersonasCargados, filtroTipo, filtroPrioridad, filtroEstado, filtroPeriodo, busquedaDebounce, pagina])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Realtime: cualquier alta/edición/completada de tarea refresca listado + KPIs
+  // sin depender de F5.
+  useRealtimeRefresh({
+    tablas: ['tareas'],
+    onCambio: () => { cargar(); cargarKpis() },
+  })
 
   // ── Completar tarea ────────────────────────────────────
   const completarTarea = async () => {

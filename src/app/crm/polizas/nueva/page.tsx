@@ -752,12 +752,7 @@ function NuevaPolizaContent() {
             </>)}
 
             {renderTipo === 'vida' && (<>
-              <Campo label="Capital asegurado">
-                <div className="flex gap-1">
-                  <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
-                  <input className="form-input font-mono rounded-l-none flex-1" value={riesgo.capital_asegurado} onChange={e => setR('capital_asegurado', e.target.value.replace(/[^\d.]/g,''))} placeholder="1000000" inputMode="decimal"/>
-                </div>
-              </Campo>
+              {/* Capital asegurado se carga en "Suma asegurada" arriba (evita duplicar). */}
               <Campo label="Beneficiarios" col={2}>
                 <input className="form-input" value={riesgo.beneficiarios} onChange={e => setR('beneficiarios', e.target.value)} placeholder="Nombre y parentesco"/>
               </Campo>

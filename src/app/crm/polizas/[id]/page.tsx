@@ -29,6 +29,7 @@ import { toast } from '@/lib/toast'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { formatearRefacturacion } from '@/lib/refacturaciones'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { formatearMedioPago } from '@/lib/medios-pago'
 import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
 import { obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
@@ -279,6 +280,14 @@ export default function FichaPolizaPage() {
   }, [supabase, id, usuario, router])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Realtime: cambios en polizas (esta y hijas), riesgos, endosos, siniestros
+  // vinculados, o tareas asociadas fuerzan un refetch para que la ficha
+  // siempre esté al día si otro usuario está tocando la misma póliza.
+  useRealtimeRefresh({
+    tablas: ['polizas', 'riesgos', 'endosos', 'siniestros', 'tareas', 'poliza_bitacora', 'poliza_archivos'],
+    onCambio: cargar,
+  })
 
   useEffect(() => {
     if (isAdmin) {

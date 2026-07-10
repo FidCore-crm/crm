@@ -23,6 +23,7 @@ import {
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { graficoVisible } from '@/lib/dashboard-graficos'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 // ── Helpers ──────────────────────────────────────────────────
 function primerDiaMes(date: Date): string {
@@ -216,6 +217,11 @@ export default function DashboardPage() {
   const [idsPersonas, setIdsPersonas] = useState<string[] | null>(null)
   const [idsPersonasCargados, setIdsPersonasCargados] = useState(false)
 
+  // Contador que se incrementa cada vez que Realtime detecta cambios en las
+  // tablas del dashboard. Los useEffect que cargan KPIs / panel de acción /
+  // renovaciones lo usan como dependencia extra para refetchear.
+  const [refreshTick, setRefreshTick] = useState(0)
+
   useEffect(() => {
     if (!usuario) return
     async function cargar() {
@@ -390,7 +396,7 @@ export default function DashboardPage() {
     }
     cargarKpis()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsPersonasCargados])
+  }, [idsPersonasCargados, refreshTick])
 
   // ── Cargar panel de acción (pestaña Inicio, al montar) ──
   useEffect(() => {
@@ -468,7 +474,7 @@ export default function DashboardPage() {
     }
     cargarAccion()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsPersonasCargados])
+  }, [idsPersonasCargados, refreshTick])
 
   // ── Cargar post-it (pestaña Inicio, al montar) ──
   const cargarPostits = useCallback(async () => {
@@ -824,7 +830,21 @@ export default function DashboardPage() {
     }
     cargarRenovaciones()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabActiva, idsPersonasCargados])
+  }, [tabActiva, idsPersonasCargados, refreshTick])
+
+  // Realtime: cualquier cambio en las tablas clave del dashboard incrementa el
+  // tick y refetchea KPIs, panel de acción y renovaciones del mes.
+  useRealtimeRefresh({
+    tablas: ['polizas', 'siniestros', 'tareas', 'personas', 'notificaciones'],
+    onCambio: () => {
+      setRefreshTick(t => t + 1)
+      // Invalidamos los lazy loaders para que refetcheen cuando el usuario
+      // vuelva a la pestaña — sino con Realtime más un renovacionesLoaded=true
+      // nos quedaríamos con data vieja.
+      setRenovacionesLoaded(false)
+      setChartsLoaded(false)
+    },
+  })
 
   // ── Post-it handlers ──
   async function guardarPostit() {
