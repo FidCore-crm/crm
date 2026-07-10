@@ -17,6 +17,7 @@ import { emitirBroadcastNotificaciones, useBroadcastNotificaciones } from '@/lib
 import { logger } from '@/lib/errores/logger'
 import { PresenciaNavbar } from './PresenciaNavbar'
 import { MensajesWebNavbar } from './MensajesWebNavbar'
+import { DenunciasWebNavbar } from './DenunciasWebNavbar'
 import { AvisoActualizacion } from './AvisoActualizacion'
 
 // ── Tipos búsqueda global ──
@@ -173,12 +174,13 @@ export function Navbar() {
   // ── Cargar contadores de notificaciones ──
   // El scope se aplica en el backend a partir de la sesión autenticada,
   // no se pasa usuario_id por query string (era ignorado por la API).
-  // Excluimos los LEAD_WEB_NUEVO porque tienen su propio ícono al lado
-  // (MensajesWebNavbar — el Inbox verde). Si no se excluyen, aparecen en
-  // ambos lados y el contador queda duplicado.
+  // Excluimos los LEAD_WEB_NUEVO (Inbox verde, MensajesWebNavbar) y los
+  // SINIESTRO_DENUNCIA_PUBLICA (Siren rojo, DenunciasWebNavbar) porque cada
+  // uno tiene su propio ícono al lado. Si no se excluyen, aparecen en ambos
+  // lados y el contador queda duplicado.
   const cargarContadores = useCallback(async () => {
     try {
-      const res = await fetch('/api/notificaciones?leida=false&limite=1&tipo_excluir=LEAD_WEB_NUEVO')
+      const res = await fetch('/api/notificaciones?leida=false&limite=1&tipo_excluir=LEAD_WEB_NUEVO,SINIESTRO_DENUNCIA_PUBLICA')
       const json = await res.json()
       if (json.ok && json.resumen) {
         setContadores(json.resumen)
@@ -196,7 +198,7 @@ export function Navbar() {
   const cargarNotificaciones = useCallback(async () => {
     setCargandoNotif(true)
     try {
-      const res = await fetch('/api/notificaciones?limite=15&tipo_excluir=LEAD_WEB_NUEVO')
+      const res = await fetch('/api/notificaciones?limite=15&tipo_excluir=LEAD_WEB_NUEVO,SINIESTRO_DENUNCIA_PUBLICA')
       const json = await res.json()
       if (json.ok) {
         setNotificaciones(json.data ?? [])
@@ -649,6 +651,9 @@ export function Navbar() {
 
         {/* Mensajes recibidos desde la web (leads del formulario público) */}
         <MensajesWebNavbar />
+
+        {/* Denuncias de siniestro cargadas por el asegurado (portal / formulario público) */}
+        <DenunciasWebNavbar />
 
         {/* Notificaciones */}
         <div className="relative" ref={panelRef}>
