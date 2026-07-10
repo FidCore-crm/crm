@@ -666,13 +666,21 @@ export default function FichaPolizaPage() {
         </div>
       )}
 
-      {/* ── Layout 2 columnas ─────────────────────────────────── */}
-      <div className="flex gap-3 w-full">
+      {/* ── Nuevo layout (v1.0.109) ─────────────────────────────
+           Fila 1: grilla 12-cols con datos base (Asegurado 3/12, Datos
+           Póliza 4/12, Bien Asegurado 5/12). Antes iban apilados en una
+           columna estrecha de 280px y quedaban amontonados.
+           Fila 2 (si hay contenido): Observaciones + Notas en 2 cols.
+           Fila 3 (si hay renovaciones): cadena full width.
+           Resto: apilado full width vertical (historial, comunicaciones,
+           endosos, inspección, documentación, siniestros). */}
+      <div className="flex flex-col gap-3 w-full">
 
-        {/* ── Columna izquierda ────────────────────────────────── */}
-        <div className="w-[280px] shrink-0 flex flex-col gap-2">
+        {/* ── Fila 1: Datos base — grilla 12 columnas ─────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
 
-          {/* Asegurado */}
+          {/* Asegurado (3/12) */}
+          <div className="md:col-span-3">
           <CajaColapsable titulo="Asegurado">
             <div className="p-3 flex flex-col gap-1.5">
               <button onClick={() => router.push(`/crm/personas/${asegurado.id}`)}
@@ -709,8 +717,10 @@ export default function FichaPolizaPage() {
               )}
             </div>
           </CajaColapsable>
+          </div>
 
-          {/* Datos de la póliza */}
+          {/* Datos de la póliza (4/12) */}
+          <div className="md:col-span-4">
           <CajaColapsable titulo="Datos de la Póliza">
             <div className="p-3 flex flex-col gap-2 text-xs">
               <div className="flex justify-between">
@@ -806,9 +816,11 @@ export default function FichaPolizaPage() {
               </div>
             </div>
           </CajaColapsable>
+          </div>
 
-          {/* Datos del riesgo (multi-riesgo / flotas) */}
+          {/* Datos del riesgo — 5/12 (más ancho porque tiene más campos) */}
           {riesgosVisibles.length > 0 && (
+            <div className="md:col-span-5">
             <CajaColapsable
               titulo={riesgosVisibles.length > 1 ? 'Bienes asegurados' : 'Datos del Bien Asegurado'}
               contador={riesgosVisibles.length > 1 ? riesgosVisibles.length : null}
@@ -884,13 +896,14 @@ export default function FichaPolizaPage() {
                 })}
               </div>
             </CajaColapsable>
+            </div>
           )}
         </div>
 
-        {/* ── Columna derecha ─────────────────────────────────── */}
-        <div className="flex-1 min-w-0 flex flex-col gap-2">
-
-          {/* Observaciones (visibles al asegurado en el portal) */}
+        {/* ── Fila 2: Observaciones + Notas ─────────────────────
+             Grid de 2 columnas si hay ambos; single-column si solo hay uno. */}
+        {(poliza.observaciones || poliza.notas) && (
+          <div className={`grid grid-cols-1 gap-3 ${poliza.observaciones && poliza.notas ? 'md:grid-cols-2' : ''}`}>
           {poliza.observaciones && (
             <CajaColapsable
               titulo="Observaciones"
@@ -921,10 +934,12 @@ export default function FichaPolizaPage() {
               </div>
             </CajaColapsable>
           )}
+          </div>
+        )}
 
-          {/* Historial de renovaciones */}
-          {cadenaRenovaciones.length > 0 && (
-            <CajaColapsable titulo="Cadena de Renovaciones" contador={cadenaRenovaciones.length}>
+        {/* ── Fila 3: Cadena de renovaciones (full width) ─────── */}
+        {cadenaRenovaciones.length > 0 && (
+          <CajaColapsable titulo="Cadena de Renovaciones" contador={cadenaRenovaciones.length}>
               <div className="divide-y divide-slate-100">
                 {cadenaRenovaciones.map(r => {
                   const esCurrent = r.id === poliza.id
@@ -1055,7 +1070,6 @@ export default function FichaPolizaPage() {
               </table>
             )}
           </CajaColapsable>
-        </div>
       </div>
 
       {/* ── Modal Enviar Email ────────────────────────────────── */}
