@@ -113,8 +113,8 @@ export default function PlanPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [plan, setPlan] = useState<PlanUI | null>(null);
-  const [estadoProceso, setEstadoProceso] = useState<string>('');
-  const [archivosMeta, setArchivosMeta] = useState<ArchivoMeta[]>([]);
+  const [_estadoProceso, setEstadoProceso] = useState<string>('');
+  const [_archivosMeta, setArchivosMeta] = useState<ArchivoMeta[]>([]);
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [editandoKey, setEditandoKey] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);

@@ -14,7 +14,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { Loader2, Plus, FileText, Edit2, Trash2, Eye } from 'lucide-react'
+import { Loader2, Plus, FileText, Edit2, Trash2 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import ModalEditarMailingPlantilla from './ModalEditarMailingPlantilla'

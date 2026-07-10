@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { ArrowLeft, BarChart3, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiCall } from '@/lib/api-client'
@@ -23,7 +22,6 @@ import {
  * Solo admin.
  */
 export default function ConfigDashboardGraficosPage() {
-  const router = useRouter()
   const { usuario } = useAuth()
   const isAdmin = usuario?.rol === 'ADMIN'
 

@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { apiCall } from '@/lib/api-client'
 import { emitirBroadcastMensajesWeb, useBroadcastMensajesWeb } from '@/lib/broadcast-mensajes-web'
+import { logger } from '@/lib/errores/logger'
 
 interface MensajeWeb {
   id: string
@@ -72,7 +73,11 @@ export function MensajesWebNavbar() {
       const json = await res.json()
       if (json.ok && json.resumen) setContadores(json.resumen)
     } catch (err) {
-      console.warn('[mensajes-web] cargarContadores falló:', err)
+      logger.warn({
+        modulo: 'mensajes-web',
+        mensaje: 'cargarContadores falló',
+        contexto: { error: String(err) },
+      })
     }
   }, [])
 
@@ -86,7 +91,11 @@ export function MensajesWebNavbar() {
         if (json.resumen) setContadores(json.resumen)
       }
     } catch (err) {
-      console.warn('[mensajes-web] cargarMensajes falló:', err)
+      logger.warn({
+        modulo: 'mensajes-web',
+        mensaje: 'cargarMensajes falló',
+        contexto: { error: String(err) },
+      })
     }
     setCargando(false)
   }, [])

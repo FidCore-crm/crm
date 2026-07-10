@@ -17,12 +17,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   X, Loader2, ChevronLeft, ChevronRight, Send, CheckCircle2,
   User, Users, Filter as FilterIcon, FileText, Edit3, Paperclip,
-  AlertTriangle, Eye, Search,
+  AlertTriangle, Search,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { logger } from '@/lib/errores/logger'
 import type { MailingAudiencia } from './TabMailingAudiencias'
 import type { MailingPlantilla } from './TabMailingPlantillas'
 
@@ -287,7 +286,6 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
                 <PasoRevisar
                   preview={preview}
                   previewCargando={previewCargando}
-                  destinatariosTipo={dTipo}
                   mensajeTipo={mTipo}
                   plantilla={plantillas.find(p => p.id === mPlantillaId) ?? null}
                   asuntoFinal={cAsuntoOverride.trim() || (mTipo === 'libre' ? mAsuntoLibre : plantillas.find(p => p.id === mPlantillaId)?.asunto ?? '')}
@@ -560,7 +558,7 @@ function PasoConfig({ mensajeTipo, plantillas, plantillaId, asuntoOverride, setA
   )
 }
 
-function PasoRevisar({ preview, previewCargando, destinatariosTipo, mensajeTipo, plantilla, asuntoFinal, adjuntos }: any) {
+function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoFinal, adjuntos }: any) {
   if (previewCargando || !preview) {
     return (
       <div className="flex items-center justify-center py-10 text-slate-400 text-sm gap-2">

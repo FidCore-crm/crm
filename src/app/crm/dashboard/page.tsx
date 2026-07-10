@@ -21,6 +21,7 @@ import {
   AreaChart, Area
 } from 'recharts'
 import { apiCall } from '@/lib/api-client'
+import { logger } from '@/lib/errores/logger'
 import { toast } from '@/lib/toast'
 import { graficoVisible } from '@/lib/dashboard-graficos'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
@@ -497,11 +498,25 @@ export default function DashboardPage() {
       setCargandoCharts(true)
 
       // Cargar config de qué gráficos están visibles (preferencia del PAS).
+      // No bloqueante: si falla, todos quedan visibles (comportamiento default).
       apiCall<{ visibles: string[] | null }>('/api/configuracion/dashboard-graficos', {}, { mostrar_toast_en_error: false })
         .then((r) => {
           if (r.ok && r.data) setGraficosVisibles(r.data.visibles)
+          else if (!r.ok) {
+            logger.warn({
+              modulo: 'dashboard',
+              mensaje: 'No se pudo cargar preferencia de gráficos visibles — se usa default',
+              contexto: { error: r.error?.mensaje },
+            })
+          }
         })
-        .catch(() => {})
+        .catch((err) => {
+          logger.warn({
+            modulo: 'dashboard',
+            mensaje: 'Falló carga de preferencia de gráficos',
+            contexto: { error: String(err) },
+          })
+        })
 
       // Evolución de cartera (últimos 12 meses) — saldo neto al cierre de
       // cada mes: (pólizas creadas hasta fin de mes) − (canceladas + anuladas
@@ -516,7 +531,16 @@ export default function DashboardPage() {
         .select('created_at, fecha_baja, estado')
         .neq('estado', 'RENOVADA')
       qTodas = filtrarPorPersonas(qTodas, idsPersonas, 'asegurado_id')
-      const { data: todasPolizas } = await qTodas
+      const { data: todasPolizas, error: errPolizas } = await qTodas
+      if (errPolizas) {
+        // El chart "Evolución de cartera" se muestra vacío si falla — el resto
+        // del dashboard sigue armándose. Loggeamos para diagnóstico.
+        logger.error({
+          modulo: 'dashboard',
+          mensaje: 'Falló carga de pólizas para chart evolución',
+          contexto: { error: errPolizas.message },
+        })
+      }
 
       const polizas = (todasPolizas ?? []) as Array<{
         created_at: string
@@ -807,15 +831,31 @@ export default function DashboardPage() {
 
       qRen = filtrarPorPersonas(qRen, idsPersonas, 'asegurado_id')
 
-      const { data: renMes } = await qRen
+      const { data: renMes, error: errRen } = await qRen
+      if (errRen) {
+        logger.error({
+          modulo: 'dashboard',
+          mensaje: 'Falló carga de renovaciones del mes',
+          contexto: { error: errRen.message },
+        })
+      }
 
       if (renMes && renMes.length > 0) {
         const ids = renMes.map((p: any) => p.id)
-        const { data: conRen } = await supabase
+        const { data: conRen, error: errConRen } = await supabase
           .from('polizas')
           .select('poliza_origen_id')
           .in('poliza_origen_id', ids)
           .in('estado', ['RENOVADA', 'VIGENTE', 'PROGRAMADA'])
+        if (errConRen) {
+          // Si falla el chequeo de "ya renovada", tratamos todas como "sin
+          // renovación" — se prefiere sobre-alertar antes que ocultar riesgo.
+          logger.warn({
+            modulo: 'dashboard',
+            mensaje: 'Falló chequeo de renovaciones ya iniciadas — se muestran todas como pendientes',
+            contexto: { error: errConRen.message },
+          })
+        }
         const idsConRen = new Set((conRen ?? []).map((r: any) => r.poliza_origen_id))
 
         setRenovacionesMes(renMes.map((p: any) => ({

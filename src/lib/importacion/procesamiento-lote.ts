@@ -964,26 +964,6 @@ function matchearCobertura(
   return null;
 }
 
-function matchearCatalogoSimple(
-  nombre: string,
-  lista: Array<{ id: string; nombre: string; codigo: string }>,
-): { id: string; nombre: string } | null {
-  const norm = normalizar(nombre);
-  if (!norm) return null;
-  // Nombre primero, después código (mismo principio que matchearRamo).
-  for (const x of lista) {
-    if (normalizar(x.nombre) === norm) {
-      return { id: x.id, nombre: x.nombre };
-    }
-  }
-  for (const x of lista) {
-    if (normalizar(x.codigo) === norm) {
-      return { id: x.id, nombre: x.nombre };
-    }
-  }
-  return null;
-}
-
 function resolverCatalogos(
   registros: RegistroProcesado[],
   ctx: ContextoCRM,

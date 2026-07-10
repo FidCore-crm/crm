@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { ShieldOff, Shield, ChevronRight, ArrowLeft, Copy, Check } from 'lucide-react'
 import { useLicenciaEstado } from '@/contexts/LicenciaContext'

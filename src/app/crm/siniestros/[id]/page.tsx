@@ -277,7 +277,7 @@ export default function FichaSiniestroPage() {
 
   // Papelera (soft-delete)
   const [restaurando, setRestaurando] = useState(false)
-  const [historialKey, setHistorialKey] = useState(0)
+  const [, setHistorialKey] = useState(0)
 
   // Marcar denuncia del portal como revisada
   const [marcandoRevisado, setMarcandoRevisado] = useState(false)

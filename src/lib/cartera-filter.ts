@@ -1,5 +1,3 @@
-import type { Usuario } from '@/types/database'
-
 /**
  * Verifica si el usuario es administrador
  */

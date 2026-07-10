@@ -30,7 +30,7 @@
 
 import { useMemo } from 'react'
 import { camposDeSiniestro, CAMPOS_POR_BLOQUE, CampoEspecifico, BloqueId } from '@/lib/siniestros-catalogo'
-import { SelectorRueda, ValorRueda } from '@/components/SelectorRueda'
+import { SelectorRueda } from '@/components/SelectorRueda'
 
 // ────────────────────────────────────────────────────────────
 // Tipos del componente

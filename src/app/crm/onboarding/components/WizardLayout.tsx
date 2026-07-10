@@ -132,7 +132,7 @@ export function WizardLayout({
                   type="button"
                   onClick={onContinuar}
                   disabled={!continuarHabilitado || continuarLoading}
-                  className="h-9 px-4 rounded-md text-sm font-medium text-white bg-[#E85D1F] hover:bg-[#D14F12] active:bg-[#BC4710] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                  className="h-9 px-4 rounded-md text-sm font-medium text-white bg-[#FF6A00] hover:bg-[#E65D00] active:bg-[#CC5200] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                 >
                   {continuarLoading ? 'Guardando...' : continuarLabel}
                   <ChevronRight className="h-4 w-4" />

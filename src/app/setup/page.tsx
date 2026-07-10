@@ -115,8 +115,8 @@ export default function SetupPage() {
         <div className="w-full max-w-md">
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-orange-50 border border-orange-200 mb-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#E85D1F]" />
-              <span className="text-2xs font-medium text-[#E85D1F] uppercase tracking-wide">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FF6A00]" />
+              <span className="text-2xs font-medium text-[#FF6A00] uppercase tracking-wide">
                 Configuración inicial
               </span>
             </div>

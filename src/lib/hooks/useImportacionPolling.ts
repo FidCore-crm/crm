@@ -85,7 +85,8 @@ export function useImportacionPolling(
         throw new Error(json?.error || 'Error al obtener estado');
       }
       if (!mountedRef.current) return;
-      const { ok, ...rest } = json;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { ok: _ok, ...rest } = json;
       setEstado(rest as EstadoImportacionPoll);
       setError(null);
     } catch (e: any) {

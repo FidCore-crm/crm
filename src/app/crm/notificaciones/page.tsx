@@ -3,9 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Bell, BellRing, AlertOctagon, AlertTriangle, FileX, ClipboardX,
-  FileQuestion, Target, Check, ExternalLink, Trash2, CheckCheck, X, Loader2,
-  CalendarClock, CalendarX
+  Bell, BellRing, AlertOctagon, AlertTriangle,
+  Check, ExternalLink, Trash2, CheckCheck, X, Loader2,
 } from 'lucide-react'
 
 import { useAuth } from '@/contexts/AuthContext'
@@ -79,21 +78,6 @@ function tiempoRelativo(fechaStr: string): string {
 function fechaCompleta(fechaStr: string): string {
   const [y, m, d] = fechaStr.split('T')[0].split('-')
   return `${d}/${m}/${y}`
-}
-
-function iconoTipo(tipo: string) {
-  switch (tipo) {
-    case 'POLIZA_VENCIDA': return FileX
-    case 'TAREA_VENCIDA': return ClipboardX
-    case 'SINIESTRO_30_DIAS':
-    case 'SINIESTRO_60_DIAS': return AlertTriangle
-    case 'COTIZACION_SIN_RESPUESTA':
-    case 'COTIZACION_SIN_SEGUIMIENTO': return FileQuestion
-    case 'COTIZACION_VENCIENDO_PRONTO': return CalendarClock
-    case 'COTIZACION_VENCIDA': return CalendarX
-    case 'OPORTUNIDAD_ESTANCADA': return Target
-    default: return Bell
-  }
 }
 
 const POR_PAGINA = 25
@@ -343,8 +327,6 @@ export default function NotificacionesPage() {
               const bgRow = !n.leida
                 ? n.prioridad === 'CRITICA' ? 'bg-red-50/50' : 'bg-blue-50/40'
                 : ''
-              const Icono = iconoTipo(n.tipo)
-
               return (
                 <tr
                   key={n.id}

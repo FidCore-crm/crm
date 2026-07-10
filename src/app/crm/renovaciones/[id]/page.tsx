@@ -134,8 +134,6 @@ export default function RenovarPolizaPage() {
   // Render del form: los 7 tipos del catálogo mapean a 4 layouts existentes.
   const renderTipo = tipoRenderForm(tipoRiesgo)
 
-  // ID de la póliza nueva (para GestorArchivos después de guardar... lo usamos previo)
-  const [polizaNuevaId, setPolizaNuevaId] = useState<string | null>(null)
 
   // Snapshot de archivos en documentacion_renovada/ de la origen al abrir el form.
   // Si el PAS sube archivos y luego cancela sin guardar, eliminamos los que no

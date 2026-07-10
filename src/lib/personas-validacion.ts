@@ -9,7 +9,7 @@
  */
 
 import { validarCUIT, validarEmail } from '@/lib/importacion/validators'
-import { toTitleCase, normalizarEmail } from '@/lib/importacion/normalizadores'
+import { toTitleCase } from '@/lib/importacion/normalizadores'
 import { normalizarIdentificadorPersona } from '@/lib/identificador-persona'
 
 export interface PersonaInput {

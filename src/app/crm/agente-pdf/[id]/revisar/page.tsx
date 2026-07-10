@@ -41,7 +41,7 @@ export default function RevisarPDFPage() {
   const id = params.id as string
   const supabase = getSupabaseClient()
 
-  const { estado, isLoading: polling } = useAgentePDFPolling(id, {
+  const { estado } = useAgentePDFPolling(id, {
     intervaloMs: 3000,
     detenerEnEstadosFinales: true,
   })
@@ -192,9 +192,6 @@ export default function RevisarPDFPage() {
   // ────────────────────────────────────────────────────────────
   // Helpers de update parcial
   // ────────────────────────────────────────────────────────────
-  function updatePoliza(patch: Partial<DatosExtraidosPoliza>) {
-    setDatos(prev => (prev ? { ...(prev as DatosExtraidosPoliza), ...patch } : prev))
-  }
   function updateAsegurado(patch: any) {
     setDatos(prev => {
       if (!prev) return prev

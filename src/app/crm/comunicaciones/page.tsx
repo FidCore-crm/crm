@@ -16,7 +16,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import {
-  Mail, Send, Eye, MousePointerClick, Clock, AlertTriangle,
+  Send, Eye, MousePointerClick, Clock, AlertTriangle,
   Plus, Inbox, Users, FileText, Megaphone,
 } from 'lucide-react'
 import Link from 'next/link'

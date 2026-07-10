@@ -19,7 +19,6 @@ import type {
   DudosoRow,
   EstadisticasImportacion,
   IdsCreadosActualizados,
-  ImportacionRow,
   JSONObject,
   PersonaImportada,
   PolizaImportada,

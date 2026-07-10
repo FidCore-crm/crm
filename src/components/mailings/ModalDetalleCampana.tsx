@@ -15,7 +15,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   X, Loader2, Megaphone, CheckCircle2, AlertCircle, Calendar,
-  Users, FileText, Edit2, Pause, Ban, Send, Activity, Clock,
+  Users, Edit2, Pause, Ban, Send, Activity, Clock,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import type { MailingCampana } from './TabMailingCampanas'
@@ -85,7 +85,7 @@ export default function ModalDetalleCampana({ campanaId, onCerrar }: Props) {
   const totalDest = data.total_destinatarios || 0
   const procesados = data.enviados + data.fallidos + data.excluidos
   const progresoPct = totalDest > 0 ? Math.round((procesados / totalDest) * 100) : 0
-  const tasaApertura = data.enviados > 0 ? 0 : 0  // (Sprint 3 — necesita query a email_envios.fecha_primera_apertura)
+  // NOTA: tasa de apertura queda para Sprint 3 (necesita query a email_envios.fecha_primera_apertura).
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

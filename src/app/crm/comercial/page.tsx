@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   UserPlus, PhoneCall, UserCheck, Target, FileText, TrendingUp,
-  Loader2, Search, X, Plus, ChevronRight, LayoutGrid,
+  Search, X, ChevronRight, LayoutGrid,
   Briefcase, BarChart3
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'

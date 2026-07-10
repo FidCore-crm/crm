@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft, Sparkles, Eye, EyeOff, ExternalLink, CheckCircle, AlertTriangle,
+  ArrowLeft, Sparkles, Eye, EyeOff, ExternalLink, CheckCircle,
   Loader2, RefreshCw, Trash2, KeyRound, Save, Zap, FileText,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -99,7 +99,7 @@ export default function AgenteIaPage() {
   const [probando, setProbando] = useState(false)
   const [eliminando, setEliminando] = useState(false)
 
-  const [familiaSeleccionada, setFamiliaSeleccionada] = useState<FamiliaId>('sonnet')
+  const [_familiaSeleccionada, setFamiliaSeleccionada] = useState<FamiliaId>('sonnet')
   const [guardandoFamilia, setGuardandoFamilia] = useState(false)
 
   const [guardandoModuloPDF, setGuardandoModuloPDF] = useState(false)

@@ -49,16 +49,6 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_BODY_SIZE = 10 * 1024 // 10 KB — leads son texto cortito
 const MAX_CAMPO_LARGO = 2000
 
-function sanitizeText(text: string): string {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .trim()
-}
-
 function ok(payload: Record<string, unknown>, corsHeaders: Record<string, string> = {}) {
   return NextResponse.json({ ok: true, ...payload }, { status: 200, headers: corsHeaders })
 }

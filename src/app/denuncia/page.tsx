@@ -1346,7 +1346,7 @@ interface HogarProps {
 function Paso3({
   tipoRiesgo, tipoSiniestro, usarBloqueAutoHardcoded,
   valoresDinamicos, setValoresDinamicos,
-  esAutoMoto, esHogar, esVida, esRobo,
+  esAutoMoto, esHogar, esRobo,
   conductor, vehiculoEstacionado, setVehiculoEstacionado,
   tercero, lesionados, testigos, danosPropios, setDanosPropios,
   hogar,

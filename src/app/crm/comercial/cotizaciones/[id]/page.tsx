@@ -523,26 +523,6 @@ export default function FichaCotizacionPage() {
     generarPDFCotizacion(datos.datosCotizacion, datos.datosDestinatario, datos.companias, datos.organizacion)
   }
 
-  // Aplica un template de mensaje con interpolación de variables.
-  // Variables soportadas: {nombre}, {numero}, {ramo}, {opciones}.
-  // Si una variable no está en el contexto se reemplaza por string vacío
-  // y se hace cleanup de espacios duplicados / "de" colgados.
-  const aplicarTemplate = (template: string): string => {
-    if (!cotizacion) return template
-    const nombrePila = cotizacion.persona?.nombre || cotizacion.persona?.apellido
-      || cotizacion.lead?.nombre || cotizacion.lead?.apellido || ''
-    const ramo = cotizacion.ramo?.nombre ?? ''
-    const cantOpc = opciones.length
-    return template
-      .replaceAll('{nombre}', nombrePila)
-      .replaceAll('{numero}', cotizacion.numero_cotizacion)
-      .replaceAll('{ramo}', ramo)
-      .replaceAll('{opciones}', String(cantOpc))
-      // Cleanup de espacios duplicados que pueden quedar al expandir variables vacías
-      .replace(/\s{2,}/g, ' ')
-      .trim()
-  }
-
   // Enviar por WhatsApp: descarga el PDF y abre wa.me con un mensaje
   // pre-armado en una nueva pestaña. WhatsApp no permite adjuntar
   // archivos vía URL — el cliente debe arrastrar/elegir el PDF descargado

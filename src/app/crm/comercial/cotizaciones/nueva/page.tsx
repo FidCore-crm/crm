@@ -725,7 +725,7 @@ function NuevaCotizacionContent() {
           </div>
 
           <div className="space-y-3">
-            {rows.map((row, idx) => (
+            {rows.map((row) => (
               <div key={row.key} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_140px_1fr_40px] gap-3 items-start p-3 md:p-1 bg-slate-50 md:bg-transparent rounded-lg md:rounded-none border md:border-0 border-slate-200">
                 {/* Compania */}
                 <div>

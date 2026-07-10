@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { obtenerUsuarioDesdeRequest } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { manejarErrores, respuestaExito, respuestaError, ERRORES } from '@/lib/errores'

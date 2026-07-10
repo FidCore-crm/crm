@@ -53,7 +53,7 @@ export default function ComunicacionesPage() {
   const [retenerMetadataMeses, setRetenerMetadataMeses] = useState(6)
   const [eliminarDespuesMeses, setEliminarDespuesMeses] = useState(12)
   const [errorRetencion, setErrorRetencion] = useState('')
-  const [notificarInformativos, setNotificarInformativos] = useState(false)
+  const [_notificarInformativos, setNotificarInformativos] = useState(false)
 
   // Toggles individuales por evento al admin (migración 071)
   const [notifBackupOk, setNotifBackupOk] = useState(false)
@@ -1062,7 +1062,7 @@ export default function ComunicacionesPage() {
 }
 
 // Componente de plantillas hardcoded (sin endpoint de plantillas)
-function PlantillasHardcoded({ onPreview, previewActual }: { onPreview: (c: string) => void; previewActual: string | null }) {
+function PlantillasHardcoded({ onPreview }: { onPreview: (c: string) => void; previewActual: string | null }) {
   const plantillas = [
     {
       codigo: 'renovacion_poliza',

@@ -54,14 +54,6 @@ const FORM_INICIAL: FormData = {
   observaciones:   '',
 }
 
-// ── Formatear CUIL mientras escribe ─────────────────────────
-function formatearCuil(valor: string): string {
-  const solo = valor.replace(/\D/g, '').slice(0, 11)
-  if (solo.length <= 2)  return solo
-  if (solo.length <= 10) return `${solo.slice(0, 2)}-${solo.slice(2)}`
-  return `${solo.slice(0, 2)}-${solo.slice(2, 10)}-${solo.slice(10)}`
-}
-
 // ── Componente de campo de formulario ───────────────────────
 // Genera un id único y lo inyecta tanto en el `<label htmlFor>` como en el
 // children (input/select/textarea/etc.) vía `cloneElement`. Esto vincula

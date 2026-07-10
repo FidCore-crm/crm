@@ -15,7 +15,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Loader2, Plus, Megaphone, Edit2, Trash2, Eye, Send, Pause, Play,
-  Ban, Clock, CheckCircle2, AlertCircle, Calendar,
+  Ban, CheckCircle2, Calendar,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'

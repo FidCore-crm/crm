@@ -1150,7 +1150,7 @@ function ResolutorDuplicadoCRM({ dudoso, onResolver, onCancelar, resolving }: Re
 
 // Resolutor Duplicado Archivo ------------------------------------------------
 
-function ResolutorDuplicadoArchivo({ dudoso, onResolver, onCancelar, resolving }: ResolutorProps) {
+function ResolutorDuplicadoArchivo({ onResolver, onCancelar, resolving }: ResolutorProps) {
   const [opt, setOpt] = useState<'combinar' | 'todos' | 'ignorar'>('combinar')
 
   const aplicar = (siguiente: boolean) => {

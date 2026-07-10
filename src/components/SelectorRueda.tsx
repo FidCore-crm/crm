@@ -198,7 +198,6 @@ export function SelectorRueda({ value, onChange, error, disabled }: Props) {
           let textY = rueda.cy
           let anchor: 'start' | 'end' | 'middle' = 'middle'
           const seleccionada = value === rueda.key
-          const dx = 32
 
           switch (rueda.labelPos) {
             case 'top-left':

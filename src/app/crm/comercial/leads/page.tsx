@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Plus, Search, X, UserPlus, PhoneCall, UserCheck, UserX,
-  Pencil, Trash2, Loader2, MessageCircle, Users
+  Pencil, Trash2, MessageCircle,
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { formatFechaLocalLarga, sanitizarBusquedaNormalizada } from '@/lib/utils'

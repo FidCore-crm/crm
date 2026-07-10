@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   ChevronLeft, ChevronRight, X, Plus, CheckCircle, Edit,
   FileText, ClipboardList, AlertTriangle, Loader2, Repeat,
-  CalendarDays, Eye, List, Target, Sparkles as SparklesIcon,
+  CalendarDays, List, Target,
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { hoyLocal, calcularSiguienteFechaRecurrencia, getEstadoEfectivoPoliza } from '@/lib/utils'
@@ -618,7 +618,7 @@ export default function CalendarioPage() {
           {/* Celdas */}
           <div className="grid grid-cols-7">
             {celdas.map((celda, i) => {
-              const { tareasDelDia, polizasDelDia, opsDelDia, evsDelDia, total: totalEventos } = eventosDelDia(celda.fecha)
+              const { tareasDelDia, polizasDelDia, opsDelDia, evsDelDia } = eventosDelDia(celda.fecha)
               const esHoy = celda.fecha === hoy
               const eventosDia = [
                 ...tareasDelDia.map(t => ({

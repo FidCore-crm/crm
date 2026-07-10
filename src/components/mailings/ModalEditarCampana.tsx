@@ -18,7 +18,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { X, Loader2, Save, Calendar, Clock, Megaphone } from 'lucide-react'
+import { X, Loader2, Save, Calendar, Megaphone } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import type { MailingCampana } from './TabMailingCampanas'

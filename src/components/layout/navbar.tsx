@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal, obtenerIdsPersonas } from '@/lib/cartera-filter'
 import { apiCall } from '@/lib/api-client'
 import { emitirBroadcastNotificaciones, useBroadcastNotificaciones } from '@/lib/broadcast-notificaciones'
+import { logger } from '@/lib/errores/logger'
 import { PresenciaNavbar } from './PresenciaNavbar'
 import { MensajesWebNavbar } from './MensajesWebNavbar'
 import { AvisoActualizacion } from './AvisoActualizacion'
@@ -183,7 +184,11 @@ export function Navbar() {
         setContadores(json.resumen)
       }
     } catch (err) {
-      console.warn('[navbar] cargarContadores falló:', err)
+      logger.warn({
+        modulo: 'navbar',
+        mensaje: 'cargarContadores falló',
+        contexto: { error: String(err) },
+      })
     }
   }, [])
 
@@ -198,7 +203,11 @@ export function Navbar() {
         if (json.resumen) setContadores(json.resumen)
       }
     } catch (err) {
-      console.warn('[navbar] cargarNotificaciones falló:', err)
+      logger.warn({
+        modulo: 'navbar',
+        mensaje: 'cargarNotificaciones falló',
+        contexto: { error: String(err) },
+      })
     }
     setCargandoNotif(false)
   }, [])

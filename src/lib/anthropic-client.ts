@@ -441,7 +441,7 @@ export async function registrarUso(
   tokensInput: number,
   tokensOutput: number,
   costoUsd: number,
-  modelo?: string
+  _modelo?: string
 ): Promise<void> {
   try {
     const supabase = getSupabaseAdmin()

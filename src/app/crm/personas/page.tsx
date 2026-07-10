@@ -20,12 +20,6 @@ import { EstadoCarga } from '@/components/EstadoCarga'
 import { apiCall } from '@/lib/api-client'
 import { useEsSoloLectura } from '@/contexts/LicenciaContext'
 
-const ESTADOS: Array<{ valor: EstadoPersona | 'TODOS'; label: string; color: string }> = [
-  { valor: 'TODOS',     label: 'Todos',       color: 'text-slate-600' },
-  { valor: 'ACTIVO',    label: 'Asegurados',  color: 'text-green-600' },
-  { valor: 'INACTIVO',  label: 'Inactivos',   color: 'text-slate-400' },
-  { valor: 'BLOQUEADO', label: 'Bloqueados',  color: 'text-red-600' },
-]
 
 const POR_PAGINA = 25
 

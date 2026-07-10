@@ -14,10 +14,10 @@
  */
 
 import type { NextRequest } from 'next/server'
-import { manejarErrores, respuestaError, respuestaExito, ERRORES, logger } from '@/lib/errores'
+import { manejarErrores, respuestaExito, logger } from '@/lib/errores'
 import { validarCronSecret } from '@/lib/cron-auth'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
-import { rotarLicencias, obtenerEstadoLicencia, invalidarCacheEstado, DIAS_GRACIA_POST_VENCIMIENTO } from '@/lib/licencia'
+import { rotarLicencias, obtenerEstadoLicencia, invalidarCacheEstado } from '@/lib/licencia'
 import { esModoVps } from '@/lib/modo-instalacion'
 import { obtenerAdminsActivos } from '@/lib/comunicaciones-sender'
 import { enviarEmailFidCore, type TipoEmailFidCore } from '@/lib/fidcore-emails'

@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { Loader2, Plus, Users, Edit2, Trash2, Eye, Filter } from 'lucide-react'
+import { Loader2, Plus, Users, Edit2, Trash2, Filter } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import ModalEditarAudiencia from './ModalEditarAudiencia'

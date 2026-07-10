@@ -288,7 +288,7 @@ export async function PATCH(request: Request) {
         try {
           const id = await resolverModeloParaFamilia(familiaPedida)
           patch.anthropic_model = id
-        } catch (e2: any) {
+        } catch {
           return NextResponse.json(
             {
               ok: false,

@@ -705,7 +705,6 @@ export default function OportunidadesPage() {
                 items={sinPoliza}
                 verTodos={verTodosSP}
                 onToggleVerTodos={() => setVerTodosSP(v => !v)}
-                creandoOp={creandoOp}
                 renderItem={(item) => (
                   <div className="flex items-center justify-between py-2 px-3 border-b border-slate-50 last:border-0">
                     <div className="flex-1 min-w-0">
@@ -738,7 +737,6 @@ export default function OportunidadesPage() {
                 items={cancelaciones}
                 verTodos={verTodosCanc}
                 onToggleVerTodos={() => setVerTodosCanc(v => !v)}
-                creandoOp={creandoOp}
                 renderItem={(item) => (
                   <div className="flex items-center justify-between py-2 px-3 border-b border-slate-50 last:border-0">
                     <div className="flex-1 min-w-0">
@@ -770,7 +768,6 @@ export default function OportunidadesPage() {
                 items={crossSell}
                 verTodos={verTodosCS}
                 onToggleVerTodos={() => setVerTodosCS(v => !v)}
-                creandoOp={creandoOp}
                 renderItem={(item) => (
                   <div className="flex items-center justify-between py-2 px-3 border-b border-slate-50 last:border-0">
                     <div className="flex-1 min-w-0">
@@ -808,14 +805,13 @@ export default function OportunidadesPage() {
 }
 
 // ── Componente reutilizable para cards de detección ────
-function DeteccionCard<T>({ icon, titulo, subtitulo, items, verTodos, onToggleVerTodos, creandoOp, renderItem }: {
+function DeteccionCard<T>({ icon, titulo, subtitulo, items, verTodos, onToggleVerTodos, renderItem }: {
   icon: React.ReactNode
   titulo: string
   subtitulo: string
   items: T[]
   verTodos: boolean
   onToggleVerTodos: () => void
-  creandoOp: string | null
   renderItem: (item: T) => React.ReactNode
 }) {
   if (items.length === 0) return null

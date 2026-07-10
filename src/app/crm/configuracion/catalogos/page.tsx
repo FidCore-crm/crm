@@ -13,6 +13,9 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { TIPOS_RIESGO, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 import { generarCodigoUnico } from '@/lib/catalogos-codigo'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
+import { toast } from '@/lib/toast'
+import { logger } from '@/lib/errores/logger'
+import { EstadoCarga } from '@/components/EstadoCarga'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface TipoCatalogo { id: string; codigo: string; descripcion: string | null }
@@ -218,6 +221,11 @@ export default function CatalogosPage() {
   const [catalogos,     setCatalogos]     = useState<Catalogo[]>([])
   const [cargando,      setCargando]      = useState(true)
   const [cargandoItems, setCargandoItems] = useState(false)
+  // Error de carga inicial (tipos + auxiliares). Si aparece, el <EstadoCarga>
+  // muestra un mensaje con botón de reintento en vez de la UI de la pantalla.
+  const [errorCarga,    setErrorCarga]    = useState<{ codigo?: string; mensaje: string } | null>(null)
+  // Contador que fuerza re-fetch cuando el usuario aprieta "Reintentar".
+  const [reintentoKey,  setReintentoKey]  = useState(0)
   const [editando,      setEditando]      = useState<string | null>(null)
   const [agregando,     setAgregando]     = useState(false)
   const [formNombre,    setFormNombre]    = useState('')
@@ -245,26 +253,44 @@ export default function CatalogosPage() {
 
   useEffect(() => {
     async function cargarTipos() {
-      const { data } = await supabase.from('tipo_catalogo').select('id, codigo, descripcion')
-      if (data) {
-        // Ordenar según TIPOS_RELEVANTES (Compañías → Ramos → Coberturas),
-        // que es el orden de configuración esperado por el PAS.
-        const ordenados = (data as TipoCatalogo[])
-          .filter(t => TIPOS_RELEVANTES.includes(t.codigo))
-          .sort((a, b) => TIPOS_RELEVANTES.indexOf(a.codigo) - TIPOS_RELEVANTES.indexOf(b.codigo))
-        setTipos(ordenados)
-        if (ordenados.length > 0) setTipoActivo(ordenados[0])
+      const { data, error } = await supabase.from('tipo_catalogo').select('id, codigo, descripcion')
+      if (error) {
+        logger.error({
+          modulo: 'catalogos',
+          mensaje: 'Falló carga de tipo_catalogo',
+          contexto: { error: error.message },
+        })
+        setErrorCarga({ mensaje: 'No se pudieron cargar los tipos de catálogo. Revisá la conexión y volvé a intentar.' })
+        setCargando(false)
+        return
       }
+      // Ordenar según TIPOS_RELEVANTES (Compañías → Ramos → Coberturas),
+      // que es el orden de configuración esperado por el PAS.
+      const ordenados = ((data ?? []) as TipoCatalogo[])
+        .filter(t => TIPOS_RELEVANTES.includes(t.codigo))
+        .sort((a, b) => TIPOS_RELEVANTES.indexOf(a.codigo) - TIPOS_RELEVANTES.indexOf(b.codigo))
+      setTipos(ordenados)
+      if (ordenados.length > 0) setTipoActivo(ordenados[0])
       setCargando(false)
     }
     cargarTipos()
-  }, [supabase])
+  }, [supabase, reintentoKey])
 
   const cargarCatalogos = useCallback(async () => {
     if (!tipoActivo) return
     setCargandoItems(true)
-    const { data } = await supabase.from('catalogos').select('*').eq('tipo_id', tipoActivo.id).order('orden').order('nombre')
-    if (data) setCatalogos(data as Catalogo[])
+    const { data, error } = await supabase.from('catalogos').select('*').eq('tipo_id', tipoActivo.id).order('orden').order('nombre')
+    if (error) {
+      logger.error({
+        modulo: 'catalogos',
+        mensaje: 'Falló carga de catálogos del tipo activo',
+        contexto: { tipo: tipoActivo.codigo, error: error.message },
+      })
+      toast.error({ mensaje: `No se pudieron cargar los ${tipoActivo.codigo.toLowerCase()}s. Reintentá en unos segundos.` })
+      setCargandoItems(false)
+      return
+    }
+    setCatalogos((data ?? []) as Catalogo[])
     setCargandoItems(false)
   }, [supabase, tipoActivo])
 
@@ -277,20 +303,38 @@ export default function CatalogosPage() {
   // Cargar ramos y compañías disponibles (para vincular coberturas)
   useEffect(() => {
     async function cargarAuxiliares() {
-      const { data: tiposCat } = await supabase.from('tipo_catalogo').select('id, codigo')
-      const tipoRamo = (tiposCat as TipoCatalogo[] | null)?.find(t => t.codigo === 'RAMO')
-      const tipoComp = (tiposCat as TipoCatalogo[] | null)?.find(t => t.codigo === 'COMPANIA')
-      const [{ data: rams }, { data: comps }] = await Promise.all([
+      const { data: tiposCat, error: errTipos } = await supabase.from('tipo_catalogo').select('id, codigo')
+      if (errTipos) {
+        logger.error({
+          modulo: 'catalogos',
+          mensaje: 'Falló carga auxiliar de tipo_catalogo',
+          contexto: { error: errTipos.message },
+        })
+        return
+      }
+      const tipoRamo = ((tiposCat ?? []) as TipoCatalogo[]).find(t => t.codigo === 'RAMO')
+      const tipoComp = ((tiposCat ?? []) as TipoCatalogo[]).find(t => t.codigo === 'COMPANIA')
+      const [{ data: rams, error: errRams }, { data: comps, error: errComps }] = await Promise.all([
         tipoRamo ? supabase.from('catalogos').select('id, tipo_id, nombre, codigo, activo, metadata, orden')
-          .eq('tipo_id', tipoRamo.id).eq('activo', true).order('nombre') : Promise.resolve({ data: [] }),
+          .eq('tipo_id', tipoRamo.id).eq('activo', true).order('nombre') : Promise.resolve({ data: [], error: null }),
         tipoComp ? supabase.from('catalogos').select('id, tipo_id, nombre, codigo, activo, metadata, orden')
-          .eq('tipo_id', tipoComp.id).eq('activo', true).order('nombre') : Promise.resolve({ data: [] }),
+          .eq('tipo_id', tipoComp.id).eq('activo', true).order('nombre') : Promise.resolve({ data: [], error: null }),
       ])
-      if (rams) setRamosDisponibles(rams as Catalogo[])
-      if (comps) setCompaniasDisponibles(comps as Catalogo[])
+      // Ramos/compañías se usan solo al editar coberturas — si fallan, dejamos
+      // vacío y el editor mostrará listas vacías (mejor que crashear).
+      if (errRams) {
+        logger.warn({ modulo: 'catalogos', mensaje: 'Falló carga de ramos disponibles', contexto: { error: errRams.message } })
+      } else {
+        setRamosDisponibles((rams ?? []) as Catalogo[])
+      }
+      if (errComps) {
+        logger.warn({ modulo: 'catalogos', mensaje: 'Falló carga de compañías disponibles', contexto: { error: errComps.message } })
+      } else {
+        setCompaniasDisponibles((comps ?? []) as Catalogo[])
+      }
     }
     cargarAuxiliares()
-  }, [supabase])
+  }, [supabase, reintentoKey])
 
   const resetForm = () => {
     setEditando(null); setAgregando(false)
@@ -392,7 +436,23 @@ export default function CatalogosPage() {
 
   const eliminar = async (id: string, nombre: string) => {
     if (!confirm(`¿Eliminar "${nombre}"?`)) return
-    await supabase.from('catalogos').delete().eq('id', id)
+    const { error } = await supabase.from('catalogos').delete().eq('id', id)
+    if (error) {
+      logger.error({
+        modulo: 'catalogos',
+        mensaje: 'Falló eliminación de catálogo',
+        contexto: { id, nombre, error: error.message },
+      })
+      // Los deletes fallan típicamente por FK: el catálogo está en uso por
+      // pólizas históricas, cotizaciones, etc. Damos un mensaje claro en vez
+      // de silenciar.
+      const mensajeUsuario = error.message.toLowerCase().includes('foreign key')
+        ? `No se puede eliminar "${nombre}" porque hay registros que lo usan. Considerá desactivarlo en lugar de eliminarlo.`
+        : `No se pudo eliminar "${nombre}". Reintentá en unos segundos.`
+      toast.error({ mensaje: mensajeUsuario })
+      return
+    }
+    toast.exito(`"${nombre}" eliminado`)
     cargarCatalogos()
   }
 
@@ -406,11 +466,21 @@ export default function CatalogosPage() {
       else if (tipoCodigo === 'COBERTURA') columnaFK = 'cobertura_id'
 
       if (columnaFK) {
-        const { count } = await supabase
+        const { count, error: errCount } = await supabase
           .from('polizas')
           .select('*', { count: 'exact', head: true })
           .eq(columnaFK, id)
           .in('estado', ['VIGENTE', 'PROGRAMADA', 'RENOVADA'])
+
+        if (errCount) {
+          logger.error({
+            modulo: 'catalogos',
+            mensaje: 'Falló chequeo de impacto al desactivar catálogo',
+            contexto: { id, nombre, error: errCount.message },
+          })
+          toast.error({ mensaje: `No se pudo verificar el impacto de desactivar "${nombre}". Reintentá en unos segundos.` })
+          return
+        }
 
         if (count && count > 0) {
           const confirmar = confirm(
@@ -420,14 +490,36 @@ export default function CatalogosPage() {
         }
       }
     }
-    await supabase.from('catalogos').update({ activo: !activo }).eq('id', id)
+    const { error } = await supabase.from('catalogos').update({ activo: !activo }).eq('id', id)
+    if (error) {
+      logger.error({
+        modulo: 'catalogos',
+        mensaje: 'Falló toggle de activo en catálogo',
+        contexto: { id, nombre, error: error.message },
+      })
+      toast.error({ mensaje: `No se pudo ${activo ? 'desactivar' : 'activar'} "${nombre}". Reintentá en unos segundos.` })
+      return
+    }
+    toast.exito(`"${nombre}" ${activo ? 'desactivado' : 'activado'}`)
     cargarCatalogos()
   }
 
-  if (cargando) return (
-    <div className="flex items-center justify-center h-48">
-      <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-    </div>
+  // Estado de carga inicial (tipos) y error. Envolvemos con <EstadoCarga> para
+  // ser consistente con el resto del CRM: spinner mientras carga, mensaje +
+  // botón "Reintentar" si falla.
+  if (cargando || errorCarga) return (
+    <EstadoCarga
+      loading={cargando}
+      error={errorCarga}
+      empty={false}
+      onReintentar={() => {
+        setErrorCarga(null)
+        setCargando(true)
+        setReintentoKey(k => k + 1)
+      }}
+    >
+      <div />
+    </EstadoCarga>
   )
 
   return (
