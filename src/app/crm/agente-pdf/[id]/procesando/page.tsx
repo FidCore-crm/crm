@@ -49,6 +49,9 @@ export default function ProcesandoPDFPage() {
       setPasoVisible(p => (p < PASOS.length - 1 ? p + 1 : p))
     }, 4000)
     return () => clearInterval(t)
+    // Depende SOLO de la propiedad `estado.estado`, no del objeto entero — un
+    // refresh del polling que llegue con misma prop no debe reiniciar el timer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estado?.estado])
 
   // Redirigir cuando termina la extracción
@@ -59,6 +62,8 @@ export default function ProcesandoPDFPage() {
     } else if (estado.estado === 'APROBADO') {
       router.push(`/crm/agente-pdf/${id}/exito`)
     }
+    // Depende SOLO de la propiedad `estado.estado` — mismo motivo que arriba.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estado?.estado, id, router])
 
   async function cancelar() {

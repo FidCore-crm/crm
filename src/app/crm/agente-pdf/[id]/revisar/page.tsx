@@ -174,7 +174,9 @@ export default function RevisarPDFPage() {
     return true
   }, [datos, mapeos, esEndoso, catalogosACrear])
 
-  const dudosos = estado?.campos_dudosos || []
+  // Memoizado para estabilizar la referencia — sino el useMemo de abajo
+  // recalcula en cada render aunque el contenido sea igual.
+  const dudosos = useMemo(() => estado?.campos_dudosos || [], [estado?.campos_dudosos])
   const bannerColor = dudosos.length === 0
     ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
     : dudosos.length <= 3

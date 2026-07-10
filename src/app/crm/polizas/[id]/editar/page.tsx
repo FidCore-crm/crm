@@ -212,12 +212,15 @@ export default function EditarPolizaPage() {
 
   useEffect(() => { cargarPoliza() }, [cargarPoliza])
 
-  // Cuando cambia el ramo, actualizar tipo riesgo
+  // Cuando cambia el ramo, actualizar tipo riesgo.
+  // Depende SOLO de `ramo_id`, no del objeto poliza entero — cualquier otro
+  // cambio en la póliza no debe re-disparar la lógica del ramo.
   useEffect(() => {
     if (!poliza) return
     const r = ramos.find(r => r.id === poliza.ramo_id)
     setRamoNombre(r?.nombre ?? '')
     setTipoRiesgo(r?.metadata?.tipo_riesgo ?? 'generico')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [poliza?.ramo_id, ramos])
 
   // Filtrar coberturas por ramo

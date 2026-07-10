@@ -263,7 +263,7 @@ function NuevaCotizacionContent() {
     }
     setBuscando(false)
     setShowDropdown(true)
-  }, [supabase, tipoDestinatario])
+  }, [supabase, tipoDestinatario, usuario])
 
   useEffect(() => {
     clearTimeout(searchRef.current)

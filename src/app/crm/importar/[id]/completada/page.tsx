@@ -138,18 +138,22 @@ export default function CompletadaPage() {
     ? imp!.detalle_errores!
     : [];
 
-  // Lógica de deshacer 24h
+  // Lógica de deshacer 24h. `tick` no aparece explícito en el body pero fuerza
+  // el recálculo cada segundo — sin él, Date.now() queda cacheado y el contador
+  // no baja. ESLint no puede detectar esta dependencia implícita.
   const puedeDeshacer = useMemo(() => {
     if (!imp?.fecha_fin) return false;
     if (imp.deshecha) return false;
     const finMs = new Date(imp.fecha_fin).getTime();
     return Date.now() - finMs < 24 * 3600 * 1000;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imp, tick]);
 
   const msRestante = useMemo(() => {
     if (!imp?.fecha_fin) return 0;
     const finMs = new Date(imp.fecha_fin).getTime();
     return 24 * 3600 * 1000 - (Date.now() - finMs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imp, tick]);
 
   const fechaExpiracion = useMemo(() => {

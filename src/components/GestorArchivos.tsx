@@ -247,6 +247,7 @@ export default function GestorArchivos({ polizaId, numeroPoliza, polizaRaizId, p
               <div key={a.id} className="px-3 py-2 flex items-center gap-3">
                 <div className="shrink-0">
                   {esImagen(a.mime_type) ? (
+                    // eslint-disable-next-line jsx-a11y/alt-text -- Image es el ícono de lucide-react, no una <img> HTML
                     <Image className="h-4 w-4 text-blue-500" />
                   ) : (
                     <FileText className="h-4 w-4 text-red-500" />

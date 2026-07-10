@@ -60,6 +60,18 @@ const ICONOS: Record<string, React.ReactNode> = {
   generico:  <Package className="h-4 w-4" />,
 }
 
+// Estado default de un riesgo — se comparte entre el estado inicial, el
+// helper para agregar riesgos nuevos y el fallback de índice fuera de rango.
+// Fuera del componente para que la referencia sea estable entre renders.
+const RIESGO_VACIO: FormRiesgo = {
+  patente: '', marca: '', modelo: '', anio: '', motor: '', chasis: '', color: '', uso: 'PARTICULAR',
+  calle: '', numero: '', localidad: '', provincia: 'Buenos Aires',
+  tipo_construccion: 'MAMPOSTERIA', superficie: '', medidas_seguridad: [],
+  capital_asegurado: '', beneficiarios: '',
+  descripcion: '',
+  detalle_dinamico: {},
+}
+
 function Campo({ label, required, error, col=1, children }: {
   label: string; required?: boolean; error?: string; col?: 1|2; children: React.ReactNode
 }) {
@@ -117,14 +129,6 @@ export default function RenovarPolizaPage() {
   // riesgos nuevos agregados manualmente. Los riesgos copiados del origen
   // mantienen su tipo individual en `tiposPorRiesgo`.
   const [tipoRiesgoRamo, setTipoRiesgoRamo] = useState('generico')
-  const RIESGO_VACIO: FormRiesgo = {
-    patente: '', marca: '', modelo: '', anio: '', motor: '', chasis: '', color: '', uso: 'PARTICULAR',
-    calle: '', numero: '', localidad: '', provincia: 'Buenos Aires',
-    tipo_construccion: 'MAMPOSTERIA', superficie: '', medidas_seguridad: [],
-    capital_asegurado: '', beneficiarios: '',
-    descripcion: '',
-    detalle_dinamico: {},
-  }
   const [riesgos, setRiesgos] = useState<FormRiesgo[]>([{ ...RIESGO_VACIO }])
   const [tiposPorRiesgo, setTiposPorRiesgo] = useState<string[]>(['generico'])
   const [indiceActivo, setIndiceActivo] = useState(0)

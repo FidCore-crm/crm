@@ -154,6 +154,9 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
     )
     setPreviewCargando(false)
     if (r.ok && r.data) setPreview(r.data)
+    // construirFiltro es una función local que depende de exactamente estos
+    // mismos state values; declararla explícitamente sería redundante.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipo, estadoPersona, tipoPersona, aceptaMarketing, conEmail, companiaIds, ramoIds, estadoPoliza, vencProx, vencHace, conVigentes, antMin, antMax, idsManual, incluirPersonas, incluirLeads, leadsEstado, leadsMotivo])
 
   useEffect(() => {
@@ -620,7 +623,10 @@ function ManualSelector({ supabase, busqueda, setBusqueda, idsSeleccionados, set
   const [seleccionadas, setSeleccionadas] = useState<Map<string, any>>(new Map())
   const [cargando, setCargando] = useState(false)
 
-  // Cargar info de personas ya seleccionadas (para mostrar lista)
+  // Cargar info de personas ya seleccionadas (para mostrar lista).
+  // Comparamos por la firma serializada del array; sin esto reaccionaríamos
+  // a cada cambio de referencia aunque los IDs sean los mismos.
+  const idsSeleccionadosKey = (idsSeleccionados as string[]).join(',')
   useEffect(() => {
     if (idsSeleccionados.length === 0) return
     (async () => {
@@ -633,7 +639,10 @@ function ManualSelector({ supabase, busqueda, setBusqueda, idsSeleccionados, set
       ;((data ?? []) as any[]).forEach(p => map.set(p.id, p))
       setSeleccionadas(map)
     })()
-  }, [supabase, idsSeleccionados.join(',')])
+    // idsSeleccionados se compara vía la key serializada arriba; agregarlo
+    // directo re-ejecutaría en cada render (nueva referencia).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, idsSeleccionadosKey])
 
   // Buscar con debounce
   useEffect(() => {

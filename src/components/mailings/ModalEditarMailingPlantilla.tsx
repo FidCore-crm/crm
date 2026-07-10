@@ -56,11 +56,13 @@ export default function ModalEditarMailingPlantilla({ plantilla, onCerrar, onGua
 
   const focusedRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
-  // Preview en vivo (debounced)
+  // Preview en vivo (debounced). actualizarPreview usa los mismos state values
+  // del array de deps; declararla explícitamente sería redundante.
   useEffect(() => {
     if (!previewAbierto) return
     const t = setTimeout(() => actualizarPreview(), 600)
     return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asunto, saludo, cuerpo, cierre, ctaTexto, ctaUrl, previewAbierto])
 
   async function actualizarPreview() {

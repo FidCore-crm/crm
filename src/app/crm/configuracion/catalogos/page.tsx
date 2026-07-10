@@ -206,6 +206,11 @@ function EditorCampos({ campos, onChange }: {
   )
 }
 
+// Solo los 3 tipos de catálogo que el PAS configura desde esta pantalla.
+// VIGENCIA y REFACTURACION fueron eliminados (migración 095): vigencia se calcula
+// desde fecha_inicio/fecha_fin y refacturación es enum hardcoded (ver refacturaciones.ts).
+const TIPOS_RELEVANTES = ['COMPANIA', 'RAMO', 'COBERTURA']
+
 // ── Página principal ─────────────────────────────────────────
 export default function CatalogosPage() {
   const supabase = getSupabaseClient()
@@ -244,10 +249,6 @@ export default function CatalogosPage() {
   const [formDescripcion,    setFormDescripcion]      = useState('')
   const [formCubre,          setFormCubre]            = useState<string[]>([])
 
-  // VIGENCIA y REFACTURACION fueron eliminados como catálogos (migración 095).
-  // Ahora la vigencia se calcula desde fecha_inicio/fecha_fin y la refacturación
-  // es un enum hardcoded (ver src/lib/refacturaciones.ts).
-  const TIPOS_RELEVANTES = ['COMPANIA', 'RAMO', 'COBERTURA']
   const esRamo      = tipoActivo?.codigo === 'RAMO'
   const esCobertura = tipoActivo?.codigo === 'COBERTURA'
 

@@ -113,17 +113,27 @@ export default function AsignarClientesPage() {
     setCargando(false)
   }, [pagina, filtroUsuario, busqueda, usuarios, supabase])
 
+  // Volver a página 1 cuando el usuario cambia el filtro o la búsqueda.
+  // Esto dispara indirectamente cargarPersonas (vía la dependencia de `pagina`
+  // en el useCallback), así que no hace falta llamarlo acá.
   useEffect(() => {
-    const timer = setTimeout(() => { setPagina(1); cargarPersonas() }, 350)
-    return () => clearTimeout(timer)
+    setPagina(1)
   }, [busqueda, filtroUsuario])
 
-  useEffect(() => { cargarPersonas() }, [pagina])
-
-  // Iniciar carga
+  // Cargar personas cuando cambia CUALQUIER dependencia de cargarPersonas
+  // (pagina, filtroUsuario, busqueda, usuarios, supabase). El debounce de 350ms
+  // amortigua las cadenas rápidas de cambios (tipear + cambiar filtro seguido).
+  //
+  // Nota: si Realtime dispara un cambio de `usuarios` mientras el PAS está en la
+  // pantalla, este efecto refetchea automáticamente — el listado siempre queda
+  // sincronizado.
   useEffect(() => {
-    if (usuarios.length > 0 || filtroUsuario === 'SIN_ASIGNAR') cargarPersonas()
-  }, [usuarios])
+    // Guard para el caso inicial: si no cargamos usuarios todavía y el filtro no
+    // es SIN_ASIGNAR (que no depende de usuarios), esperamos.
+    if (usuarios.length === 0 && filtroUsuario !== 'SIN_ASIGNAR') return
+    const timer = setTimeout(() => cargarPersonas(), 350)
+    return () => clearTimeout(timer)
+  }, [cargarPersonas, usuarios.length, filtroUsuario])
 
   const toggleSeleccion = (id: string) => {
     setSeleccionados(prev => {

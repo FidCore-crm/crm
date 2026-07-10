@@ -98,6 +98,9 @@ function NuevaOportunidadPage() {
       }
     }
     cargar()
+    // cargarResumen se define más abajo pero es una función estable (no cambia
+    // entre renders). Solo queremos correr al montar / cambiar searchParams.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, searchParams])
 
   // Buscar personas
@@ -132,7 +135,7 @@ function NuevaOportunidadPage() {
       setMostrarDropdown(true)
       setBuscando(false)
     }, 350)
-  }, [busquedaPersona, supabase])
+  }, [busquedaPersona, supabase, usuario])
 
   const cargarResumen = async (pid: string) => {
     const { data: pols } = await supabase
