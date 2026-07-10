@@ -476,8 +476,7 @@ export default function CompletadaPage() {
         );
       })()}
 
-      {/* Sección 4 — Deshacer */}
-      {/* TODO: mismo patrón en historial/[id] */}
+      {/* Sección 4 — Deshacer (mismo patrón que historial/[id]) */}
       {imp.deshecha ? (
         <div className="bg-red-50 border border-red-200 rounded-xl p-5 mb-6">
           <div className="flex items-start gap-3">

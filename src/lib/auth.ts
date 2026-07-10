@@ -297,15 +297,16 @@ async function reconstruirUsuario(userId: string, emailHint?: string): Promise<U
     return null
   }
 
-  // Email: el JWT lo trae; si no, buscar en auth.users
+  // Email: el JWT lo trae; si no, lo pedimos al admin API de GoTrue (auth.users).
   let email = emailHint
   if (!email) {
-    const { data: authUser } = await supabase
-      .from('usuarios') // fallback legacy
-      .select('email')
-      .eq('id', userId)
-      .maybeSingle()
-    email = (authUser as any)?.email ?? ''
+    try {
+      const authClient = getAuthClient()
+      const { data } = await authClient.auth.admin.getUserById(userId)
+      email = data?.user?.email ?? ''
+    } catch {
+      email = ''
+    }
   }
 
   return {

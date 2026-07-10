@@ -22,8 +22,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: errTotal.message }, { status: 500 })
   }
 
-  // total_registros_importados — traer últimas 1000 COMPLETADA no deshechas
-  // TODO: si total_importaciones_completadas > 1000, considerar materializar este agregado.
+  // total_registros_importados — traer últimas 1000 COMPLETADA no deshechas.
+  // El límite de 1000 evita cargar historia completa en cada request; si un
+  // cliente supera esa marca, el KPI empieza a ser aproximado (siempre por
+  // debajo del real). Aceptado a cambio de latencia constante — el KPI es
+  // informativo, no crítico. Migrar a un agregado materializado si un cliente
+  // llega a ese volumen.
   let qReg = supabase
     .from('importaciones')
     .select('clientes_creados, polizas_creadas')

@@ -220,8 +220,5 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
   if (error) return NextResponse.json({ ok: false, error: 'Error al eliminar los datos' }, { status: 500 })
 
-  // Por si quedó algo en la tabla vieja `usuarios` (modo dual durante migración)
-  try { await supabase.from('usuarios').delete().eq('id', id) } catch {}
-
   return NextResponse.json({ ok: true })
 }

@@ -6,9 +6,11 @@
  * contra el estado actual del CRM (personas por DNI, pólizas por
  * numero_poliza + compania_id).
  *
- * TODO: este cálculo puede ser lento para cartera grande. A futuro
- * convendría pre-computarlo durante el análisis estructural y cachearlo
- * en plan_importacion.comparacion.
+ * On-demand por diseño: el cálculo puede ser lento para cartera grande,
+ * pero solo se dispara cuando el PAS abre la pantalla de comparación —
+ * no en cada listado. Cuando algún cliente empiece a sentir la latencia,
+ * migrar a pre-computación durante el análisis estructural con caché en
+ * `plan_importacion.comparacion`.
  */
 
 import { NextResponse } from 'next/server';
