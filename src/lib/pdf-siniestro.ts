@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf'
+import { AVISO_PRECARGA_TITULO, AVISO_PRECARGA_TEXTO } from './aviso-precarga-siniestro'
 
 export interface DatosPDFSiniestro {
   numero_caso: string
@@ -392,6 +393,32 @@ export async function generarPDFSiniestro(datos: DatosPDFSiniestro): Promise<Buf
       y += Math.max(5, valorLineas.length * 4)
     }
     y += 2
+  }
+
+  // ── Aviso "esto es una pre-carga" ──
+  {
+    // Calcular altura del callout dinámicamente según el texto
+    const textoAviso = `${AVISO_PRECARGA_TITULO} ${AVISO_PRECARGA_TEXTO}`
+    const anchoTexto = pageWidth - 28 - 8 // margen general - padding interno
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    const lineasAviso = doc.splitTextToSize(textoAviso, anchoTexto)
+    const altoCallout = 6 + lineasAviso.length * 4 + 4
+
+    y = checkPage(doc, y, altoCallout + 4, datos.numero_caso)
+    y += 4
+
+    // Fondo amber-100 + borde izquierdo amber-500
+    doc.setFillColor(254, 243, 199) // #fef3c7
+    doc.rect(14, y, pageWidth - 28, altoCallout, 'F')
+    doc.setFillColor(245, 158, 11) // #f59e0b
+    doc.rect(14, y, 2, altoCallout, 'F')
+
+    doc.setTextColor(120, 53, 15) // #78350f
+    doc.text(lineasAviso, 14 + 6, y + 6)
+
+    y += altoCallout + 2
+    doc.setTextColor(0, 0, 0)
   }
 
   // ── Footer ──

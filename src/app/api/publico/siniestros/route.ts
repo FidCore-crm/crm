@@ -21,6 +21,7 @@ import {
   type ConductorData, type TerceroData, type TestigoData,
 } from '@/lib/siniestros-tipos'
 import { derivarTonos, normalizarColorMarca, COLOR_MARCA_DEFAULT, type TonosDerivados } from '@/lib/color-marca'
+import { AVISO_PRECARGA_TITULO, AVISO_PRECARGA_TEXTO } from '@/lib/aviso-precarga-siniestro'
 
 const STORAGE_ROOT = path.join(process.cwd(), 'storage')
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB por archivo
@@ -888,6 +889,9 @@ function construirEmailCliente(args: {
         ${archivosInfo.length > 0 ? `<p style="color:#64748b;font-size:13px;">Se adjuntaron ${archivosInfo.length} archivo(s) a la denuncia.</p>` : ''}
         <p style="color:#334155;">Adjuntamos el comprobante de denuncia en PDF. Guardalo como constancia.</p>
         <p style="color:#334155;">Tu productor se pondrá en contacto con vos para continuar con el trámite.</p>
+        <div style="background:#fef3c7;border-left:4px solid #f59e0b;color:#78350f;padding:14px 18px;border-radius:6px;margin:20px 0 4px;font-size:14px;line-height:1.55;">
+          <strong style="color:#b45309;">${AVISO_PRECARGA_TITULO}</strong> ${AVISO_PRECARGA_TEXTO}
+        </div>
         <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;">
         <p style="color:#94a3b8;font-size:12px;">Este es un email automático. No respondas a este mensaje.</p>
       </div>

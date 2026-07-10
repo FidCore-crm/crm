@@ -11,6 +11,7 @@ import { gradientDeColorMarca } from '@/lib/color-marca'
 import { PoweredByFidCore } from '@/components/PoweredByFidCore'
 import { tiposDeSiniestroPorRamo, obtenerConfigTipoSiniestro } from '@/lib/siniestros-catalogo'
 import { CamposDinamicos, type ValoresDinamicos } from '@/components/siniestros/CamposDinamicos'
+import { AVISO_PRECARGA_TITULO, AVISO_PRECARGA_TEXTO } from '@/lib/aviso-precarga-siniestro'
 
 // ════════════════════════════════════════════════════════════
 //   TIPOS
@@ -803,6 +804,9 @@ function DenunciarPageContent() {
                 Guardá este número para futuras consultas. Tu productor asesor se pondrá en contacto
                 con vos a la brevedad para continuar con el proceso.
               </p>
+              <div className="success-aviso">
+                <strong>{AVISO_PRECARGA_TITULO}</strong> {AVISO_PRECARGA_TEXTO}
+              </div>
               <button className="btn btn-primary btn-lg" onClick={() => window.location.reload()}>
                 Volver al inicio
               </button>

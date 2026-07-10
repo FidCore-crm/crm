@@ -949,6 +949,26 @@ select.form-select {
   line-height: 1.6;
 }
 
+.success-aviso {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  color: #78350f;
+  padding: 14px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 520px;
+  margin: 0 auto 28px;
+  text-align: left;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.success-aviso strong {
+  color: #b45309;
+  margin-right: 4px;
+}
+
 /* ── Loading spinner inline ── */
 .spinner-inline {
   width: 18px;
