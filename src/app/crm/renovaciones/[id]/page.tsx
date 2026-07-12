@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import {
   ArrowLeft, Save, Loader2, AlertCircle, CheckCircle,
-  Car, Home, Heart, Package, Plus, Trash2
+  Car, Home, Heart, Package, Plus, Trash2, Sparkles, X,
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { formatFecha, getPolizaBadgeColor, getLabelEstado } from '@/lib/utils'
@@ -19,6 +19,7 @@ import { validarPatente } from '@/lib/importacion/validators'
 import { EstadoCarga } from '@/components/EstadoCarga'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
+import { keysExtrasDeDetalle, labelHumanoDeKey, valorAString } from '@/lib/detalle-tecnico-extras'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
 import { opcionesMedioPago } from '@/lib/medios-pago'
 import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
@@ -837,6 +838,55 @@ export default function RenovarPolizaPage() {
               placeholder="Info libre sobre el bien (sublímites, cláusulas específicas, condiciones particulares que no encajan en los campos)..."
             />
           </Campo>
+
+          {/* Datos adicionales — keys que la IA agregó y no están en el schema
+              hardcodeado del render tipo. Ver detalle-tecnico-extras.ts. */}
+          {(() => {
+            const extras = keysExtrasDeDetalle(riesgo.detalle_dinamico, renderTipo as any)
+            if (extras.length === 0) return null
+            return (
+              <div className="col-span-2 pt-3 mt-1 border-t border-slate-100">
+                <div className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+                  Datos adicionales
+                  <span className="text-2xs text-slate-400 font-normal">
+                    · cargados por el agente IA o importados
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {extras.map((k) => (
+                    <div key={k}>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                        {labelHumanoDeKey(k)}
+                      </label>
+                      <div className="flex gap-1.5">
+                        <input
+                          className="form-input flex-1"
+                          value={valorAString(riesgo.detalle_dinamico?.[k])}
+                          onChange={(e) => setR('detalle_dinamico', {
+                            ...(riesgo.detalle_dinamico ?? {}),
+                            [k]: e.target.value,
+                          })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nuevo = { ...(riesgo.detalle_dinamico ?? {}) }
+                            delete nuevo[k]
+                            setR('detalle_dinamico', nuevo)
+                          }}
+                          title="Eliminar este campo del bien asegurado"
+                          className="btn-tabla-accion-danger shrink-0"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       </div>
 
