@@ -6,6 +6,7 @@ import { enviarComunicacion } from '@/lib/comunicaciones-sender'
 import { regenerarTokenAcceso, construirUrlPortal, recuperarTokenPlano } from '@/lib/portal-cliente-tokens'
 import { obtenerUrlPortalCliente } from '@/lib/urls-publicas'
 import { checkLicenciaActiva } from '@/lib/licencia-guard'
+import { generarBotonHtml } from '@/lib/email-templates/botones'
 
 /**
  * Envía el link del portal del cliente por email o WhatsApp.
@@ -147,12 +148,33 @@ export async function POST(
     )
   }
 
+  // Color de marca del PAS para el botón CTA. Fallback al default navy
+  // si no está configurado.
+  const { data: cfgColor } = await supabase
+    .from('configuracion')
+    .select('color_marca')
+    .limit(1)
+    .maybeSingle()
+  const colorMarca = (cfgColor as any)?.color_marca ?? null
+
+  // Botón HTML (variable html-segura, ver VARIABLES_HTML_SEGURAS del
+  // renderizador). Reemplaza el link crudo que antes ponía la plantilla
+  // como texto plano.
+  const botonHtml = generarBotonHtml({
+    url: urlPortal,
+    texto: 'Entrar al Portal del Cliente',
+    color_marca: colorMarca,
+  })
+
   const resultado = await enviarComunicacion({
     plantilla_codigo: 'portal_cliente_acceso',
     destinatario: { email, nombre: nombreCompleto, persona_id },
     tipo_envio: 'AUTOMATICO_PORTAL_CLIENTE',
     enviado_por_usuario_id: usuario.id,
-    variables_extra: { url_portal: urlPortal },
+    variables_extra: {
+      url_portal: urlPortal,
+      boton_accion: botonHtml,
+    },
   })
 
   if (!resultado.ok) {
