@@ -176,8 +176,12 @@ export default function FichaCotizacionPage() {
   const [guardandoEstado,      setGuardandoEstado]      = useState(false)
 
   // ── Carga de datos ──
-  const cargar = useCallback(async () => {
-    setCargando(true)
+  // Con `silencioso=true` NO activa el spinner — usado en refresh por Realtime
+  // para evitar el flash de "cargando" cuando el usuario cambia estado o
+  // llegan cambios de otro dispositivo. La primera carga usa silencioso=false
+  // para mostrar el spinner mientras hay data en blanco.
+  const cargar = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     const [{ data: cot }, { data: opts }] = await Promise.all([
       supabase.from('cotizaciones').select(`
         id, numero_cotizacion, persona_id, lead_id, oportunidad_id, ramo_id,
@@ -208,15 +212,18 @@ export default function FichaCotizacionPage() {
   // Realtime: cambios en ESTA cotización y sus opciones (cotizacion_companias).
   // Filtrado por id/cotizacion_id para no re-cargar la ficha ante cambios de
   // otras cotizaciones del sistema.
+  // Realtime dispara refresh silencioso (sin spinner) para evitar el flash
+  // visual cuando el propio usuario acaba de guardar un cambio o cuando
+  // llegan cambios desde otro dispositivo.
   useRealtimeRefresh({
     tablas: ['cotizaciones'],
     filter: `id=eq.${id}`,
-    onCambio: cargar,
+    onCambio: () => cargar(true),
   })
   useRealtimeRefresh({
     tablas: ['cotizacion_companias'],
     filter: `cotizacion_id=eq.${id}`,
-    onCambio: cargar,
+    onCambio: () => cargar(true),
   })
 
   // Helper: nombre comercial de una cobertura para una compañía específica.
@@ -257,7 +264,7 @@ export default function FichaCotizacionPage() {
           .update({ es_recomendada: true })
           .eq('id', opcionId)
       }
-      await cargar()
+      await cargar(true)
     } catch (err: any) {
       toast.error(err?.message || 'No se pudo marcar la opción como recomendada')
     } finally {
@@ -289,7 +296,7 @@ export default function FichaCotizacionPage() {
     if (e) { setError(e.message) }
     else {
       setMostrarModalEnviar(false)
-      cargar()
+      cargar(true)
     }
     setGuardandoEnviar(false)
   }
@@ -360,7 +367,9 @@ export default function FichaCotizacionPage() {
     setNuevoEstado('')
     setEstadoMotivo('')
     setEstadoCompaniaId('')
-    cargar()
+    // No llamamos cargar() acá: el UPDATE que acabamos de hacer dispara el
+    // evento Realtime que llega ~100ms después y refresca silenciosamente.
+    // Llamar cargar() acá directo hacía flash del spinner + doble fetch.
     setGuardandoEstado(false)
   }
 
@@ -562,7 +571,7 @@ export default function FichaCotizacionPage() {
     if (cotizacion.estado === 'BORRADOR') {
       if (confirm('Se abrió WhatsApp y se descargó el PDF. ¿Marcar la cotización como ENVIADA?')) {
         await supabase.from('cotizaciones').update({ estado: 'ENVIADA', fecha_envio: hoyLocal() }).eq('id', id)
-        cargar()
+        cargar(true)
       }
     }
   }
@@ -624,7 +633,7 @@ export default function FichaCotizacionPage() {
             await supabase.from('cotizaciones').update({ estado: 'ENVIADA', fecha_envio: hoyLocal() }).eq('id', id)
           }
         }
-        cargar()
+        cargar(true)
       } else {
         setError(r.error?.mensaje || 'Error al enviar el email')
       }

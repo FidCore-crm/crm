@@ -277,9 +277,9 @@ export default function CatalogosPage() {
     cargarTipos()
   }, [supabase, reintentoKey])
 
-  const cargarCatalogos = useCallback(async () => {
+  const cargarCatalogos = useCallback(async (silencioso: boolean = false) => {
     if (!tipoActivo) return
-    setCargandoItems(true)
+    if (!silencioso) setCargandoItems(true)
     const { data, error } = await supabase.from('catalogos').select('*').eq('tipo_id', tipoActivo.id).order('orden').order('nombre')
     if (error) {
       logger.error({
@@ -299,7 +299,7 @@ export default function CatalogosPage() {
 
   // Realtime: cambios de otros admins se reflejan en el acto (además el resto
   // del CRM se entera vía la publicación — dropdowns de ramo/cobertura, etc.).
-  useRealtimeRefresh({ tablas: ['catalogos'], onCambio: cargarCatalogos })
+  useRealtimeRefresh({ tablas: ['catalogos'], onCambio: () => cargarCatalogos(true) })
 
   // Cargar ramos y compañías disponibles (para vincular coberturas)
   useEffect(() => {
@@ -431,7 +431,7 @@ export default function CatalogosPage() {
       : await supabase.from('catalogos').insert(payload)
 
     if (e) { setError(`Error: ${e.message}`) }
-    else { setExito(editando ? 'Actualizado ✓' : 'Agregado ✓'); setTimeout(() => setExito(''), 2500); resetForm(); cargarCatalogos() }
+    else { setExito(editando ? 'Actualizado ✓' : 'Agregado ✓'); setTimeout(() => setExito(''), 2500); resetForm(); cargarCatalogos(true) }
     setGuardando(false)
   }
 
@@ -454,7 +454,7 @@ export default function CatalogosPage() {
       return
     }
     toast.exito(`"${nombre}" eliminado`)
-    cargarCatalogos()
+    cargarCatalogos(true)
   }
 
   const toggleActivo = async (id: string, activo: boolean, nombre: string) => {
@@ -502,7 +502,7 @@ export default function CatalogosPage() {
       return
     }
     toast.exito(`"${nombre}" ${activo ? 'desactivado' : 'activado'}`)
-    cargarCatalogos()
+    cargarCatalogos(true)
   }
 
   // Estado de carga inicial (tipos) y error. Envolvemos con <EstadoCarga> para

@@ -3,13 +3,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft, Loader2, CheckCircle, Power, PowerOff, Copy, Check,
-  AlertTriangle, Link2, Phone, Users, RefreshCw, Trash2, Search,
+  ArrowLeft, Loader2, CheckCircle, Power, PowerOff,
+  AlertTriangle, Phone, Users, RefreshCw, Trash2, Search,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
-import { copiarAlPortapapeles } from '@/lib/copiar-portapapeles'
 
 type Compania = {
   compania_id: string
@@ -60,12 +59,10 @@ export default function PortalClientePage() {
   const [guardando, setGuardando] = useState(false)
   const [guardadoOk, setGuardadoOk] = useState(false)
   const [errorGral, setErrorGral] = useState('')
-  const [copiado, setCopiado] = useState(false)
 
   const [activo, setActivo] = useState(false)
   const [textoBienvenida, setTextoBienvenida] = useState('')
   const [mensajeRevocado, setMensajeRevocado] = useState('')
-  const [urlPortal, setUrlPortal] = useState<string | null>(null)
 
   const [companias, setCompanias] = useState<Compania[]>([])
   const [accesos, setAccesos] = useState<Acceso[]>([])
@@ -93,7 +90,6 @@ export default function PortalClientePage() {
       setActivo(c.activo ?? false)
       setTextoBienvenida(c.texto_bienvenida || '')
       setMensajeRevocado(c.mensaje_acceso_revocado || '')
-      setUrlPortal(c.url_portal || null)
     } else if (!cfgRes.ok) {
       setErrorGral(cfgRes.error?.mensaje ?? 'Error al cargar la configuración')
     }
@@ -144,21 +140,6 @@ export default function PortalClientePage() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     guardarConfig(datos)
   }, [guardarConfig])
-
-  const copiarUrl = async () => {
-    if (!urlPortal) return
-    const ok = await copiarAlPortapapeles(urlPortal)
-    if (ok) {
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 2000)
-    } else {
-      toast.error('No se pudo copiar al portapapeles')
-    }
-  }
-
-  // Estado local para el input de la URL del portal (editable).
-  const [urlPortalInput, setUrlPortalInput] = useState('')
-  useEffect(() => { setUrlPortalInput(urlPortal || '') }, [urlPortal])
 
   async function guardarTelefono(compania_id: string, campos: Partial<Compania>) {
     const actual = companias.find(c => c.compania_id === compania_id)
@@ -342,50 +323,6 @@ export default function PortalClientePage() {
         </div>
       </div>
 
-      {/* URL del subdominio del portal */}
-      <div className="bg-white border border-slate-200 rounded-lg p-5">
-        <div className="flex items-center gap-2 mb-1">
-          <Link2 className="h-4 w-4 text-blue-600" />
-          <h2 className="text-sm font-semibold text-slate-800">URL del subdominio del portal</h2>
-        </div>
-        <p className="text-2xs text-slate-500 mb-3">
-          Pegá el subdominio público que apunta a este servidor (ej: <code className="bg-slate-100 px-1 rounded">https://portal.suempresa.com.ar</code>).
-          El sistema le agrega <code className="bg-slate-100 px-1 rounded">/c/&lt;token&gt;</code> al armar el link único de cada asegurado.
-        </p>
-        <input
-          type="url"
-          value={urlPortalInput}
-          onChange={e => setUrlPortalInput(e.target.value)}
-          onBlur={() => immediateSave({ url_portal: urlPortalInput.trim() || null })}
-          placeholder="https://portal.suempresa.com.ar"
-          className="form-input w-full text-xs font-mono"
-        />
-        {urlPortal && (
-          <div className="mt-3">
-            <p className="text-2xs text-slate-500 mb-1">Ejemplo del link que recibe cada cliente:</p>
-            <div className="flex gap-2">
-              <div
-                onClick={copiarUrl}
-                className="flex-1 bg-blue-50 border border-blue-200 rounded px-3 py-2 text-xs font-mono text-blue-700 cursor-pointer hover:bg-blue-100 select-all"
-                title="Clic para copiar la URL base"
-              >
-                {urlPortal}/c/&lt;token-único-por-cliente&gt;
-              </div>
-              <button
-                onClick={copiarUrl}
-                className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5 whitespace-nowrap"
-              >
-                {copiado ? <><Check className="h-3 w-3" /> Copiado</> : <><Copy className="h-3 w-3" /> Copiar base</>}
-              </button>
-            </div>
-          </div>
-        )}
-        {!urlPortal && (
-          <p className="text-2xs text-amber-600 mt-2">
-            Sin URL configurada los emails de bienvenida y los botones "Enviar acceso" no van a funcionar.
-          </p>
-        )}
-      </div>
 
       {/* SECCIÓN 2 — Textos */}
       <div className="bg-white border border-slate-200 rounded-lg p-5">

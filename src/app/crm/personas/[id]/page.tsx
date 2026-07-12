@@ -179,8 +179,10 @@ export default function FichaPersonaPage() {
   // Papelera (soft delete)
   const [restaurando, setRestaurando] = useState(false)
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
+  // silencioso=true evita el flash del spinner cuando el refresh viene de
+  // Realtime o de una acción del usuario que ya actualizó los datos.
+  const cargar = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     const [resPer, resPol, resSin] = await Promise.all([
       supabase.from('personas').select('*').eq('id', id).single(),
       supabase.from('polizas').select(`
@@ -236,19 +238,19 @@ export default function FichaPersonaPage() {
   useRealtimeRefresh({
     tablas: ['personas'],
     filter: `id=eq.${id}`,
-    onCambio: cargar,
+    onCambio: () => cargar(true),
   })
   // persona_bitacora ahora la escucha el componente hijo autónomo HistorialPersona
   // (evita re-render de toda la ficha post-evento).
   useRealtimeRefresh({
     tablas: ['polizas'],
     filter: `asegurado_id=eq.${id}`,
-    onCambio: cargar,
+    onCambio: () => cargar(true),
   })
   useRealtimeRefresh({
     tablas: ['siniestros', 'tareas'],
     filter: `persona_id=eq.${id}`,
-    onCambio: cargar,
+    onCambio: () => cargar(true),
   })
 
   // Cargar lista de usuarios (admin) para el botón "Reasignar"
@@ -471,7 +473,7 @@ export default function FichaPersonaPage() {
     setRestaurando(false)
     if (r.ok) {
       toast.exito('Cliente restaurado')
-      cargar()
+      cargar(true)
     } else {
       toast.error(r.error ?? { mensaje: 'No se pudo restaurar' })
     }
@@ -578,10 +580,10 @@ export default function FichaPersonaPage() {
                 })
                 if (r.ok) {
                   toast.exito(`Cliente desbloqueado (estado: ${r.data?.estado === 'ACTIVO' ? 'Asegurado' : 'Inactivo'})`)
-                  cargar()
+                  cargar(true)
                 } else if (r.error?.codigo === 'ERR_NEG_004') {
                   toast.warning('Otro usuario modificó al cliente mientras tanto. Se refrescó la ficha; volvé a intentar.')
-                  cargar()
+                  cargar(true)
                 }
               }}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded border border-emerald-300 text-emerald-700 text-xs font-medium hover:bg-emerald-50 transition-colors"
@@ -603,10 +605,10 @@ export default function FichaPersonaPage() {
                 })
                 if (r.ok) {
                   toast.exito('Cliente bloqueado')
-                  cargar()
+                  cargar(true)
                 } else if (r.error?.codigo === 'ERR_NEG_004') {
                   toast.warning('Otro usuario modificó al cliente mientras tanto. Se refrescó la ficha; volvé a intentar.')
-                  cargar()
+                  cargar(true)
                 }
               }}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors"

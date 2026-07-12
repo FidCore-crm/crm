@@ -45,8 +45,8 @@ export default function PapeleraPersonasPage() {
   const [busqueda, setBusqueda] = useState('')
   const [restaurandoId, setRestaurandoId] = useState<string | null>(null)
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
+  const cargar = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
 
     let query = supabase
@@ -91,7 +91,7 @@ export default function PapeleraPersonasPage() {
   useEffect(() => { cargar() }, [cargar])
 
   // Realtime: restauraciones/eliminaciones desde otras sesiones se reflejan aquí.
-  useRealtimeRefresh({ tablas: ['personas'], onCambio: cargar })
+  useRealtimeRefresh({ tablas: ['personas'], onCambio: () => cargar(true) })
 
   async function restaurar(id: string, nombre: string) {
     setRestaurandoId(id)
@@ -99,7 +99,7 @@ export default function PapeleraPersonasPage() {
     setRestaurandoId(null)
     if (r.ok) {
       toast.exito(`${nombre} restaurado`)
-      cargar()
+      cargar(true)
     } else {
       toast.error(r.error ?? { mensaje: 'No se pudo restaurar' })
     }
@@ -134,7 +134,7 @@ export default function PapeleraPersonasPage() {
             </p>
           </div>
         </div>
-        <button onClick={cargar} className="btn-secondary h-7 w-7 p-0 flex items-center justify-center" title="Actualizar">
+        <button onClick={() => cargar()} className="btn-secondary h-7 w-7 p-0 flex items-center justify-center" title="Actualizar">
           <RefreshCw className="h-3.5 w-3.5" />
         </button>
       </div>

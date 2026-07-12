@@ -185,8 +185,10 @@ export default function FichaPolizaPage() {
   const [polizaRaizId, setPolizaRaizId] = useState<string | undefined>()
   const [polizaRaizNumero, setPolizaRaizNumero] = useState<string | undefined>()
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
+  // silencioso=true evita el flash del spinner cuando el refresh viene de
+  // Realtime o de una acción del usuario que ya actualizó los datos.
+  const cargar = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     const [{ data: pol }, { data: sin }] = await Promise.all([
       supabase.from('polizas').select(`
         id, numero_poliza, numero_certificado,
@@ -288,7 +290,7 @@ export default function FichaPolizaPage() {
   useRealtimeRefresh({
     tablas: ['polizas'],
     filter: `id=eq.${id}`,
-    onCambio: cargar,
+    onCambio: () => cargar(true),
   })
   // riesgos siguen viviendo directo en esta ficha, así que los seguimos escuchando acá.
   // endosos, poliza_bitacora y poliza_archivos ahora los escuchan sus componentes hijos
@@ -297,7 +299,7 @@ export default function FichaPolizaPage() {
   useRealtimeRefresh({
     tablas: ['riesgos'],
     filter: `poliza_id=eq.${id}`,
-    onCambio: cargar,
+    onCambio: () => cargar(true),
   })
 
   useEffect(() => {
@@ -340,7 +342,7 @@ export default function FichaPolizaPage() {
         // con la data fresca.
         if (r.error?.codigo === 'ERR_NEG_004') {
           setError('La póliza fue modificada por otro usuario mientras completabas este formulario. Se recargó la ficha; revisá el estado actual antes de reintentar.')
-          await cargar()
+          await cargar(true)
         } else {
           setError(r.error?.mensaje ?? 'Error al procesar la baja')
         }
@@ -349,7 +351,7 @@ export default function FichaPolizaPage() {
         setModalTipo(null)
         setModalMotivo(''); setModalObs(''); setModalFecha(hoyLocal())
         setHistorialKey(k => k + 1)
-        cargar()
+        cargar(true)
       }
     } catch (err) {
       setError('Error de conexión al procesar la baja')
@@ -783,7 +785,7 @@ export default function FichaPolizaPage() {
                           setPoliza({ ...poliza, mostrar_suma_asegurada_portal: !nuevoValor })
                           toast.error('No se pudo actualizar la visibilidad. Recargá e intentá de nuevo.')
                         } else {
-                          await cargar()
+                          await cargar(true)
                           toast.exito(nuevoValor ? 'Ahora se muestra en el portal' : 'Ahora queda oculta en el portal')
                         }
                       }}
@@ -1145,7 +1147,7 @@ export default function FichaPolizaPage() {
           }}
           onRehabilitada={() => {
             setHistorialKey(k => k + 1)
-            cargar()
+            cargar(true)
           }}
         />
       )}

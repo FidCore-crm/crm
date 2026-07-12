@@ -176,8 +176,8 @@ export default function RenovacionesPage() {
     cargarKpis()
   }, [supabase, usuario])
 
-  const cargarPolizas = useCallback(async () => {
-    setCargando(true)
+  const cargarPolizas = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
     const idsPersonas = await obtenerIdsPersonas(supabase, usuario)
     const hoy = hoyAR()
@@ -288,7 +288,7 @@ export default function RenovacionesPage() {
 
   // Realtime: cualquier alta/renovación/baja/edición de póliza refresca el listado
   // para que no dependa de F5. Filosofía general del sistema: cambios se ven en el acto.
-  useRealtimeRefresh({ tablas: ['polizas'], onCambio: cargarPolizas })
+  useRealtimeRefresh({ tablas: ['polizas'], onCambio: () => cargarPolizas(true) })
 
   useEffect(() => {
     apiCall<{ activo: boolean }>('/api/comunicaciones/estado', {}, { mostrar_toast_en_error: false })
@@ -415,7 +415,7 @@ export default function RenovacionesPage() {
             <X className="h-3.5 w-3.5"/> Limpiar
           </button>
         )}
-        <button onClick={cargarPolizas} className="btn-secondary h-7 w-7 p-0 flex items-center justify-center ml-auto" title="Actualizar">
+        <button onClick={() => cargarPolizas()} className="btn-secondary h-7 w-7 p-0 flex items-center justify-center ml-auto" title="Actualizar">
           <RefreshCw className="h-3.5 w-3.5"/>
         </button>
       </div>

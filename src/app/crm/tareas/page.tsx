@@ -153,9 +153,9 @@ export default function TareasPage() {
   }, [busqueda])
 
   // ── Cargar tareas ──────────────────────────────────────
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async (silencioso: boolean = false) => {
     if (!idsPersonasCargados) return
-    setCargando(true)
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
 
     let personaIds: string[] = []
@@ -227,7 +227,7 @@ export default function TareasPage() {
   // sin depender de F5.
   useRealtimeRefresh({
     tablas: ['tareas'],
-    onCambio: () => { cargar(); cargarKpis() },
+    onCambio: () => { cargar(true); cargarKpis() },
   })
 
   // ── Completar tarea ────────────────────────────────────
@@ -261,7 +261,7 @@ export default function TareasPage() {
 
       setModalTarea(null)
       setNotaCierre('')
-      cargar()
+      cargar(true)
       cargarKpis()
     } catch (err: any) {
       toast.error(err?.message ?? 'No se pudo completar la tarea')
@@ -276,7 +276,7 @@ export default function TareasPage() {
     const { error } = await supabase.from('tareas').delete().eq('id', id)
     if (error) { toast.error(error.message ?? 'No se pudo eliminar'); return }
     toast.exito('Tarea eliminada')
-    cargar(); cargarKpis()
+    cargar(true); cargarKpis()
   }
 
   const limpiar = () => { setBusqueda(''); setFiltroTipo(''); setFiltroPrioridad(''); setFiltroEstado(''); setFiltroPeriodo(''); setKpiActivo(null); setPagina(0) }
@@ -369,7 +369,7 @@ export default function TareasPage() {
             <X className="h-3.5 w-3.5" /> Limpiar
           </button>
         )}
-        <button onClick={cargar} className="btn-secondary h-7 w-7 p-0 flex items-center justify-center ml-auto" title="Actualizar">
+        <button onClick={() => cargar()} className="btn-secondary h-7 w-7 p-0 flex items-center justify-center ml-auto" title="Actualizar">
           <RefreshCw className="h-3.5 w-3.5" />
         </button>
       </div>

@@ -98,8 +98,8 @@ export default function PipelinePage() {
     cargar()
   }, [supabase])
 
-  const cargarDatos = useCallback(async () => {
-    setCargando(true)
+  const cargarDatos = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
     const primerDiaMes = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`
 
@@ -165,7 +165,7 @@ export default function PipelinePage() {
   // cotización desde su vista, esta la muestra en la columna correcta sin F5.
   useRealtimeRefresh({
     tablas: ['cotizaciones', 'cotizacion_companias'],
-    onCambio: cargarDatos,
+    onCambio: () => cargarDatos(true),
   })
 
   // ── Drag & Drop handlers ──

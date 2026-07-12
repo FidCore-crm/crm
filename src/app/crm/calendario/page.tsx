@@ -194,8 +194,8 @@ export default function CalendarioPage() {
   }, [supabase])
 
   // ── Cargar datos del mes ─────────��─────────────────────
-  const cargarDatos = useCallback(async () => {
-    setCargando(true)
+  const cargarDatos = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
     const primerDia = fechaLocal(anio, mes, 1)
     const ultimoDia = fechaLocal(anio, mes, diasEnMes(anio, mes))
@@ -343,7 +343,7 @@ export default function CalendarioPage() {
   // refresca la vista (afecta al render mensual + panel lateral).
   useRealtimeRefresh({
     tablas: ['tareas', 'polizas'],
-    onCambio: cargarDatos,
+    onCambio: () => cargarDatos(true),
   })
 
   // ── Navegación de mes ───────���──────────────────────────

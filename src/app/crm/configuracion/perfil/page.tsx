@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Save, Loader2, AlertCircle, CheckCircle,
-  User, Building2, Plus, Trash2, Upload, X, Link2, MessageSquare, Palette
+  User, Building2, Plus, Trash2, Upload, X, MessageSquare, Palette
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { apiCall } from '@/lib/api-client'
@@ -68,7 +68,6 @@ export default function PerfilPage() {
   const [facebook,     setFacebook]     = useState('')
   const [socios,       setSocios]       = useState<Socio[]>([])
   const [prefijoCasos, setPrefijoCasos] = useState('CASO')
-  const [urlCrm,       setUrlCrm]       = useState('')
   const [colorMarca,   setColorMarca]   = useState(COLOR_MARCA_DEFAULT)
   const [emailHeaderEstilo, setEmailHeaderEstilo] = useState<'banda' | 'compacto' | 'lateral'>('banda')
   const [emailHeaderSubtitulo, setEmailHeaderSubtitulo] = useState('')
@@ -107,7 +106,6 @@ export default function PerfilPage() {
         setFacebook(data.facebook ?? '')
         setSocios(data.socios ?? [])
         setPrefijoCasos(data.prefijo_casos ?? 'CASO')
-        setUrlCrm(data.url_crm ?? '')
         setColorMarca(normalizarColorMarca(data.color_marca))
         const estiloGuardado = (data as any).email_header_estilo
         if (estiloGuardado === 'compacto' || estiloGuardado === 'lateral' || estiloGuardado === 'banda') {
@@ -157,29 +155,6 @@ export default function PerfilPage() {
       return
     }
 
-    // Validación liviana de URL del CRM (vacío también es válido = "usar fallback").
-    const urlCrmTrim = urlCrm.trim()
-    if (urlCrmTrim) {
-      try {
-        const u = new URL(urlCrmTrim)
-        if (u.protocol !== 'http:' && u.protocol !== 'https:') {
-          setErrorGral('La URL del CRM debe empezar con http:// o https://')
-          return
-        }
-        if (u.protocol === 'http:' && !/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(u.host)) {
-          setErrorGral('Solo se permite http:// para localhost; el resto debe usar https://')
-          return
-        }
-        if (u.pathname && u.pathname !== '/' && u.pathname !== '') {
-          setErrorGral('La URL del CRM no debe incluir path (solo el dominio raíz)')
-          return
-        }
-      } catch {
-        setErrorGral('La URL del CRM no tiene un formato válido')
-        return
-      }
-    }
-
     setGuardando(true); setErrorGral('')
     try {
       const payload = {
@@ -199,7 +174,6 @@ export default function PerfilPage() {
         facebook:       facebook.trim() || null,
         socios:         tipoOperacion === 'SOCIEDAD' ? socios : null,
         prefijo_casos:  prefijoCasos.trim().toUpperCase() || 'CASO',
-        url_crm:        urlCrmTrim ? urlCrmTrim.replace(/\/+$/, '') : null,
         color_marca:    normalizarColorMarca(colorMarca),
         email_header_estilo: emailHeaderEstilo,
         email_header_subtitulo: emailHeaderSubtitulo.trim().slice(0, 80),
@@ -907,32 +881,6 @@ export default function PerfilPage() {
               </>
             )
           })()}
-        </div>
-      </div>
-
-      {/* ── Acceso público al CRM ────────────────────────────── */}
-      <div className="bg-white border border-slate-200 rounded overflow-hidden">
-        <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-          <Link2 className="h-3.5 w-3.5 text-slate-500" />
-          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Acceso público al CRM</h3>
-        </div>
-        <div className="p-4 flex flex-col gap-2">
-          <Campo label="URL pública del CRM (login y admin)">
-            <input
-              type="url"
-              value={urlCrm}
-              onChange={e => setUrlCrm(e.target.value)}
-              placeholder="https://crm.suempresa.com.ar"
-              className="form-input w-full text-xs font-mono"
-            />
-          </Campo>
-          <p className="text-2xs text-slate-500">
-            Pegá el subdominio público que vas a usar para entrar al CRM (Cloudflare Tunnel u otro). Solo el dominio raíz, sin <code className="bg-slate-100 px-1 rounded">/login</code>.
-            Esta URL se usa para los links que aparecen dentro de los emails que envía el sistema.
-          </p>
-          <p className="text-2xs text-slate-400">
-            La URL del <strong>portal del asegurado</strong> y la del <strong>formulario público de denuncia</strong> se configuran en sus pantallas correspondientes.
-          </p>
         </div>
       </div>
 

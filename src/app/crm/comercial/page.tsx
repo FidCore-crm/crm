@@ -164,8 +164,8 @@ export default function ComercialPage() {
   }, [supabase, usuario, refreshTick])
 
   // Lista combinada
-  const cargarItems = useCallback(async () => {
-    setCargando(true)
+  const cargarItems = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
 
     // Query leads (excluir CONVERTIDO)
@@ -278,7 +278,7 @@ export default function ComercialPage() {
   // (KPIs vía tick + lista combinada).
   useRealtimeRefresh({
     tablas: ['leads', 'oportunidades', 'cotizaciones'],
-    onCambio: () => { cargarItems(); setRefreshTick(t => t + 1) },
+    onCambio: () => { cargarItems(true); setRefreshTick(t => t + 1) },
   })
 
   const limpiarFiltros = () => { setBusqueda(''); setFiltroTipo(''); setFiltroEstado(''); setFiltroFuente(''); setPagina(0) }

@@ -104,8 +104,8 @@ export default function NotificacionesPage() {
   const [mostrarModalLimpiar, setMostrarModalLimpiar] = useState(false)
 
   // ── Cargar datos ──
-  const cargarDatos = useCallback(async () => {
-    setCargando(true)
+  const cargarDatos = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
 
     // Construir query params
     const params = new URLSearchParams()
@@ -165,7 +165,7 @@ export default function NotificacionesPage() {
   // volver a esta esperando ver los últimos avisos sin refrescar.
   useRealtimeRefresh({
     tablas: ['notificaciones'],
-    onCambio: cargarDatos,
+    onCambio: () => cargarDatos(true),
   })
 
   useEffect(() => {

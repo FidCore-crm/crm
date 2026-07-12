@@ -195,9 +195,9 @@ export default function OportunidadesPage() {
   }, [supabase, idsPersonas, papeleraIds, idsPersonasCargados, kpisVersion])
 
   // Cargar oportunidades (Tab 1)
-  const cargarOportunidades = useCallback(async () => {
+  const cargarOportunidades = useCallback(async (silencioso: boolean = false) => {
     if (!idsPersonasCargados) return
-    setCargando(true)
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
 
     let personaIds: string[] = []
@@ -255,7 +255,7 @@ export default function OportunidadesPage() {
   // (kpisVersion se bumpea para que el useEffect de KPIs también corra).
   useRealtimeRefresh({
     tablas: ['oportunidades'],
-    onCambio: () => { cargarOportunidades(); setKpisVersion(v => v + 1) },
+    onCambio: () => { cargarOportunidades(true); setKpisVersion(v => v + 1) },
   })
 
   // Cargar detecciones (Tab 2)

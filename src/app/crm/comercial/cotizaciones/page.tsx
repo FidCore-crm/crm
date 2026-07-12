@@ -114,9 +114,9 @@ export default function CotizacionesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, usuario, papeleraIds, papeleraCargada, refreshTick])
 
-  const cargarCotizaciones = useCallback(async () => {
+  const cargarCotizaciones = useCallback(async (silencioso: boolean = false) => {
     if (!papeleraCargada) return
-    setCargando(true)
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
 
     // Búsqueda extendida: número de cotización, apellido/nombre/razón social/DNI
@@ -225,7 +225,7 @@ export default function CotizacionesPage() {
   // Realtime: cambios en cotizaciones + opciones por compañía refrescan listado + KPIs.
   useRealtimeRefresh({
     tablas: ['cotizaciones', 'cotizacion_companias'],
-    onCambio: () => { cargarCotizaciones(); setRefreshTick(t => t + 1) },
+    onCambio: () => { cargarCotizaciones(true); setRefreshTick(t => t + 1) },
   })
 
   const eliminar = async (e: React.MouseEvent, c: Cotizacion) => {
@@ -347,7 +347,7 @@ export default function CotizacionesPage() {
         <div className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-700 flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="flex-1">No se pudieron cargar las cotizaciones: {errorCarga}</span>
-          <button onClick={cargarCotizaciones} className="underline hover:no-underline">Reintentar</button>
+          <button onClick={() => cargarCotizaciones()} className="underline hover:no-underline">Reintentar</button>
         </div>
       )}
 

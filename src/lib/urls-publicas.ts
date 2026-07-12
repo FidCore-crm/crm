@@ -1,38 +1,29 @@
 // ============================================================
 // Helper centralizado para resolver las 3 URLs públicas del CRM:
-//   - url_crm                 (admin/login)
-//   - url_portal_cliente      (portal del asegurado, /c/[token])
-//   - url_formulario_publico  (formulario de denuncia, /denuncia)
+//   - url_crm                 (admin/login)                → env URL_CRM_PUBLICA
+//   - url_portal_cliente      (portal del asegurado, /c/[token]) → env URL_PORTAL_CLIENTE
+//   - url_formulario_publico  (formulario de denuncia, /denuncia) → env URL_FORMULARIO_PUBLICO
 //
-// Cada URL se lee de `configuracion` en DB; si está vacía, se cae al
-// env var legacy (`URL_PORTAL_CLIENTE`, `URL_FORMULARIO_PUBLICO`). Eso
-// preserva instalaciones existentes mientras el PAS no edita nada.
+// Las 3 se leen SOLO del env. El instalador las setea durante el wizard.
+// El PAS no puede editarlas desde el CRM — son infraestructura fija por
+// instalación.
 //
-// Todas las URLs se devuelven sin trailing slash. Si la columna es NULL
-// y la env tampoco está, devuelve null.
+// Historia: originalmente vivían en `configuracion.url_*` en DB y el
+// resolver caía al env. Eso permitía que un restore de DB de otra
+// instalación pisara las URLs correctas. Simplificado en la sesión del
+// 2026-07-13: env manda siempre. Las columnas DB quedan vacías (código
+// muerto, sin eliminar por costo bajo/nulo).
 //
-// Uso típico:
-//   const portal = await obtenerUrlPortalCliente()  // server-side
-//   if (!portal) return error('Portal no configurado')
-//   const link = `${portal}/c/${token}`
-//
-// Para construir URLs derivadas hay helpers en este mismo módulo.
+// Todas las URLs se devuelven sin trailing slash. Si el env no está,
+// devuelve null.
 // ============================================================
-
-import { getSupabaseAdmin } from '@/lib/supabase/server'
 
 export type TipoUrl = 'crm' | 'portal_cliente' | 'formulario_publico'
 
-const ENV_FALLBACK: Record<TipoUrl, string | undefined> = {
+const ENV_POR_TIPO: Record<TipoUrl, string> = {
   crm: 'URL_CRM_PUBLICA',
   portal_cliente: 'URL_PORTAL_CLIENTE',
   formulario_publico: 'URL_FORMULARIO_PUBLICO',
-}
-
-const COLUMNA_DB: Record<TipoUrl, string> = {
-  crm: 'url_crm',
-  portal_cliente: 'url_portal_cliente',
-  formulario_publico: 'url_formulario_publico',
 }
 
 function normalizar(url: string | null | undefined): string | null {
@@ -42,35 +33,18 @@ function normalizar(url: string | null | undefined): string | null {
 }
 
 /**
- * Lee las 3 URLs públicas. Hace UNA sola query a `configuracion`,
- * pensado para callers que necesitan más de una.
+ * Lee las 3 URLs públicas del env. Función async (no cambia la firma para
+ * mantener compat con todos los callers) aunque técnicamente ya no espera IO.
  */
 export async function obtenerUrlsPublicas(): Promise<{
   crm: string | null
   portal_cliente: string | null
   formulario_publico: string | null
 }> {
-  const supabase = getSupabaseAdmin()
-  const { data } = await supabase
-    .from('configuracion')
-    .select('url_crm, url_portal_cliente, url_formulario_publico')
-    .limit(1)
-    .maybeSingle()
-
-  const fila = (data ?? {}) as Record<string, string | null>
-
-  const resolver = (tipo: TipoUrl): string | null => {
-    const dbValue = normalizar(fila[COLUMNA_DB[tipo]])
-    if (dbValue) return dbValue
-    const envName = ENV_FALLBACK[tipo]
-    if (!envName) return null
-    return normalizar(process.env[envName])
-  }
-
   return {
-    crm: resolver('crm'),
-    portal_cliente: resolver('portal_cliente'),
-    formulario_publico: resolver('formulario_publico'),
+    crm: normalizar(process.env[ENV_POR_TIPO.crm]),
+    portal_cliente: normalizar(process.env[ENV_POR_TIPO.portal_cliente]),
+    formulario_publico: normalizar(process.env[ENV_POR_TIPO.formulario_publico]),
   }
 }
 

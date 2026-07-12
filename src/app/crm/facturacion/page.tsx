@@ -109,8 +109,8 @@ export default function FacturacionPage() {
   }, [supabase, anioActual])
 
   // Cargar registros y KPIs
-  const cargarDatos = useCallback(async () => {
-    setCargando(true)
+  const cargarDatos = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
 
     // Registros del año seleccionado
@@ -176,7 +176,7 @@ export default function FacturacionPage() {
   // Realtime: la facturación es admin-only pero multi-admin; cambios se ven al instante.
   useRealtimeRefresh({
     tablas: ['facturacion'],
-    onCambio: cargarDatos,
+    onCambio: () => cargarDatos(true),
   })
 
   // Datos del gráfico

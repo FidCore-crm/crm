@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/api-auth'
-import { obtenerUrlPortalCliente, validarUrlPublica } from '@/lib/urls-publicas'
+import { obtenerUrlPortalCliente } from '@/lib/urls-publicas'
 
 const DEFAULTS = {
   activo: false,
@@ -64,17 +64,10 @@ export async function PATCH(request: Request) {
       )
     }
 
-    // La URL del portal vive en `configuracion.url_portal_cliente` (no en
-    // `configuracion_portal_cliente`). Si vino, la validamos y la guardamos
-    // por separado.
-    let urlPortalNormalizada: string | null | undefined
-    if (body.url_portal !== undefined) {
-      const v = validarUrlPublica(body.url_portal)
-      if (!v.valido) {
-        return NextResponse.json({ ok: false, error: v.motivo }, { status: 400 })
-      }
-      urlPortalNormalizada = v.normalizada
-    }
+    // La URL del portal ya no se edita desde la UI del PAS. Se configura
+    // en el env `URL_PORTAL_CLIENTE` durante la instalación por FidCore.
+    // Cualquier `url_portal` que venga en el body se ignora silenciosamente
+    // por compatibilidad con clientes viejos que aún lo manden.
 
     const existing = await cargarOCrear()
 
@@ -93,25 +86,6 @@ export async function PATCH(request: Request) {
 
     if (error) {
       return NextResponse.json({ ok: false, error: 'Error al actualizar los datos' }, { status: 500 })
-    }
-
-    if (urlPortalNormalizada !== undefined) {
-      const { data: cfgRow } = await supabase
-        .from('configuracion')
-        .select('id')
-        .limit(1)
-        .maybeSingle()
-      if (cfgRow?.id) {
-        const { error: errUrl } = await supabase
-          .from('configuracion')
-          .update({ url_portal_cliente: urlPortalNormalizada })
-          .eq('id', cfgRow.id)
-        if (errUrl) {
-          return NextResponse.json({ ok: false, error: 'Error al guardar la URL del portal' }, { status: 500 })
-        }
-      } else {
-        return NextResponse.json({ ok: false, error: 'No existe el registro de configuración global. Completá el perfil de la organización primero.' }, { status: 400 })
-      }
     }
 
     const urlPortal = await obtenerUrlPortalCliente()

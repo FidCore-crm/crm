@@ -218,25 +218,21 @@ function pintarFooterTodasPaginas(
   doc: jsPDF,
   pageWidth: number,
   pageHeight: number,
-  textoValidez: string,
   pieProd: string,
 ) {
   const total = (doc as any).internal.getNumberOfPages()
   for (let p = 1; p <= total; p++) {
     doc.setPage(p)
-    const yLinea = pageHeight - 18
+    const yLinea = pageHeight - 14
     doc.setDrawColor(...COLOR_LINEA_SUTIL)
     doc.setLineWidth(0.2)
     doc.line(14, yLinea, pageWidth - 14, yLinea)
 
     doc.setFontSize(7)
-    doc.setFont('helvetica', 'italic')
-    doc.setTextColor(...COLOR_TEXTO_TENUE)
-    doc.text(textoValidez, 14, yLinea + 5, { maxWidth: pageWidth - 28 })
-
     doc.setFont('helvetica', 'normal')
-    doc.text(pieProd, 14, yLinea + 12)
-    doc.text(`Página ${p} de ${total}`, pageWidth - 14, yLinea + 12, { align: 'right' })
+    doc.setTextColor(...COLOR_TEXTO_TENUE)
+    doc.text(pieProd, 14, yLinea + 5)
+    doc.text(`Página ${p} de ${total}`, pageWidth - 14, yLinea + 5, { align: 'right' })
   }
 }
 
@@ -719,11 +715,8 @@ function construirDocumentoCotizacion(
   }
 
   // ── Footer en todas las páginas ──
-  const textoValidez = cotizacion.fecha_vencimiento
-    ? `Cotización válida hasta el ${formatFechaPDF(cotizacion.fecha_vencimiento)}. Los precios están sujetos a confirmación por parte de la compañía aseguradora.`
-    : 'Cotización válida por 30 días desde la fecha de envío. Los precios están sujetos a confirmación por parte de la compañía aseguradora.'
   const pieProd = [nombreProd, organizacion.matricula_ssn ? `Matrícula SSN ${organizacion.matricula_ssn}` : ''].filter(Boolean).join(' · ')
-  pintarFooterTodasPaginas(doc, pageWidth, pageHeight, textoValidez, pieProd)
+  pintarFooterTodasPaginas(doc, pageWidth, pageHeight, pieProd)
 
   return doc
 }

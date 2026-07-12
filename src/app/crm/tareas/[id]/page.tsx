@@ -96,8 +96,10 @@ export default function FichaTareaPage() {
   const [notaCierre,  setNotaCierre]  = useState('')
   const [completando, setCompletando] = useState(false)
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
+  // silencioso=true evita el flash del spinner cuando el refresh viene de
+  // Realtime o de una acción del usuario que ya actualizó los datos.
+  const cargar = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     const { data } = await supabase
       .from('tareas')
       .select(`
@@ -118,7 +120,7 @@ export default function FichaTareaPage() {
 
   // Realtime: cambios en ESTA tarea se reflejan al instante. Filtrado por id
   // para no re-cargar la ficha ante cambios de otras tareas del sistema.
-  useRealtimeRefresh({ tablas: ['tareas'], filter: `id=eq.${id}`, onCambio: cargar })
+  useRealtimeRefresh({ tablas: ['tareas'], filter: `id=eq.${id}`, onCambio: () => cargar(true) })
 
   const completarTarea = async () => {
     if (!tarea) return
@@ -149,7 +151,7 @@ export default function FichaTareaPage() {
 
       setShowModal(false)
       setNotaCierre('')
-      cargar()
+      cargar(true)
     } catch (err: any) {
       toast.error(err?.message ?? 'No se pudo completar la tarea')
     } finally {

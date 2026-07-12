@@ -115,8 +115,8 @@ export default function LeadsPage() {
   }, [supabase, usuario, refreshTick])
 
   // Cargar leads
-  const cargarLeads = useCallback(async () => {
-    setCargando(true)
+  const cargarLeads = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
 
     let query = aplicarFiltroCartera(supabase
@@ -156,7 +156,7 @@ export default function LeadsPage() {
   // Realtime: cualquier INSERT/UPDATE/DELETE en leads refresca listado + KPIs.
   useRealtimeRefresh({
     tablas: ['leads'],
-    onCambio: () => { cargarLeads(); setRefreshTick(t => t + 1) },
+    onCambio: () => { cargarLeads(true); setRefreshTick(t => t + 1) },
   })
 
   const eliminar = async (e: React.MouseEvent, lead: Lead) => {

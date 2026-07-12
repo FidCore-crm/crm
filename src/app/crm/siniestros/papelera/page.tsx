@@ -50,8 +50,8 @@ export default function PapeleraSiniestrosPage() {
   const [busqueda, setBusqueda] = useState('')
   const [restaurandoId, setRestaurandoId] = useState<string | null>(null)
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
+  const cargar = useCallback(async (silencioso: boolean = false) => {
+    if (!silencioso) setCargando(true)
     setErrorCarga(null)
 
     const idsPersonas = await obtenerIdsPersonas(supabase, usuario)
@@ -98,7 +98,7 @@ export default function PapeleraSiniestrosPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  useRealtimeRefresh({ tablas: ['siniestros'], onCambio: cargar })
+  useRealtimeRefresh({ tablas: ['siniestros'], onCambio: () => cargar(true) })
 
   async function restaurar(id: string, numeroCaso: string) {
     setRestaurandoId(id)
@@ -106,7 +106,7 @@ export default function PapeleraSiniestrosPage() {
     setRestaurandoId(null)
     if (r.ok) {
       toast.exito(`Caso #${numeroCaso} restaurado`)
-      cargar()
+      cargar(true)
     } else {
       toast.error(r.error ?? { mensaje: 'No se pudo restaurar' })
     }
@@ -144,7 +144,7 @@ export default function PapeleraSiniestrosPage() {
             </p>
           </div>
         </div>
-        <button onClick={cargar} className="btn-secondary h-7 w-7 p-0 flex items-center justify-center" title="Actualizar">
+        <button onClick={() => cargar()} className="btn-secondary h-7 w-7 p-0 flex items-center justify-center" title="Actualizar">
           <RefreshCw className="h-3.5 w-3.5" />
         </button>
       </div>

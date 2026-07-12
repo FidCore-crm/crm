@@ -25,6 +25,7 @@ import {
   obtenerVariablesOrganizacion,
 } from '@/lib/email-variables'
 import { obtenerUrlsPublicas } from '@/lib/urls-publicas'
+import { recuperarTokenPlano } from '@/lib/portal-cliente-tokens'
 import type {
   ConfiguracionComunicaciones,
   TipoEnvioEmail,
@@ -205,12 +206,28 @@ export async function obtenerAdjuntosPoliza(
     }
   }
 
-  // Si hubo excluidos, NO generamos url del portal aquí: post-migración 042
-  // los tokens viven hasheados, no podemos recuperar el link plano de un
-  // acceso ya creado. El email simplemente no va a incluir el link al portal;
-  // el cliente puede volver a su email original con el link, o pedirle uno
-  // nuevo a su productor.
-  const url_portal: string | undefined = undefined
+  // Si hubo excluidos y el asegurado tiene acceso activo al portal con
+  // token_encrypted (v1.0.93+), armamos el link /c/<token> para que descargue
+  // desde ahí. Si el acceso es legacy sin token_encrypted, omitimos el link
+  // — preferimos no mostrar botón antes que uno que apunte al login del CRM.
+  let url_portal: string | undefined = undefined
+  if (excluidos.length > 0) {
+    const asegurado_id = (poliza as any).asegurado_id
+    if (asegurado_id) {
+      const { data: acceso } = await supabase
+        .from('portal_cliente_accesos')
+        .select('token_encrypted')
+        .eq('persona_id', asegurado_id)
+        .eq('revocado', false)
+        .maybeSingle()
+      const tokenPlano = recuperarTokenPlano(acceso as { token_encrypted?: string | null })
+      if (tokenPlano) {
+        const urls = await obtenerUrlsPublicas()
+        const portalBase = urls.portal_cliente || getBaseUrl(urls.crm)
+        if (portalBase) url_portal = `${portalBase}/c/${tokenPlano}`
+      }
+    }
+  }
 
   return {
     adjuntos,
@@ -251,24 +268,30 @@ export async function obtenerBloquePortalAsegurado(
     const asegurado_id = (poliza as any)?.asegurado_id
     if (!asegurado_id) return ''
 
-    // Post-migración 042: el token vive hasheado en DB. No podemos recuperar
-    // el link plano. Si la persona tiene acceso activo, mostramos el bloque
-    // SIN URL plana — apenas un mensaje genérico invitando a usar el portal.
-    // El cliente debería tener su link original guardado o se lo pide al PAS.
+    // Post-migración 093: el acceso guarda el token en 2 formas —
+    //   - `token_hash` (SHA-256): fuente de verdad para validar cuando el
+    //     asegurado clickea /c/<token>.
+    //   - `token_encrypted` (AES-256-GCM): reversible con ENCRYPTION_KEY del
+    //     env, permite reconstruir el token plano para armar links en emails.
+    // Si el asegurado no tiene acceso, o su acceso es legacy (pre-093, sin
+    // token_encrypted), NO mostramos el bloque del portal. Preferible que el
+    // asegurado no vea el bloque a mostrarle un botón que lo lleva al login
+    // del CRM (bug histórico en setup single-domain).
     const { data: acceso } = await supabase
       .from('portal_cliente_accesos')
-      .select('id')
+      .select('id, token_encrypted')
       .eq('persona_id', asegurado_id)
       .eq('revocado', false)
       .maybeSingle()
     if (!acceso) return ''
 
+    const tokenPlano = recuperarTokenPlano(acceso as { token_encrypted?: string | null })
+    if (!tokenPlano) return ''
+
     const urls = await obtenerUrlsPublicas()
     const portalBase = urls.portal_cliente || getBaseUrl(urls.crm)
-    // Sin token, mandamos a la pantalla home del portal: el cliente debe
-    // hacer click en el link de su email original (el que llegó al habilitarse
-    // el acceso). Si lo perdió, debe pedirle al PAS uno nuevo.
-    const urlPortal = portalBase
+    if (!portalBase) return ''
+    const urlPortal = `${portalBase}/c/${tokenPlano}`
 
     const acento = colorMarca && /^#[0-9a-fA-F]{6}$/.test(colorMarca) ? colorMarca : '#0A1628'
 
@@ -617,9 +640,14 @@ export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boo
         const listaExcluidosHtml = info.excluidos
           .map((x) => `<li style="margin:2px 0;word-break:break-word;">${escapeHtml(x.filename)}</li>`)
           .join('')
+        const colorBoton = /^#[0-9a-fA-F]{6}$/.test(variables.organizacion_color_marca || '')
+          ? variables.organizacion_color_marca
+          : '#0A1628'
         const linkHtml = info.url_portal
-          ? `<p style="margin:8px 0 0;font-size:14px;color:#64748b;">Podés descargarlos desde tu Portal del Asegurado:</p>
-             <p style="margin:8px 0 0;"><a href="${escapeHtml(info.url_portal)}" style="color:#0052CC;font-weight:bold;word-break:break-word;overflow-wrap:break-word;">Abrir mi Portal del Asegurado</a></p>`
+          ? `<p style="margin:12px 0 0;font-size:14px;color:#64748b;">Podés descargarlos desde tu Portal del Asegurado:</p>
+             <p style="margin:12px 0 0;text-align:center;">
+               <a href="${escapeHtml(info.url_portal)}" style="display:inline-block;background:${escapeHtml(colorBoton)};color:#ffffff;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;word-break:break-word;">Abrir mi Portal del Asegurado</a>
+             </p>`
           : `<p style="margin:8px 0 0;font-size:14px;color:#64748b;">Contactanos si necesitás recibirlos por otro medio.</p>`
         bloqueExtraHtml = `
           <div style="border-top:1px solid #e2e8f0;padding-top:16px;">
