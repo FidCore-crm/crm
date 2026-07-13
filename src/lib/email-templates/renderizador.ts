@@ -112,7 +112,31 @@ function prepararTextoHtml(texto: string, variables: Record<string, string>): st
     escapado = escapado.split(placeholder).join(htmlValor)
   }
 
+  // Marcadores [[IMG:uuid]] → <img> con URL pública de la biblioteca.
+  // Se procesa DESPUÉS del escape (los corchetes no son caracteres HTML,
+  // sobreviven intactos) y ANTES del \n→<br> (para que <img> no meta un
+  // <br> extra al lado).
+  escapado = expandirImagenesBiblioteca(escapado)
+
   return escapado.replace(/\r?\n/g, '<br>')
+}
+
+/**
+ * Convierte `[[IMG:uuid]]` en `<img src="URL_CRM/api/biblioteca-publica/uuid/i">`.
+ * El PAS mete estos marcadores desde el editor con el botón "Insertar imagen".
+ * Solo UUIDs válidos se reemplazan — cualquier otra cosa se deja tal cual
+ * (por si el PAS escribe algo tipo [[IMG:xx]] a mano por error).
+ */
+function expandirImagenesBiblioteca(html: string): string {
+  const urlCrm = (process.env.URL_CRM_PUBLICA || '').replace(/\/+$/, '')
+  if (!urlCrm) return html // Sin URL pública no podemos generar el src.
+  return html.replace(
+    /\[\[IMG:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\]\]/g,
+    (_, uuid) => {
+      const url = `${urlCrm}/api/biblioteca-publica/${uuid}/i`
+      return `<img src="${url}" alt="" style="max-width:100%;height:auto;display:block;margin:16px auto;border-radius:6px;" />`
+    }
+  )
 }
 
 // El asunto NO va a HTML — se deja como texto plano después de reemplazar variables.

@@ -17,13 +17,14 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   X, Loader2, ChevronLeft, ChevronRight, Send, CheckCircle2,
   User, Users, Filter as FilterIcon, FileText, Edit3, Paperclip,
-  AlertTriangle, Search,
+  AlertTriangle, Search, Image as ImageIcon,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import type { MailingAudiencia } from './TabMailingAudiencias'
 import type { MailingPlantilla } from './TabMailingPlantillas'
+import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from '@/components/biblioteca/SelectorImagenBiblioteca'
 
 interface Props {
   abierto: boolean
@@ -455,12 +456,15 @@ function PasoMensaje(props: any) {
             />
           </div>
           <div>
-            <label className="block text-2xs font-medium text-slate-600 mb-1">
-              Cuerpo *
-              <span className="text-2xs text-slate-400 font-normal ml-2">
-                Variables: <code>{`{{nombre}} {{apellido}} {{organizacion_nombre}}`}</code>
-              </span>
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-2xs font-medium text-slate-600">
+                Cuerpo *
+                <span className="text-2xs text-slate-400 font-normal ml-2">
+                  Variables: <code>{`{{nombre}} {{apellido}} {{organizacion_nombre}}`}</code>
+                </span>
+              </label>
+              <BotonInsertarImagenBiblioteca cuerpo={cuerpoLibre} setCuerpo={setCuerpoLibre} />
+            </div>
             <textarea
               value={cuerpoLibre}
               onChange={e => setCuerpoLibre(e.target.value)}
@@ -958,5 +962,36 @@ function SelectorFiltroAdHoc({ filtroJsonb, setFiltroJsonb }: any) {
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * Botón helper que abre el selector de biblioteca e inserta [[IMG:uuid]]
+ * al final del cuerpo del mensaje. Uso independiente al textarea (no toma
+ * cursor position — inserta al final por simplicidad en el wizard).
+ */
+function BotonInsertarImagenBiblioteca({ cuerpo, setCuerpo }: { cuerpo: string; setCuerpo: (v: string) => void }) {
+  const [abierto, setAbierto] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="text-2xs px-2 py-0.5 border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1 text-slate-700"
+      >
+        <ImageIcon className="h-3 w-3" /> Insertar imagen
+      </button>
+      <SelectorImagenBiblioteca
+        abierto={abierto}
+        onCerrar={() => setAbierto(false)}
+        onElegir={(a: ArchivoBiblioteca) => {
+          const marcador = `[[IMG:${a.id}]]`
+          const sep = cuerpo.trim().length > 0 ? '\n\n' : ''
+          setCuerpo(cuerpo + sep + marcador)
+          setAbierto(false)
+        }}
+        titulo="Insertar imagen en el cuerpo"
+      />
+    </>
   )
 }

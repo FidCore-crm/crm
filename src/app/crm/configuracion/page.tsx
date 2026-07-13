@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Building2, Settings, Globe, Bell, Users, Shield, ChevronRight, Mail, HardDrive, MessageSquare, ExternalLink, Sparkles, AlertTriangle, Power, Download, BarChart3, Inbox } from 'lucide-react'
+import { Building2, Settings, Globe, Bell, Users, Shield, ChevronRight, Mail, HardDrive, MessageSquare, ExternalLink, Sparkles, AlertTriangle, Power, Download, BarChart3, Inbox, Image as ImageIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { esModoAppliance } from '@/lib/modo-instalacion'
 
@@ -70,6 +70,14 @@ const secciones = [
     titulo: 'Portal del Asegurado',
     descripcion: 'Acceso para que tus asegurados vean sus pólizas y siniestros',
     activo: true,
+  },
+  {
+    href: '/crm/configuracion/biblioteca',
+    icon: ImageIcon,
+    titulo: 'Biblioteca de recursos',
+    descripcion: 'Imágenes (flyers, banners, logos) para reutilizar en emails y campañas',
+    activo: true,
+    adminOnly: true,
   },
   {
     href: '/crm/configuracion/notificaciones',

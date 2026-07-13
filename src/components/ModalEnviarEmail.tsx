@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import { logger } from '@/lib/errores/logger'
 import {
   X, Loader2, Send, Eye, AlertTriangle,
-  CheckCircle, FileText, Paperclip
+  CheckCircle, FileText, Paperclip, Image as ImageIcon
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
+import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from './biblioteca/SelectorImagenBiblioteca'
 
 interface Plantilla {
   codigo: string
@@ -45,6 +46,28 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
 
   const [archivos, setArchivos] = useState<File[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
+  const cuerpoRef = useRef<HTMLTextAreaElement | null>(null)
+  const [selectorImagenAbierto, setSelectorImagenAbierto] = useState(false)
+
+  function insertarImagenEnCuerpo(archivo: ArchivoBiblioteca) {
+    const marcador = `[[IMG:${archivo.id}]]`
+    const ta = cuerpoRef.current
+    if (!ta) {
+      setCuerpo(cuerpo + '\n' + marcador)
+      setSelectorImagenAbierto(false)
+      return
+    }
+    const inicio = ta.selectionStart ?? cuerpo.length
+    const fin = ta.selectionEnd ?? cuerpo.length
+    const nuevo = cuerpo.substring(0, inicio) + marcador + cuerpo.substring(fin)
+    setCuerpo(nuevo)
+    setSelectorImagenAbierto(false)
+    setTimeout(() => {
+      ta.focus()
+      const pos = inicio + marcador.length
+      ta.setSelectionRange(pos, pos)
+    }, 0)
+  }
   const [dragOver, setDragOver] = useState(false)
 
   const [enviando, setEnviando] = useState(false)
@@ -309,8 +332,18 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                   {/* Cuerpo — solo si la plantilla lo usa */}
                   {aceptaCuerpo && (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Cuerpo del mensaje</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-medium text-slate-600">Cuerpo del mensaje</label>
+                        <button
+                          type="button"
+                          onClick={() => setSelectorImagenAbierto(true)}
+                          className="text-2xs px-2 py-0.5 border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1 text-slate-700"
+                        >
+                          <ImageIcon className="h-3 w-3" /> Insertar imagen
+                        </button>
+                      </div>
                       <textarea
+                        ref={cuerpoRef}
                         className="form-input w-full text-xs"
                         rows={4}
                         value={cuerpo}
@@ -439,6 +472,13 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
           )}
         </div>
       </div>
+
+      <SelectorImagenBiblioteca
+        abierto={selectorImagenAbierto}
+        onCerrar={() => setSelectorImagenAbierto(false)}
+        onElegir={insertarImagenEnCuerpo}
+        titulo="Insertar imagen en el cuerpo"
+      />
     </div>
   )
 }

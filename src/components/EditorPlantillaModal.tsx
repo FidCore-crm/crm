@@ -7,8 +7,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { X, Save, RotateCcw, Loader2, Eye, AlertTriangle, CheckCircle } from 'lucide-react'
+import { X, Save, RotateCcw, Loader2, Eye, AlertTriangle, CheckCircle, Image as ImageIcon } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
+import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from './biblioteca/SelectorImagenBiblioteca'
 
 interface PlantillaData {
   codigo: string
@@ -47,6 +48,8 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
   const [previewAbierto, setPreviewAbierto] = useState(false)
   const [previewCargando, setPreviewCargando] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const cuerpoRef = useRef<HTMLTextAreaElement | null>(null)
+  const [selectorImagenAbierto, setSelectorImagenAbierto] = useState(false)
 
   // Cargar plantilla
   useEffect(() => {
@@ -107,6 +110,27 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
       setError(r.error?.mensaje || 'Error guardando')
     }
     setGuardando(false)
+  }
+
+  function insertarImagen(archivo: ArchivoBiblioteca) {
+    const marcador = `[[IMG:${archivo.id}]]`
+    const textarea = cuerpoRef.current
+    if (!textarea) {
+      setCuerpo(cuerpo + '\n' + marcador)
+      setSelectorImagenAbierto(false)
+      return
+    }
+    const inicio = textarea.selectionStart ?? cuerpo.length
+    const fin = textarea.selectionEnd ?? cuerpo.length
+    const nuevo = cuerpo.substring(0, inicio) + marcador + cuerpo.substring(fin)
+    setCuerpo(nuevo)
+    setSelectorImagenAbierto(false)
+    // Reposicionar cursor después del marcador
+    setTimeout(() => {
+      textarea.focus()
+      const pos = inicio + marcador.length
+      textarea.setSelectionRange(pos, pos)
+    }, 0)
   }
 
   async function restaurarDefault() {
@@ -204,8 +228,20 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Cuerpo (contenido principal)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-slate-700">Cuerpo (contenido principal)</label>
+                {plantilla.editable && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectorImagenAbierto(true)}
+                    className="text-xs px-2 py-1 border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1 text-slate-700"
+                  >
+                    <ImageIcon className="h-3 w-3" /> Insertar imagen
+                  </button>
+                )}
+              </div>
               <textarea
+                ref={cuerpoRef}
                 value={cuerpo}
                 onChange={(e) => setCuerpo(e.target.value)}
                 rows={10}
@@ -287,6 +323,13 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
           </div>
         )}
       </div>
+
+      <SelectorImagenBiblioteca
+        abierto={selectorImagenAbierto}
+        onCerrar={() => setSelectorImagenAbierto(false)}
+        onElegir={insertarImagen}
+        titulo="Insertar imagen en el cuerpo"
+      />
     </div>
   )
 }
