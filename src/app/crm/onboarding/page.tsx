@@ -13,7 +13,7 @@
  *   2. Licencia (skippeable; muestra "ya cargada" si el instalador la cargó)
  *   3. Correos / SMTP (skippeable con warning)
  *   4. Agente IA (opcional)
- *   5. Portal del Cliente (opcional)
+ *   5. Portal del Asegurado (opcional)
  *   6. Final (CTA a Catálogos)
  *
  * Total: 7 pantallas. La barra de progreso usa este número total.

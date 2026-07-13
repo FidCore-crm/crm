@@ -1,5 +1,5 @@
 // ============================================================
-// Tokens de acceso al Portal del Cliente
+// Tokens de acceso al Portal del Asegurado
 // ============================================================
 //
 // Cada persona puede tener UN solo token activo (no revocado).

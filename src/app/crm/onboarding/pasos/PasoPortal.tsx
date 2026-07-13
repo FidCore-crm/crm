@@ -60,7 +60,7 @@ export function PasoPortal({ pasoActual, totalPasos, onAtras, onContinuar, onSki
 
   if (cargando) {
     return (
-      <WizardLayout pasoActual={pasoActual} totalPasos={totalPasos} titulo="Portal del Cliente">
+      <WizardLayout pasoActual={pasoActual} totalPasos={totalPasos} titulo="Portal del Asegurado">
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
         </div>
@@ -72,8 +72,8 @@ export function PasoPortal({ pasoActual, totalPasos, onAtras, onContinuar, onSki
     <WizardLayout
       pasoActual={pasoActual}
       totalPasos={totalPasos}
-      titulo="Portal del Cliente (opcional)"
-      descripcion="El Portal del Cliente es una página pública (sin contraseña) donde tus asegurados pueden ver sus pólizas, descargarse la documentación y consultar teléfonos de asistencia 24hs. Vos generás un link único por cliente y se lo mandás por WhatsApp o email."
+      titulo="Portal del Asegurado (opcional)"
+      descripcion="El Portal del Asegurado es una página pública (sin contraseña) donde tus asegurados pueden ver sus pólizas, descargarse la documentación y consultar teléfonos de asistencia 24hs. Vos generás un link único por cliente y se lo mandás por WhatsApp o email."
       onAtras={onAtras}
       onContinuar={guardarYContinuar}
       onSkip={onSkip}
@@ -90,9 +90,9 @@ export function PasoPortal({ pasoActual, totalPasos, onAtras, onContinuar, onSki
             <div className="flex-1">
               <label className="flex items-center justify-between gap-3 cursor-pointer">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900">Activar Portal del Cliente</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Activar Portal del Asegurado</h3>
                   <p className="text-sm text-slate-600 mt-1">
-                    Si lo dejás apagado, podés activarlo después en Configuración → Portal del Cliente.
+                    Si lo dejás apagado, podés activarlo después en Configuración → Portal del Asegurado.
                   </p>
                 </div>
                 <input

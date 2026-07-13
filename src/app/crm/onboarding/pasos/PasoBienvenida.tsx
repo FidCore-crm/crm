@@ -52,7 +52,7 @@ export function PasoBienvenida({ pasoActual, totalPasos, onContinuar, nombreUsua
           </div>
           <div className="flex items-center gap-3 p-3 rounded border border-slate-100 bg-slate-50">
             <Users className="h-4 w-4 text-blue-600 shrink-0" />
-            <span className="text-sm text-slate-700">Portal del Cliente (opcional)</span>
+            <span className="text-sm text-slate-700">Portal del Asegurado (opcional)</span>
           </div>
           <div className="flex items-center gap-3 p-3 rounded border border-slate-100 bg-slate-50">
             <BookOpen className="h-4 w-4 text-blue-600 shrink-0" />

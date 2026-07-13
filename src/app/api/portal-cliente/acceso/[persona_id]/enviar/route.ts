@@ -85,7 +85,7 @@ export async function POST(
   const urlPortal = construirUrlPortal(tokenPlano, urlBasePortal)
   if (!urlPortal) {
     return NextResponse.json(
-      { ok: false, error: 'La URL del portal del cliente no está configurada. Configurala en Configuración → Portal del Cliente.' },
+      { ok: false, error: 'La URL del Portal del Asegurado no está configurada. Contactá al soporte para configurarla.' },
       { status: 500 },
     )
   }

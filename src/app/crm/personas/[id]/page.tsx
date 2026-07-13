@@ -302,7 +302,7 @@ export default function FichaPersonaPage() {
     }
   }
 
-  // ── Portal del Cliente ─────────────────────────────────────
+  // ── Portal del Asegurado ───────────────────────────────────
   const cargarPortal = useCallback(async () => {
     const r = await apiCall<any>(`/api/portal-cliente/acceso/${id}`, {}, { mostrar_toast_en_error: false })
     if (r.ok && r.data) setPortalAcceso(r.data)

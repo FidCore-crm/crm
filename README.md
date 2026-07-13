@@ -30,7 +30,7 @@ renovaciones, comunicaciones con clientes y operación comercial.
 - **Comunicaciones** — Sistema de email con plantillas editables,
   cola de envío con prioridades, anti-spam, tracking de aperturas y clicks,
   retención automática del historial.
-- **Portal del Cliente** — Acceso público (sin contraseña) donde el
+- **Portal del Asegurado** — Acceso público (sin contraseña) donde el
   asegurado consulta sus pólizas, siniestros y descarga documentación.
 - **Formulario público de denuncia** — El cliente denuncia siniestros
   desde un link público con magic-pre-fill desde el portal.
