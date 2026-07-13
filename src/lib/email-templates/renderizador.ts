@@ -359,9 +359,11 @@ function armarHtml(params: {
       .fc-footer-nombre { font-size:12.5px !important; }
       /* Bloque del Portal del Asegurado (se inyecta como bloqueExtraHtml). */
       .fc-bloque-portal { padding:14px 16px !important; }
-      .fc-bloque-portal-cta { display:block !important; padding:14px 16px !important; }
-      /* Botón CTA de auth (recuperar, invitación, confirmar email). */
-      .fc-cta-btn { padding:14px 20px !important; font-size:14.5px !important; }
+      /* Botones CTA en mobile: padding más chico, texto reducido en el <a> hijo. */
+      .fc-bloque-portal-cta { padding:14px 20px !important; }
+      .fc-bloque-portal-cta a { font-size:14px !important; }
+      .fc-cta-btn { padding:14px 20px !important; }
+      .fc-cta-btn a { font-size:14.5px !important; }
     }
   `
 
