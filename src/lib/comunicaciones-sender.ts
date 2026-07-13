@@ -322,9 +322,7 @@ export async function obtenerBloquePortalAsegurado(
           </tr>
         </table>
         <p style="margin:0;text-align:center;">
-          <a href="${escapeHtml(urlPortal)}" class="fc-bloque-portal-cta" style="display:inline-block;background:${escapeHtml(acento)};color:#ffffff;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;word-break:break-word;">
-            Abrir mi Portal del Asegurado
-          </a>
+          <a href="${escapeHtml(urlPortal)}" class="fc-bloque-portal-cta" style="display:inline-block;background:${escapeHtml(acento)};color:#ffffff;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;line-height:1.2;text-align:center;">Abrir mi Portal del Asegurado</a>
         </p>
       </div>
     `.trim()
@@ -646,7 +644,7 @@ export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boo
         const linkHtml = info.url_portal
           ? `<p style="margin:12px 0 0;font-size:14px;color:#64748b;">Podés descargarlos desde tu Portal del Asegurado:</p>
              <p style="margin:12px 0 0;text-align:center;">
-               <a href="${escapeHtml(info.url_portal)}" style="display:inline-block;background:${escapeHtml(colorBoton)};color:#ffffff;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;word-break:break-word;">Abrir mi Portal del Asegurado</a>
+               <a href="${escapeHtml(info.url_portal)}" style="display:inline-block;background:${escapeHtml(colorBoton)};color:#ffffff;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;line-height:1.2;text-align:center;">Abrir mi Portal del Asegurado</a>
              </p>`
           : `<p style="margin:8px 0 0;font-size:14px;color:#64748b;">Contactanos si necesitás recibirlos por otro medio.</p>`
         bloqueExtraHtml = `

@@ -37,7 +37,7 @@ export function generarBotonHtml({ url, texto, color_marca }: OpcionesBoton): st
   // renderizador pueda reducir padding y forzar full-width en mobile.
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:28px auto;">
   <tr><td align="center" bgcolor="${tonos.base}" style="border-radius:8px;box-shadow:0 4px 12px ${tonos.base}40;">
-    <a href="${urlSafe}" target="_blank" class="fc-cta-btn" style="display:inline-block;padding:16px 40px;font-size:15px;font-weight:700;letter-spacing:0.3px;color:${tonos.textoSobreColor};text-decoration:none;border-radius:8px;background-color:${tonos.base};word-break:break-word;">${textoSafe}</a>
+    <a href="${urlSafe}" target="_blank" class="fc-cta-btn" style="display:inline-block;padding:16px 40px;font-size:15px;font-weight:700;letter-spacing:0.3px;line-height:1.2;color:${tonos.textoSobreColor};text-decoration:none;border-radius:8px;background-color:${tonos.base};text-align:center;">${textoSafe}</a>
   </td></tr>
 </table>`
 }

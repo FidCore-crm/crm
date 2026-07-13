@@ -162,7 +162,7 @@ export async function POST(
   // como texto plano.
   const botonHtml = generarBotonHtml({
     url: urlPortal,
-    texto: 'Entrar al Portal del Cliente',
+    texto: 'Entrar al Portal del Asegurado',
     color_marca: colorMarca,
   })
 
