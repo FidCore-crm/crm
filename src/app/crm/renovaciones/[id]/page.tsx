@@ -17,7 +17,7 @@ import { toast } from '@/lib/toast'
 import { mensajeErrorAmigable } from '@/lib/utils'
 import { validarPatente } from '@/lib/importacion/validators'
 import { EstadoCarga } from '@/components/EstadoCarga'
-import { tipoRenderForm } from '@/lib/tipos-riesgo'
+import { tipoRenderForm, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 import { keysExtrasDeDetalle, labelHumanoDeKey, valorAString } from '@/lib/detalle-tecnico-extras'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
@@ -842,7 +842,13 @@ export default function RenovarPolizaPage() {
           {/* Datos adicionales — keys que la IA agregó y no están en el schema
               hardcodeado del render tipo. Ver detalle-tecnico-extras.ts. */}
           {(() => {
-            const extras = keysExtrasDeDetalle(riesgo.detalle_dinamico, renderTipo as any)
+            // En render 'dinamico' hay que excluir las keys ya renderizadas
+            // por CamposBienAseguradoDinamico, sino aparecen duplicadas
+            // (bug: editar el extra pisa el JSONB y borra el input core).
+            const keysCoreDinamicas = renderTipo === 'dinamico'
+              ? obtenerTipoRiesgo(tipoRiesgo).campos_poliza.map(c => c.key)
+              : undefined
+            const extras = keysExtrasDeDetalle(riesgo.detalle_dinamico, renderTipo as any, keysCoreDinamicas)
             if (extras.length === 0) return null
             return (
               <div className="col-span-2 pt-3 mt-1 border-t border-slate-100">

@@ -14,7 +14,7 @@ import { apiCall } from '@/lib/api-client'
 import BuscadorPersona from '@/components/BuscadorPersona'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
-import { tipoRenderForm } from '@/lib/tipos-riesgo'
+import { tipoRenderForm, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 import { keysExtrasDeDetalle, labelHumanoDeKey, valorAString } from '@/lib/detalle-tecnico-extras'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
@@ -791,7 +791,13 @@ export default function EditarPolizaPage() {
                 se guardaban silenciosamente y no había forma de editarlos desde
                 la UI. Ahora se muestran acá y se pueden editar o eliminar. */}
             {(() => {
-              const extras = keysExtrasDeDetalle(datosRiesgo.detalle_dinamico, renderTipo as any)
+              // En render 'dinamico' hay que excluir las keys ya renderizadas
+              // por CamposBienAseguradoDinamico, sino aparecen duplicadas
+              // (bug: editar el extra pisa el JSONB y borra el input core).
+              const keysCoreDinamicas = renderTipo === 'dinamico'
+                ? obtenerTipoRiesgo(tipoRiesgo).campos_poliza.map(c => c.key)
+                : undefined
+              const extras = keysExtrasDeDetalle(datosRiesgo.detalle_dinamico, renderTipo as any, keysCoreDinamicas)
               if (extras.length === 0) return null
               return (
                 <div className="col-span-2 pt-3 mt-1 border-t border-slate-100">

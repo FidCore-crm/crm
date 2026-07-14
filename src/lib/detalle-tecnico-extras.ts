@@ -66,13 +66,25 @@ const ALIAS_LABEL: Record<string, string> = {
  * Devuelve las keys "extras" ordenadas alfabéticamente:
  * las que están en el JSONB pero NO son core del render tipo y NO son
  * keys reservadas (observaciones).
+ *
+ * `keysCoreExtra` permite pasar keys adicionales a considerar como "core".
+ * Uso principal: para `renderTipo='dinamico'`, el form usa
+ * `CamposBienAseguradoDinamico` que renderea los `campos_poliza` definidos
+ * en el tipo del catálogo (`tipos-riesgo.ts`). Esas keys ya tienen input
+ * propio; si no las excluimos, aparecen duplicadas como "extras" y editar
+ * el extra pisa el JSONB → el input core queda vacío. El caller debe
+ * pasar `obtenerTipoRiesgo(tipoRiesgo).campos_poliza.map(c => c.key)`.
  */
 export function keysExtrasDeDetalle(
   detalle: Record<string, any> | null | undefined,
   renderTipo: RenderTipoRiesgo,
+  keysCoreExtra?: string[],
 ): string[] {
   if (!detalle || typeof detalle !== 'object') return []
-  const core = new Set(KEYS_CORE_POR_RENDER[renderTipo] ?? [])
+  const core = new Set([
+    ...(KEYS_CORE_POR_RENDER[renderTipo] ?? []),
+    ...(keysCoreExtra ?? []),
+  ])
   return Object.keys(detalle)
     .filter((k) => !core.has(k) && !KEYS_RESERVADAS.has(k))
     .filter((k) => {
