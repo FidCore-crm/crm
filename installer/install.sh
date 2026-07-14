@@ -263,6 +263,73 @@ https://download.docker.com/linux/ubuntu ${codename} stable" \
 }
 
 # =====================================================================
+# Docker daemon: límites de logs y build cache
+#
+# Sin esto los logs de containers crecen sin límite (decenas de GB en meses
+# de uso) y el build cache se acumula ~1-2 GB por release del CRM (100+ GB
+# en 6 meses de updates activos). En VPS chicos (40 GB) esto llena el disco.
+#
+# log-opts: cada container mantiene máx 30 MB de logs (10 MB × 3 archivos
+#           rotativos). Docker rota solo cuando el archivo se llena.
+# builder.gc: el build cache no puede pasar de 5 GB. Docker borra layers
+#             viejos automáticamente cuando se pasa.
+#
+# Se corre acá (post-instalación de Docker, pre-Supabase) porque:
+#   - Docker ya está instalado.
+#   - Todavía no hay containers corriendo → el restart no rompe nada.
+#   - Los containers que se creen después nacen con los límites correctos.
+# =====================================================================
+
+fase_docker_daemon_config() {
+  fase "Configuración del Docker daemon (límites de cache y logs)"
+
+  local daemon_json="/etc/docker/daemon.json"
+
+  if [ -f "$daemon_json" ]; then
+    # No pisamos config existente — puede tener registry mirrors, DNS custom,
+    # etc. Loggeamos y salimos. El operador puede aplicar el merge manual.
+    ok "Ya existe $daemon_json — no se toca (si el problema del cache aparece, mergeá manualmente los bloques log-opts y builder.gc)"
+    return 0
+  fi
+
+  paso "Escribiendo $daemon_json"
+  mkdir -p /etc/docker
+  cat > "$daemon_json" <<'EOF'
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  },
+  "builder": {
+    "gc": {
+      "enabled": true,
+      "defaultKeepStorage": "5GB",
+      "policy": [
+        { "keepStorage": "5GB", "all": true }
+      ]
+    }
+  }
+}
+EOF
+  ok "daemon.json creado"
+
+  paso "Reiniciando docker.service para aplicar la config"
+  systemctl restart docker
+  # Esperar a que Docker responda de nuevo
+  local intentos=0
+  until docker info >/dev/null 2>&1; do
+    sleep 1
+    intentos=$((intentos + 1))
+    if [ $intentos -gt 30 ]; then
+      warn "Docker tardó más de 30s en volver — verificá con 'systemctl status docker'"
+      return 0
+    fi
+  done
+  ok "Docker reiniciado con los nuevos límites"
+}
+
+# =====================================================================
 # Generar secrets
 # =====================================================================
 
@@ -1219,6 +1286,7 @@ main() {
   fase_validar_config
   fase_dependencias_host
   fase_docker
+  fase_docker_daemon_config
   fase_generar_secrets
   fase_clonar_supabase
   fase_patch_kong

@@ -830,6 +830,28 @@ log "[6/6] Marcando version_actual=${VERSION_NUEVA} en configuración..."
 db_exec -c "UPDATE configuracion SET version_actual='${VERSION_NUEVA}';" >/dev/null 2>&1 || \
   log "WARN: no se pudo actualizar version_actual (no es crítico)"
 
+# =====================================================================
+# Housekeeping — limpiar cache y capas obsoletas del build.
+#
+# Cada release deja layers intermedias cacheadas y una imagen anterior sin
+# container. Sin limpieza, ~1-2 GB de basura por update. En VPS de 40 GB
+# esto llena el disco en 3-6 meses de updates activos.
+#
+# Se corre acá porque:
+#   - El build nuevo ya funcionó (validado por health-check de arriba).
+#   - El daemon.json tiene tope de 5 GB como red de seguridad, pero limpiar
+#     acá evita que ni siquiera se acerque.
+#   - --filter until=24h: mantiene cache de las últimas 24hs por si hay que
+#     hacer rollback y volver adelante rápido. Borra lo anterior.
+#   - No es crítico: si falla, el daemon.json cubre. Por eso no bloqueamos.
+# =====================================================================
+
+log ""
+log "Limpiando build cache e imágenes obsoletas..."
+docker builder prune -f --filter until=24h >/dev/null 2>&1 || log "WARN: docker builder prune falló (no crítico — daemon.json tope 5GB cubre)"
+docker image prune -f --filter until=24h >/dev/null 2>&1 || log "WARN: docker image prune falló (no crítico)"
+log "  ✓ Housekeeping completado"
+
 if marcar_completada_atomica; then
   escribir_progreso "DONE" 100 "Actualización completada"
   log ""
