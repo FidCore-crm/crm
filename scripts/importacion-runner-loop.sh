@@ -13,7 +13,7 @@
 
 set -u
 
-ENV_FILE="${CRM_ENV_FILE:-/home/nahuel/crm-seguros/.env.local}"
+ENV_FILE="${CRM_ENV_FILE:-/opt/crm-fidcore/.env.local}"
 CRM_BASE_URL="${CRM_BASE_URL:-http://localhost:3000}"
 INTERVAL_SECONDS="${IMPORTACION_RUNNER_INTERVAL_SECONDS:-30}"
 

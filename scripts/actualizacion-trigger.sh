@@ -30,7 +30,7 @@ set -u
 # binarios pueden no encontrarse cuando se invoca desde crontab.
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-CRM_DIR="${CRM_DIR:-/home/nahuel/crm-seguros}"
+CRM_DIR="${CRM_DIR:-/opt/crm-fidcore}"
 TRIGGER_FILE="${CRM_DIR}/tmp/updates/pending.json"
 TRIGGER_LOG="${CRM_DIR}/tmp/updates/trigger.log"
 CRON_LOG="${CRM_DIR}/tmp/updates/cron.log"

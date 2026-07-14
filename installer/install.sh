@@ -1039,11 +1039,11 @@ fase_tailscale() {
   tailscale up --auth-key="$TAILSCALE_AUTHKEY" --advertise-tags=tag:fidcore-prod >>"$LOG_FILE" 2>&1 || \
     abortar "Falló tailscale up — revisá la auth-key. Sin Tailscale no podés dar soporte remoto."
 
-  # Mostrar IP de Tailscale para que Nahuel la anote
+  # Mostrar IP de Tailscale para anotarla y usarla en soporte remoto
   local ts_ip
   ts_ip="$(tailscale ip -4 2>/dev/null | head -1)"
   ok "Tailscale activo y siempre on. IP: ${ts_ip:-pendiente}"
-  info "Vos entrás por SSH a esa IP cuando el PAS pida soporte."
+  info "El equipo de FidCore entra por SSH a esa IP cuando el PAS pide soporte."
 }
 
 # =====================================================================
@@ -1241,7 +1241,7 @@ ${C_BOLD}${C_YELLOW}📡  Vínculo al panel FidCore pendiente:${C_RESET}
   - Editar ${INSTALACION_DIR_CRM}/.env.docker
   - Agregar:
       PANEL_URL=https://panel.fidcore.com.ar
-      PANEL_HEARTBEAT_TOKEN=<token compartido — pediselo a Nahuel>
+      PANEL_HEARTBEAT_TOKEN=<token compartido — consultalo con el equipo de FidCore>
   - Reiniciar: cd ${INSTALACION_DIR_CRM} && docker compose up -d --force-recreate crm crons
 EOF
   fi

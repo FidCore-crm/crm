@@ -260,7 +260,7 @@ preguntar_panel_vinculo() {
 
     gum style --foreground 245 \
       'El PANEL_HEARTBEAT_TOKEN es el mismo para TODOS los CRMs que instales.' \
-      'Lo obtenés del .env.docker del panel (o pediselo a Nahuel).'
+      'Lo obtenés del .env.docker del panel (o consultalo con el equipo de FidCore).'
     echo
     PANEL_HEARTBEAT_TOKEN=$(_gum_password "Pegá el PANEL_HEARTBEAT_TOKEN")
     if [ -z "$PANEL_HEARTBEAT_TOKEN" ]; then

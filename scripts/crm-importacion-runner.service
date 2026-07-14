@@ -1,13 +1,17 @@
 [Unit]
-Description=CRM Seguros - Importacion jobs runner loop (cada 30s)
-After=network.target crm-seguros.service
-Requires=crm-seguros.service
+# LEGACY: este service era del modelo host-native. Hoy el runner corre como
+# container Docker (fidcore-crm-importacion-runner). Se mantiene solo como
+# fallback si alguna vez se revierte a host-native. NO instalar por default.
+# Antes de usarlo, editar User y las 2 rutas absolutas con los valores reales
+# de la instalación (típico: User=<usuario>, path=/opt/crm-fidcore).
+Description=CRM FidCore - Importacion jobs runner loop (cada 30s)
+After=network.target
 
 [Service]
 Type=simple
-User=nahuel
-WorkingDirectory=/home/nahuel/crm-seguros
-ExecStart=/bin/bash /home/nahuel/crm-seguros/scripts/importacion-runner-loop.sh
+User=CHANGEME_USUARIO
+WorkingDirectory=/opt/crm-fidcore
+ExecStart=/bin/bash /opt/crm-fidcore/scripts/importacion-runner-loop.sh
 Restart=always
 RestartSec=10
 StandardOutput=journal

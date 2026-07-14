@@ -7,7 +7,7 @@
 #
 # Requiere:
 #   - Docker corriendo con el container supabase-db
-#   - Password en /home/nahuel/supabase/docker/.env (POSTGRES_PASSWORD)
+#   - Password en $SUPABASE_ENV o $SUPABASE_DOCKER_DIR/.env (POSTGRES_PASSWORD)
 #   - npx (viene con Node)
 # ============================================================
 
@@ -15,7 +15,7 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT="$PROJECT_DIR/src/types/database.generated.ts"
-SUPABASE_ENV="/home/nahuel/supabase/docker/.env"
+SUPABASE_ENV="${SUPABASE_ENV:-${SUPABASE_DOCKER_DIR:-$HOME/supabase/docker}/.env}"
 
 # 1) Obtener IP del container supabase-db
 DB_IP="$(docker inspect supabase-db --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || true)"

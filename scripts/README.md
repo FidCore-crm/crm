@@ -7,7 +7,7 @@ Solo se ejecutan desde el servidor con acceso SSH.
 
 Desde la raíz del proyecto:
 ```bash
-cd /home/nahuel/crm-seguros
+cd /opt/crm-fidcore
 node scripts/<script>.js [argumentos]
 ```
 

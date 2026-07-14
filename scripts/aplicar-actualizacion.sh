@@ -43,7 +43,7 @@ set -u
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # Defaults
-CRM_DIR="${CRM_DIR:-/home/nahuel/crm-seguros}"
+CRM_DIR="${CRM_DIR:-/opt/crm-fidcore}"
 LOG_FILE="${CRM_DIR}/tmp/updates/last-run.log"
 TRIGGER_FILE="${CRM_DIR}/tmp/updates/pending.json"
 PROGRESS_FILE="${CRM_DIR}/tmp/updates/progress.json"
@@ -695,11 +695,11 @@ else
 fi
 
 # Descartar cambios uncommitted en archivos tracked. Sin esto, si alguien
-# editó algo directo en el server (típico: Nahuel toca un archivo en
-# /home/nahuel/crm-seguros para debuggear o aplicar un parche caliente), el
-# `git checkout` aborta con "Your local changes would be overwritten" y el
-# update entero falla. Como la regla es que los commits se hacen en crm-dev
-# y nunca acá, cualquier cambio local en este working tree es prescindible.
+# editó algo directo en el server (típico: soporte toca un archivo en
+# ${CRM_DIR} para debuggear o aplicar un parche caliente), el `git checkout`
+# aborta con "Your local changes would be overwritten" y el update entero
+# falla. Como la regla es que los commits se hacen en crm-dev y nunca acá,
+# cualquier cambio local en este working tree es prescindible.
 # Esto NO toca el HEAD (los commits), ni archivos untracked (.env.docker,
 # storage/, tmp/, etc.). Solo descarta modificaciones a archivos tracked.
 git reset --hard HEAD --quiet 2>&1 | tee -a "$LOG_FILE" || true

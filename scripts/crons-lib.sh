@@ -3,7 +3,7 @@
 # Provee: leer CRON_SECRET del env o del .env.local, esperar al CRM, disparar
 # un endpoint de cron con autenticación.
 
-ENV_FILE="${CRM_ENV_FILE:-/home/nahuel/crm-seguros/.env.local}"
+ENV_FILE="${CRM_ENV_FILE:-/opt/crm-fidcore/.env.local}"
 CRM_BASE_URL="${CRM_BASE_URL:-http://localhost:3000}"
 
 if [ -z "${CRON_SECRET:-}" ] && [ -f "$ENV_FILE" ]; then
