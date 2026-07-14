@@ -3,7 +3,11 @@
 # Provee: leer CRON_SECRET del env o del .env.local, esperar al CRM, disparar
 # un endpoint de cron con autenticación.
 
-ENV_FILE="${CRM_ENV_FILE:-/opt/crm-fidcore/.env.local}"
+# Fallback al .env.local ubicado al lado del script (funciona dentro del
+# container donde el bind mount es /app y también en desarrollo local).
+# Igual, en producción el docker-compose inyecta CRON_SECRET como env directo,
+# así que este archivo casi nunca se lee.
+ENV_FILE="${CRM_ENV_FILE:-$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)/.env.local}"
 CRM_BASE_URL="${CRM_BASE_URL:-http://localhost:3000}"
 
 if [ -z "${CRON_SECRET:-}" ] && [ -f "$ENV_FILE" ]; then

@@ -13,7 +13,9 @@
 
 set -u
 
-ENV_FILE="${CRM_ENV_FILE:-/opt/crm-fidcore/.env.local}"
+# Fallback al .env.local ubicado al lado del script (funciona dentro del
+# container y en desarrollo local sin depender del path de instalación).
+ENV_FILE="${CRM_ENV_FILE:-$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)/.env.local}"
 CRM_BASE_URL="${CRM_BASE_URL:-http://localhost:3000}"
 INTERVAL_SECONDS="${IMPORTACION_RUNNER_INTERVAL_SECONDS:-30}"
 

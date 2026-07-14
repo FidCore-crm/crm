@@ -30,7 +30,13 @@ set -u
 # binarios pueden no encontrarse cuando se invoca desde crontab.
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-CRM_DIR="${CRM_DIR:-/opt/crm-fidcore}"
+# CRM_DIR se auto-detecta desde la ubicación del script (scripts/<este>.sh).
+# Si el crontab pasa CRM_DIR explícito, respeta esa. Auto-detect evita depender
+# del path de instalación — funciona en /opt/crm-fidcore (installer estándar),
+# /home/nahuel/crm-seguros (server histórico del equipo), o cualquier custom.
+if [ -z "${CRM_DIR:-}" ]; then
+  CRM_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+fi
 TRIGGER_FILE="${CRM_DIR}/tmp/updates/pending.json"
 TRIGGER_LOG="${CRM_DIR}/tmp/updates/trigger.log"
 CRON_LOG="${CRM_DIR}/tmp/updates/cron.log"

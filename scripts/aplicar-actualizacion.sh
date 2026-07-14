@@ -42,8 +42,12 @@ set -u
 # y otros binarios pueden no encontrarse cuando se invoca desde crontab.
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-# Defaults
-CRM_DIR="${CRM_DIR:-/opt/crm-fidcore}"
+# Defaults — CRM_DIR se auto-detecta desde la ubicación del script si no viene
+# seteada. Igual que en actualizacion-trigger.sh: funciona en cualquier path
+# de instalación sin depender de env vars ni configuración del crontab.
+if [ -z "${CRM_DIR:-}" ]; then
+  CRM_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+fi
 LOG_FILE="${CRM_DIR}/tmp/updates/last-run.log"
 TRIGGER_FILE="${CRM_DIR}/tmp/updates/pending.json"
 PROGRESS_FILE="${CRM_DIR}/tmp/updates/progress.json"
