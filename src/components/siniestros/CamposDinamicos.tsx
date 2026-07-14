@@ -67,7 +67,8 @@ export interface ValoresDinamicos {
   hubo_lesionados?: string
   detalle_lesiones?: string
   danos_propios?: string
-  rueda_robada?: string
+  /** Array de ruedas seleccionadas. Legacy: puede venir como string simple de datos viejos. */
+  rueda_robada?: string[] | string
   marca_ruedas?: string
   medida_ruedas?: string
   tipo_llanta?: string
@@ -347,7 +348,7 @@ function BloqueSelectorRueda({ valores, onChange, errores, disabled }: Omit<Bloq
       {rueda.ayuda && <p className="text-xs text-slate-500 mb-3">{rueda.ayuda}</p>}
 
       <SelectorRueda
-        value={(valores.rueda_robada as string | null) ?? null}
+        value={(valores.rueda_robada as string[] | string | null) ?? null}
         onChange={v => onChange(setNivel1(valores, 'rueda_robada', v))}
         error={Boolean(errores?.rueda_robada)}
         disabled={disabled}

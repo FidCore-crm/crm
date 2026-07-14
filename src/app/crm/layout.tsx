@@ -9,7 +9,6 @@ import { Navbar } from '@/components/layout/navbar'
 import { CronPolizas } from '@/components/CronPolizas'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { BannerLicencia } from '@/components/BannerLicencia'
-import { BannerDenunciasPendientes } from '@/components/BannerDenunciasPendientes'
 import { LicenciaGuard } from '@/components/LicenciaGuard'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
@@ -73,7 +72,6 @@ function CRMContent({ children }: { children: React.ReactNode }) {
         style={{ paddingTop: 'var(--navbar-height)' }}
       >
         <BannerLicencia />
-        <BannerDenunciasPendientes />
         {/* Aviso en mobile — el CRM admin no está optimizado para teléfonos */}
         <div className="md:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-900">
           Este sistema está optimizado para PC o tablet. En el teléfono algunas pantallas pueden quedar incómodas.

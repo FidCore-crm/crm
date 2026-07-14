@@ -716,7 +716,7 @@ export async function POST(request: NextRequest) {
     // ── Emails ───────────────────────────────────────────
     let emailEnviado = false
     try {
-      const [{ data: configCorreos }, { data: configComunic }] = await Promise.all([
+      const [{ data: configCorreos }, { data: configComunic }, { data: configOrgEmail }] = await Promise.all([
         supabase
           .from('configuracion_correos')
           .select('from_email, from_name, configurado')
@@ -727,7 +727,18 @@ export async function POST(request: NextRequest) {
           .select('envio_automatico_denuncia_publica_cliente, envio_automatico_denuncia_publica_pas')
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from('configuracion')
+          .select('email')
+          .limit(1)
+          .maybeSingle(),
       ])
+
+      // Email operativo del PAS (el que lee el correo) — priorizamos éste sobre
+      // configCorreos.from_email para evitar que el email al PAS se envíe al
+      // mismo buzón SMTP (Gmail y otros aplican anti-loop y lo mandan a
+      // "Enviados" en lugar del Inbox → el PAS cree que no le llega).
+      const emailPAS = (configOrgEmail as any)?.email?.trim() || (configCorreos as any)?.from_email
 
       // Toggles individuales — el admin puede apagar cada uno por separado.
       // Default true (si no hay config_comunicaciones, se envían).
@@ -797,6 +808,11 @@ export async function POST(request: NextRequest) {
         }
 
         if (enviarAlPAS) {
+          if (!emailPAS) {
+            logger.warn({ modulo: 'formulario-publico', mensaje: 'Email al PAS no enviado: no hay email operativo configurado en configuracion.email ni en configuracion_correos.from_email', contexto: { numero_caso: numeroCaso } })
+          } else if (emailPAS === (configCorreos as any).from_email) {
+            logger.warn({ modulo: 'formulario-publico', mensaje: 'Email al PAS se enviará al mismo buzón que from_email (Gmail y otros lo pueden filtrar como self-send)', contexto: { numero_caso: numeroCaso, email: emailPAS } })
+          }
           const htmlPAS = construirEmailPAS({
             numeroCaso, persona, email: email.trim(), telefono: telefono || '',
             poliza: poliza as any, companiaNombre, ramoNombre,
@@ -812,17 +828,14 @@ export async function POST(request: NextRequest) {
             archivosInfo, ip, tonos,
           })
           const asuntoPAS = `Nueva denuncia - ${numeroCaso} - ${persona.apellido} ${persona.nombre || ''}`
-          const resPAS = await enviarEmail({
-            to: configCorreos.from_email,
-            subject: asuntoPAS,
-            html: htmlPAS,
-            attachments,
-          })
+          const resPAS = emailPAS
+            ? await enviarEmail({ to: emailPAS, subject: asuntoPAS, html: htmlPAS, attachments })
+            : { ok: false, error: 'No hay email operativo del PAS configurado' } as const
           if (!resPAS.ok) {
             logger.error({ modulo: 'formulario-publico', mensaje: 'Error email PAS', contexto: { numero_caso: numeroCaso, error: resPAS.error } })
           }
           await registrarEnvioDirecto({
-            destinatario_email: configCorreos.from_email,
+            destinatario_email: emailPAS ?? '(no configurado)',
             destinatario_nombre: null,
             persona_id: persona.id,
             poliza_id: (poliza as any).id,

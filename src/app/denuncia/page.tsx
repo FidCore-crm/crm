@@ -447,9 +447,14 @@ function DenunciarPageContent() {
             }
           }
         }
-        // Si el tipo requiere selector_rueda, validar que se eligió una
-        if (configTipo.bloques.includes('selector_rueda') && !valoresDinamicos.rueda_robada) {
-          e.rueda_robada = 'Marcá qué rueda robaron'
+        // Si el tipo requiere selector_rueda, validar que se eligió al menos una.
+        // rueda_robada puede ser array (multi-select actual) o string simple (legacy).
+        if (configTipo.bloques.includes('selector_rueda')) {
+          const r = valoresDinamicos.rueda_robada
+          const vacio = r == null
+            || (Array.isArray(r) && r.length === 0)
+            || (typeof r === 'string' && !r.trim())
+          if (vacio) e.rueda_robada = 'Marcá qué rueda o ruedas robaron'
         }
       }
     }
@@ -2140,8 +2145,7 @@ function Paso4(props: {
           )}
         </div>
         <span className="checkbox-text">
-          Declaro bajo juramento que la información proporcionada es veraz y completa.
-          Entiendo que cualquier falsedad puede tener consecuencias legales.
+          Declaro que la información proporcionada es veraz y completa.
         </span>
       </div>
     </>

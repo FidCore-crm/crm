@@ -300,7 +300,7 @@ export const TIPOS_POR_TIPO_RIESGO: Record<string, TipoSiniestroConfig[]> = {
     },
     {
       value: 'ROBO_PARCIAL',
-      label: 'Robo parcial (objetos del interior)',
+      label: 'Robos parciales',
       icono: '🔓',
       bloques: [],
       campos: [
@@ -323,7 +323,7 @@ export const TIPOS_POR_TIPO_RIESGO: Record<string, TipoSiniestroConfig[]> = {
     {
       value: 'ROBO_RUEDAS',
       label: 'Robo de ruedas',
-      icono: '⚙️',
+      icono: '🛞',
       bloques: ['selector_rueda'],
       campos: [],
     },
