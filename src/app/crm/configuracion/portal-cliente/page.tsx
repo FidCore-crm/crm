@@ -502,17 +502,17 @@ export default function PortalClientePage() {
 
         <div className="flex gap-2 mb-3">
           <div className="flex-1 relative">
-            <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
               placeholder="Buscar por nombre o DNI..."
-              className="form-input w-full text-xs pl-7"
+              className="form-input w-full text-sm pl-10 h-10"
               value={filtroBusqueda}
               onChange={e => setFiltroBusqueda(e.target.value)}
             />
           </div>
           <select
-            className="form-input text-xs"
+            className="form-input text-sm h-10"
             value={filtroEstado}
             onChange={e => setFiltroEstado(e.target.value as any)}
           >

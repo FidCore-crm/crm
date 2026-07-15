@@ -91,6 +91,7 @@ export default function EditarCotizacionPage() {
   const [numeroCotizacion, setNumeroCotizacion] = useState('')
   const [updatedAtInicial, setUpdatedAtInicial] = useState<string | null>(null)
   const [conflicto, setConflicto] = useState<{ registro_actual: any } | null>(null)
+  const [estadoCotizacion, setEstadoCotizacion] = useState<string>('BORRADOR')
 
   // ── State: destinatario ──
   const [tipoDestinatario, setTipoDestinatario] = useState<'persona' | 'lead'>('persona')
@@ -183,11 +184,14 @@ export default function EditarCotizacionPage() {
         return
       }
 
-      // Solo editable si es BORRADOR
-      if (c.estado !== 'BORRADOR') {
+      // Bloqueo solo en estados terminales (GANADA/PERDIDA). En ENVIADA y
+      // EN_PROCESO se permite editar con banner de advertencia (ver el JSX)
+      // porque a veces el PAS detecta errores post-envío.
+      if (c.estado === 'GANADA' || c.estado === 'PERDIDA') {
         router.replace(`/crm/comercial/cotizaciones/${id}`)
         return
       }
+      setEstadoCotizacion(c.estado || 'BORRADOR')
 
       setNumeroCotizacion(c.numero_cotizacion || '')
       setUpdatedAtInicial(c.updated_at ?? null)
@@ -548,11 +552,29 @@ export default function EditarCotizacionPage() {
             <h1 className="text-lg font-semibold text-slate-800">
               Editar cotizacion {numeroCotizacion && <span className="font-mono">{numeroCotizacion}</span>}
             </h1>
-            <p className="text-xs text-slate-500">Modificar datos de la cotizacion en borrador</p>
+            <p className="text-xs text-slate-500">
+              {estadoCotizacion === 'BORRADOR'
+                ? 'Modificar datos de la cotización en borrador'
+                : `Editando cotización en estado ${estadoCotizacion}`}
+            </p>
           </div>
         </div>
         <PresenciaEnFicha tipoEntidad="cotizacion" entidadId={id} modo="editando" />
       </div>
+
+      {/* Banner de advertencia — solo cuando se edita una cotización ya enviada */}
+      {estadoCotizacion !== 'BORRADOR' && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 text-amber-800 text-sm border border-amber-200">
+          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Esta cotización ya se envió al cliente</p>
+            <p className="text-xs mt-0.5 text-amber-700">
+              Los cambios que hagas ahora NO se re-envían automáticamente. Si modificás compañías, montos o coberturas, el
+              documento que el cliente tiene puede quedar desactualizado — considerá reenviárselo.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Mensajes */}
       {errorGral && (

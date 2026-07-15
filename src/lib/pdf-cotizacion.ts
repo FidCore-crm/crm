@@ -404,24 +404,29 @@ function construirDocumentoCotizacion(
   // ── Destinatario ──
   y = dibujarTituloSeccion(doc, 'DESTINATARIO', y, pageWidth)
 
-  // Nombre y DNI alineados a izquierda y derecha respectivamente
+  // Nombre a la izquierda + DNI/CUIL a la derecha (en la misma línea, debajo
+  // de la línea del título de sección — antes la etiqueta "DNI/CUIL" iba en
+  // y - 3 y se pisaba con la línea horizontal de dibujarTituloSeccion).
   const nombreDest = [destinatario.nombre, destinatario.apellido].filter(Boolean).join(' ').trim() || 'Sin destinatario'
   doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...COLOR_TEXTO_CUERPO)
-  doc.text(nombreDest, 14, y)
+  doc.text(nombreDest, 14, y + 2)
 
   if (destinatario.dni) {
-    doc.setFontSize(8)
+    const xDer = pageWidth - 14
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
-    doc.text('DNI/CUIL', pageWidth - 14, y - 3, { align: 'right' })
+    const anchoValor = doc.getTextWidth(destinatario.dni)
+    const labelText = 'DNI/CUIL '
+    doc.text(labelText, xDer - anchoValor - 1, y + 2, { align: 'right' })
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(...COLOR_TEXTO_CUERPO)
-    doc.text(destinatario.dni, pageWidth - 14, y + 1, { align: 'right' })
+    doc.text(destinatario.dni, xDer, y + 2, { align: 'right' })
   }
-  y += 5
+  y += 7
 
   const contactoDest: string[] = []
   if (destinatario.telefono) contactoDest.push(`Tel ${destinatario.telefono}`)

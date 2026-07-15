@@ -806,8 +806,24 @@ export default function FichaCotizacionPage() {
         </div>
 
         <div className="flex items-center gap-1.5">
-          {cotizacion.estado === 'BORRADOR' && (
-            <button onClick={() => router.push(`/crm/comercial/cotizaciones/${id}/editar`)} className="btn-secondary">
+          {cotizacion.estado !== 'GANADA' && cotizacion.estado !== 'PERDIDA' && (
+            <button
+              onClick={() => {
+                if (cotizacion.estado !== 'BORRADOR') {
+                  const ok = confirm(
+                    'Esta cotización ya se envió al cliente. Si la modificás, el documento que él tiene puede quedar desactualizado.\n\n¿Continuar editando?'
+                  )
+                  if (!ok) return
+                }
+                router.push(`/crm/comercial/cotizaciones/${id}/editar`)
+              }}
+              className="btn-secondary"
+              title={
+                cotizacion.estado === 'BORRADOR'
+                  ? 'Editar cotización'
+                  : 'Editar (con confirmación — la cotización ya se envió)'
+              }
+            >
               <Edit className="h-3 w-3" /> Editar
             </button>
           )}
