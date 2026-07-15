@@ -26,6 +26,12 @@ export interface PolizaData {
     suma_asegurada: number | null
   }>
   archivos: Array<{ nombre: string; ruta: string; tamano: number }>
+  /** Si el PAS ya emitió la renovación, muestra un badge "Renovación
+   *  gestionada — Vigente desde DD/MM/YYYY" en la card. Solo informativo. */
+  renovacion_pendiente?: {
+    fecha_inicio: string
+    numero_poliza: string
+  } | null
 }
 
 // Resumen de un riesgo en una línea (para 1 riesgo solo).
@@ -194,6 +200,23 @@ export default function PolizaCard({
           <div className="flex items-start gap-2 pt-2 border-t border-slate-100 mt-1">
             <span className="text-xs text-slate-500 w-24 shrink-0">Observaciones</span>
             <span className="text-sm text-slate-700 whitespace-pre-wrap min-w-0 break-words">{poliza.observaciones}</span>
+          </div>
+        )}
+        {/* Renovación gestionada — banner informativo cuando el PAS ya emitió
+            la renovación y quedó latente. Cero cards nuevos en el portal, el
+            asegurado ve que la gestión ya está hecha en el mismo lugar donde
+            estaba mirando la póliza que vence. */}
+        {poliza.renovacion_pendiente && (
+          <div className="mt-2 flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+            <svg className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-emerald-800">Renovación gestionada</p>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                Vigente desde {formatFechaLocalLarga(poliza.renovacion_pendiente.fecha_inicio)}
+              </p>
+            </div>
           </div>
         )}
       </div>

@@ -53,6 +53,7 @@ export default function PortalAseguradoPage() {
   const [data, setData] = useState<PortalData | null>(null)
   const [tabActiva, setTabActiva] = useState<'polizas' | 'siniestros' | 'cuenta'>('polizas')
   const [asistenciaAbierta, setAsistenciaAbierta] = useState(false)
+  const [filtroSiniestros, setFiltroSiniestros] = useState<'todos' | 'activos' | 'finalizados'>('todos')
 
   useEffect(() => {
     let alive = true
@@ -310,22 +311,72 @@ export default function PortalAseguradoPage() {
           </section>
         )}
 
-        {tabActiva === 'siniestros' && (
-          <section className="flex flex-col gap-3">
-            {data.siniestros.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
-                <AlertTriangle className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm text-slate-500">No tenés siniestros registrados.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {data.siniestros.map(s => (
-                  <SiniestroCard key={s.id} siniestro={s} token={token} />
-                ))}
-              </div>
-            )}
-          </section>
-        )}
+        {tabActiva === 'siniestros' && (() => {
+          // Clasificamos: FINALIZADO y RECHAZADO son "cerrados"; el resto activos.
+          const finalizados = data.siniestros.filter(s => s.estado === 'FINALIZADO' || s.estado === 'RECHAZADO')
+          const activos = data.siniestros.filter(s => s.estado !== 'FINALIZADO' && s.estado !== 'RECHAZADO')
+          const totalTodos = data.siniestros.length
+          const totalActivos = activos.length
+          const totalFinalizados = finalizados.length
+          // Orden por relevancia: activos arriba (siempre más importantes), después
+          // finalizados. Dentro de cada grupo el backend ya trae por fecha_denuncia DESC.
+          const listaFiltrada =
+            filtroSiniestros === 'activos' ? activos
+            : filtroSiniestros === 'finalizados' ? finalizados
+            : [...activos, ...finalizados]
+
+          return (
+            <section className="flex flex-col gap-3">
+              {totalTodos === 0 ? (
+                <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
+                  <AlertTriangle className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">No tenés siniestros registrados.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Filtro pill — solo si hay al menos 2 tipos distintos, sino no aporta */}
+                  {totalActivos > 0 && totalFinalizados > 0 && (
+                    <div className="bg-white rounded-full border border-slate-200 p-1 flex text-xs font-medium">
+                      <button
+                        onClick={() => setFiltroSiniestros('todos')}
+                        className={`flex-1 py-2 px-3 rounded-full transition-colors ${filtroSiniestros === 'todos' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        Todos ({totalTodos})
+                      </button>
+                      <button
+                        onClick={() => setFiltroSiniestros('activos')}
+                        className={`flex-1 py-2 px-3 rounded-full transition-colors ${filtroSiniestros === 'activos' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        Activos ({totalActivos})
+                      </button>
+                      <button
+                        onClick={() => setFiltroSiniestros('finalizados')}
+                        className={`flex-1 py-2 px-3 rounded-full transition-colors ${filtroSiniestros === 'finalizados' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        Finalizados ({totalFinalizados})
+                      </button>
+                    </div>
+                  )}
+                  {listaFiltrada.length === 0 ? (
+                    <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
+                      <p className="text-sm text-slate-500">
+                        {filtroSiniestros === 'activos'
+                          ? 'No tenés siniestros activos.'
+                          : 'No tenés siniestros finalizados.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {listaFiltrada.map(s => (
+                        <SiniestroCard key={s.id} siniestro={s} token={token} />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
+          )
+        })()}
 
         {tabActiva === 'cuenta' && (
           <div className="flex flex-col gap-4">

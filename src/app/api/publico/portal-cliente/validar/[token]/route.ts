@@ -193,6 +193,30 @@ export async function GET(
       })
     }
 
+    // Renovaciones pendientes — pólizas hijas en estado RENOVADA o PROGRAMADA
+    // que apuntan como origen a alguna de las vigentes. Se muestran como un
+    // badge "Renovación gestionada — Vigente desde DD/MM/YYYY" en la card de
+    // la póliza vigente actual (task v1.0.127). Cero cards nuevos en el portal.
+    const { data: renovacionesData } = polizaIds.length
+      ? await supabase
+          .from('polizas')
+          .select('id, numero_poliza, fecha_inicio, poliza_origen_id')
+          .in('poliza_origen_id', polizaIds)
+          .in('estado', ['RENOVADA', 'PROGRAMADA'])
+      : { data: [] as any[] }
+    const mapRenovacionPendiente = new Map<string, { fecha_inicio: string; numero_poliza: string }>()
+    for (const r of ((renovacionesData ?? []) as any[])) {
+      if (!r.poliza_origen_id) continue
+      // Si hay varias por accidente, quedamos con la más temprana (menor fecha_inicio).
+      const anterior = mapRenovacionPendiente.get(r.poliza_origen_id)
+      if (!anterior || r.fecha_inicio < anterior.fecha_inicio) {
+        mapRenovacionPendiente.set(r.poliza_origen_id, {
+          fecha_inicio: r.fecha_inicio,
+          numero_poliza: r.numero_poliza,
+        })
+      }
+    }
+
     // Enriquecer pólizas con datos y archivos
     const polizasResult = await Promise.all(
       polizasArr.map(async p => {
@@ -215,6 +239,10 @@ export async function GET(
           // diferencia de `notas` que son privadas del PAS y NO se exponen).
           observaciones: p.observaciones || null,
           archivos,
+          // Renovación pendiente (badge informativo en la card). Solo si el
+          // PAS ya emitió la nueva póliza y quedó latente esperando su fecha
+          // de inicio. Ver [[patron-renovacion-badge-portal]].
+          renovacion_pendiente: mapRenovacionPendiente.get(p.id) ?? null,
         }
       })
     )
