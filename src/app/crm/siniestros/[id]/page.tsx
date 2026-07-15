@@ -98,6 +98,55 @@ function bienAfectado(s: Siniestro) {
   if (!dt) return '—'
   return dt.patente ?? [dt.calle, dt.numero].filter(Boolean).join(' ') ?? dt.descripcion ?? '—'
 }
+
+/**
+ * Descripción rica del bien afectado para el card "Póliza vinculada".
+ * Automotor: marca + modelo + año + patente + color.
+ * Hogar: dirección completa + tipo de construcción + superficie.
+ * Otros: descripción libre y campos genéricos.
+ */
+function DescripcionBien({ tipoRiesgo, dt }: { tipoRiesgo: string; dt: any }) {
+  if (!dt) return <p className="text-xs text-slate-400">Sin datos del bien</p>
+  const filas: Array<{ label: string; valor: string }> = []
+  const add = (label: string, v: any) => {
+    if (v == null || v === '') return
+    filas.push({ label, valor: String(v) })
+  }
+  if (tipoRiesgo === 'automotor') {
+    const titulo = [dt.marca, dt.modelo, dt.anio].filter(Boolean).join(' ')
+    if (titulo) filas.push({ label: 'Vehículo', valor: titulo })
+    if (dt.patente) filas.push({ label: 'Patente', valor: String(dt.patente).toUpperCase() })
+    add('Color', dt.color)
+    add('Motor', dt.motor)
+    add('Chasis', dt.chasis)
+    add('Uso', dt.uso)
+  } else if (tipoRiesgo === 'hogar' || tipoRiesgo === 'integrales') {
+    const dir = [dt.calle, dt.numero].filter(Boolean).join(' ')
+    if (dir) filas.push({ label: 'Dirección', valor: dir })
+    const loc = [dt.localidad, dt.provincia].filter(Boolean).join(', ')
+    if (loc) filas.push({ label: 'Localidad', valor: loc })
+    add('Tipo de construcción', dt.tipo_construccion)
+    add('Superficie', dt.superficie)
+  } else {
+    // Generico / dinámico: mostrar todos los pares no vacíos
+    for (const [k, v] of Object.entries(dt)) {
+      if (v == null || v === '') continue
+      if (typeof v === 'object') continue
+      filas.push({ label: k.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()), valor: String(v) })
+    }
+  }
+  if (filas.length === 0) return <p className="text-xs text-slate-400">Sin datos del bien</p>
+  return (
+    <div className="flex flex-col gap-1">
+      {filas.map(({ label, valor }) => (
+        <div key={label} className="flex items-baseline gap-1.5">
+          <span className="text-2xs text-slate-500 shrink-0">{label}:</span>
+          <span className="text-xs font-medium text-slate-700 break-words">{valor}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 function tipoLabel(tipo: string) {
   return tipo?.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase()) ?? '—'
 }
@@ -655,7 +704,7 @@ export default function FichaSiniestroPage() {
           <div className={`bg-white border rounded overflow-hidden ${siniestro.numero_siniestro ? 'border-slate-200' : 'border-amber-300'}`}>
             <div className={`px-3 py-2 border-b flex items-center justify-between ${siniestro.numero_siniestro ? 'border-slate-100 bg-slate-50' : 'border-amber-200 bg-amber-50'}`}>
               <h3 className={`text-2xs font-semibold uppercase tracking-wide ${siniestro.numero_siniestro ? 'text-slate-500' : 'text-amber-800'}`}>
-                Siniestro N° (compañía)
+                Siniestro N° ({siniestro.poliza?.compania?.nombre ?? 'compañía'})
               </h3>
               {siniestro.numero_siniestro && !editandoNumSiniestro && (
                 <button
@@ -757,8 +806,8 @@ export default function FichaSiniestroPage() {
                 <p className="text-xs text-slate-500">{siniestro.poliza.compania.nombre}</p>
               )}
               <div className="border-t border-slate-100 pt-2 mt-1">
-                <p className="text-2xs text-slate-500 mb-0.5">Bien afectado</p>
-                <p className="font-mono text-xs font-semibold text-slate-700">{bienAfectado(siniestro)}</p>
+                <p className="text-2xs text-slate-500 mb-1 uppercase tracking-wide font-semibold">Bien afectado</p>
+                <DescripcionBien tipoRiesgo={tipoRiesgo} dt={siniestro.poliza?.riesgos?.[0]?.detalle_tecnico} />
               </div>
             </div>
           </div>
@@ -791,9 +840,13 @@ export default function FichaSiniestroPage() {
           {(() => {
             const camposCatalogo = extraerCamposCustom(siniestro.poliza?.ramo?.metadata as any)
             const labelsMap = mapaLabelsPorKey(camposCatalogo)
-            // Filtramos keys vacías. Un objeto/array cuenta como no-vacío si tiene al menos un valor útil.
+            // Filtramos keys vacías. Un objeto/array cuenta como no-vacío si
+            // tiene al menos un valor útil. Booleans (aún false) y strings
+            // como "no"/"sí" SIEMPRE cuentan como contenido — son datos
+            // significativos: "no hubo lesionados" es una respuesta, no ruido.
             const tieneContenido = (v: unknown): boolean => {
-              if (v == null || v === '' || v === false) return false
+              if (v == null || v === '') return false
+              if (typeof v === 'boolean') return true
               if (Array.isArray(v)) return v.some(tieneContenido)
               if (typeof v === 'object') return Object.values(v as Record<string, unknown>).some(tieneContenido)
               return true
@@ -845,7 +898,7 @@ export default function FichaSiniestroPage() {
             return (
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-                  <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Detalle del ramo</h3>
+                  <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Detalles del siniestro</h3>
                 </div>
                 <div className="p-3 flex flex-col gap-3">
                   {keysOrdenadas.map(k => (
