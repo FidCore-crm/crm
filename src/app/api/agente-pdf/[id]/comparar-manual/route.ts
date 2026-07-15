@@ -131,6 +131,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         duracion_ms: Date.now() - inicio,
         creado_en: new Date(inicio).toISOString(),
         completado_en: new Date().toISOString(),
+        modo: resultado.modo || 'pdf_nativo',
       }
     : {
         poliza_origen_id: polizaOrigenId,
@@ -140,6 +141,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         duracion_ms: Date.now() - inicio,
         creado_en: new Date(inicio).toISOString(),
         completado_en: new Date().toISOString(),
+        modo: resultado.modo || 'pdf_nativo',
       }
 
   await supabase
@@ -147,5 +149,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .update({ comparacion_resultado: comparacionResultado } as any)
     .eq('id', id)
 
-  return NextResponse.json({ ok: resultado.ok, comparacion: comparacionResultado })
+  // Si la IA falló, devolver 500 con el error real en el payload en formato
+  // estándar para que apiCall() del cliente pueda extraerlo. Antes se devolvía
+  // { ok: false, comparacion: {...} } con status 200 — el cliente caía en el
+  // fallback y mostraba "Error HTTP 200" al PAS sin la causa real.
+  if (!resultado.ok) {
+    const mensajeError = resultado.error || 'La comparación con IA falló'
+    logger.error({
+      modulo: 'agente-pdf',
+      mensaje: 'Falló la comparación manual con IA',
+      contexto: { procesamiento_id: id, archivo_viejo_id: archivoViejoId, error: mensajeError },
+    })
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          codigo: 'ERR_EXT_001',
+          mensaje: mensajeError,
+        },
+        comparacion: comparacionResultado,
+      },
+      { status: 500 },
+    )
+  }
+
+  return NextResponse.json({ ok: true, data: { comparacion: comparacionResultado } })
 }

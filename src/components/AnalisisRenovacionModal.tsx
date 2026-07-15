@@ -38,6 +38,7 @@ export interface ComparacionIaHistorico {
   costo_usd?: number
   duracion_ms?: number
   completado_en?: string
+  modo?: 'pdf_nativo' | 'texto_plano'
 }
 
 interface Props {
@@ -93,6 +94,14 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
             <h3 className="text-sm font-semibold text-slate-800 truncate">
               Análisis de cambios vs. póliza anterior
             </h3>
+            {comparacion.modo === 'texto_plano' && (
+              <span
+                className="text-2xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0"
+                title="Los PDFs eran muy extensos para procesar con layout. Se analizaron en modo texto plano — puede haber pequeños errores en tablas con muchas columnas."
+              >
+                Modo texto plano
+              </span>
+            )}
           </div>
           <button
             onClick={onCerrar}

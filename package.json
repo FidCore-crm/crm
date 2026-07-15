@@ -1,6 +1,6 @@
 {
   "name": "fidcore-crm",
-  "version": "1.0.129",
+  "version": "1.0.130",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -26,6 +26,7 @@
     "lucide-react": "^0.454.0",
     "next": "14.2.15",
     "nodemailer": "^8.0.4",
+    "pdf-parse": "^2.4.5",
     "react": "^18",
     "react-dom": "^18",
     "recharts": "^2.13.0",
@@ -38,6 +39,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.0",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@typescript-eslint/eslint-plugin": "^8.59.3",

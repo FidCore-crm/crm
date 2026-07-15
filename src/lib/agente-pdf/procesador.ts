@@ -190,6 +190,7 @@ export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
               estado: 'FALLIDA' as const,
               error: resultado.error || 'Falló la comparación',
               duracion_ms: Date.now() - inicioCmp,
+              modo: resultado.modo || 'pdf_nativo',
             }
           }
           return {
@@ -201,6 +202,7 @@ export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
             tokens_usados: resultado.tokens_total,
             costo_usd: resultado.costo_usd,
             duracion_ms: Date.now() - inicioCmp,
+            modo: resultado.modo || 'pdf_nativo',
           }
         } catch (err: any) {
           logger.warn({

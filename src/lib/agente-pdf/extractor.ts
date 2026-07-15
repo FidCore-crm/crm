@@ -10,6 +10,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { readFile } from 'fs/promises'
 import {
+  llamarClaude,
   obtenerApiKey,
   obtenerModelo,
   registrarUso,
@@ -19,6 +20,7 @@ import {
 } from '@/lib/anthropic-client'
 import { logger } from '@/lib/errores'
 import { TIPOS_RIESGO } from '@/lib/tipos-riesgo'
+import { extraerTextoPDF, PDFSinTextoExtraible } from './pdf-texto'
 import type {
   TipoOperacionPDF,
   DatosExtraidosPoliza,
@@ -127,6 +129,19 @@ function traducirErrorExtractor(err: any): string {
   }
   if (/pages|too many|too large|exceed/.test(msg) && /pdf|document/.test(msg)) {
     return 'El PDF es demasiado grande o tiene demasiadas páginas. Anthropic rechaza documentos de más de ~100 páginas.'
+  }
+  // Anthropic devuelve "prompt is too long: X tokens > Y maximum" cuando el
+  // total (contexto + PDFs adjuntos) supera el límite del modelo (200k
+  // tokens para Haiku/Sonnet 4). Típico en comparaciones donde ambos PDFs
+  // son largos y juntos superan el límite.
+  const tokensMatch = mensajeCrudo.match(/prompt is too long:\s*(\d+)\s+tokens?\s*>\s*(\d+)/i)
+  if (tokensMatch) {
+    const usados = Number(tokensMatch[1]).toLocaleString('es-AR')
+    const maximo = Number(tokensMatch[2]).toLocaleString('es-AR')
+    return `Los PDFs son demasiado extensos para procesar (${usados} tokens sobre un máximo de ${maximo}). Probá con un PDF más corto o dividí el documento en secciones más chicas.`
+  }
+  if (/prompt is too long|context length|maximum context|tokens.*exceed/i.test(msg)) {
+    return 'Los PDFs son demasiado extensos para procesar. Anthropic tiene un límite de 200.000 tokens por request.'
   }
   if (/rate limit|429/.test(msg)) {
     return 'La IA está saturada (rate limit). Esperá un minuto y volvé a intentar.'
@@ -538,6 +553,11 @@ export interface ResultadoComparacion {
   tokens_total: number
   costo_usd: number
   ms_ia: number
+  // Qué pipeline se usó para producir el resultado:
+  //   'pdf_nativo'  → bloques `document` de Anthropic (default, layout preservado)
+  //   'texto_plano' → texto extraído con pdf-parse + prompt adaptado
+  //                    (fallback automático cuando PDF nativo supera 200k tokens)
+  modo?: 'pdf_nativo' | 'texto_plano'
 }
 
 const SYSTEM_COMPARADOR = `Sos un asistente especializado en comparar dos versiones de una póliza de seguros argentina (la póliza vigente y su renovación de la misma compañía).
@@ -609,12 +629,209 @@ Schema de salida:
   ]
 }`
 
+// Prompt adaptado para modo texto plano: se usa cuando los PDFs juntos superan
+// el límite de 200k tokens en modo nativo. La diferencia clave con
+// SYSTEM_COMPARADOR es que acá los PDFs se entregan como texto plano
+// (extraído con pdf-parse) — sin imágenes, sin layout. Advertimos a la IA
+// sobre posibles errores de tablas y le pedimos marcar como severidad baja
+// cualquier cosa dudosa por orden de columnas.
+const SYSTEM_COMPARADOR_TEXTO = `Sos un asistente especializado en comparar dos versiones de una póliza de seguros argentina (la póliza vigente y su renovación de la misma compañía).
+
+Tu tarea es leer el TEXTO PLANO extraído de 2 PDFs y devolver un JSON con los cambios materiales que detectes. El PAS que asesora al cliente necesita saber qué cambió para poder avisarle antes de que el cliente firme la renovación.
+
+FORMATO DE ENTRADA:
+El texto se te pasa en dos bloques delimitados así:
+=== PÓLIZA VIGENTE (VIEJA) ===
+<texto extraído del PDF viejo>
+=== PÓLIZA NUEVA (RENOVACIÓN) ===
+<texto extraído del PDF nuevo>
+
+IMPORTANTE — LIMITACIÓN DEL FORMATO:
+El texto viene de una extracción PDF sin layout. Algunas tablas pueden aparecer con las columnas mezcladas o el orden de lectura alterado. Si detectás un dato ambiguo por posible error de tabla, marcalo con severidad 'baja' y aclará en descripción "posible confusión de columnas — revisar manualmente".
+
+CONTEXTO IMPORTANTE — nombres de coberturas:
+Las compañías usan nombres/códigos comerciales que varían aunque el producto sea el mismo. Por ejemplo, en San Cristóbal "CM", "Premium Max" y "CF" son variantes del mismo producto "Terceros Full". NO marques como cambio material si el nombre cambia pero el nivel de cobertura es equivalente (ej: "CF" → "Premium Max" en la misma compañía = sin cambio). SÍ marcá como material si el nivel real cambia (ej: "CF" → "C" pasa de Terceros Full a Terceros común).
+
+QUÉ CONSIDERAR COMO CAMBIO MATERIAL:
+- Cambio de cobertura o plan contratado.
+- Cambio de suma asegurada de la póliza o de una cobertura interna.
+- Cambio de responsabilidad civil (RC): monto, sublímite, exclusiones.
+- Cambio de franquicia.
+- Coberturas adicionales agregadas o quitadas (granizo, cristales, robo de ruedas, asistencia mecánica, etc.).
+- Cambio de sublímites por cobertura.
+- Cambio de zonas geográficas cubiertas (ej: "ya no cubre Chile").
+- Cambio de exclusiones o restricciones.
+- Cambio de moneda (ARS → USD o viceversa).
+
+QUÉ CONSIDERAR COSMÉTICO (marcá igual, pero con tipo 'cosmético'):
+- Número de póliza nuevo (es normal en renovaciones).
+- Fecha de emisión.
+- Número de endoso.
+- Número de recibo, forma de pago si es la misma.
+- Datos del asegurado (dirección, teléfono) si sólo son actualizaciones.
+
+LENGUAJE — MUY IMPORTANTE:
+El PAS es un profesional del rubro. Escribí en tono técnico y factual. Limitate a describir QUÉ cambió, en qué monto o de qué a qué. NO valores el cambio, no digas si es bueno o malo para el cliente. El PAS lo evalúa él.
+
+PALABRAS PROHIBIDAS (no aparecen en el rubro de seguros argentino):
+- "upgrade" / "downgrade" / "downgradear" / "upgradear"
+- "mejora" / "empeora" / "mejor cobertura" / "peor cobertura"
+- "protección" (usar "cobertura")
+- "beneficio" / "beneficios" (usar "cobertura" o "condiciones")
+- "premium" (salvo que sea nombre comercial exacto del producto, como "Premium Max")
+- Adjetivos evaluativos: "mejor", "peor", "conveniente", "favorable", "desfavorable", "positivo", "negativo".
+
+REGLAS DURAS:
+1. Respondé SOLO con JSON válido, sin texto extra, sin fences.
+2. El campo "resumen" debe ser UNA sola oración, corta y factual. Mencionar QUÉ cambió, no VALORARLO. Máximo 20 palabras.
+3. Sé preciso con montos. Si en el viejo era $30.000.000 y en el nuevo $50.000.000, escribilo exacto.
+4. En "descripcion" también aplicá el mismo tono factual, sin valoraciones ni palabras prohibidas.
+5. Si detectás algo dudoso (no estás seguro si es cambio o no), agregalo con severidad 'baja' y aclará en descripción.
+
+Schema de salida:
+{
+  "resumen": string,
+  "cambios": [
+    {
+      "categoria": string,
+      "campo": string,
+      "antes": string | null,
+      "ahora": string | null,
+      "tipo": "material" | "cosmético",
+      "severidad": "alta" | "media" | "baja",
+      "descripcion": string
+    }
+  ]
+}`
+
+/**
+ * Detecta si un error de la comparación IA fue causado por superar el límite
+ * de contexto del modelo (200k tokens para Haiku/Sonnet 4). En ese caso
+ * conviene reintentar con texto plano extraído de los PDFs.
+ */
+function esErrorLimiteTokens(err: any): boolean {
+  const mensaje: string = err?.error?.error?.message || err?.message || String(err) || ''
+  return /prompt is too long|context length|maximum context|tokens.*exceed/i.test(mensaje)
+}
+
+/**
+ * Ejecuta la comparación en modo texto plano: extrae texto de ambos PDFs con
+ * pdf-parse y llama a Claude con strings — sin bloques `document`. Usado como
+ * fallback automático cuando el modo nativo excede el límite de 200k tokens.
+ */
+async function compararPolizasEnTextoPlano(
+  rutaPDFViejo: string,
+  rutaPDFNuevo: string,
+): Promise<ResultadoComparacion> {
+  const inicio = Date.now()
+  try {
+    const [textoViejo, textoNuevo] = await Promise.all([
+      extraerTextoPDF(rutaPDFViejo),
+      extraerTextoPDF(rutaPDFNuevo),
+    ])
+
+    const prompt = `=== PÓLIZA VIGENTE (VIEJA) ===\n${textoViejo.texto}\n\n=== PÓLIZA NUEVA (RENOVACIÓN) ===\n${textoNuevo.texto}`
+
+    // Resolvemos la familia HAIKU explícitamente (el texto plano es mucho más
+    // barato — no hace falta un modelo más grande). Igual llamarClaude puede
+    // auto-sustituir si el ID vigente cambió.
+    const modelo = await resolverModeloParaFamilia(FAMILIA_EXTRACTOR).catch(() => undefined)
+
+    const resultado = await llamarClaude({
+      prompt,
+      system: SYSTEM_COMPARADOR_TEXTO,
+      max_tokens: 3072,
+      temperature: 0,
+      modelo,
+      response_format: 'json',
+    })
+
+    if (!resultado.ok) {
+      return {
+        ok: false,
+        error: resultado.error?.mensaje || 'La comparación en modo texto plano falló',
+        tokens_input: resultado.tokens_input ?? 0,
+        tokens_output: resultado.tokens_output ?? 0,
+        tokens_total: resultado.tokens_total ?? 0,
+        costo_usd: resultado.costo_estimado_usd ?? 0,
+        ms_ia: Date.now() - inicio,
+        modo: 'texto_plano',
+      }
+    }
+
+    const crudo = resultado.json ?? extraerJson(resultado.data || '{}')
+    const cambios = Array.isArray((crudo as any).cambios) ? ((crudo as any).cambios as CambioDetectado[]) : []
+    const resumen = typeof (crudo as any).resumen === 'string' ? (crudo as any).resumen : ''
+
+    logger.info({
+      modulo: 'agente-pdf',
+      mensaje: 'Comparación en modo texto plano completada',
+      contexto: {
+        ms: Date.now() - inicio,
+        tokens_input: resultado.tokens_input,
+        tokens_output: resultado.tokens_output,
+        chars_viejo: textoViejo.caracteres,
+        chars_nuevo: textoNuevo.caracteres,
+        paginas_viejo: textoViejo.paginas,
+        paginas_nuevo: textoNuevo.paginas,
+      },
+    })
+
+    return {
+      ok: true,
+      cambios,
+      resumen,
+      tokens_input: resultado.tokens_input ?? 0,
+      tokens_output: resultado.tokens_output ?? 0,
+      tokens_total: resultado.tokens_total ?? 0,
+      costo_usd: resultado.costo_estimado_usd ?? 0,
+      ms_ia: Date.now() - inicio,
+      modo: 'texto_plano',
+    }
+  } catch (err) {
+    if (err instanceof PDFSinTextoExtraible) {
+      return {
+        ok: false,
+        error: err.message,
+        tokens_input: 0,
+        tokens_output: 0,
+        tokens_total: 0,
+        costo_usd: 0,
+        ms_ia: Date.now() - inicio,
+        modo: 'texto_plano',
+      }
+    }
+    logger.error({
+      modulo: 'agente-pdf',
+      mensaje: 'Error inesperado en comparación modo texto plano',
+      contexto: { error: String(err) },
+    })
+    return {
+      ok: false,
+      error: traducirErrorExtractor(err),
+      tokens_input: 0,
+      tokens_output: 0,
+      tokens_total: 0,
+      costo_usd: 0,
+      ms_ia: Date.now() - inicio,
+      modo: 'texto_plano',
+    }
+  }
+}
+
 /**
  * Compara dos PDFs de póliza (el viejo y la renovación) con IA y devuelve un
  * JSON de cambios detectados. Usa Haiku por defecto para velocidad.
  *
- * Diseñada para correr fire-and-forget desde el endpoint de aprobación de
- * renovación — no bloquea al PAS.
+ * Estrategia híbrida:
+ *   1. Intento con PDF nativo (bloques `document` de Anthropic — layout
+ *      preservado, más preciso para tablas visuales).
+ *   2. Si falla porque los PDFs superan el límite de 200k tokens, hace un
+ *      fallback automático a modo texto plano (pdf-parse + prompt adaptado).
+ *      Reduce ~10-20x los tokens; sirve para pólizas largas de 40+ páginas.
+ *
+ * El JSON devuelto incluye `modo` para que la UI muestre un badge indicando
+ * qué pipeline se usó.
  */
 export async function compararPolizasConIA(
   rutaPDFViejo: string,
@@ -630,7 +847,7 @@ export async function compararPolizasConIA(
 
     logger.info({
       modulo: 'agente-pdf',
-      mensaje: 'Comparación de pólizas completada',
+      mensaje: 'Comparación de pólizas completada (modo PDF nativo)',
       contexto: { ms_ia, tokens_input, tokens_output, familia: FAMILIA_EXTRACTOR },
     })
 
@@ -651,8 +868,21 @@ export async function compararPolizasConIA(
       tokens_total: total,
       costo_usd: costo,
       ms_ia,
+      modo: 'pdf_nativo',
     }
   } catch (err: any) {
+    // Fallback automático a texto plano cuando el PDF nativo excede el
+    // límite de contexto. Cualquier otro error (auth, network, PDF corrupto)
+    // se devuelve tal cual sin reintento.
+    if (esErrorLimiteTokens(err)) {
+      logger.info({
+        modulo: 'agente-pdf',
+        mensaje: 'PDF nativo superó límite de tokens — reintentando con texto plano',
+        contexto: { error: String(err?.message || err).slice(0, 200) },
+      })
+      return compararPolizasEnTextoPlano(rutaPDFViejo, rutaPDFNuevo)
+    }
+
     return {
       ok: false,
       error: traducirErrorExtractor(err),
@@ -661,6 +891,7 @@ export async function compararPolizasConIA(
       tokens_total: 0,
       costo_usd: 0,
       ms_ia: 0,
+      modo: 'pdf_nativo',
     }
   }
 }

@@ -34,6 +34,9 @@ export interface ComparacionResultado {
   duracion_ms?: number
   creado_en?: string
   completado_en?: string
+  // 'pdf_nativo' = bloques document de Anthropic (default, layout preservado)
+  // 'texto_plano' = fallback automático cuando el PDF nativo excede 200k tokens
+  modo?: 'pdf_nativo' | 'texto_plano'
 }
 
 export interface EstadoPDFPoll {

@@ -187,6 +187,14 @@ export default function ComparacionEnRevision({
       <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-blue-600" />
         <h3 className="text-sm font-semibold text-slate-800">Análisis de cambios vs. póliza anterior</h3>
+        {comparacion.modo === 'texto_plano' && (
+          <span
+            className="ml-auto text-2xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200"
+            title="Los PDFs eran muy extensos para procesar con layout. Se analizaron en modo texto plano — puede haber pequeños errores en tablas con muchas columnas."
+          >
+            Modo texto plano
+          </span>
+        )}
       </div>
 
       <div className="p-4 flex flex-col gap-3">
