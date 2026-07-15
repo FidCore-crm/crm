@@ -48,6 +48,7 @@ interface Siniestro {
   tercero_dni: string | null
   tercero_telefono: string | null
   tercero_patente: string | null
+  notas: string | null
   deleted_at: string | null
   updated_at: string | null
   origen_creacion: 'MANUAL_PAS' | 'PORTAL_CLIENTE'
@@ -316,6 +317,10 @@ export default function FichaSiniestroPage() {
   const [numSiniestroInput, setNumSiniestroInput] = useState('')
   const [guardandoNumSiniestro, setGuardandoNumSiniestro] = useState(false)
 
+  // Observaciones internas (siniestros.notas) — solo PAS, nunca visibles al cliente
+  const [notasInput, setNotasInput] = useState('')
+  const [guardandoNotas, setGuardandoNotas] = useState(false)
+
   // Eliminar
   const [modalEliminar, setModalEliminar] = useState(false)
   const [modalEditar, setModalEditar] = useState(false)
@@ -350,6 +355,7 @@ export default function FichaSiniestroPage() {
         descripcion, detalle_siniestro,
         lugar_siniestro, localidad_siniestro,
         tercero_nombre, tercero_dni, tercero_telefono, tercero_patente,
+        notas,
         deleted_at, updated_at,
         origen_creacion, revisado_por_pas, fecha_revision,
         asegurado:personas!persona_id (id, apellido, nombre, razon_social, telefono, whatsapp, usuario_id),
@@ -366,7 +372,11 @@ export default function FichaSiniestroPage() {
         { mostrar_toast_en_error: false },
       ),
     ])
-    if (sin) { setSiniestro(sin as unknown as Siniestro); setNuevoEstado(sin.estado) }
+    if (sin) {
+      setSiniestro(sin as unknown as Siniestro)
+      setNuevoEstado(sin.estado)
+      setNotasInput((sin as any).notas ?? '')
+    }
     if (rBit.ok && rBit.data) setBitacora(rBit.data.eventos ?? [])
     setCargando(false)
   }, [supabase, id])
@@ -517,6 +527,26 @@ export default function FichaSiniestroPage() {
   const diasParaPurga = enPapelera
     ? Math.max(0, 30 - Math.floor((Date.now() - new Date(siniestro.deleted_at as string).getTime()) / 86400000))
     : null
+
+  async function guardarNotas() {
+    if (!siniestro) return
+    const valor = notasInput.trim()
+    setGuardandoNotas(true); setError('')
+    const r = await apiCall(
+      `/api/siniestros/${id}`,
+      { method: 'PATCH', body: { notas: valor || null } },
+      { mostrar_toast_en_error: false },
+    )
+    setGuardandoNotas(false)
+    if (!r.ok) {
+      setError(r.error?.mensaje ?? 'No se pudieron guardar las observaciones')
+      return
+    }
+    setSiniestro(s => s ? { ...s, notas: valor || null } : s)
+    toast.exito(valor ? 'Observaciones guardadas' : 'Observaciones borradas')
+    setHistorialKey(k => k + 1)
+    await recargarBitacora()
+  }
 
   async function guardarNumeroSiniestro() {
     if (!siniestro) return
@@ -1023,6 +1053,49 @@ export default function FichaSiniestroPage() {
             </div>
           </div>
 
+          {/* Observaciones internas — análogo a polizas.notas. Solo el PAS las ve,
+              nunca visibles al asegurado. Editable inline con auto-guardado al
+              hacer click en Guardar (solo se muestra si cambió respecto al valor
+              en DB). */}
+          <div className="bg-white border border-slate-200 rounded overflow-hidden">
+            <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-baseline justify-between">
+              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
+                Observaciones internas
+              </h3>
+              <span className="inline-flex items-center gap-1 text-2xs text-slate-500">
+                🔒 Solo vos — el cliente NO las ve
+              </span>
+            </div>
+            <div className="p-3">
+              <textarea
+                className="w-full form-input min-h-[80px] py-2 text-xs resize-none"
+                value={notasInput}
+                onChange={e => setNotasInput(e.target.value)}
+                placeholder="Anotá info interna del caso — gestiones con la compañía, contactos, próximos pasos, cualquier cosa que no vaya en la bitácora pública..."
+                disabled={guardandoNotas}
+              />
+              {notasInput.trim() !== (siniestro.notas ?? '').trim() && (
+                <div className="flex items-center gap-1.5 mt-2">
+                  <button
+                    onClick={guardarNotas}
+                    disabled={guardandoNotas}
+                    className="btn-primary text-xs"
+                  >
+                    {guardandoNotas ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                    Guardar
+                  </button>
+                  <button
+                    onClick={() => setNotasInput(siniestro.notas ?? '')}
+                    disabled={guardandoNotas}
+                    className="btn-secondary text-xs"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Archivos del siniestro — unificado (fotos + documentación en un solo lugar,
               desde v1.0.124). El asegurado sube todo en una sola categoría. */}
           <GestorArchivos
@@ -1060,6 +1133,7 @@ export default function FichaSiniestroPage() {
             descripcion, detalle_siniestro,
             lugar_siniestro, localidad_siniestro,
             tercero_nombre, tercero_dni, tercero_telefono, tercero_patente,
+            notas,
             deleted_at,
             origen_creacion, revisado_por_pas, fecha_revision,
             asegurado:personas!persona_id (id, apellido, nombre, razon_social, telefono, whatsapp, usuario_id),
