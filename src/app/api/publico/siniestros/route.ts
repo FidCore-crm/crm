@@ -529,10 +529,12 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Crear carpetas ───────────────────────────────────
+    // Todo va en 'documentacion' (fotos + docs). La categoría 'fotos' se
+    // descontinuó en v1.0.124 — antes había 2 secciones pero fotos siempre
+    // quedaba vacía. Ver [[patron-unificacion-fotos-documentacion]].
     const carpetaSiniestro = path.join(STORAGE_ROOT, 'siniestros', numeroCaso)
     try {
       await mkdir(path.join(carpetaSiniestro, 'documentacion'), { recursive: true })
-      await mkdir(path.join(carpetaSiniestro, 'fotos'), { recursive: true })
     } catch (err: any) {
       await supabase.from('siniestros').delete().eq('id', siniestro.id)
       logger.error({ modulo: 'formulario-publico', mensaje: 'Error creando carpetas', contexto: { numero_caso: numeroCaso, error: err.message } })

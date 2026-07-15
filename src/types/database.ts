@@ -872,7 +872,9 @@ export interface SiniestroBitacora {
 export interface SiniestroArchivo {
   id: string
   siniestro_id: string
-  categoria: 'fotos' | 'documentacion'
+  /** Categoría del archivo. 'fotos' está deprecado desde v1.0.124 — mantenido en el union
+   *  solo por retrocompat con datos legacy. Todo lo nuevo se guarda como 'documentacion'. */
+  categoria: 'documentacion' | 'fotos'
   nombre: string
   ruta: string
   mime_type: string | null

@@ -1023,20 +1023,13 @@ export default function FichaSiniestroPage() {
             </div>
           </div>
 
-          {/* Fotos del siniestro */}
-          <GestorArchivos
-            siniestroId={siniestro.id}
-            numeroCaso={siniestro.numero_caso}
-            categoria="fotos"
-            titulo="Fotos del siniestro"
-          />
-
-          {/* Documentación */}
+          {/* Archivos del siniestro — unificado (fotos + documentación en un solo lugar,
+              desde v1.0.124). El asegurado sube todo en una sola categoría. */}
           <GestorArchivos
             siniestroId={siniestro.id}
             numeroCaso={siniestro.numero_caso}
             categoria="documentacion"
-            titulo="Documentación"
+            titulo="Archivos del siniestro"
           />
 
           {error && (

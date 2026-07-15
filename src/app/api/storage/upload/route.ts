@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
     const archivo = formData.get('archivo') as File | null
-    const categoria = formData.get('categoria') as string
+    let categoria = formData.get('categoria') as string
 
     // Determinar si es póliza, siniestro o perfil
     const polizaId = formData.get('poliza_id') as string | null
@@ -98,8 +98,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Falta endoso_id para categoría endosos' }, { status: 400 })
     }
 
-    if (esSiniestro && !['fotos', 'documentacion'].includes(categoria)) {
+    if (esSiniestro && !['documentacion', 'fotos'].includes(categoria)) {
+      // 'fotos' se mantiene aceptable por retrocompat con clientes viejos
+      // que puedan seguir enviándolo, pero se normaliza a 'documentacion'
+      // silenciosamente (v1.0.124 unificó las dos categorías).
       return NextResponse.json({ ok: false, error: 'Categoría inválida para siniestro' }, { status: 400 })
+    }
+    // Normalización: cualquier upload que llegue con categoria='fotos' se
+    // guarda como 'documentacion' para consolidar todo en un solo lugar.
+    if (esSiniestro && categoria === 'fotos') {
+      categoria = 'documentacion'
     }
 
     if (archivo.size > MAX_SIZE) {

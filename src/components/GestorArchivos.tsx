@@ -30,7 +30,7 @@ interface Props {
   siniestroId?: string
   numeroCaso?: string
   // Común
-  categoria: 'inspeccion' | 'documentacion' | 'documentacion_renovada' | 'fotos'
+  categoria: 'inspeccion' | 'documentacion' | 'documentacion_renovada'
   titulo: string
 }
 
@@ -160,7 +160,7 @@ export default function GestorArchivos({ polizaId, numeroPoliza, polizaRaizId, p
     if (e.dataTransfer.files.length > 0) subirArchivos(e.dataTransfer.files)
   }
 
-  const esGaleria = categoria === 'inspeccion' || categoria === 'fotos'
+  const esGaleria = categoria === 'inspeccion'
   const accept = esGaleria ? ACCEPT_IMAGENES : ACCEPT_DOCUMENTACION
 
   return (
