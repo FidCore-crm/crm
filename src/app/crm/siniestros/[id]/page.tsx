@@ -665,13 +665,29 @@ export default function FichaSiniestroPage() {
                 {estadoActual.label}
               </span>
             </div>
-            <p className="text-xs text-slate-500">
-              {tipoLabel(siniestro.tipo_siniestro)} · Denunciado el {formatFechaLocalLarga(siniestro.fecha_denuncia)}
-              {siniestro.numero_siniestro
-                ? <span className="ml-2">· Siniestro N° <span className="font-mono">{siniestro.numero_siniestro}</span></span>
-                : <span className="ml-2 italic text-slate-500">· Siniestro N° pendiente de carga</span>
-              }
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+              <span className="font-semibold text-slate-800">{tipoLabel(siniestro.tipo_siniestro)}</span>
+              <span className="text-slate-400">•</span>
+              <span className="text-slate-700">
+                Denunciado el <span className="font-medium">{formatFechaLocalLarga(siniestro.fecha_denuncia)}</span>
+              </span>
+              {siniestro.numero_siniestro ? (
+                <>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-slate-700">
+                    N° <span className="font-mono font-semibold">{siniestro.numero_siniestro}</span>
+                    {siniestro.poliza?.compania?.nombre && (
+                      <span className="text-slate-500"> ({siniestro.poliza.compania.nombre})</span>
+                    )}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-slate-400">•</span>
+                  <span className="italic text-amber-700">N° siniestro pendiente de carga</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -824,10 +840,15 @@ export default function FichaSiniestroPage() {
               <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Póliza vinculada</h3>
             </div>
             <div className="p-3 flex flex-col gap-2">
-              <div className="flex items-center gap-1.5">
-                <FileText className="h-3 w-3 text-slate-400" />
-                <span className="font-mono text-xs font-semibold text-slate-700">{siniestro.poliza?.numero_poliza}</span>
-              </div>
+              <button
+                type="button"
+                onClick={() => router.push(`/crm/polizas/${siniestro.poliza?.id}`)}
+                className="flex items-center gap-1.5 text-blue-600 hover:underline text-left"
+                title="Ir a la ficha de la póliza"
+              >
+                <FileText className="h-3 w-3" />
+                <span className="font-mono text-xs font-semibold">{siniestro.poliza?.numero_poliza}</span>
+              </button>
               <div className="flex items-center gap-1.5 text-xs text-slate-600">
                 {iconoRamo(tipoRiesgo)}
                 {(siniestro.poliza?.ramo as any)?.nombre ?? '—'}
@@ -1063,7 +1084,7 @@ export default function FichaSiniestroPage() {
                 Observaciones internas
               </h3>
               <span className="inline-flex items-center gap-1 text-2xs text-slate-500">
-                🔒 Solo vos — el cliente NO las ve
+                No se comparte con el asegurado
               </span>
             </div>
             <div className="p-3">
@@ -1096,13 +1117,13 @@ export default function FichaSiniestroPage() {
             </div>
           </div>
 
-          {/* Archivos del siniestro — unificado (fotos + documentación en un solo lugar,
+          {/* Documentación del siniestro — unificado (fotos + documentación en un solo lugar,
               desde v1.0.124). El asegurado sube todo en una sola categoría. */}
           <GestorArchivos
             siniestroId={siniestro.id}
             numeroCaso={siniestro.numero_caso}
             categoria="documentacion"
-            titulo="Archivos del siniestro"
+            titulo="Documentación del siniestro"
           />
 
           {error && (

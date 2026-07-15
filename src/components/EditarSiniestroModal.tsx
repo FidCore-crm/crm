@@ -135,11 +135,26 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
       monto_liquidado: montoLiquidado ? parseFloat(montoLiquidado) : null,
       franquicia_aplicada: franquiciaAplicada ? parseFloat(franquiciaAplicada) : null,
       monto_cobrado: montoCobrado ? parseFloat(montoCobrado) : null,
-      tercero_nombre: terceroNombre.trim() || null,
-      tercero_dni: terceroDni.trim() || null,
-      tercero_telefono: terceroTelefono.trim() || null,
-      tercero_patente: terceroPatente.trim().toUpperCase() || null,
+      // Las columnas planas tercero_* se sincronizan desde el objeto tercero
+      // del JSONB (que edita CamposDinamicos). Ver nota más abajo — los inputs
+      // planos fueron eliminados en v1.0.126.
     }
+
+    // Extraer datos del tercero del JSONB para sincronizar con las columnas planas.
+    const terceroJSON = (valoresDinamicos as any)?.tercero as Record<string, any> | undefined
+    const strOrNull = (v: any) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+    body.tercero_nombre = terceroJSON?.nombre != null
+      ? strOrNull(String(terceroJSON.nombre))
+      : (terceroNombre.trim() || null)
+    body.tercero_dni = terceroJSON?.dni != null
+      ? strOrNull(String(terceroJSON.dni))
+      : (terceroDni.trim() || null)
+    body.tercero_telefono = terceroJSON?.telefono != null
+      ? strOrNull(String(terceroJSON.telefono))
+      : (terceroTelefono.trim() || null)
+    body.tercero_patente = terceroJSON?.patente != null
+      ? (strOrNull(String(terceroJSON.patente))?.toUpperCase() ?? null)
+      : (terceroPatente.trim().toUpperCase() || null)
 
     // Construir el detalle_siniestro final: preservamos las keys que el modal
     // no toca (tipo_riesgo, tipo_otro_descripcion, denuncia/acta policial)
@@ -318,34 +333,13 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
             </section>
           )}
 
-          {/* Tercero (columnas planas — se mantienen para búsqueda + reporting) */}
-          <section>
-            <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Datos del tercero (columnas indexadas)</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Nombre y apellido</label>
-                <input type="text" className="form-input" value={terceroNombre}
-                  onChange={e => setTerceroNombre(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">DNI</label>
-                <input type="text" className={`form-input ${errClass('tercero_dni')}`} value={terceroDni}
-                  onChange={e => setTerceroDni(e.target.value)} />
-                {errorCampos.tercero_dni && <span className="text-xs text-red-500">{errorCampos.tercero_dni}</span>}
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Teléfono</label>
-                <input type="tel" className="form-input" value={terceroTelefono}
-                  onChange={e => setTerceroTelefono(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Patente</label>
-                <input type="text" className={`form-input uppercase ${errClass('tercero_patente')}`} value={terceroPatente}
-                  onChange={e => setTerceroPatente(e.target.value.toUpperCase())} />
-                {errorCampos.tercero_patente && <span className="text-xs text-red-500">{errorCampos.tercero_patente}</span>}
-              </div>
-            </div>
-          </section>
+          {/* NOTA: los 4 inputs planos de tercero (nombre/dni/telefono/patente) fueron
+              eliminados en v1.0.126 — el bloque completo "Datos del tercero" del
+              CamposDinamicos ya editaba los mismos campos (+ categoría, marca, modelo,
+              año, color, compañía, N° póliza, daños). Aparecían duplicados y confundían
+              al PAS. Ahora se editan solo desde el bloque de arriba; al guardar se
+              sincronizan a las columnas planas (tercero_nombre, tercero_dni,
+              tercero_telefono, tercero_patente) para preservar búsqueda + reporting. */}
         </div>
 
         <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-slate-100 bg-slate-50 rounded-b-2xl">

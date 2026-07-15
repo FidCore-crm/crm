@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Shield, AlertTriangle, Phone, FileWarning, User, Lock, Loader2, UserCircle } from 'lucide-react'
+import { Shield, AlertTriangle, Phone, FileWarning, User, Lock, Loader2, UserCircle, ChevronDown, MessageCircle } from 'lucide-react'
 import PolizaCard, { PolizaData } from './components/PolizaCard'
 import SiniestroCard, { SiniestroData } from './components/SiniestroCard'
 import AsistenciaButton, { AsistenciaData } from './components/AsistenciaButton'
@@ -31,7 +31,7 @@ interface PortalData {
   }
   polizas: PolizaData[]
   siniestros: SiniestroData[]
-  telefonos_asistencia: AsistenciaData[]
+  telefonos_asistencia: (AsistenciaData & { telefono_2?: string | null; nombre_boton_2?: string | null })[]
   organizacion: OrganizacionData & { matriculado: boolean }
   portal: {
     texto_bienvenida: string
@@ -51,6 +51,8 @@ export default function PortalAseguradoPage() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<{ titulo: string; mensaje: string; soft: boolean } | null>(null)
   const [data, setData] = useState<PortalData | null>(null)
+  const [tabActiva, setTabActiva] = useState<'polizas' | 'siniestros' | 'cuenta'>('polizas')
+  const [asistenciaAbierta, setAsistenciaAbierta] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -195,145 +197,167 @@ export default function PortalAseguradoPage() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 -mt-12 flex flex-col gap-6 relative">
-        {/* Banner instalar app — primero después del hero para que el cliente
-            lo vea apenas entra (solo si no está instalada y el navegador lo
-            soporta). */}
+      <main className="max-w-3xl mx-auto px-4 -mt-12 flex flex-col gap-5 relative pb-6">
+        {/* Banner instalar app */}
         <InstalarAppBanner colorMarca={data.organizacion.color_marca} />
 
-        {/* Resumen rápido */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-              <Shield className="h-5 w-5 text-blue-700" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-2xs text-slate-500 uppercase tracking-wide">Pólizas</p>
-              <p className="text-xl font-bold text-slate-800">{data.polizas.length}</p>
-            </div>
-          </div>
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-              <AlertTriangle className="h-5 w-5 text-amber-700" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-2xs text-slate-500 uppercase tracking-wide">Siniestros</p>
-              <p className="text-xl font-bold text-slate-800">{data.siniestros.length}</p>
-            </div>
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* BARRA DE ACCIONES RÁPIDAS                              */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-3">
+          <div className={`grid gap-2 ${data.telefonos_asistencia.length > 0 && whatsappUrl ? 'grid-cols-3' : data.telefonos_asistencia.length > 0 || whatsappUrl ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {/* Denunciar */}
+            <a
+              href={`/denuncia?token_cliente=${encodeURIComponent(token)}`}
+              className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 min-h-[76px] transition-colors"
+            >
+              <FileWarning className="h-6 w-6" />
+              <span className="text-xs font-semibold text-center leading-tight">Denunciar<br/>siniestro</span>
+            </a>
+
+            {/* Asistencia dropdown */}
+            {data.telefonos_asistencia.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setAsistenciaAbierta(v => !v)}
+                  className="w-full flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 min-h-[76px] transition-colors"
+                >
+                  <Phone className="h-6 w-6" />
+                  <span className="text-xs font-semibold text-center leading-tight flex items-center gap-0.5">
+                    Asistencia<br/>24hs <ChevronDown className={`h-3 w-3 transition-transform ${asistenciaAbierta ? 'rotate-180' : ''}`} />
+                  </span>
+                </button>
+                {asistenciaAbierta && (
+                  <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-20 min-w-[220px]">
+                    {data.telefonos_asistencia.map(a => (
+                      <div key={a.compania_id} className="flex flex-col gap-1 mb-2 last:mb-0">
+                        <div className="px-3 py-1 text-2xs uppercase tracking-wide text-slate-500 font-semibold">
+                          {a.compania}
+                        </div>
+                        <a
+                          href={`tel:${a.telefono.replace(/[^\d+]/g, '')}`}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 text-sm text-slate-800"
+                          onClick={() => setAsistenciaAbierta(false)}
+                        >
+                          <Phone className="h-3.5 w-3.5 text-blue-600" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium">{a.nombre_boton || 'Asistencia 24hs'}</p>
+                            <p className="text-xs text-slate-500 font-mono">{a.telefono}</p>
+                          </div>
+                        </a>
+                        {a.telefono_2 && (
+                          <a
+                            href={`tel:${a.telefono_2.replace(/[^\d+]/g, '')}`}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 text-sm text-slate-800"
+                            onClick={() => setAsistenciaAbierta(false)}
+                          >
+                            <Phone className="h-3.5 w-3.5 text-blue-600" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium">{a.nombre_boton_2 || 'Otro'}</p>
+                              <p className="text-xs text-slate-500 font-mono">{a.telefono_2}</p>
+                            </div>
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* WhatsApp productor */}
+            {whatsappUrl && (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 min-h-[76px] transition-colors"
+              >
+                <MessageCircle className="h-6 w-6" />
+                <span className="text-xs font-semibold text-center leading-tight">WhatsApp<br/>productor</span>
+              </a>
+            )}
           </div>
         </div>
 
-        {/* MIS PÓLIZAS */}
-        <section>
-          <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 px-1">
-            <Shield className="h-3.5 w-3.5" />
-            Mis pólizas
-            {data.polizas.length > 0 && (
-              <span className="ml-auto text-2xs font-medium normal-case tracking-normal text-slate-400">
-                {data.polizas.length} {data.polizas.length === 1 ? 'póliza' : 'pólizas'}
-              </span>
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* TABS NAV                                                */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        <div className="flex border-b border-slate-200 bg-white rounded-t-2xl px-2 pt-1 -mb-3 shadow-sm">
+          <TabButton activo={tabActiva === 'polizas'} onClick={() => setTabActiva('polizas')} icono={<Shield className="w-4 h-4" />} label="Mis pólizas" badge={data.polizas.length} />
+          <TabButton activo={tabActiva === 'siniestros'} onClick={() => setTabActiva('siniestros')} icono={<AlertTriangle className="w-4 h-4" />} label="Siniestros" badge={data.siniestros.length} />
+          <TabButton activo={tabActiva === 'cuenta'} onClick={() => setTabActiva('cuenta')} icono={<UserCircle className="w-4 h-4" />} label="Cuenta" />
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* CONTENIDO POR TAB                                       */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {tabActiva === 'polizas' && (
+          <section className="flex flex-col gap-3">
+            {data.polizas.length === 0 ? (
+              <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
+                <Shield className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">No tenés pólizas vigentes actualmente.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {data.polizas.map(p => (
+                  <PolizaCard key={p.id} poliza={p} token={token} />
+                ))}
+              </div>
             )}
-          </h2>
-          {data.polizas.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
-              <Shield className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm text-slate-500">No tenés pólizas vigentes actualmente.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {data.polizas.map(p => (
-                <PolizaCard key={p.id} poliza={p} token={token} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* MIS SINIESTROS */}
-        <section>
-          <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 px-1">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Mis siniestros
-            {data.siniestros.length > 0 && (
-              <span className="ml-auto text-2xs font-medium normal-case tracking-normal text-slate-400">
-                {data.siniestros.length} {data.siniestros.length === 1 ? 'siniestro' : 'siniestros'}
-              </span>
-            )}
-          </h2>
-          {data.siniestros.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
-              <AlertTriangle className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm text-slate-500">No tenés siniestros registrados.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {data.siniestros.map(s => (
-                <SiniestroCard key={s.id} siniestro={s} token={token} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* DENUNCIAR SINIESTRO */}
-        <section>
-          <div className="bg-gradient-to-br from-red-50 to-orange-50 border border-red-200 rounded-2xl p-5 flex flex-col items-center text-center gap-3">
-            <div className="h-14 w-14 rounded-full bg-red-100 flex items-center justify-center">
-              <FileWarning className="h-7 w-7 text-red-600" />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-slate-800">¿Tuviste un siniestro?</h3>
-              <p className="text-xs text-slate-600 mt-1">Denuncialo rápido desde acá</p>
-            </div>
-            <a
-              href={`/denuncia?token_cliente=${encodeURIComponent(token)}`}
-              className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold px-4 py-3 rounded-xl text-center min-h-[48px] flex items-center justify-center transition-colors shadow-sm"
-            >
-              Denunciar ahora
-            </a>
-          </div>
-        </section>
-
-        {/* TELÉFONOS DE UTILIDAD */}
-        {data.telefonos_asistencia.length > 0 && (
-          <section>
-            <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 px-1">
-              <Phone className="h-3.5 w-3.5" />
-              Teléfonos de utilidad
-            </h2>
-            <div className="flex flex-col gap-2.5">
-              {data.telefonos_asistencia.map(a => (
-                <AsistenciaButton key={a.compania_id} asistencia={a} />
-              ))}
-            </div>
           </section>
         )}
 
-        {/* MIS DATOS */}
-        <section>
-          <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 px-1">
-            <UserCircle className="h-3.5 w-3.5" />
-            Mis datos
-          </h2>
-          <MisDatosSection
-            datos={{
-              email: data.cliente.email,
-              email_secundario: data.cliente.email_secundario,
-              telefono: data.cliente.telefono,
-              telefono_secundario: data.cliente.telefono_secundario,
-              whatsapp: data.cliente.whatsapp,
-              direccion: data.cliente.direccion,
-            }}
-            token={token}
-          />
-        </section>
+        {tabActiva === 'siniestros' && (
+          <section className="flex flex-col gap-3">
+            {data.siniestros.length === 0 ? (
+              <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
+                <AlertTriangle className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">No tenés siniestros registrados.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {data.siniestros.map(s => (
+                  <SiniestroCard key={s.id} siniestro={s} token={token} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
-        {/* MI PRODUCTOR */}
-        <section>
-          <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 px-1">
-            <User className="h-3.5 w-3.5" />
-            Mi productor
-          </h2>
-          <ProductorCard organizacion={data.organizacion} whatsappUrl={whatsappUrl} />
-        </section>
+        {tabActiva === 'cuenta' && (
+          <div className="flex flex-col gap-4">
+            {/* Mis datos */}
+            <section>
+              <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 px-1">
+                <UserCircle className="h-3.5 w-3.5" />
+                Mis datos
+              </h2>
+              <MisDatosSection
+                datos={{
+                  email: data.cliente.email,
+                  email_secundario: data.cliente.email_secundario,
+                  telefono: data.cliente.telefono,
+                  telefono_secundario: data.cliente.telefono_secundario,
+                  whatsapp: data.cliente.whatsapp,
+                  direccion: data.cliente.direccion,
+                }}
+                token={token}
+              />
+            </section>
+
+            {/* Mi productor */}
+            <section>
+              <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 px-1">
+                <User className="h-3.5 w-3.5" />
+                Mi productor
+              </h2>
+              <ProductorCard organizacion={data.organizacion} whatsappUrl={whatsappUrl} />
+            </section>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
@@ -342,5 +366,44 @@ export default function PortalAseguradoPage() {
       {/* WhatsApp flotante */}
       <WhatsAppFloatingButton url={whatsappUrl} />
     </div>
+  )
+}
+
+/** Botón de tab del portal — usado en la nav horizontal del rediseño v1.0.126. */
+function TabButton({
+  activo,
+  onClick,
+  icono,
+  label,
+  badge,
+}: {
+  activo: boolean
+  onClick: () => void
+  icono: React.ReactNode
+  label: string
+  badge?: number
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-sm border-b-2 transition-colors ${
+        activo
+          ? 'text-slate-900 border-slate-900 font-semibold'
+          : 'text-slate-500 border-transparent hover:text-slate-700'
+      }`}
+    >
+      {icono}
+      {label}
+      {typeof badge === 'number' && (
+        <span
+          className={`text-2xs font-bold px-1.5 py-0.5 rounded-lg min-w-[20px] text-center ${
+            activo ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'
+          }`}
+        >
+          {badge}
+        </span>
+      )}
+    </button>
   )
 }

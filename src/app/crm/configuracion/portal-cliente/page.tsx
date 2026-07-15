@@ -17,6 +17,8 @@ type Compania = {
   id: string | null
   telefono: string | null
   nombre_boton: string | null
+  telefono_2: string | null
+  nombre_boton_2: string | null
   visible_en_portal: boolean | null
 }
 
@@ -148,6 +150,8 @@ export default function PortalClientePage() {
       compania_id,
       telefono: campos.telefono ?? actual.telefono ?? '',
       nombre_boton: campos.nombre_boton ?? actual.nombre_boton ?? 'Asistencia 24hs',
+      telefono_2: campos.telefono_2 ?? actual.telefono_2 ?? null,
+      nombre_boton_2: campos.nombre_boton_2 ?? actual.nombre_boton_2 ?? null,
       visible_en_portal:
         campos.visible_en_portal !== undefined
           ? campos.visible_en_portal
@@ -174,7 +178,7 @@ export default function PortalClientePage() {
       setCompanias(prev =>
         prev.map(c =>
           c.compania_id === compania_id
-            ? { ...c, tiene_config: false, id: null, telefono: null, nombre_boton: null, visible_en_portal: null }
+            ? { ...c, tiene_config: false, id: null, telefono: null, nombre_boton: null, telefono_2: null, nombre_boton_2: null, visible_en_portal: null }
             : c
         )
       )
@@ -380,58 +384,80 @@ export default function PortalClientePage() {
         ) : (
           <div className="flex flex-col divide-y divide-slate-100">
             {companias.map(c => (
-              <div key={c.compania_id} className="grid grid-cols-12 gap-2 items-center py-3">
-                <div className="col-span-3 text-xs font-medium text-slate-700 truncate">
-                  {c.compania_nombre}
+              <div key={c.compania_id} className="py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-medium text-slate-700 truncate">
+                    {c.compania_nombre}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 text-2xs text-slate-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={c.visible_en_portal !== false}
+                        disabled={!c.telefono}
+                        onChange={e => {
+                          actualizarCompania(c.compania_id, { visible_en_portal: e.target.checked })
+                          if (c.telefono) guardarTelefono(c.compania_id, { visible_en_portal: e.target.checked })
+                        }}
+                      />
+                      Visible en portal
+                    </label>
+                    {c.tiene_config && (
+                      <button
+                        onClick={() => eliminarTelefono(c.compania_id)}
+                        className="p-1 text-slate-400 hover:text-red-500"
+                        title="Eliminar todos los teléfonos"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="col-span-3">
-                  <input
-                    type="text"
-                    placeholder="Teléfono"
-                    className="form-input w-full text-xs"
-                    value={c.telefono || ''}
-                    onChange={e => actualizarCompania(c.compania_id, { telefono: e.target.value })}
-                    onBlur={() => {
-                      if (c.telefono) guardarTelefono(c.compania_id, {})
-                    }}
-                  />
-                </div>
-                <div className="col-span-3">
-                  <input
-                    type="text"
-                    placeholder="Nombre del botón"
-                    className="form-input w-full text-xs"
-                    value={c.nombre_boton || 'Asistencia 24hs'}
-                    onChange={e => actualizarCompania(c.compania_id, { nombre_boton: e.target.value })}
-                    onBlur={() => {
-                      if (c.telefono) guardarTelefono(c.compania_id, {})
-                    }}
-                  />
-                </div>
-                <div className="col-span-2 flex items-center gap-2">
-                  <label className="flex items-center gap-1.5 text-2xs text-slate-600 cursor-pointer">
+                {/* Teléfono 1 */}
+                <div className="grid grid-cols-12 gap-2 items-center mb-1.5">
+                  <div className="col-span-6">
                     <input
-                      type="checkbox"
-                      checked={c.visible_en_portal !== false}
-                      disabled={!c.telefono}
-                      onChange={e => {
-                        actualizarCompania(c.compania_id, { visible_en_portal: e.target.checked })
-                        if (c.telefono) guardarTelefono(c.compania_id, { visible_en_portal: e.target.checked })
-                      }}
+                      type="text"
+                      placeholder="Teléfono 1"
+                      className="form-input w-full text-xs"
+                      value={c.telefono || ''}
+                      onChange={e => actualizarCompania(c.compania_id, { telefono: e.target.value })}
+                      onBlur={() => { if (c.telefono) guardarTelefono(c.compania_id, {}) }}
                     />
-                    Visible
-                  </label>
+                  </div>
+                  <div className="col-span-6">
+                    <input
+                      type="text"
+                      placeholder="Nombre del botón (ej: Asistencia 24hs)"
+                      className="form-input w-full text-xs"
+                      value={c.nombre_boton || ''}
+                      onChange={e => actualizarCompania(c.compania_id, { nombre_boton: e.target.value })}
+                      onBlur={() => { if (c.telefono) guardarTelefono(c.compania_id, {}) }}
+                    />
+                  </div>
                 </div>
-                <div className="col-span-1 flex justify-end">
-                  {c.tiene_config && (
-                    <button
-                      onClick={() => eliminarTelefono(c.compania_id)}
-                      className="p-1 text-slate-400 hover:text-red-500"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+                {/* Teléfono 2 (opcional) */}
+                <div className="grid grid-cols-12 gap-2 items-center">
+                  <div className="col-span-6">
+                    <input
+                      type="text"
+                      placeholder="Teléfono 2 (opcional)"
+                      className="form-input w-full text-xs"
+                      value={c.telefono_2 || ''}
+                      onChange={e => actualizarCompania(c.compania_id, { telefono_2: e.target.value })}
+                      onBlur={() => { if (c.telefono) guardarTelefono(c.compania_id, {}) }}
+                    />
+                  </div>
+                  <div className="col-span-6">
+                    <input
+                      type="text"
+                      placeholder="Nombre del botón 2 (ej: Grúa / Auxilio)"
+                      className="form-input w-full text-xs"
+                      value={c.nombre_boton_2 || ''}
+                      onChange={e => actualizarCompania(c.compania_id, { nombre_boton_2: e.target.value })}
+                      onBlur={() => { if (c.telefono) guardarTelefono(c.compania_id, {}) }}
+                    />
+                  </div>
                 </div>
               </div>
             ))}

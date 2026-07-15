@@ -197,6 +197,23 @@ export default function GestorArchivos({ polizaId, numeroPoliza, polizaRaizId, p
           </span>
         </div>
 
+        {/* Botón descargar todo — visible solo cuando hay archivos.
+            Genera un ZIP con todos los archivos de la categoría actual.
+            No usa Blob del cliente — el servidor arma y sirve el ZIP. */}
+        {archivos.length > 0 && (siniestroId || polizaId) && (
+          <div className="mx-3 mb-2 flex justify-end">
+            <a
+              href={`/api/storage/descargar-todo?tipo=${siniestroId ? 'siniestro' : 'poliza'}&id=${siniestroId ?? polizaId}&categoria=${categoria}`}
+              download
+              className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 hover:underline"
+              title={`Descargar todos los archivos como ZIP (${archivos.length})`}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Descargar todo ({archivos.length})
+            </a>
+          </div>
+        )}
+
         {/* Progress */}
         {subiendo && (
           <div className="mx-3 mb-2">

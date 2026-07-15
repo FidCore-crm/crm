@@ -45,6 +45,8 @@ export async function GET(request: Request) {
       id: tel?.id ?? null,
       telefono: tel?.telefono ?? null,
       nombre_boton: tel?.nombre_boton ?? null,
+      telefono_2: tel?.telefono_2 ?? null,
+      nombre_boton_2: tel?.nombre_boton_2 ?? null,
       visible_en_portal: tel?.visible_en_portal ?? null,
     }
   })
@@ -61,6 +63,8 @@ export async function PUT(request: Request) {
     const compania_id: string | undefined = body?.compania_id
     const telefono: string | undefined = body?.telefono
     const nombre_boton: string = body?.nombre_boton || 'Asistencia 24hs'
+    const telefono_2: string | undefined = body?.telefono_2
+    const nombre_boton_2: string | undefined = body?.nombre_boton_2
     const visible_en_portal: boolean = body?.visible_en_portal !== false
 
     if (!compania_id) {
@@ -79,6 +83,8 @@ export async function PUT(request: Request) {
           compania_id,
           telefono: String(telefono).trim(),
           nombre_boton: String(nombre_boton).trim() || 'Asistencia 24hs',
+          telefono_2: telefono_2 && String(telefono_2).trim() ? String(telefono_2).trim() : null,
+          nombre_boton_2: nombre_boton_2 && String(nombre_boton_2).trim() ? String(nombre_boton_2).trim() : null,
           visible_en_portal,
         } as any,
         { onConflict: 'compania_id' }

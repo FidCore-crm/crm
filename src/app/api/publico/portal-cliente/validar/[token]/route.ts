@@ -252,25 +252,58 @@ export async function GET(
       })
     }
 
+    // Traer los primeros riesgos de las pólizas asociadas a siniestros para
+    // que cada card de siniestro pueda mostrar el bien asegurado (auto, casa,
+    // etc.) como referencia. Ver task 8d del rediseño del portal.
+    const polizasIdsSiniestros = Array.from(new Set(siniestrosArr.map(s => s.poliza_id).filter(Boolean)))
+    const { data: riesgosSiniestros } = polizasIdsSiniestros.length
+      ? await supabase
+          .from('riesgos')
+          .select('poliza_id, tipo_riesgo, detalle_tecnico, descripcion_corta')
+          .in('poliza_id', polizasIdsSiniestros)
+          .order('numero_item', { ascending: true })
+      : { data: [] as any[] }
+    // 1 riesgo por póliza — el primero (numero_item más chico). Alcanza para
+    // mostrar la referencia visual en la card.
+    const mapPrimerRiesgo = new Map<string, any>()
+    for (const r of ((riesgosSiniestros ?? []) as any[])) {
+      if (!mapPrimerRiesgo.has(r.poliza_id)) mapPrimerRiesgo.set(r.poliza_id, r)
+    }
+    // Nombres de compañía por póliza (para el sub-header en la card).
+    const mapCompaniaPorPoliza = new Map<string, string>()
+    for (const p of ((polizas ?? []) as any[])) {
+      if (p.compania_id) mapCompaniaPorPoliza.set(p.id, mapCompania.get(p.compania_id) || '')
+    }
+
     const siniestrosResult = await Promise.all(
-      siniestrosArr.map(async s => ({
-        id: s.id,
-        numero_caso: s.numero_caso,
-        numero_siniestro: s.numero_siniestro,
-        estado: s.estado,
-        fecha_denuncia: s.fecha_denuncia,
-        tipo_siniestro: s.tipo_siniestro,
-        tipo_otro_descripcion: s.detalle_siniestro?.tipo_otro_descripcion ?? null,
-        timeline: mapBitacora.get(s.id) ?? [],
-        archivos: await listarDocumentacionSiniestro(s.numero_caso),
-      }))
+      siniestrosArr.map(async s => {
+        const riesgo = s.poliza_id ? mapPrimerRiesgo.get(s.poliza_id) : null
+        return {
+          id: s.id,
+          numero_caso: s.numero_caso,
+          numero_siniestro: s.numero_siniestro,
+          estado: s.estado,
+          fecha_denuncia: s.fecha_denuncia,
+          tipo_siniestro: s.tipo_siniestro,
+          tipo_otro_descripcion: s.detalle_siniestro?.tipo_otro_descripcion ?? null,
+          timeline: mapBitacora.get(s.id) ?? [],
+          archivos: await listarDocumentacionSiniestro(s.numero_caso),
+          // NUEVO — bien asegurado para mostrar en la card del portal
+          compania_nombre: s.poliza_id ? (mapCompaniaPorPoliza.get(s.poliza_id) || null) : null,
+          bien_asegurado: riesgo ? {
+            tipo_riesgo: riesgo.tipo_riesgo || null,
+            detalle_tecnico: riesgo.detalle_tecnico || {},
+            descripcion_corta: riesgo.descripcion_corta || null,
+          } : null,
+        }
+      })
     )
 
     // 7. Teléfonos de asistencia de compañías con pólizas del cliente
     const { data: telefonos } = companiaIds.length
       ? await supabase
           .from('telefonos_asistencia_companias')
-          .select('compania_id, telefono, nombre_boton, visible_en_portal')
+          .select('compania_id, telefono, nombre_boton, telefono_2, nombre_boton_2, visible_en_portal')
           .in('compania_id', companiaIds)
           .eq('visible_en_portal', true)
       : { data: [] as any[] }
@@ -280,6 +313,8 @@ export async function GET(
       compania: mapCompania.get(t.compania_id) || '',
       telefono: t.telefono,
       nombre_boton: t.nombre_boton,
+      telefono_2: t.telefono_2 || null,
+      nombre_boton_2: t.nombre_boton_2 || null,
     }))
 
     // 8. Datos del productor

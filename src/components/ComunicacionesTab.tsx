@@ -218,10 +218,10 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
           className={`flex items-center gap-3 ${colapsable ? 'cursor-pointer' : 'cursor-default'}`}
           disabled={!colapsable}
         >
-          <span className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
+          <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
             <Mail className="h-3.5 w-3.5" /> Historial de comunicaciones
           </span>
-          <span className="text-2xs text-slate-400">{total} {total === 1 ? 'email' : 'emails'}</span>
+          <span className="text-2xs text-slate-400 normal-case tracking-normal">{total} {total === 1 ? 'email' : 'emails'}</span>
         </button>
         {(!colapsable || abierto) && (<>
         {global && (
