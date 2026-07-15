@@ -105,7 +105,7 @@ export async function validarTokenAcceso(
 
   const { data: acceso } = await supabase
     .from('portal_cliente_accesos')
-    .select('id, persona_id, revocado, veces_accedido')
+    .select('id, persona_id, revocado, veces_accedido, ultimo_acceso')
     .eq('token_hash', token_hash)
     .maybeSingle()
 
@@ -130,14 +130,29 @@ export async function validarTokenAcceso(
     return { valido: false, motivo: 'Cliente inactivo' }
   }
 
-  // Registrar uso (best-effort, no bloqueante)
+  // Registrar uso (best-effort, no bloqueante).
+  // El contador `veces_accedido` representa VISITAS únicas, no requests HTTP.
+  // Cada carga del portal dispara varios requests (page, /validar, /manifest,
+  // /icono, /archivo/*, /pre-completar, /sugerir-correccion) — todos pasan por
+  // acá. Para no inflar el contador, solo lo incrementamos si el último acceso
+  // fue hace más de 30 min (nueva sesión). El campo `ultimo_acceso` sí se
+  // actualiza siempre — refleja "cuándo entró por última vez".
+  const VENTANA_SESION_MS = 30 * 60 * 1000
+  const ahora = Date.now()
+  const ultimoAccesoMs = a.ultimo_acceso ? new Date(a.ultimo_acceso).getTime() : 0
+  const esNuevaSesion = !ultimoAccesoMs || ahora - ultimoAccesoMs > VENTANA_SESION_MS
+
+  const patch: Record<string, any> = {
+    ultimo_acceso: new Date(ahora).toISOString(),
+    ultimo_ip: ip ?? null,
+  }
+  if (esNuevaSesion) {
+    patch.veces_accedido = (a.veces_accedido ?? 0) + 1
+  }
+
   supabase
     .from('portal_cliente_accesos')
-    .update({
-      veces_accedido: (a.veces_accedido ?? 0) + 1,
-      ultimo_acceso: new Date().toISOString(),
-      ultimo_ip: ip ?? null,
-    } as any)
+    .update(patch as any)
     .eq('id', a.id)
     .then(() => {})
 

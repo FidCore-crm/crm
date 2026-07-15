@@ -53,6 +53,26 @@ function formatoFechaRelativa(iso: string | null): string {
   return formatoFecha(iso)
 }
 
+function formatoFechaHora(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return d.toLocaleString('es-AR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+// Normaliza texto para búsqueda tolerante: lower + strip acentos + trim.
+// Espeja el patrón de src/lib/utils.ts::sanitizarBusquedaNormalizada pero
+// sin escapes de wildcards (acá es .includes() del cliente, no PostgREST).
+function normalizarTexto(valor: string): string {
+  return valor
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
 export default function PortalClientePage() {
   const router = useRouter()
   const { usuario, loading: authLoading, isAdmin } = useAuth()
@@ -237,8 +257,13 @@ export default function PortalClientePage() {
 
   const accesosFiltrados = accesos.filter(a => {
     if (filtroBusqueda) {
-      const q = filtroBusqueda.toLowerCase()
-      if (!a.persona_nombre.toLowerCase().includes(q) && !a.persona_dni.includes(q)) return false
+      const q = normalizarTexto(filtroBusqueda)
+      const qDni = filtroBusqueda.replace(/\D+/g, '')
+      const nombre = normalizarTexto(a.persona_nombre || '')
+      const dni = (a.persona_dni || '').replace(/\D+/g, '')
+      const matchNombre = q.length > 0 && nombre.includes(q)
+      const matchDni = qDni.length > 0 && dni.length > 0 && dni.includes(qDni)
+      if (!matchNombre && !matchDni) return false
     }
     if (filtroEstado === 'activos' && a.revocado) return false
     if (filtroEstado === 'revocados' && !a.revocado) return false
@@ -494,8 +519,8 @@ export default function PortalClientePage() {
             <option value="todos">Todos</option>
             <option value="activos">Activos</option>
             <option value="revocados">Revocados</option>
-            <option value="sin_uso">Sin uso (0 accesos)</option>
-            <option value="con_uso">Con uso</option>
+            <option value="sin_uso">Sin visitas</option>
+            <option value="con_uso">Con visitas</option>
           </select>
         </div>
 
@@ -510,8 +535,13 @@ export default function PortalClientePage() {
                 <tr className="border-b border-slate-200 text-slate-500">
                   <th className="text-left py-2 px-2 font-medium">Cliente</th>
                   <th className="text-left py-2 px-2 font-medium">Generado</th>
-                  <th className="text-left py-2 px-2 font-medium">Último acceso</th>
-                  <th className="text-center py-2 px-2 font-medium">Accesos</th>
+                  <th className="text-left py-2 px-2 font-medium">Última visita</th>
+                  <th
+                    className="text-center py-2 px-2 font-medium"
+                    title="Visitas únicas al portal. Requests dentro de los mismos 30 min cuentan como 1 sola visita."
+                  >
+                    Visitas
+                  </th>
                   <th className="text-center py-2 px-2 font-medium">Estado</th>
                   <th className="text-right py-2 px-2 font-medium">Acciones</th>
                 </tr>
@@ -524,8 +554,18 @@ export default function PortalClientePage() {
                       <div className="text-2xs text-slate-400 font-mono">{a.persona_dni}</div>
                     </td>
                     <td className="py-2 px-2 text-slate-600">{formatoFecha(a.fecha_creacion)}</td>
-                    <td className="py-2 px-2 text-slate-600">{formatoFechaRelativa(a.ultimo_acceso)}</td>
-                    <td className="py-2 px-2 text-center text-slate-700">{a.veces_accedido}</td>
+                    <td className="py-2 px-2 text-slate-600">
+                      <div>{formatoFechaRelativa(a.ultimo_acceso)}</div>
+                      {a.ultimo_acceso && (
+                        <div className="text-2xs text-slate-400">{formatoFechaHora(a.ultimo_acceso)}</div>
+                      )}
+                    </td>
+                    <td
+                      className="py-2 px-2 text-center text-slate-700"
+                      title="Visitas únicas (30 min entre sesiones)"
+                    >
+                      {a.veces_accedido}
+                    </td>
                     <td className="py-2 px-2 text-center">
                       {a.revocado ? (
                         <span className="inline-block px-2 py-0.5 rounded bg-red-50 text-red-600 text-2xs">Revocado</span>
