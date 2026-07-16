@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import { logger } from '@/lib/errores/logger'
 import {
   X, Loader2, Send, Eye, AlertTriangle, CheckCircle,
-  FileText, Paperclip, Users, ChevronDown, ChevronUp
+  FileText, Paperclip, Users, ChevronDown, ChevronUp, Image as ImageIcon
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
+import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from './biblioteca/SelectorImagenBiblioteca'
 
 interface Plantilla {
   codigo: string
@@ -65,6 +66,27 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
   const [cargandoPreview, setCargandoPreview] = useState(false)
 
   const [mostrarExcluidos, setMostrarExcluidos] = useState(false)
+
+  const [selectorImagenAbierto, setSelectorImagenAbierto] = useState(false)
+  const cuerpoRef = useRef<HTMLTextAreaElement>(null)
+
+  const insertarImagenEnCuerpo = (archivo: ArchivoBiblioteca) => {
+    const marcador = `[[IMG:${archivo.id}]]`
+    const textarea = cuerpoRef.current
+    if (!textarea) {
+      setCuerpo(prev => `${prev}${prev && !prev.endsWith('\n') ? '\n' : ''}${marcador}\n`)
+      return
+    }
+    const start = textarea.selectionStart ?? cuerpo.length
+    const end = textarea.selectionEnd ?? cuerpo.length
+    const nuevo = cuerpo.slice(0, start) + marcador + cuerpo.slice(end)
+    setCuerpo(nuevo)
+    setTimeout(() => {
+      textarea.focus()
+      const pos = start + marcador.length
+      textarea.setSelectionRange(pos, pos)
+    }, 0)
+  }
 
   // Análisis de destinatarios
   const sinEmail = personas.filter(p => !p.email)
@@ -290,7 +312,22 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
 
               {/* Plantilla */}
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Plantilla</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-slate-600">Plantilla</label>
+                  {plantillaSeleccionada && !cargandoPlantillas && (
+                    <button
+                      type="button"
+                      onClick={verPreview}
+                      disabled={cargandoPreview}
+                      className="text-xs px-3 py-1.5 border border-blue-200 bg-blue-50 rounded hover:bg-blue-100 hover:border-blue-300 flex items-center gap-1.5 text-blue-700 font-medium transition-colors disabled:opacity-50"
+                    >
+                      {cargandoPreview
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Eye className="h-3.5 w-3.5" />}
+                      {mostrarPreview ? 'Actualizar vista previa' : 'Ver vista previa'}
+                    </button>
+                  )}
+                </div>
                 {cargandoPlantillas ? (
                   <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
                     <Loader2 className="h-3 w-3 animate-spin" /> Cargando plantillas...
@@ -331,9 +368,24 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                   )}
                   {aceptaCuerpo && (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Cuerpo del mensaje</label>
-                      <textarea className="form-input w-full text-xs" rows={3} value={cuerpo}
-                        onChange={e => setCuerpo(e.target.value)} placeholder="Texto personalizado (opcional)..." />
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-medium text-slate-600">Cuerpo del mensaje</label>
+                        <button
+                          type="button"
+                          onClick={() => setSelectorImagenAbierto(true)}
+                          className="text-xs px-3 py-1.5 border border-blue-200 bg-blue-50 rounded hover:bg-blue-100 hover:border-blue-300 flex items-center gap-1.5 text-blue-700 font-medium transition-colors"
+                        >
+                          <ImageIcon className="h-3.5 w-3.5" /> Insertar imagen
+                        </button>
+                      </div>
+                      <textarea
+                        ref={cuerpoRef}
+                        className="form-input w-full text-xs"
+                        rows={3}
+                        value={cuerpo}
+                        onChange={e => setCuerpo(e.target.value)}
+                        placeholder="Texto personalizado (opcional)..."
+                      />
                     </div>
                   )}
                   {!tieneCamposPersonalizables && (
@@ -432,6 +484,13 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
           )}
         </div>
       </div>
+
+      <SelectorImagenBiblioteca
+        abierto={selectorImagenAbierto}
+        onCerrar={() => setSelectorImagenAbierto(false)}
+        onElegir={insertarImagenEnCuerpo}
+        titulo="Insertar imagen en el cuerpo"
+      />
     </div>
   )
 }

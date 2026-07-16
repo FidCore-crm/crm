@@ -234,9 +234,9 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
                   <button
                     type="button"
                     onClick={() => setSelectorImagenAbierto(true)}
-                    className="text-xs px-2 py-1 border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1 text-slate-700"
+                    className="text-xs px-3 py-1.5 border border-blue-200 bg-blue-50 rounded hover:bg-blue-100 hover:border-blue-300 flex items-center gap-1.5 text-blue-700 font-medium transition-colors"
                   >
-                    <ImageIcon className="h-3 w-3" /> Insertar imagen
+                    <ImageIcon className="h-3.5 w-3.5" /> Insertar imagen
                   </button>
                 )}
               </div>

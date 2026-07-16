@@ -272,7 +272,22 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
 
               {/* Plantilla */}
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Plantilla</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-slate-600">Plantilla</label>
+                  {plantillaSeleccionada && !cargandoPlantillas && (
+                    <button
+                      type="button"
+                      onClick={verPreview}
+                      disabled={cargandoPreview}
+                      className="text-xs px-3 py-1.5 border border-blue-200 bg-blue-50 rounded hover:bg-blue-100 hover:border-blue-300 flex items-center gap-1.5 text-blue-700 font-medium transition-colors disabled:opacity-50"
+                    >
+                      {cargandoPreview
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Eye className="h-3.5 w-3.5" />}
+                      {mostrarPreview ? 'Actualizar vista previa' : 'Ver vista previa'}
+                    </button>
+                  )}
+                </div>
                 {cargandoPlantillas ? (
                   <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
                     <Loader2 className="h-3 w-3 animate-spin" /> Cargando plantillas...
@@ -332,14 +347,14 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                   {/* Cuerpo — solo si la plantilla lo usa */}
                   {aceptaCuerpo && (
                     <div>
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-1.5">
                         <label className="block text-xs font-medium text-slate-600">Cuerpo del mensaje</label>
                         <button
                           type="button"
                           onClick={() => setSelectorImagenAbierto(true)}
-                          className="text-2xs px-2 py-0.5 border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1 text-slate-700"
+                          className="text-xs px-3 py-1.5 border border-blue-200 bg-blue-50 rounded hover:bg-blue-100 hover:border-blue-300 flex items-center gap-1.5 text-blue-700 font-medium transition-colors"
                         >
-                          <ImageIcon className="h-3 w-3" /> Insertar imagen
+                          <ImageIcon className="h-3.5 w-3.5" /> Insertar imagen
                         </button>
                       </div>
                       <textarea

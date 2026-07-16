@@ -17,7 +17,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   X, Loader2, ChevronLeft, ChevronRight, Send, CheckCircle2,
   User, Users, Filter as FilterIcon, FileText, Edit3, Paperclip,
-  AlertTriangle, Search, Image as ImageIcon,
+  AlertTriangle, Search, Image as ImageIcon, Eye, RefreshCw,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
@@ -291,6 +291,9 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
                   plantilla={plantillas.find(p => p.id === mPlantillaId) ?? null}
                   asuntoFinal={cAsuntoOverride.trim() || (mTipo === 'libre' ? mAsuntoLibre : plantillas.find(p => p.id === mPlantillaId)?.asunto ?? '')}
                   adjuntos={cAdjuntos}
+                  mailingPlantillaId={mPlantillaId}
+                  asuntoOverride={cAsuntoOverride}
+                  cuerpoLibre={mCuerpoLibre}
                 />
               )}
             </div>
@@ -562,7 +565,42 @@ function PasoConfig({ mensajeTipo, plantillas, plantillaId, asuntoOverride, setA
   )
 }
 
-function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoFinal, adjuntos }: any) {
+function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoFinal, adjuntos, mailingPlantillaId, asuntoOverride, cuerpoLibre }: any) {
+  const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null)
+  const [emailPreviewCargando, setEmailPreviewCargando] = useState(false)
+  const [emailPreviewError, setEmailPreviewError] = useState<string | null>(null)
+
+  const cargarEmailPreview = useCallback(async () => {
+    setEmailPreviewCargando(true)
+    setEmailPreviewError(null)
+    const body: any = {
+      mensaje_tipo: mensajeTipo,
+    }
+    if (mensajeTipo === 'mailing_plantilla') {
+      body.mailing_plantilla_id = mailingPlantillaId
+      body.asunto = asuntoOverride || undefined
+    } else {
+      body.asunto = asuntoFinal
+      body.cuerpo = cuerpoLibre
+    }
+    const r = await apiCall<{ html: string; asunto: string }>(
+      '/api/comunicaciones/wizard-enviar/preview',
+      { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } },
+      { mostrar_toast_en_error: false },
+    )
+    if (r.ok && r.data) {
+      setEmailPreviewHtml(r.data.html)
+    } else {
+      setEmailPreviewError(r.error?.mensaje ?? 'No se pudo generar el preview')
+    }
+    setEmailPreviewCargando(false)
+  }, [mensajeTipo, mailingPlantillaId, asuntoOverride, asuntoFinal, cuerpoLibre])
+
+  // Auto-cargar el preview al entrar al paso
+  useEffect(() => {
+    cargarEmailPreview()
+  }, [cargarEmailPreview])
+
   if (previewCargando || !preview) {
     return (
       <div className="flex items-center justify-center py-10 text-slate-400 text-sm gap-2">
@@ -616,6 +654,51 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
             <dd className="text-slate-800">{adjuntos.length === 0 ? 'Sin adjuntos' : `${adjuntos.length} archivo(s)`}</dd>
           </div>
         </dl>
+      </div>
+
+      {/* Preview HTML del email */}
+      <div className="border border-slate-200 rounded overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <Eye className="h-4 w-4 text-slate-500" />
+            <span className="text-xs font-semibold text-slate-700">Vista previa del email</span>
+          </div>
+          <button
+            type="button"
+            onClick={cargarEmailPreview}
+            disabled={emailPreviewCargando}
+            className="text-2xs px-2 py-1 border border-slate-300 rounded hover:bg-white text-slate-600 flex items-center gap-1 disabled:opacity-50"
+          >
+            {emailPreviewCargando ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+            Actualizar
+          </button>
+        </div>
+        <div className="bg-white">
+          {emailPreviewCargando ? (
+            <div className="py-10 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Generando preview...
+            </div>
+          ) : emailPreviewError ? (
+            <div className="py-6 text-center text-xs text-red-600 bg-red-50">
+              {emailPreviewError}
+            </div>
+          ) : emailPreviewHtml ? (
+            <iframe
+              srcDoc={emailPreviewHtml}
+              title="Preview del email"
+              className="w-full border-0 bg-white"
+              style={{ height: '500px' }}
+              sandbox="allow-same-origin allow-popups"
+            />
+          ) : (
+            <div className="py-6 text-center text-xs text-slate-400">
+              Sin preview disponible
+            </div>
+          )}
+        </div>
+        <p className="text-2xs text-slate-400 bg-slate-50 border-t border-slate-100 px-3 py-1.5">
+          Datos de ejemplo: nombre &quot;Juan Pérez&quot;. Al enviar, se reemplazan por los datos reales de cada destinatario.
+        </p>
       </div>
 
       {/* Advertencia */}
