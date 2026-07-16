@@ -23,7 +23,7 @@ import { formatFecha } from '@/lib/utils'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
-import { extraerCamposCustom, mapaLabelsPorKey, labelDeCampo } from '@/lib/siniestros-campos-custom'
+import { extraerCamposCustom, mapaLabelsPorKey, labelDeCampo, labelDeSubKey, valorLegible } from '@/lib/siniestros-campos-custom'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
 
 // ── Tipos ────────────────────────────────────────────────────
@@ -913,7 +913,8 @@ export default function FichaSiniestroPage() {
             const renderValor = (valor: unknown): React.ReactNode => {
               if (valor == null || valor === '') return '—'
               if (typeof valor === 'boolean') return valor ? 'Sí' : 'No'
-              if (typeof valor === 'string' || typeof valor === 'number') return String(valor)
+              if (typeof valor === 'number') return String(valor)
+              if (typeof valor === 'string') return valorLegible(valor)
               // Array (ej: testigos): lista con separador
               if (Array.isArray(valor)) {
                 if (valor.length === 0) return '—'
@@ -936,7 +937,7 @@ export default function FichaSiniestroPage() {
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                     {entries.map(([k, v]) => (
                       <div key={k}>
-                        <span className="text-2xs text-slate-400 capitalize">{k.replace(/_/g, ' ')}: </span>
+                        <span className="text-2xs text-slate-400">{labelDeSubKey(k)}: </span>
                         <span className="text-xs text-slate-700">{renderValor(v)}</span>
                       </div>
                     ))}

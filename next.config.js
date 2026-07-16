@@ -15,10 +15,12 @@ const nextConfig = {
   // dentro de un container chico (alpine + node). Reduce ~70% el tamaño del image.
   output: 'standalone',
   experimental: {
-    // pdf-parse (v2, usa pdfjs-dist) mueve un worker + wasm en runtime que
-    // webpack no debe bundlear. Marcarlo como externo hace que se resuelva
-    // desde node_modules en el standalone.
-    serverComponentsExternalPackages: ['pdf-parse', 'pdfjs-dist'],
+    // pdf-parse (v1.1.1) trae pdfjs.js embebido con require() dinámicos que
+    // webpack no puede bundlear. Marcarlo como externo hace que se resuelva
+    // desde node_modules en el standalone. La v2 (pdfjs-dist v5) necesita
+    // polyfills DOM (DOMMatrix, ImageData) que no existen en Node — por eso
+    // volvimos a v1 (usa pdfjs legacy que corre en Node puro).
+    serverComponentsExternalPackages: ['pdf-parse'],
     // Next.js 14: instrumentation.ts requiere este flag. En Next.js 15+ es estable.
     instrumentationHook: true,
   },

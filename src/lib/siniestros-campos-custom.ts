@@ -175,6 +175,65 @@ export function labelDeSubKey(key: string): string {
 }
 
 /**
+ * Diccionario de valores enum comunes que salen en snake_case desde el
+ * formulario público de denuncia. Ejemplo: `categoria: 'auto_particular'`
+ * → "Auto particular". Se aplica solo a strings que matcheen exactamente
+ * un valor conocido; el resto pasa por el fallback (snake_case → título).
+ */
+const VALORES_LEGIBLES: Record<string, string> = {
+  // Categorías de tercero
+  auto_particular:        'Auto particular',
+  moto:                   'Moto',
+  camion:                 'Camión',
+  utilitario:             'Utilitario',
+  transporte_publico:     'Transporte público',
+  taxi_remis:             'Taxi / Remis',
+  peaton:                 'Peatón',
+  ciclista:               'Ciclista',
+  otro:                   'Otro',
+  // Relación con el asegurado
+  asegurado:              'El asegurado mismo',
+  familiar:               'Familiar',
+  amigo:                  'Amigo',
+  empleado:               'Empleado',
+  desconocido:            'Desconocido',
+  // Tipo de llanta
+  chapa:                  'Chapa',
+  aleacion:               'Aleación',
+  // Modo de ingreso
+  rotura_vidrio:          'Rotura de vidrio',
+  forzado_puerta:         'Puerta forzada',
+  llave_maestra:          'Llave maestra',
+  sin_rastros:            'Sin rastros de fuerza',
+  // Ubicación del vehículo
+  via_publica:            'Vía pública',
+  cochera_particular:     'Cochera particular',
+  garage_pago:            'Garage pago',
+  otro_lugar:             'Otro lugar',
+  // Tipo de vivienda
+  casa:                   'Casa',
+  departamento:           'Departamento',
+  ph:                     'PH',
+  local_comercial:        'Local comercial',
+  oficina:                'Oficina',
+}
+
+/**
+ * Devuelve un string legible para un valor que probablemente venga en
+ * snake_case desde un enum del formulario. Si no matchea el diccionario,
+ * fallback a snake_case → primera letra en mayúscula.
+ */
+export function valorLegible(valor: string): string {
+  if (VALORES_LEGIBLES[valor]) return VALORES_LEGIBLES[valor]
+  // Si no tiene underscore ni es "todo minúsculas de una palabra",
+  // asumimos que ya viene bien (ej: "Toyota Etios") y no lo tocamos.
+  if (!valor.includes('_')) return valor
+  const txt = valor.replace(/_/g, ' ').trim()
+  if (!txt) return valor
+  return txt.charAt(0).toUpperCase() + txt.slice(1)
+}
+
+/**
  * Parsea el string "Opción A,Opción B,Opción C" del catálogo en un array.
  */
 export function parsearOpciones(opciones?: string): string[] {
