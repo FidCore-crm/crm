@@ -2,6 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { hexARgb, normalizarColorMarca, COLOR_MARCA_DEFAULT, derivarTonos, textoSobreColor } from './color-marca'
 import { ACLARACIONES_COTIZACION_DEFAULT_TEXTO } from './cotizacion-aclaraciones'
+import { parsearDetalleOpcion, resumenCortoDetalle } from './cotizacion-detalle'
 
 interface DatosCotizacion {
   numero_cotizacion: string
@@ -489,7 +490,7 @@ function construirDocumentoCotizacion(
       c.compania_nombre,
       nombreCoberturaCompleto(c),
       formatMonedaPDF(c.precio),
-      c.detalle ?? '—',
+      resumenCortoDetalle(c.detalle, 2) || '—',
     ]),
     theme: 'plain',
     headStyles: {
@@ -569,9 +570,14 @@ function construirDocumentoCotizacion(
   // pidió que aparezcan TODAS las opciones con su detalle, para que el
   // cliente pueda comparar.
   const opcionesConDetalle = companias.filter(c => {
-    const tieneInfo = (c.cobertura_descripcion && c.cobertura_descripcion.trim())
+    const tieneInfoCatalogo = (c.cobertura_descripcion && c.cobertura_descripcion.trim())
       || (Array.isArray(c.cobertura_cubre) && c.cobertura_cubre.length > 0)
-    return tieneInfo
+    // Incluir también opciones que el PAS armó con sublímites en el
+    // campo `detalle` (ítems o notas), aunque el catálogo cobertura no
+    // tenga descripción ni bullets.
+    const parseado = parsearDetalleOpcion(c.detalle)
+    const tieneInfoDetalle = parseado.items.length > 0 || parseado.notas.length > 0
+    return tieneInfoCatalogo || tieneInfoDetalle
   })
 
   if (opcionesConDetalle.length > 0) {
@@ -661,6 +667,91 @@ function construirDocumentoCotizacion(
           y = Math.max(yIzq, yDer)
         }
       }
+
+      // ── Bloque de sublímites / notas del PAS ──
+      // Renderea lo que el PAS escribió en el campo `detalle` de la opción,
+      // parseado con `parsearDetalleOpcion` (patrón `label: valor` por línea).
+      // Ítems se muestran como pares label+valor alineados; las líneas sin `:`
+      // salen como notas al final.
+      {
+        const parseado = parsearDetalleOpcion(op.detalle)
+        const hayItems = parseado.items.length > 0
+        const hayNotas = parseado.notas.length > 0
+        if (hayItems || hayNotas) {
+          // Espacio y separación del bloque anterior
+          y += 2
+
+          if (hayItems) {
+            // Sub-título "Sumas aseguradas / Sublímites"
+            if (y > pageHeight - 20) {
+              doc.addPage()
+              y = 18
+            }
+            doc.setFontSize(8.5)
+            doc.setFont('helvetica', 'bold')
+            doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
+            doc.text('Sumas aseguradas / Sublímites', 14, y)
+            y += 4
+
+            // Renderea cada ítem como fila: label a la izquierda (gris), valor
+            // a la derecha (bold, alineado a la derecha). Fondo alternado sutil.
+            const anchoContenido = pageWidth - 28
+            const altoFila = 4.6
+            const paddingX = 2
+
+            for (let i = 0; i < parseado.items.length; i++) {
+              if (y > pageHeight - 15) {
+                doc.addPage()
+                y = 18
+              }
+              const it = parseado.items[i]
+
+              // Fondo alternado muy sutil para mejorar la legibilidad
+              if (i % 2 === 0) {
+                doc.setFillColor(248, 250, 252)  // slate-50
+                doc.rect(14, y - 3.2, anchoContenido, altoFila, 'F')
+              }
+
+              // Label (izquierda)
+              doc.setFontSize(8.5)
+              doc.setFont('helvetica', 'normal')
+              doc.setTextColor(...COLOR_TEXTO_CUERPO)
+              const labelTruncado = doc.splitTextToSize(it.label, anchoContenido * 0.6)[0] ?? it.label
+              doc.text(labelTruncado, 14 + paddingX, y)
+
+              // Valor (derecha, bold, en color de marca si es número/monto)
+              doc.setFont('helvetica', 'bold')
+              doc.setTextColor(pleno.r, pleno.g, pleno.b)
+              const valorTruncado = doc.splitTextToSize(it.valor, anchoContenido * 0.4)[0] ?? it.valor
+              doc.text(valorTruncado, pageWidth - 14 - paddingX, y, { align: 'right' })
+
+              y += altoFila
+            }
+            y += 1
+          }
+
+          if (hayNotas) {
+            // Renderea notas libres en cursiva, gris, con separación mínima
+            if (y > pageHeight - 15) {
+              doc.addPage()
+              y = 18
+            }
+            doc.setFontSize(8.5)
+            doc.setFont('helvetica', 'italic')
+            doc.setTextColor(...COLOR_TEXTO_SECUNDARIO)
+            for (const nota of parseado.notas) {
+              const lineasNota = doc.splitTextToSize(nota, pageWidth - 28)
+              if (y + lineasNota.length * 4 > pageHeight - 12) {
+                doc.addPage()
+                y = 18
+              }
+              doc.text(lineasNota, 14, y)
+              y += lineasNota.length * 4 + 0.5
+            }
+          }
+        }
+      }
+
       y += 5  // espacio entre opciones
     }
   }

@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
+import { PLACEHOLDER_DETALLE_OPCION } from '@/lib/cotizacion-detalle'
 
 // ── Interfaces ──
 
@@ -715,86 +716,14 @@ function NuevaCotizacionContent() {
             </span>
           )}
 
-          {/* Table header */}
-          <div className="hidden md:grid md:grid-cols-[1fr_1fr_140px_1fr_40px] gap-3 mb-2 px-1">
-            <span className="text-xs font-medium text-slate-500">Compañía *</span>
-            <span className="text-xs font-medium text-slate-500">Cobertura *</span>
-            <span className="text-xs font-medium text-slate-500">Precio *</span>
-            <span className="text-xs font-medium text-slate-500">Detalle</span>
-            <span></span>
-          </div>
-
-          <div className="space-y-3">
-            {rows.map((row) => (
-              <div key={row.key} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_140px_1fr_40px] gap-3 items-start p-3 md:p-1 bg-slate-50 md:bg-transparent rounded-lg md:rounded-none border md:border-0 border-slate-200">
-                {/* Compania */}
-                <div>
-                  <span className="text-xs text-slate-500 md:hidden mb-1 block">Compañía *</span>
-                  <select
-                    className={`form-input w-full text-sm ${errores[`row_${row.key}_compania_id`] ? 'border-red-300' : ''}`}
-                    value={row.compania_id}
-                    onChange={e => updateRow(row.key, 'compania_id', e.target.value)}
-                  >
-                    <option value="">Seleccionar...</option>
-                    {companias.map(c => (
-                      <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                  </select>
-                  {errores[`row_${row.key}_compania_id`] && (
-                    <span className="text-xs text-red-500">{errores[`row_${row.key}_compania_id`]}</span>
-                  )}
-                </div>
-
-                {/* Cobertura */}
-                <div>
-                  <span className="text-xs text-slate-500 md:hidden mb-1 block">Cobertura *</span>
-                  <select
-                    className={`form-input w-full text-sm ${errores[`row_${row.key}_cobertura_id`] ? 'border-red-300' : ''}`}
-                    value={row.cobertura_id}
-                    onChange={e => updateRow(row.key, 'cobertura_id', e.target.value)}
-                    disabled={!ramoId}
-                  >
-                    <option value="">{ramoId ? 'Seleccionar...' : 'Elegir ramo primero'}</option>
-                    {coberturasFiltradas.map(c => (
-                      <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                  </select>
-                  {errores[`row_${row.key}_cobertura_id`] && (
-                    <span className="text-xs text-red-500">{errores[`row_${row.key}_cobertura_id`]}</span>
-                  )}
-                </div>
-
-                {/* Precio */}
-                <div>
-                  <span className="text-xs text-slate-500 md:hidden mb-1 block">Precio *</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className={`form-input w-full text-sm font-mono ${errores[`row_${row.key}_precio`] ? 'border-red-300' : ''}`}
-                    placeholder="0.00"
-                    value={row.precio}
-                    onChange={e => updateRow(row.key, 'precio', e.target.value)}
-                  />
-                  {errores[`row_${row.key}_precio`] && (
-                    <span className="text-xs text-red-500">{errores[`row_${row.key}_precio`]}</span>
-                  )}
-                </div>
-
-                {/* Detalle */}
-                <div>
-                  <span className="text-xs text-slate-500 md:hidden mb-1 block">Detalle</span>
-                  <input
-                    type="text"
-                    className="form-input w-full text-sm"
-                    placeholder="Observaciones..."
-                    value={row.detalle}
-                    onChange={e => updateRow(row.key, 'detalle', e.target.value)}
-                  />
-                </div>
-
-                {/* Delete */}
-                <div className="flex items-center justify-end md:justify-center">
+          <div className="space-y-4">
+            {rows.map((row, idx) => (
+              <div key={row.key} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                {/* Header: número de opción + botón eliminar */}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Opción {idx + 1}
+                  </span>
                   {rows.length > 1 && (
                     <button
                       type="button"
@@ -805,6 +734,80 @@ function NuevaCotizacionContent() {
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
+                </div>
+
+                {/* Fila 1: compañía / cobertura / precio */}
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_160px] gap-3 items-start mb-3">
+                  {/* Compañía */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 mb-1 block">Compañía *</label>
+                    <select
+                      className={`form-input w-full text-sm ${errores[`row_${row.key}_compania_id`] ? 'border-red-300' : ''}`}
+                      value={row.compania_id}
+                      onChange={e => updateRow(row.key, 'compania_id', e.target.value)}
+                    >
+                      <option value="">Seleccionar...</option>
+                      {companias.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                      ))}
+                    </select>
+                    {errores[`row_${row.key}_compania_id`] && (
+                      <span className="text-xs text-red-500">{errores[`row_${row.key}_compania_id`]}</span>
+                    )}
+                  </div>
+
+                  {/* Cobertura */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 mb-1 block">Cobertura *</label>
+                    <select
+                      className={`form-input w-full text-sm ${errores[`row_${row.key}_cobertura_id`] ? 'border-red-300' : ''}`}
+                      value={row.cobertura_id}
+                      onChange={e => updateRow(row.key, 'cobertura_id', e.target.value)}
+                      disabled={!ramoId}
+                    >
+                      <option value="">{ramoId ? 'Seleccionar...' : 'Elegir ramo primero'}</option>
+                      {coberturasFiltradas.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                      ))}
+                    </select>
+                    {errores[`row_${row.key}_cobertura_id`] && (
+                      <span className="text-xs text-red-500">{errores[`row_${row.key}_cobertura_id`]}</span>
+                    )}
+                  </div>
+
+                  {/* Precio */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 mb-1 block">Precio *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className={`form-input w-full text-sm font-mono ${errores[`row_${row.key}_precio`] ? 'border-red-300' : ''}`}
+                      placeholder="0.00"
+                      value={row.precio}
+                      onChange={e => updateRow(row.key, 'precio', e.target.value)}
+                    />
+                    {errores[`row_${row.key}_precio`] && (
+                      <span className="text-xs text-red-500">{errores[`row_${row.key}_precio`]}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Fila 2: detalle (textarea ancho completo) */}
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-1 block">
+                    Detalle / Sublímites
+                  </label>
+                  <textarea
+                    rows={5}
+                    className="form-input w-full text-sm font-mono leading-relaxed"
+                    placeholder={PLACEHOLDER_DETALLE_OPCION}
+                    value={row.detalle}
+                    onChange={e => updateRow(row.key, 'detalle', e.target.value)}
+                  />
+                  <p className="text-2xs text-slate-400 mt-1">
+                    Cada línea con formato <span className="font-mono text-slate-500">Concepto: monto</span> se muestra como ítem prolijo en el PDF. Las líneas sueltas quedan como notas.
+                  </p>
                 </div>
               </div>
             ))}

@@ -12,6 +12,7 @@ import { formatFechaLocalLarga, formatMoneda, hoyLocal } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal, puedeEliminar } from '@/lib/cartera-filter'
 import { generarPDFCotizacion, generarPDFCotizacionBlob } from '@/lib/pdf-cotizacion'
+import { parsearDetalleOpcion } from '@/lib/cotizacion-detalle'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
@@ -1163,8 +1164,28 @@ export default function FichaCotizacionPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-3 py-2.5">
-                            <span className="text-xs text-slate-600">{o.detalle ?? '—'}</span>
+                          <td className="px-3 py-2.5 align-top">
+                            {(() => {
+                              const parseado = parsearDetalleOpcion(o.detalle)
+                              if (parseado.items.length === 0 && parseado.notas.length === 0) {
+                                return <span className="text-xs text-slate-400">—</span>
+                              }
+                              return (
+                                <div className="flex flex-col gap-0.5 max-w-[280px]">
+                                  {parseado.items.map((it, i) => (
+                                    <div key={i} className="flex items-baseline gap-1.5 text-2xs">
+                                      <span className="text-slate-500">{it.label}:</span>
+                                      <span className="font-mono font-medium text-slate-700 truncate">{it.valor}</span>
+                                    </div>
+                                  ))}
+                                  {parseado.notas.length > 0 && (
+                                    <div className="text-2xs text-slate-500 italic mt-0.5">
+                                      {parseado.notas.join(' · ')}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })()}
                           </td>
                           {cotizacion.estado === 'GANADA' && (
                             <td className="px-3 py-2.5 text-center">
