@@ -2,7 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { hexARgb, normalizarColorMarca, COLOR_MARCA_DEFAULT, derivarTonos, textoSobreColor } from './color-marca'
 import { ACLARACIONES_COTIZACION_DEFAULT_TEXTO } from './cotizacion-aclaraciones'
-import { parsearDetalleOpcion, resumenCortoDetalle } from './cotizacion-detalle'
+import { parsearDetalleOpcion } from './cotizacion-detalle'
 
 interface DatosCotizacion {
   numero_cotizacion: string
@@ -485,12 +485,11 @@ function construirDocumentoCotizacion(
 
   autoTable(doc, {
     startY: y,
-    head: [['Compañía', 'Cobertura', 'Precio', 'Detalle']],
+    head: [['Compañía', 'Cobertura', 'Precio']],
     body: companias.map(c => [
       c.compania_nombre,
       nombreCoberturaCompleto(c),
       formatMonedaPDF(c.precio),
-      resumenCortoDetalle(c.detalle, 2) || '—',
     ]),
     theme: 'plain',
     headStyles: {

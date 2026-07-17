@@ -253,7 +253,7 @@ export default function ComunicacionesPage() {
   const totalPaginasBajas = Math.ceil(totalBajas / 25)
 
   return (
-    <div className="flex flex-col gap-4 max-w-3xl">
+    <div className="flex flex-col gap-4 max-w-6xl">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => router.push('/crm/configuracion')} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">

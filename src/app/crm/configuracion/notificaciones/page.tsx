@@ -37,6 +37,16 @@ const TIPOS: TipoConfig[] = [
     tieneUmbral: false,
   },
   {
+    tipo: 'TAREA_HOY',
+    icon: CalendarClock,
+    iconColor: 'text-blue-500',
+    titulo: 'Tarea para hoy',
+    descripcion: 'Aviso proactivo el mismo día que una tarea vence (antes solo llegaba la notificación cuando el día ya pasó).',
+    prioridad: 'ADVERTENCIA',
+    prioridadColor: 'bg-amber-100 text-amber-700 border-amber-200',
+    tieneUmbral: false,
+  },
+  {
     tipo: 'TAREA_VENCIDA',
     icon: ClipboardX,
     iconColor: 'text-orange-500',
@@ -293,7 +303,7 @@ export default function NotificacionesConfigPage() {
   )
 
   return (
-    <div className="flex flex-col gap-4 max-w-3xl">
+    <div className="flex flex-col gap-4 max-w-6xl">
 
       {/* Header */}
       <div className="flex items-center gap-2">

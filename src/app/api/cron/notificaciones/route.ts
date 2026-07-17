@@ -44,19 +44,23 @@ function nombreCompleto(p: { apellido: string; nombre: string | null } | null): 
 // lo que pasa en el sistema.
 //
 // - POLIZA_VENCIDA: sí, requiere acción inmediata (renovar tarde o marcar como perdida).
-// - POLIZA_POR_VENCER: solo para casos MUY urgentes (≤3 días). Antes disparaba
-//   hasta 30 días → el PAS recibía 30+ notificaciones por mes. Los KPIs y
-//   filtros de /crm/renovaciones cubren el resto.
-// - TAREA_VENCIDA: sí, requiere acción.
+// - POLIZA_POR_VENCER: DESACTIVADA por default (v1.0.136). El PAS recibía spam
+//   diario de pólizas que aún no requerían acción. El módulo /crm/renovaciones
+//   cubre visualmente el "vence pronto" con sus KPIs. La detección sigue
+//   viva pero solo dispara si el admin la reactiva desde configuración.
+// - TAREA_VENCIDA: sí, requiere acción (fecha_vencimiento pasó).
+// - TAREA_HOY: sí, aviso PROACTIVO el mismo día que vence la tarea (v1.0.136).
+//   Antes solo notificaba TAREA_VENCIDA post facto.
 // - SINIESTRO estancado: sí a 30/60 días.
 // - COTIZACION_VENCIDA: sí — el cliente probablemente perdió interés.
 // - COTIZACION_VENCIENDO_PRONTO: sí, para reactivar (3 días antes).
 // - Umbrales aumentados donde había ruido: OPORTUNIDAD_ESTANCADA de 15 a 30 días.
 // - Anti-spam más largo para reducir alertas repetidas.
 const DEFAULTS: Record<string, { activa: boolean; umbral_dias: number | null; antispam_dias: number }> = {
-  POLIZA_VENCIDA:                { activa: true, umbral_dias: null, antispam_dias: 14 },
-  POLIZA_POR_VENCER:             { activa: true, umbral_dias: 3,    antispam_dias: 3 },  // Solo ≤3 días — antes eran 30
-  TAREA_VENCIDA:                 { activa: true, umbral_dias: null, antispam_dias: 7 },
+  POLIZA_VENCIDA:                { activa: true,  umbral_dias: null, antispam_dias: 14 },
+  POLIZA_POR_VENCER:             { activa: false, umbral_dias: 3,    antispam_dias: 3 },  // v1.0.136: OFF por default
+  TAREA_HOY:                     { activa: true,  umbral_dias: 0,    antispam_dias: 1 },  // v1.0.136: aviso el mismo día
+  TAREA_VENCIDA:                 { activa: true,  umbral_dias: null, antispam_dias: 7 },
   SINIESTRO_30_DIAS:             { activa: true, umbral_dias: 30,   antispam_dias: 14 },
   SINIESTRO_60_DIAS:             { activa: true, umbral_dias: 60,   antispam_dias: 14 },
   COTIZACION_SIN_RESPUESTA:      { activa: true, umbral_dias: 5,    antispam_dias: 5 },
@@ -118,6 +122,7 @@ export async function GET(request: Request) {
   const resultados = {
     polizas_vencidas: 0,
     polizas_por_vencer: 0,
+    tareas_hoy: 0,
     tareas_vencidas: 0,
     siniestros_30: 0,
     siniestros_60: 0,
@@ -272,7 +277,47 @@ export async function GET(request: Request) {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 2. TAREAS VENCIDAS SIN COMPLETAR
+  // 2a. TAREAS QUE VENCEN HOY (aviso proactivo, v1.0.136)
+  //
+  // Dispara UNA VEZ el mismo día que la tarea vence, para que el PAS se
+  // entere temprano. Antes solo llegaba la notificación POST-vencimiento.
+  // Anti-spam de 1 día evita re-notificar la misma tarea en las corridas
+  // subsecuentes del cron (cada 2h).
+  // ══════════════════════════════════════════════════════════════
+  try {
+    const cfgTareaHoy = getConfig('TAREA_HOY')
+    if (!cfgTareaHoy.activa) throw { skip: true }
+    const yaNotificadas = await idsNotificados('TAREA_HOY', cfgTareaHoy.antispam_dias)
+
+    const { data: tareasHoy } = await supabase
+      .from('tareas')
+      .select('id, titulo, fecha_vencimiento, hora_vencimiento, usuario_id, persona:personas!persona_id(deleted_at)')
+      .in('estado', ['PENDIENTE', 'EN_PROCESO'])
+      .eq('fecha_vencimiento', hoy)
+
+    for (const t of (tareasHoy ?? []) as any[]) {
+      if (t.persona?.deleted_at) continue
+      if (yaNotificadas.has(t.id)) continue
+
+      const detalleHora = t.hora_vencimiento ? ` a las ${String(t.hora_vencimiento).slice(0, 5)}` : ''
+      await crear({
+        tipo: 'TAREA_HOY',
+        prioridad: 'ADVERTENCIA',
+        titulo: 'Tarea para hoy',
+        mensaje: `Hoy${detalleHora}: '${t.titulo}'.`,
+        entidad_tipo: 'tarea',
+        entidad_id: t.id,
+        url: `/crm/tareas/${t.id}`,
+        usuario_id: t.usuario_id ?? null,
+      })
+      resultados.tareas_hoy++
+    }
+  } catch (e: any) {
+    if (!e?.skip) resultados.errores.push(`tareas_hoy: ${e.message}`)
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 2b. TAREAS VENCIDAS SIN COMPLETAR
   // ══════════════════════════════════════════════════════════════
   try {
     const cfgTareas = getConfig('TAREA_VENCIDA')
