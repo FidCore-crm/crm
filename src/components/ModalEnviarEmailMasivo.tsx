@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from './biblioteca/SelectorImagenBiblioteca'
+import { ConfiguradorBotonCTA } from './comunicaciones/ConfiguradorBotonCTA'
 
 interface Plantilla {
   codigo: string
@@ -53,6 +54,8 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
   const [asunto, setAsunto] = useState('')
   const [titulo, setTitulo] = useState('')
   const [cuerpo, setCuerpo] = useState('')
+  const [ctaTexto, setCtaTexto] = useState('')
+  const [ctaUrl, setCtaUrl] = useState('')
 
   const [archivos, setArchivos] = useState<File[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -115,6 +118,8 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
     setAsunto(p.asunto_default)
     setTitulo('')
     setCuerpo('')
+    setCtaTexto('')
+    setCtaUrl('')
     setMostrarPreview(false)
   }
 
@@ -157,6 +162,8 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
     formData.append('campos_editables', JSON.stringify({
       titulo: titulo || undefined,
       cuerpo: cuerpo || undefined,
+      cta_texto: ctaTexto.trim() || undefined,
+      cta_url: ctaUrl.trim() || undefined,
     }))
     if (asunto) formData.append('asunto', asunto)
     archivos.forEach(f => formData.append('archivos', f))
@@ -388,6 +395,16 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                       />
                     </div>
                   )}
+
+                  {/* Botón CTA (v1.0.141) — disponible solo cuando la plantilla admite cuerpo */}
+                  {aceptaCuerpo && (
+                    <ConfiguradorBotonCTA
+                      ctaTexto={ctaTexto}
+                      ctaUrl={ctaUrl}
+                      onCambio={(t, u) => { setCtaTexto(t); setCtaUrl(u) }}
+                    />
+                  )}
+
                   {!tieneCamposPersonalizables && (
                     <div className="text-2xs text-slate-500 bg-slate-50 border border-slate-200 rounded p-2.5">
                       Esta plantilla tiene contenido fijo. Solo se completa con los datos del cliente y de la póliza. Si querés escribir un texto propio, elegí <strong>&quot;Mensaje informativo&quot;</strong> o <strong>&quot;Notificación general&quot;</strong>.

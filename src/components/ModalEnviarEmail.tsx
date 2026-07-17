@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from './biblioteca/SelectorImagenBiblioteca'
+import { ConfiguradorBotonCTA } from './comunicaciones/ConfiguradorBotonCTA'
 
 interface Plantilla {
   codigo: string
@@ -43,6 +44,8 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
   const [asunto, setAsunto] = useState('')
   const [titulo, setTitulo] = useState('')
   const [cuerpo, setCuerpo] = useState('')
+  const [ctaTexto, setCtaTexto] = useState('')
+  const [ctaUrl, setCtaUrl] = useState('')
 
   const [archivos, setArchivos] = useState<File[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -178,6 +181,8 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
     formData.append('campos_editables', JSON.stringify({
       titulo: titulo || undefined,
       cuerpo: cuerpo || undefined,
+      cta_texto: ctaTexto.trim() || undefined,
+      cta_url: ctaUrl.trim() || undefined,
     }))
     archivos.forEach(f => formData.append('archivos', f))
 
@@ -200,6 +205,8 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
     setAsunto('')
     setTitulo('')
     setCuerpo('')
+    setCtaTexto('')
+    setCtaUrl('')
     setArchivos([])
     setResultado(null)
     setMostrarPreview(false)
@@ -366,6 +373,15 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                         placeholder="Texto personalizado del email (opcional)..."
                       />
                     </div>
+                  )}
+
+                  {/* Botón CTA (v1.0.141) — disponible solo cuando la plantilla admite cuerpo */}
+                  {aceptaCuerpo && (
+                    <ConfiguradorBotonCTA
+                      ctaTexto={ctaTexto}
+                      ctaUrl={ctaUrl}
+                      onCambio={(t, u) => { setCtaTexto(t); setCtaUrl(u) }}
+                    />
                   )}
 
                   {/* Mensaje si la plantilla es de contenido fijo */}

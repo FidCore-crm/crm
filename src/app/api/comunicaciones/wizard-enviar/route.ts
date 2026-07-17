@@ -145,6 +145,13 @@ export async function POST(request: NextRequest) {
       if (!asunto || !cuerpoFinal) {
         return NextResponse.json({ ok: false, error: 'Asunto y cuerpo son obligatorios en modo libre' }, { status: 400 })
       }
+      // Botón CTA opcional en modo libre (v1.0.141)
+      const ctaTextoLibre = (formData.get('cta_texto_libre') as string)?.trim()
+      const ctaUrlLibre = (formData.get('cta_url_libre') as string)?.trim()
+      if (ctaTextoLibre && ctaUrlLibre) {
+        cta_texto = ctaTextoLibre
+        cta_url = ctaUrlLibre
+      }
     } else {
       return NextResponse.json({ ok: false, error: 'mensaje_tipo inválido' }, { status: 400 })
     }

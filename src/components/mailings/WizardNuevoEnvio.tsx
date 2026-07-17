@@ -25,6 +25,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import type { MailingAudiencia } from './TabMailingAudiencias'
 import type { MailingPlantilla } from './TabMailingPlantillas'
 import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from '@/components/biblioteca/SelectorImagenBiblioteca'
+import { ConfiguradorBotonCTA } from '@/components/comunicaciones/ConfiguradorBotonCTA'
 
 interface Props {
   abierto: boolean
@@ -79,6 +80,8 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
   const [mPlantillaId, setMPlantillaId] = useState<string | null>(null)
   const [mAsuntoLibre, setMAsuntoLibre] = useState('')
   const [mCuerpoLibre, setMCuerpoLibre] = useState('')
+  const [mCtaTexto, setMCtaTexto] = useState('')
+  const [mCtaUrl, setMCtaUrl] = useState('')
 
   // ── Paso 3: Config ────────────────────────────────────────
   const [cAsuntoOverride, setCAsuntoOverride] = useState('')
@@ -186,6 +189,11 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
     } else {
       fd.set('asunto', mAsuntoLibre.trim())
       fd.set('cuerpo', mCuerpoLibre.trim())
+      // Botón CTA en modo libre (v1.0.141)
+      if (mCtaTexto.trim() && mCtaUrl.trim()) {
+        fd.set('cta_texto_libre', mCtaTexto.trim())
+        fd.set('cta_url_libre', mCtaUrl.trim())
+      }
     }
 
     for (const archivo of cAdjuntos) {
@@ -272,6 +280,8 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
                   plantillaId={mPlantillaId} setPlantillaId={setMPlantillaId}
                   asuntoLibre={mAsuntoLibre} setAsuntoLibre={setMAsuntoLibre}
                   cuerpoLibre={mCuerpoLibre} setCuerpoLibre={setMCuerpoLibre}
+                  ctaTexto={mCtaTexto} setCtaTexto={setMCtaTexto}
+                  ctaUrl={mCtaUrl} setCtaUrl={setMCtaUrl}
                 />
               )}
               {step === 'config' && (
@@ -386,7 +396,7 @@ function PasoDestinatarios(props: any) {
 }
 
 function PasoMensaje(props: any) {
-  const { tipo, setTipo, plantillas, plantillaId, setPlantillaId, asuntoLibre, setAsuntoLibre, cuerpoLibre, setCuerpoLibre } = props
+  const { tipo, setTipo, plantillas, plantillaId, setPlantillaId, asuntoLibre, setAsuntoLibre, cuerpoLibre, setCuerpoLibre, ctaTexto, setCtaTexto, ctaUrl, setCtaUrl } = props
   return (
     <div className="space-y-4">
       <p className="text-xs text-slate-600">¿Qué mensaje vas a enviar?</p>
@@ -476,6 +486,13 @@ function PasoMensaje(props: any) {
               rows={10}
             />
           </div>
+
+          {/* Botón CTA (v1.0.141) */}
+          <ConfiguradorBotonCTA
+            ctaTexto={ctaTexto}
+            ctaUrl={ctaUrl}
+            onCambio={(t, u) => { setCtaTexto(t); setCtaUrl(u) }}
+          />
         </div>
       )}
     </div>
