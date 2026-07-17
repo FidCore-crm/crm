@@ -487,7 +487,7 @@ export default function FichaSiniestroPage() {
     if (!siniestro) return
     setGuardandoEstado(true); setError('')
 
-    const r = await apiCall<{ estado_nuevo: string; fecha_cierre: string | null }>(
+    const r = await apiCall<{ estado_nuevo: string; fecha_cierre: string | null; updated_at: string | null }>(
       `/api/siniestros/${id}/cambiar-estado`,
       {
         method: 'POST',
@@ -518,10 +518,14 @@ export default function FichaSiniestroPage() {
         : err?.mensaje ?? 'No se pudo cambiar el estado'
       setError(msg)
     } else {
+      // Sincronizar updated_at con el valor fresco del backend para evitar
+      // falso positivo de conflicto en la próxima mutación (v1.0.139).
+      const updatedAtNuevo = r.data?.updated_at ?? null
       setSiniestro(s => s ? {
         ...s,
         estado: nuevoEstado,
         monto_liquidado: montoActualizado ? parseFloat(montoActualizado) : s.monto_liquidado,
+        updated_at: updatedAtNuevo ?? s.updated_at,
       } : s)
       setMontoActualizado('')
       setMotivoRechazo('')
@@ -564,7 +568,7 @@ export default function FichaSiniestroPage() {
     if (!siniestro) return
     const valor = notasInput.trim()
     setGuardandoNotas(true); setError('')
-    const r = await apiCall(
+    const r = await apiCall<{ updated_at: string | null }>(
       `/api/siniestros/${id}`,
       { method: 'PATCH', body: { notas: valor || null } },
       { mostrar_toast_en_error: false },
@@ -574,7 +578,8 @@ export default function FichaSiniestroPage() {
       setError(r.error?.mensaje ?? 'No se pudieron guardar las observaciones')
       return
     }
-    setSiniestro(s => s ? { ...s, notas: valor || null } : s)
+    const updatedAtNuevo = r.data?.updated_at ?? null
+    setSiniestro(s => s ? { ...s, notas: valor || null, updated_at: updatedAtNuevo ?? s.updated_at } : s)
     toast.exito(valor ? 'Observaciones guardadas' : 'Observaciones borradas')
     setHistorialKey(k => k + 1)
     await recargarBitacora()
@@ -584,7 +589,7 @@ export default function FichaSiniestroPage() {
     if (!siniestro) return
     const valor = numSiniestroInput.trim()
     setGuardandoNumSiniestro(true); setError('')
-    const r = await apiCall(
+    const r = await apiCall<{ updated_at: string | null }>(
       `/api/siniestros/${id}`,
       { method: 'PATCH', body: { numero_siniestro: valor || null } },
       { mostrar_toast_en_error: false },
@@ -594,7 +599,8 @@ export default function FichaSiniestroPage() {
       setError(r.error?.mensaje ?? 'No se pudo guardar el número')
       return
     }
-    setSiniestro(s => s ? { ...s, numero_siniestro: valor || null } : s)
+    const updatedAtNuevo = r.data?.updated_at ?? null
+    setSiniestro(s => s ? { ...s, numero_siniestro: valor || null, updated_at: updatedAtNuevo ?? s.updated_at } : s)
     setEditandoNumSiniestro(false)
     setHistorialKey(k => k + 1)
     await recargarBitacora()
@@ -630,6 +636,26 @@ export default function FichaSiniestroPage() {
 
   return (
     <div className="flex flex-col gap-3 w-full">
+
+      {/* Banner error — arriba de todo, sticky visible (v1.0.139) */}
+      {error && (
+        <div className="sticky top-2 z-30 bg-red-50 border-l-4 border-red-500 border border-red-200 rounded-lg p-4 shadow-md flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 flex-1">
+            <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-red-900 mb-0.5">No se pudo completar la operación</p>
+              <p className="text-sm text-red-800 leading-relaxed break-words">{error}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setError('')}
+            className="text-red-500 hover:text-red-700 shrink-0"
+            title="Cerrar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Banner papelera */}
       {enPapelera && (
@@ -1559,11 +1585,6 @@ export default function FichaSiniestroPage() {
               titulo="📤 Documentación de la denuncia (visible en el portal del asegurado)"
             />
 
-            {error && (
-              <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-                <AlertCircle className="h-3.5 w-3.5" />{error}
-              </div>
-            )}
           </div>
         )
       })()}

@@ -147,10 +147,12 @@ export const POST = manejarErrores(async (
 
   if (motivoRechazo) updates.motivo_rechazo = motivoRechazo
 
-  const { error: errUpdate } = await supabase
+  const { data: sinActualizado, error: errUpdate } = await supabase
     .from('siniestros')
     .update(updates)
     .eq('id', id)
+    .select('updated_at')
+    .single()
 
   if (errUpdate) {
     throw new ErrorAplicacion(ERRORES.DB_ERROR_ESCRITURA, {
@@ -184,5 +186,6 @@ export const POST = manejarErrores(async (
     actualizado: true,
     estado_nuevo: estadoNuevo,
     fecha_cierre: updates.fecha_cierre ?? null,
+    updated_at: (sinActualizado as any)?.updated_at ?? null,
   })
 }, { modulo: 'siniestros' })

@@ -241,10 +241,12 @@ export const PATCH = manejarErrores(async (
   // Marcamos fecha_ultimo_movimiento porque cambiaron datos del caso.
   payload.fecha_ultimo_movimiento = new Date().toISOString()
 
-  const { error: errUpdate } = await supabase
+  const { data: sinActualizado, error: errUpdate } = await supabase
     .from('siniestros')
     .update(payload)
     .eq('id', id)
+    .select('updated_at')
+    .single()
 
   if (errUpdate) {
     throw new ErrorAplicacion(ERRORES.DB_ERROR_ESCRITURA, {
@@ -261,5 +263,9 @@ export const PATCH = manejarErrores(async (
     usuario_id: usuario.id,
   })
 
-  return respuestaExito({ actualizado: true, campos_modificados: camposVisibles })
+  return respuestaExito({
+    actualizado: true,
+    campos_modificados: camposVisibles,
+    updated_at: (sinActualizado as any)?.updated_at ?? null,
+  })
 }, { modulo: 'siniestros' })
