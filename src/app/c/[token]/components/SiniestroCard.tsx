@@ -175,17 +175,22 @@ export default function SiniestroCard({
       esRechazado ? 'border-red-100' : esFinalizado ? 'border-emerald-100' : 'border-slate-200'
     }`}>
       <div className="p-4">
-        {/* Header con compañía + caso + badge estado */}
+        {/* Header con compañía + Nº siniestro (o caso si aún no lo asignaron) */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="min-w-0 flex-1">
             {siniestro.compania_nombre && (
               <p className="text-xs text-slate-500 font-medium">{siniestro.compania_nombre}</p>
             )}
-            <p className="text-sm font-mono font-semibold text-slate-800 mt-0.5">Caso #{siniestro.numero_caso}</p>
-            {siniestro.numero_siniestro && (
-              <p className="text-xs text-slate-500 mt-0.5">
-                N° siniestro: <span className="font-mono">{siniestro.numero_siniestro}</span>
-              </p>
+            {siniestro.numero_siniestro ? (
+              <>
+                <p className="text-2xs text-slate-500 uppercase tracking-wide mt-0.5">Nº Siniestro</p>
+                <p className="text-sm font-mono font-semibold text-slate-800">{siniestro.numero_siniestro}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xs text-slate-500 uppercase tracking-wide mt-0.5">Referencia</p>
+                <p className="text-sm font-mono font-semibold text-slate-800">#{siniestro.numero_caso}</p>
+              </>
             )}
           </div>
           <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-2xs font-semibold border ${badge}`}>

@@ -617,7 +617,7 @@ export default function FichaSiniestroPage() {
   }
 
   return (
-    <div className="flex flex-col gap-3 max-w-5xl px-1 sm:px-0">
+    <div className="flex flex-col gap-3 w-full">
 
       {/* Banner papelera */}
       {enPapelera && (
@@ -762,16 +762,12 @@ export default function FichaSiniestroPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════
-          REDISEÑO v1.0.134 — Filosofía "cero silencio":
-          cada sección semántica dice algo. Si el asegurado NO cargó
-          datos, mostramos POR QUÉ (indicó que no aplica, se dio a la
-          fuga, no completó, etc.) — no dejamos secciones en blanco.
+          REDISEÑO v1.0.135 — layout de 2 columnas + gestión arriba.
+          Filosofía "cero silencio": cada sección semántica dice algo.
           ═══════════════════════════════════════════════════════ */}
 
       {(() => {
-        // Helpers locales de "cero silencio" para leer el detalle_siniestro.
-        // El asegurado puede haber respondido true/'Sí'/'si' o false/'No'/'no',
-        // o simplemente no haber completado (undefined/null/'').
+        // Helpers "cero silencio" para leer detalle_siniestro.
         const esSi = (v: unknown): boolean => {
           if (v === true) return true
           if (typeof v === 'string') {
@@ -811,22 +807,215 @@ export default function FichaSiniestroPage() {
         const cat = tercero.categoria as string | undefined
         const catLabel = cat ? (categoriaLabelsTercero[cat] ?? cat) : ''
 
-        // Motivo sin datos → texto legible
         const motivoLabels: Record<string, string> = {
           fuga: 'Se dio a la fuga o no se identificó',
           no_brindo: 'No me brindó sus datos',
           adjunto: 'Los adjunto en la documentación',
         }
         const motivoLabel = motivoSinDatos ? (motivoLabels[motivoSinDatos] ?? motivoSinDatos) : ''
-
-        // Detección "se dio a la fuga" (checkbox aparte por compat)
         const seFuga = detalle.tercero_fuga === true || motivoSinDatos === 'fuga'
 
-        // Bien afectado inline
+        // Bien afectado
         const bien = siniestro.poliza?.riesgos?.[0]?.detalle_tecnico
 
         return (
           <div className="flex flex-col gap-3">
+
+            {/* ═════ FILA 1 — Nº SINIESTRO (izq) + ACTUALIZAR ESTADO (der) ═════ */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+
+              {/* Nº Siniestro compañía — arriba, prominente */}
+              <div className={`bg-white border rounded overflow-hidden ${siniestro.numero_siniestro ? 'border-slate-200' : 'border-amber-300'}`}>
+                <div className={`px-4 py-2.5 border-b flex items-center justify-between ${siniestro.numero_siniestro ? 'border-slate-100 bg-slate-50' : 'border-amber-200 bg-amber-50'}`}>
+                  <h3 className={`text-xs font-semibold uppercase tracking-wide ${siniestro.numero_siniestro ? 'text-slate-700' : 'text-amber-800'}`}>
+                    Nº Siniestro
+                  </h3>
+                  {siniestro.numero_siniestro && !editandoNumSiniestro && (
+                    <button
+                      type="button"
+                      onClick={() => { setNumSiniestroInput(siniestro.numero_siniestro ?? ''); setEditandoNumSiniestro(true) }}
+                      className="text-2xs text-blue-600 hover:underline"
+                    >
+                      Editar
+                    </button>
+                  )}
+                </div>
+                <div className="p-4 flex flex-col gap-2">
+                  {!editandoNumSiniestro && siniestro.numero_siniestro && (
+                    <>
+                      <span className="font-mono text-lg font-bold text-slate-800">{siniestro.numero_siniestro}</span>
+                      <p className="text-2xs text-slate-500">
+                        Otorgado por <strong>{siniestro.poliza?.compania?.nombre ?? 'la compañía'}</strong> al cargar la denuncia administrativa.
+                      </p>
+                    </>
+                  )}
+                  {!editandoNumSiniestro && !siniestro.numero_siniestro && (
+                    <>
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        Pendiente. Cargá acá el número que te otorga la compañía cuando elevás la denuncia administrativa.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => { setNumSiniestroInput(''); setEditandoNumSiniestro(true) }}
+                        className="btn-primary self-start"
+                      >
+                        <Save className="h-3 w-3" /> Cargar número
+                      </button>
+                    </>
+                  )}
+                  {editandoNumSiniestro && (
+                    <>
+                      <input
+                        type="text"
+                        className="form-input font-mono"
+                        value={numSiniestroInput}
+                        onChange={e => setNumSiniestroInput(e.target.value)}
+                        placeholder="Ej: SIN-2026-001234"
+                        autoFocus
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') guardarNumeroSiniestro()
+                          else if (e.key === 'Escape') setEditandoNumSiniestro(false)
+                        }}
+                      />
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={guardarNumeroSiniestro}
+                          disabled={guardandoNumSiniestro}
+                          className="btn-primary"
+                        >
+                          {guardandoNumSiniestro ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                          {guardandoNumSiniestro ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditandoNumSiniestro(false)}
+                          className="btn-secondary"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Actualizar estado — arriba, adyacente al Nº Siniestro */}
+              {!esEstadoTerminal(siniestro.estado) ? (
+                <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Actualizar estado</h3>
+                  </div>
+                  <div className="p-4 flex flex-col gap-2">
+                    <div>
+                      <label className="text-xs text-slate-500 mb-1 block">Nuevo estado</label>
+                      <select className="form-input w-full" value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)}>
+                        <option value={siniestro.estado}>{getEstadoBadge(siniestro.estado).label} (actual)</option>
+                        {obtenerEstadosSiguientes(siniestro.estado).map(est => {
+                          const badge = getEstadoBadge(est)
+                          return <option key={est} value={est}>{badge.label}</option>
+                        })}
+                      </select>
+                    </div>
+                    {(nuevoEstado === 'LIQUIDACION' || nuevoEstado === 'FINALIZADO') && (
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">Monto liquidado</label>
+                        <div className="flex gap-1">
+                          <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
+                          <input className="form-input font-mono rounded-l-none flex-1"
+                            value={montoActualizado}
+                            onChange={e => setMontoActualizado(e.target.value.replace(/[^\d.]/g, ''))}
+                            placeholder="0" inputMode="decimal" />
+                        </div>
+                      </div>
+                    )}
+                    {nuevoEstado === 'RECHAZADO' && (
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">
+                          Motivo del rechazo <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          className="form-input w-full resize-none text-xs"
+                          rows={3}
+                          placeholder="Ej: Cobertura no aplicable, falta de documentación..."
+                          value={motivoRechazo}
+                          onChange={e => setMotivoRechazo(e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <button
+                      onClick={cambiarEstado}
+                      disabled={guardandoEstado || nuevoEstado === siniestro.estado || (nuevoEstado === 'RECHAZADO' && !motivoRechazo.trim())}
+                      className="btn-primary self-start">
+                      {guardandoEstado ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                      {guardandoEstado ? 'Guardando...' : 'Actualizar'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border border-slate-200 rounded p-4 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-slate-400" />
+                  <p className="text-xs text-slate-600">
+                    Estado terminal: <strong>{getEstadoBadge(siniestro.estado).label}</strong>. No hay transiciones posibles.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* ═════ 👤🚗 PÓLIZA Y ASEGURADO (combinado, antes del relato) ═════ */}
+            <div className="bg-white border border-slate-200 rounded overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                  👤 Asegurado y bien afectado
+                </h3>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Asegurado (col 1) */}
+                <div className="md:col-span-1 flex flex-col gap-1">
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide">Asegurado</p>
+                  <button
+                    onClick={() => router.push(`/crm/personas/${siniestro.asegurado?.id}`)}
+                    className="flex items-center gap-1.5 text-blue-600 hover:underline text-sm font-semibold text-left"
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    {nombreAsegurado(siniestro)}
+                  </button>
+                  {siniestro.asegurado?.telefono && (
+                    <p className="text-xs text-slate-500 font-mono">{siniestro.asegurado.telefono}</p>
+                  )}
+                </div>
+
+                {/* Póliza (col 2) */}
+                <div className="md:col-span-1 flex flex-col gap-1">
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide">Póliza</p>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/crm/polizas/${siniestro.poliza?.id}`)}
+                    className="flex items-center gap-1.5 text-blue-600 hover:underline text-left"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span className="font-mono text-sm font-semibold">{siniestro.poliza?.numero_poliza}</span>
+                  </button>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                    {iconoRamo(tipoRiesgo)}
+                    <span>{(siniestro.poliza?.ramo as any)?.nombre ?? '—'}</span>
+                  </div>
+                  {siniestro.poliza?.compania && (
+                    <p className="text-xs text-slate-700 font-medium">{siniestro.poliza.compania.nombre}</p>
+                  )}
+                </div>
+
+                {/* Bien afectado (col 3-4) */}
+                <div className="md:col-span-2 flex flex-col gap-1">
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide">Bien afectado</p>
+                  {bien ? (
+                    <DescripcionBien tipoRiesgo={tipoRiesgo} dt={bien} />
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Sin datos del bien</p>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* ═════ 📍 CUÁNDO Y DÓNDE ═════ */}
             <div className="bg-white border border-slate-200 rounded overflow-hidden">
@@ -880,65 +1069,7 @@ export default function FichaSiniestroPage() {
               </div>
             </div>
 
-            {/* ═════ Grid: Asegurado + Póliza ═════ */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Asegurado */}
-              <div className="bg-white border border-slate-200 rounded overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
-                  <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
-                    👤 Asegurado
-                  </h3>
-                </div>
-                <div className="p-4 flex flex-col gap-2">
-                  <button
-                    onClick={() => router.push(`/crm/personas/${siniestro.asegurado?.id}`)}
-                    className="flex items-center gap-1.5 text-blue-600 hover:underline text-sm font-medium text-left"
-                  >
-                    <User className="h-3.5 w-3.5" />
-                    {nombreAsegurado(siniestro)}
-                  </button>
-                  {siniestro.asegurado?.telefono && (
-                    <p className="text-xs text-slate-500 font-mono">{siniestro.asegurado.telefono}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Póliza + Bien afectado */}
-              <div className="bg-white border border-slate-200 rounded overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
-                  <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
-                    🚗 Póliza y bien afectado
-                  </h3>
-                </div>
-                <div className="p-4 flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/crm/polizas/${siniestro.poliza?.id}`)}
-                    className="flex items-center gap-1.5 text-blue-600 hover:underline text-left"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    <span className="font-mono text-sm font-semibold">{siniestro.poliza?.numero_poliza}</span>
-                  </button>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                    {iconoRamo(tipoRiesgo)}
-                    <span>{(siniestro.poliza?.ramo as any)?.nombre ?? '—'}</span>
-                    {siniestro.poliza?.compania && (
-                      <>
-                        <span className="text-slate-400">·</span>
-                        <span>{siniestro.poliza.compania.nombre}</span>
-                      </>
-                    )}
-                  </div>
-                  {bien && (
-                    <div className="border-t border-slate-100 pt-2 mt-1">
-                      <DescripcionBien tipoRiesgo={tipoRiesgo} dt={bien} />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* ═════ 🚦 CONDUCTOR (solo automotor) ═════ */}
+            {/* ═════ 🚦 CONDUCTOR (solo automotor/moto) ═════ */}
             {(tipoRiesgo === 'automotor' || tipoRiesgo === 'moto') && (
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
@@ -948,7 +1079,7 @@ export default function FichaSiniestroPage() {
                 </div>
                 <div className="p-4">
                   {detalle.otra_persona_conduce === 'Otra persona' || esSi(detalle.otra_persona_conduce) ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
                       <Campo label="Nombre" valor={[conductor.apellido, conductor.nombre].filter(Boolean).join(', ') || conductor.nombre} />
                       <Campo label="DNI" valor={conductor.dni} mono />
                       <Campo label="Teléfono" valor={conductor.telefono} mono />
@@ -956,10 +1087,7 @@ export default function FichaSiniestroPage() {
                       <Campo label="Nro. registro" valor={conductor.registro} mono />
                     </div>
                   ) : detalle.otra_persona_conduce === 'El asegurado' || esNo(detalle.otra_persona_conduce) ? (
-                    <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-3 py-2">
-                      <CheckCircle className="h-4 w-4" />
-                      <span>El conductor era el propio asegurado.</span>
-                    </div>
+                    <p className="text-sm text-slate-700">El conductor es el asegurado.</p>
                   ) : (
                     <p className="text-xs italic text-amber-700">
                       El asegurado no indicó quién conducía al momento del siniestro.
@@ -995,7 +1123,7 @@ export default function FichaSiniestroPage() {
                         <span>{seFuga ? 'El tercero se dio a la fuga o no se identificó.' : motivoLabel}</span>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
                         <Campo label="Nombre" valor={tercero.nombre || siniestro.tercero_nombre} />
                         <Campo label="DNI" valor={tercero.dni || siniestro.tercero_dni} mono />
                         <Campo label="Teléfono" valor={tercero.telefono || siniestro.tercero_telefono} mono />
@@ -1003,7 +1131,7 @@ export default function FichaSiniestroPage() {
                         <Campo label="Nº póliza" valor={tercero.poliza} mono />
                         <Campo label="Patente" valor={tercero.patente || siniestro.tercero_patente} mono />
                         <Campo label="Marca / modelo" valor={[tercero.marca, tercero.modelo, tercero.anio].filter(Boolean).join(' ')} />
-                        <div className="col-span-2 md:col-span-3">
+                        <div className="col-span-2 md:col-span-4">
                           <Campo label="Daños del tercero" valor={tercero.danos} />
                         </div>
                       </div>
@@ -1029,9 +1157,8 @@ export default function FichaSiniestroPage() {
                 <div className="p-4">
                   {(() => {
                     const v = detalle.hubo_lesionados
-                    // El catálogo actual usa 'No' | 'Sí — leves' | 'Sí — graves'
                     const noHubo = typeof v === 'string' && v.toLowerCase().trim() === 'no'
-                    const huboAlguno = typeof v === 'string' && v.toLowerCase().includes('sí') || esSi(v)
+                    const huboAlguno = (typeof v === 'string' && v.toLowerCase().includes('sí')) || esSi(v)
                     if (noHubo) {
                       return (
                         <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -1143,8 +1270,6 @@ export default function FichaSiniestroPage() {
             {(() => {
               const camposCatalogo = extraerCamposCustom(siniestro.poliza?.ramo?.metadata as any)
               const labelsMap = mapaLabelsPorKey(camposCatalogo)
-              // Excluimos las keys que ya renderizamos en las secciones semánticas de arriba
-              // para no duplicarlas en la sección genérica.
               const keysExcluidas = new Set([
                 'tipo_riesgo', 'conductor', 'tercero', 'testigos', 'hubo_tercero', 'hubo_lesionados',
                 'hubo_testigos', 'detalle_lesiones', 'danos_propios', 'denuncia_policial',
@@ -1209,7 +1334,7 @@ export default function FichaSiniestroPage() {
                       📄 Datos adicionales
                     </h3>
                   </div>
-                  <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                     {keysOrdenadas.map(k => (
                       <div key={k}>
                         <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">{labelDeCampo(k, labelsMap)}</p>
@@ -1221,196 +1346,11 @@ export default function FichaSiniestroPage() {
               )
             })()}
 
-            {/* ═════ Grid: Gestión (izq) + Seguimiento (der) ═════ */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            {/* ═════ Grid final: Bitácora (2 cols) + Montos + Observaciones internas (1 col) ═════ */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
 
-              {/* Columna izquierda — Gestión (Nº siniestro + Estado + Montos) */}
-              <div className="lg:col-span-1 flex flex-col gap-3">
-
-                {/* N° siniestro de la compañía */}
-                <div className={`bg-white border rounded overflow-hidden ${siniestro.numero_siniestro ? 'border-slate-200' : 'border-amber-300'}`}>
-                  <div className={`px-4 py-2.5 border-b flex items-center justify-between ${siniestro.numero_siniestro ? 'border-slate-100 bg-slate-50' : 'border-amber-200 bg-amber-50'}`}>
-                    <h3 className={`text-xs font-semibold uppercase tracking-wide ${siniestro.numero_siniestro ? 'text-slate-700' : 'text-amber-800'}`}>
-                      Nº compañía
-                    </h3>
-                    {siniestro.numero_siniestro && !editandoNumSiniestro && (
-                      <button
-                        type="button"
-                        onClick={() => { setNumSiniestroInput(siniestro.numero_siniestro ?? ''); setEditandoNumSiniestro(true) }}
-                        className="text-2xs text-blue-600 hover:underline"
-                      >
-                        Editar
-                      </button>
-                    )}
-                  </div>
-                  <div className="p-4 flex flex-col gap-2">
-                    {!editandoNumSiniestro && siniestro.numero_siniestro && (
-                      <span className="font-mono text-sm font-semibold text-slate-700">{siniestro.numero_siniestro}</span>
-                    )}
-                    {!editandoNumSiniestro && !siniestro.numero_siniestro && (
-                      <>
-                        <p className="text-2xs text-amber-800 leading-relaxed">
-                          Pendiente. Cargá acá el número que te asignó la compañía al hacer la denuncia administrativa.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => { setNumSiniestroInput(''); setEditandoNumSiniestro(true) }}
-                          className="btn-primary self-start"
-                        >
-                          <Save className="h-3 w-3" /> Cargar número
-                        </button>
-                      </>
-                    )}
-                    {editandoNumSiniestro && (
-                      <>
-                        <input
-                          type="text"
-                          className="form-input font-mono"
-                          value={numSiniestroInput}
-                          onChange={e => setNumSiniestroInput(e.target.value)}
-                          placeholder="Ej: SIN-2026-001234"
-                          autoFocus
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') guardarNumeroSiniestro()
-                            else if (e.key === 'Escape') setEditandoNumSiniestro(false)
-                          }}
-                        />
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={guardarNumeroSiniestro}
-                            disabled={guardandoNumSiniestro}
-                            className="btn-primary"
-                          >
-                            {guardandoNumSiniestro ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                            {guardandoNumSiniestro ? 'Guardando...' : 'Guardar'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditandoNumSiniestro(false)}
-                            className="btn-secondary"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Panel Estado */}
-                {!esEstadoTerminal(siniestro.estado) ? (
-                  <div className="bg-white border border-slate-200 rounded overflow-hidden">
-                    <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
-                      <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Actualizar estado</h3>
-                    </div>
-                    <div className="p-4 flex flex-col gap-2">
-                      <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Nuevo estado</label>
-                        <select className="form-input w-full" value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)}>
-                          <option value={siniestro.estado}>{getEstadoBadge(siniestro.estado).label} (actual)</option>
-                          {obtenerEstadosSiguientes(siniestro.estado).map(est => {
-                            const badge = getEstadoBadge(est)
-                            return <option key={est} value={est}>{badge.label}</option>
-                          })}
-                        </select>
-                      </div>
-                      {(nuevoEstado === 'LIQUIDACION' || nuevoEstado === 'FINALIZADO') && (
-                        <div>
-                          <label className="text-xs text-slate-500 mb-1 block">Monto liquidado</label>
-                          <div className="flex gap-1">
-                            <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
-                            <input className="form-input font-mono rounded-l-none flex-1"
-                              value={montoActualizado}
-                              onChange={e => setMontoActualizado(e.target.value.replace(/[^\d.]/g, ''))}
-                              placeholder="0" inputMode="decimal" />
-                          </div>
-                        </div>
-                      )}
-                      {nuevoEstado === 'RECHAZADO' && (
-                        <div>
-                          <label className="text-xs text-slate-500 mb-1 block">
-                            Motivo del rechazo <span className="text-red-500">*</span>
-                          </label>
-                          <textarea
-                            className="form-input w-full resize-none text-xs"
-                            rows={3}
-                            placeholder="Ej: Cobertura no aplicable, falta de documentación..."
-                            value={motivoRechazo}
-                            onChange={e => setMotivoRechazo(e.target.value)}
-                          />
-                        </div>
-                      )}
-                      <button
-                        onClick={cambiarEstado}
-                        disabled={guardandoEstado || nuevoEstado === siniestro.estado || (nuevoEstado === 'RECHAZADO' && !motivoRechazo.trim())}
-                        className="btn-primary self-start">
-                        {guardandoEstado ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                        {guardandoEstado ? 'Guardando...' : 'Actualizar'}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white border border-slate-200 rounded p-4">
-                    <p className="text-xs text-slate-600 flex items-center gap-1.5">
-                      <CheckCircle className="h-3.5 w-3.5 text-slate-400" />
-                      Estado terminal: {getEstadoBadge(siniestro.estado).label}.
-                    </p>
-                  </div>
-                )}
-
-                {/* Montos */}
-                <div className="bg-white border border-slate-200 rounded overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
-                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Montos</h3>
-                  </div>
-                  <div className="p-4 flex flex-col gap-2">
-                    <div>
-                      <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Estimado</p>
-                      <p className="text-sm font-semibold text-slate-700">
-                        {siniestro.monto_estimado ? formatPeso(siniestro.monto_estimado) : '—'}
-                      </p>
-                    </div>
-                    {siniestro.monto_liquidado != null && (
-                      <div>
-                        <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Liquidado</p>
-                        <p className="text-sm font-semibold text-emerald-700">{formatPeso(siniestro.monto_liquidado)}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Observaciones internas */}
-                <div className="bg-white border border-slate-200 rounded overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 flex items-baseline justify-between">
-                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Observaciones internas</h3>
-                    <span className="text-2xs text-slate-500">No se comparte con el asegurado</span>
-                  </div>
-                  <div className="p-4">
-                    <textarea
-                      className="w-full form-input min-h-[80px] py-2 text-xs resize-none"
-                      value={notasInput}
-                      onChange={e => setNotasInput(e.target.value)}
-                      placeholder="Notas internas, gestiones con la compañía, próximos pasos..."
-                      disabled={guardandoNotas}
-                    />
-                    {notasInput.trim() !== (siniestro.notas ?? '').trim() && (
-                      <div className="flex items-center gap-1.5 mt-2">
-                        <button onClick={guardarNotas} disabled={guardandoNotas} className="btn-primary text-xs">
-                          {guardandoNotas ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                          Guardar
-                        </button>
-                        <button onClick={() => setNotasInput(siniestro.notas ?? '')} disabled={guardandoNotas} className="btn-secondary text-xs">
-                          Cancelar
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Columna derecha — Bitácora full height */}
-              <div className="lg:col-span-2">
+              {/* Bitácora — 2 columnas */}
+              <div className="xl:col-span-2">
                 <div className="bg-white border border-slate-200 rounded overflow-hidden flex flex-col h-full">
                   <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                     <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Bitácora de seguimiento</h3>
@@ -1434,12 +1374,76 @@ export default function FichaSiniestroPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="p-4 flex flex-col gap-0 overflow-y-auto max-h-96">
+                  <div className="p-4 flex flex-col gap-0 overflow-y-auto max-h-[500px]">
                     {bitacora.length === 0 ? (
                       <p className="text-xs text-slate-500 text-center py-6">
                         Sin entradas todavía. Agregá la primera nota arriba.
                       </p>
                     ) : bitacora.map(e => <EntradaItem key={e.id} e={e} />)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Columna derecha — Montos + Observaciones internas (grandes) */}
+              <div className="flex flex-col gap-3">
+                {/* Montos */}
+                <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Montos</h3>
+                  </div>
+                  <div className="p-4 grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Estimado</p>
+                      <p className="text-sm font-semibold text-slate-700">
+                        {siniestro.monto_estimado ? formatPeso(siniestro.monto_estimado) : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Liquidado</p>
+                      <p className="text-sm font-semibold text-emerald-700">
+                        {siniestro.monto_liquidado != null ? formatPeso(siniestro.monto_liquidado) : '—'}
+                      </p>
+                    </div>
+                    {siniestro.franquicia_aplicada != null && (
+                      <div>
+                        <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Franquicia</p>
+                        <p className="text-sm font-semibold text-slate-700">{formatPeso(siniestro.franquicia_aplicada)}</p>
+                      </div>
+                    )}
+                    {siniestro.monto_cobrado != null && (
+                      <div>
+                        <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Cobrado</p>
+                        <p className="text-sm font-semibold text-emerald-700">{formatPeso(siniestro.monto_cobrado)}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Observaciones internas — GRANDE */}
+                <div className="bg-white border border-slate-200 rounded overflow-hidden flex-1 flex flex-col">
+                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 flex items-baseline justify-between">
+                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Observaciones internas</h3>
+                    <span className="text-2xs text-slate-500">No se comparte con el asegurado</span>
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col">
+                    <textarea
+                      className="w-full form-input min-h-[220px] flex-1 py-2.5 px-3 text-sm leading-relaxed resize-y"
+                      value={notasInput}
+                      onChange={e => setNotasInput(e.target.value)}
+                      placeholder="Notas internas, gestiones con la compañía, próximos pasos, contactos del liquidador, plazos, etc..."
+                      disabled={guardandoNotas}
+                    />
+                    {notasInput.trim() !== (siniestro.notas ?? '').trim() && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <button onClick={guardarNotas} disabled={guardandoNotas} className="btn-primary text-xs">
+                          {guardandoNotas ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                          Guardar
+                        </button>
+                        <button onClick={() => setNotasInput(siniestro.notas ?? '')} disabled={guardandoNotas} className="btn-secondary text-xs">
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1469,6 +1473,7 @@ export default function FichaSiniestroPage() {
           </div>
         )
       })()}
+
 
       {/* ── Modal Editar ─────────────────────────────────────── */}
       <EditarSiniestroModal
