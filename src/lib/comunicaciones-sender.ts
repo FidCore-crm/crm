@@ -808,10 +808,42 @@ export async function enviarComunicacion(params: {
 }): Promise<{ ok: boolean; envio_id?: string; error?: string }> {
   // Las plantillas generales usan `titulo` y `cuerpo_mensaje` como variables.
   // Si el caller pasó campos_editables legacy, los mapeo.
+  //
+  // Fix v1.0.140 — botón CTA: cuando el envío trae `cta_texto + cta_url`
+  // (envío manual, campaña con plantilla, plantilla directa), generamos el HTML
+  // del botón (con el color de marca del PAS) y lo inyectamos al final del
+  // cuerpo del mensaje via marcador `{{boton_accion}}`.
+  //
+  // El renderer trata `boton_accion` como variable html-segura y hace una
+  // pasada extra DESPUÉS de expandir el cuerpo — así el marcador puesto
+  // dentro del cuerpo_mensaje sí se resuelve. Antes el CTA se descartaba
+  // silenciosamente porque enviarComunicacion solo mapeaba `titulo` y `cuerpo`.
+  let cuerpoConBoton = params.campos_editables?.cuerpo ?? ''
+  let botonHtml: string | undefined
+  const ctaTexto = params.campos_editables?.cta_texto?.trim()
+  const ctaUrl = params.campos_editables?.cta_url?.trim()
+  if (ctaTexto && ctaUrl) {
+    const orgVars = await obtenerVariablesOrganizacion()
+    const { generarBotonHtml } = await import('@/lib/email-templates/botones')
+    botonHtml = generarBotonHtml({
+      texto: ctaTexto,
+      url: ctaUrl,
+      color_marca: orgVars.organizacion_color_marca || undefined,
+    })
+    // Si el cuerpo del PAS aún no incluye `{{boton_accion}}`, se lo agregamos
+    // al final. Si ya lo incluye (uso avanzado), respetamos su posición.
+    if (!cuerpoConBoton.includes('{{boton_accion}}')) {
+      cuerpoConBoton = cuerpoConBoton.trim()
+        ? `${cuerpoConBoton}\n\n{{boton_accion}}`
+        : `{{boton_accion}}`
+    }
+  }
+
   const variables_extra: Record<string, string> = {
     ...(params.variables_extra || {}),
     ...(params.campos_editables?.titulo ? { titulo: params.campos_editables.titulo } : {}),
-    ...(params.campos_editables?.cuerpo ? { cuerpo_mensaje: params.campos_editables.cuerpo } : {}),
+    ...(cuerpoConBoton ? { cuerpo_mensaje: cuerpoConBoton } : {}),
+    ...(botonHtml ? { boton_accion: botonHtml } : {}),
   }
 
   const encoladoResult = await encolarEmail({

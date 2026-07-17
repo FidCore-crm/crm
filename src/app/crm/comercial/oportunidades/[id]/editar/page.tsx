@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { actualizarConOptimistic } from '@/lib/optimistic-update'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { BannerError } from '@/components/BannerError'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 
 function Campo({ label, required, error, children }: {
@@ -139,6 +140,10 @@ export default function EditarOportunidadPage() {
       return
     }
 
+    // Sincronizar updated_at fresco (v1.0.140).
+    if (r.registro_actualizado?.updated_at) {
+      setUpdatedAtInicial(r.registro_actualizado.updated_at)
+    }
     setExito(true)
     setGuardando(false)
     setTimeout(() => router.push(`/crm/comercial/oportunidades/${id}`), 1000)
@@ -196,11 +201,7 @@ export default function EditarOportunidadPage() {
         </div>
       )}
 
-      {errorGral && (
-        <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0"/> {errorGral}
-        </div>
-      )}
+      <BannerError mensaje={errorGral} onCerrar={() => setErrorGral('')} />
 
       {/* Oportunidad */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">

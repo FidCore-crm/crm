@@ -15,6 +15,7 @@ import { getEstadoBadge } from '@/lib/siniestros-config'
 import { obtenerEstadosSiguientes, esEstadoTerminal } from '@/lib/siniestros-estados'
 import { formatFechaLocalLarga, formatMoneda, getTooltipEstado } from '@/lib/utils'
 import { logger } from '@/lib/errores/logger'
+import { BannerError } from '@/components/BannerError'
 import GestorArchivos from '@/components/GestorArchivos'
 import EditarSiniestroModal from '@/components/EditarSiniestroModal'
 import { apiCall } from '@/lib/api-client'
@@ -637,25 +638,8 @@ export default function FichaSiniestroPage() {
   return (
     <div className="flex flex-col gap-3 w-full">
 
-      {/* Banner error — arriba de todo, sticky visible (v1.0.139) */}
-      {error && (
-        <div className="sticky top-2 z-30 bg-red-50 border-l-4 border-red-500 border border-red-200 rounded-lg p-4 shadow-md flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1">
-            <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-red-900 mb-0.5">No se pudo completar la operación</p>
-              <p className="text-sm text-red-800 leading-relaxed break-words">{error}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setError('')}
-            className="text-red-500 hover:text-red-700 shrink-0"
-            title="Cerrar"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
+      {/* Banner error unificado (v1.0.139/140) — ver src/components/BannerError.tsx */}
+      <BannerError mensaje={error} onCerrar={() => setError('')} />
 
       {/* Banner papelera */}
       {enPapelera && (

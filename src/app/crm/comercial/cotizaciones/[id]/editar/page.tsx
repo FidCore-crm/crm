@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { actualizarConOptimistic } from '@/lib/optimistic-update'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { BannerError } from '@/components/BannerError'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
@@ -484,6 +485,11 @@ export default function EditarCotizacionPage() {
       }
       if (!r.ok) throw new Error(r.error || 'Error al guardar')
 
+      // Sincronizar updated_at fresco (v1.0.140).
+      if (r.registro_actualizado?.updated_at) {
+        setUpdatedAtInicial(r.registro_actualizado.updated_at)
+      }
+
       // 2. DELETE all cotizacion_companias for this cotizacion
       const { error: delErr } = await supabase
         .from('cotizacion_companias')
@@ -578,11 +584,7 @@ export default function EditarCotizacionPage() {
       )}
 
       {/* Mensajes */}
-      {errorGral && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" /> {errorGral}
-        </div>
-      )}
+      <BannerError mensaje={errorGral} onCerrar={() => setErrorGral('')} />
       {exito && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm border border-emerald-200">
           <CheckCircle className="h-4 w-4 flex-shrink-0" /> Cotizacion actualizada correctamente. Redirigiendo...

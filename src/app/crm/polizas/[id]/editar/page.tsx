@@ -13,6 +13,7 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { apiCall } from '@/lib/api-client'
 import BuscadorPersona from '@/components/BuscadorPersona'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { BannerError } from '@/components/BannerError'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { tipoRenderForm, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
@@ -505,11 +506,7 @@ export default function EditarPolizaPage() {
         </div>
       </div>
 
-      {errorGral && (
-        <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />{errorGral}
-        </div>
-      )}
+      <BannerError mensaje={errorGral} onCerrar={() => setErrorGral('')} />
 
       {/* Asegurado y Cobertura */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">

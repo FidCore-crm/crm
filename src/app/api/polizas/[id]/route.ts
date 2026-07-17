@@ -435,14 +435,21 @@ export const PATCH = manejarErrores(async (
     }
   }
 
+  let updatedAtFresco: string | null = null
   if (Object.keys(patchPoliza).length > 0) {
-    const { error } = await supabase.from('polizas').update(patchPoliza).eq('id', id)
+    const { data: polizaActualizada, error } = await supabase
+      .from('polizas')
+      .update(patchPoliza)
+      .eq('id', id)
+      .select('updated_at')
+      .single()
     if (error) {
       throw new ErrorAplicacion(ERRORES.DB_ERROR_ESCRITURA, {
         detalle: error.message,
         contexto: { tabla: 'polizas', operacion: 'update', id },
       })
     }
+    updatedAtFresco = (polizaActualizada as any)?.updated_at ?? null
 
     // Bitácora EDICION solo si efectivamente hubo cambios
     if (camposCambiados.length > 0) {
@@ -593,5 +600,9 @@ export const PATCH = manejarErrores(async (
     }
   }
 
-  return respuestaExito({ ok: true, transicion: cambiosTransicion.length > 0 ? cambiosTransicion : undefined })
+  return respuestaExito({
+    ok: true,
+    transicion: cambiosTransicion.length > 0 ? cambiosTransicion : undefined,
+    updated_at: updatedAtFresco,
+  })
 }, { modulo: 'polizas' })

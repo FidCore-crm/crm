@@ -367,10 +367,12 @@ export const PATCH = manejarErrores(async (request: NextRequest, { params }: { p
     return respuestaExito({ actualizado: false })
   }
 
-  const { error: errUpdate } = await supabase
+  const { data: personaActualizada, error: errUpdate } = await supabase
     .from('personas')
     .update(payload)
     .eq('id', id)
+    .select('updated_at')
+    .single()
 
   if (errUpdate) {
     throw new ErrorAplicacion(ERRORES.DB_ERROR_ESCRITURA, {
@@ -398,5 +400,9 @@ export const PATCH = manejarErrores(async (request: NextRequest, { params }: { p
     })
   }
 
-  return respuestaExito({ actualizado: true, campos_modificados: camposModificados })
+  return respuestaExito({
+    actualizado: true,
+    campos_modificados: camposModificados,
+    updated_at: (personaActualizada as any)?.updated_at ?? null,
+  })
 }, { modulo: 'personas' })

@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { actualizarConOptimistic } from '@/lib/optimistic-update'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { BannerError } from '@/components/BannerError'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { mensajeErrorAmigable } from '@/lib/utils'
 
@@ -155,6 +156,11 @@ export default function EditarTareaPage() {
         return
       }
       if (!r.ok) throw new Error(r.error || 'Error al guardar')
+      // Sincronizar updated_at fresco (v1.0.140) para evitar falso conflicto
+      // si el usuario vuelve a guardar sin recargar la ficha.
+      if (r.registro_actualizado?.updated_at) {
+        setUpdatedAtInicial(r.registro_actualizado.updated_at)
+      }
       setExito(true)
       setTimeout(() => router.push('/crm/tareas'), 1200)
     } catch (err: any) {
@@ -205,11 +211,7 @@ export default function EditarTareaPage() {
         </div>
       </div>
 
-      {errorGral && (
-        <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />{errorGral}
-        </div>
-      )}
+      <BannerError mensaje={errorGral} onCerrar={() => setErrorGral('')} />
 
       {/* Sección: Tarea */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">

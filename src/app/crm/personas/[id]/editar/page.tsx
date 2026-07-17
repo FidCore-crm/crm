@@ -11,6 +11,7 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
 import { nombreCompleto } from '@/lib/utils'
 import { apiCall } from '@/lib/api-client'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { BannerError } from '@/components/BannerError'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import type { Persona } from '@/types/database'
 
@@ -421,11 +422,7 @@ export default function EditarPersonaPage() {
       </div>
 
       {/* Error general */}
-      {errorGral && (
-        <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {errorGral}
-        </div>
-      )}
+      <BannerError mensaje={errorGral} onCerrar={() => setErrorGral('')} />
 
       {/* ── Sección 1: Tipo de persona ─────────────────── */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">

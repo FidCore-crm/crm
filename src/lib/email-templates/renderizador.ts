@@ -104,10 +104,27 @@ function prepararTextoHtml(texto: string, variables: Record<string, string>): st
     textoConPlaceholders = textoConPlaceholders.replace(new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, 'g'), placeholder)
   }
 
-  const conVariables = reemplazarVariables(textoConPlaceholders, variablesTexto)
-  let escapado = escapeHtml(conVariables)
+  // 2da pasada de html-safe (v1.0.140): variables tipo `cuerpo_mensaje` pueden
+  // contener a su vez marcadores `{{boton_accion}}` que aparecen DESPUÉS del
+  // reemplazo. Sin esta pasada, esos marcadores quedan como texto plano y no
+  // se resuelven como HTML. Aplicamos el mismo mecanismo de placeholders sobre
+  // el string ya expandido de las variables de texto.
+  const textoTrasVariables = reemplazarVariables(textoConPlaceholders, variablesTexto)
+  let textoConSegundaPasada = textoTrasVariables
+  for (const [k, htmlValor] of Object.entries(variablesHtml)) {
+    const placeholder = `__HTMLVAR2_${k}_${Math.random().toString(36).slice(2)}__`
+    if (new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`).test(textoConSegundaPasada)) {
+      placeholders.set(placeholder, htmlValor)
+      textoConSegundaPasada = textoConSegundaPasada.replace(
+        new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, 'g'),
+        placeholder,
+      )
+    }
+  }
 
-  // Restituir HTML real reemplazando los placeholders
+  let escapado = escapeHtml(textoConSegundaPasada)
+
+  // Restituir HTML real reemplazando los placeholders (los 2 tipos: 1ra y 2da pasada)
   for (const [placeholder, htmlValor] of Array.from(placeholders.entries())) {
     escapado = escapado.split(placeholder).join(htmlValor)
   }
