@@ -100,25 +100,32 @@ else
 fi
 
 # === 2. STORAGE ===
+# Optimización v1.0.143: PRE_UPDATE NO incluye storage. Es defensivo para
+# rollback de código+migraciones SQL cuando falla un update — los archivos
+# físicos de storage/ no cambian con un update. Un PRE_UPDATE de solo DB es
+# mucho más liviano (~500 KB en vez de 8 MB) y suficiente para el rollback.
+# Ahorra ~7 MB × 100 backups PRE_UPDATE al mes.
 echo ""
-echo "[2/4] Empaquetando archivos de storage..."
 STORAGE_TAR="$STAGE_DIR/storage.tar.gz"
 STORAGE_INCLUDED="false"
+STORAGE_SIZE=0
 
-if [ -d "$STORAGE_DIR" ]; then
+if [ "$TIPO" = "PRE_UPDATE" ]; then
+  echo "[2/4] Storage OMITIDO (tipo PRE_UPDATE — solo DB para rollback rápido)"
+  tar -czf "$STORAGE_TAR" -T /dev/null
+elif [ -d "$STORAGE_DIR" ]; then
+  echo "[2/4] Empaquetando archivos de storage..."
   if tar -czf "$STORAGE_TAR" -C "$PROJECT_DIR" storage/ 2>/dev/null; then
     STORAGE_SIZE=$(stat -c%s "$STORAGE_TAR")
     STORAGE_INCLUDED="true"
     echo "  Storage tar: $STORAGE_SIZE bytes"
   else
     echo "  Error al empaquetar storage (continuando)"
-    STORAGE_SIZE=0
     touch "$STORAGE_TAR"
   fi
 else
-  echo "  Carpeta storage no existe, tar vacío"
+  echo "[2/4] Carpeta storage no existe, tar vacío"
   tar -czf "$STORAGE_TAR" -T /dev/null
-  STORAGE_SIZE=0
 fi
 
 # === 3. METADATA ===

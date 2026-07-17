@@ -453,8 +453,14 @@ export default function FichaPersonaPage() {
   // ── Tabs config ────────────────────────────────────────────
   const comercialCount = oportunidades.length + cotizacionesCom.length + interaccionesCom.length
   const portalActivo = !!portalAcceso?.tiene_acceso
+  // El contador del tab "Pólizas" muestra solo las vigentes reales (v1.0.143 —
+  // pedido de Nahuel). Antes contaba todas incluyendo NO_VIGENTE, CANCELADA,
+  // ANULADA, etc. — números altos poco útiles operativamente. Un cliente con
+  // 12 pólizas históricas y 2 vigentes ahora muestra "2" en el tab, y la tabla
+  // adentro muestra las 12 con el toggle "Mostrar históricas".
+  const polizasVigentesCount = polizas.filter(p => p.estado === 'VIGENTE').length
   const tabs: { key: Tab; label: string; count: number; icon: React.ReactNode; check?: boolean }[] = [
-    { key: 'polizas',    label: 'Pólizas',    count: polizas.length,    icon: <Shield className="h-3 w-3" /> },
+    { key: 'polizas',    label: 'Pólizas',    count: polizasVigentesCount, icon: <Shield className="h-3 w-3" /> },
     { key: 'siniestros', label: 'Siniestros',  count: siniestros.length, icon: <AlertTriangle className="h-3 w-3" /> },
     { key: 'tareas',     label: 'Tareas',      count: tareas.length,     icon: <ClipboardList className="h-3 w-3" /> },
     { key: 'comercial',  label: 'Comercial',   count: comercialCount,    icon: <Briefcase className="h-3 w-3" /> },

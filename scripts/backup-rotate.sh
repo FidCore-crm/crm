@@ -9,15 +9,20 @@ set -e
 #
 #   AUTOMATICO / MANUAL / PRE_RESTORE:
 #     Grandfather-Father-Son.
-#     - Últimos N diarios (default 7)
-#     - Últimos N semanales (default 4)
-#     - Últimos N mensuales (default 6)
+#     - Últimos N diarios (default 3)
+#     - Últimos N semanales (default 2)
+#     - Últimos N mensuales (default 3)
 #
 #   PRE_UPDATE:
 #     Retención especial.
-#     - Mantener siempre los últimos N PRE_UPDATE (default 5)
-#     - Mantener cualquiera de los últimos M días (default 30)
+#     - Mantener siempre los últimos N PRE_UPDATE (default 2)
+#     - Mantener cualquiera de los últimos M días (default 3)
 #     - Quien NO cumpla NINGUNA, se elimina.
+#
+# Defaults ajustados en v1.0.143: antes 7/4/6 + 5/30 acumulaban ~120 backups
+# en ~2 meses ocupando 1 GB. Los nuevos defaults (3/2/3 + 2/3) mantienen
+# ~10 backups activos ocupando ~100 MB — suficiente para rollback puntual
+# sin desperdiciar disco.
 #
 # El tipo de cada .crmbak se determina consultando la tabla `backups` por
 # `archivo_unico_path`. Si no se encuentra (huérfano), se trata como AUTOMATICO.
@@ -38,12 +43,12 @@ if [ -f "$PROJECT_DIR/.env.docker" ]; then
   set +a
 fi
 
-# Defaults
-RETENER_DIARIOS=7
-RETENER_SEMANALES=4
-RETENER_MENSUALES=6
-RETENER_PRE_UPDATE_MINIMOS=5
-RETENER_PRE_UPDATE_DIAS=30
+# Defaults (v1.0.143 — reducidos de 7/4/6 + 5/30 para ahorrar disco)
+RETENER_DIARIOS=3
+RETENER_SEMANALES=2
+RETENER_MENSUALES=3
+RETENER_PRE_UPDATE_MINIMOS=2
+RETENER_PRE_UPDATE_DIAS=3
 
 POSTGRES_HOST="${POSTGRES_HOST:-}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
