@@ -65,9 +65,11 @@ export default function ComunicacionesPage() {
   // Lead entrante desde formulario web público (migración 103)
   const [notifLeadWeb, setNotifLeadWeb] = useState(false)
 
-  // Toggles para emails del formulario público de denuncia
+  // Toggle para email de confirmación al asegurado tras denuncia por portal.
+  // El toggle "aviso al PAS" fue eliminado en v1.0.134: el CRM ya notifica al
+  // PAS por otros medios (ícono sirena en navbar, notif in-app crítica, tab
+  // "denuncias pendientes") y el PDF queda en la ficha del siniestro.
   const [denunciaEmailCliente, setDenunciaEmailCliente] = useState(false)
-  const [denunciaEmailPas, setDenunciaEmailPas] = useState(false)
   const [smtpConfigurado, setSmtpConfigurado] = useState(false)
   const [editandoPlantilla, setEditandoPlantilla] = useState<string | null>(null)
 
@@ -128,7 +130,6 @@ export default function ComunicacionesPage() {
         setNotifEmailFallido(c.notificar_admin_email_automatico_fallido ?? false)
         setNotifLeadWeb(c.notificar_admin_lead_web ?? true)
         setDenunciaEmailCliente(c.envio_automatico_denuncia_publica_cliente ?? false)
-        setDenunciaEmailPas(c.envio_automatico_denuncia_publica_pas ?? false)
       } else if (!configRes.ok) {
         setErrorGral(configRes.error?.mensaje ?? 'Error al cargar la configuración')
       }
@@ -936,26 +937,6 @@ export default function ComunicacionesPage() {
                   </label>
                 </div>
 
-                {/* Toggle: denuncia pública al PAS */}
-                <div className="flex items-center justify-between gap-4 py-1.5 border-t border-slate-100 mt-2 pt-3">
-                  <div>
-                    <p className="text-xs text-slate-700">Aviso al PAS cuando un cliente carga una denuncia desde el portal</p>
-                    <p className="text-2xs text-slate-400">Email con los detalles de la denuncia y el PDF adjunto. Recomendado activado.</p>
-                  </div>
-                  <label className={`relative inline-flex items-center ${!smtpConfigurado ? 'opacity-50' : 'cursor-pointer'} shrink-0`}>
-                    <input
-                      type="checkbox"
-                      checked={denunciaEmailPas}
-                      disabled={!smtpConfigurado}
-                      onChange={e => {
-                        setDenunciaEmailPas(e.target.checked)
-                        immediateSave({ envio_automatico_denuncia_publica_pas: e.target.checked })
-                      }}
-                      className="sr-only peer"
-                    />
-                    <div className="w-10 h-5 bg-slate-300 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5" />
-                  </label>
-                </div>
               </div>
             </div>
           </div>

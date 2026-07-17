@@ -35,8 +35,16 @@ async function listarDocumentacionPoliza(numero_poliza: string): Promise<Array<{
   }
 }
 
+/**
+ * Lista archivos que el PAS carga en la ficha del siniestro para que el
+ * asegurado los descargue (denuncia administrativa presentada a la compañía,
+ * certificado de cobertura, carta de franquicia, etc.).
+ *
+ * NO se muestra la categoría 'documentacion' — esa es la que sube el asegurado
+ * al denunciar (el asegurado ya la tiene, sería redundante).
+ */
 async function listarDocumentacionSiniestro(numero_caso: string): Promise<Array<{ nombre: string; ruta: string; tamano: number }>> {
-  const dir = path.join(STORAGE_ROOT, 'siniestros', numero_caso, 'documentacion')
+  const dir = path.join(STORAGE_ROOT, 'siniestros', numero_caso, 'documentacion_denuncia')
   if (!dir.startsWith(STORAGE_ROOT)) return []
   if (!existsSync(dir)) return []
   try {
@@ -49,7 +57,7 @@ async function listarDocumentacionSiniestro(numero_caso: string): Promise<Array<
         if (s.isFile()) {
           out.push({
             nombre: f,
-            ruta: `siniestros/${numero_caso}/documentacion/${f}`,
+            ruta: `siniestros/${numero_caso}/documentacion_denuncia/${f}`,
             tamano: s.size,
           })
         }

@@ -98,10 +98,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Falta endoso_id para categoría endosos' }, { status: 400 })
     }
 
-    if (esSiniestro && !['documentacion', 'fotos'].includes(categoria)) {
+    if (esSiniestro && !['documentacion', 'documentacion_denuncia', 'fotos'].includes(categoria)) {
       // 'fotos' se mantiene aceptable por retrocompat con clientes viejos
       // que puedan seguir enviándolo, pero se normaliza a 'documentacion'
       // silenciosamente (v1.0.124 unificó las dos categorías).
+      // 'documentacion_denuncia' es la que sube el PAS para el asegurado
+      // (visible en portal — v1.0.134).
       return NextResponse.json({ ok: false, error: 'Categoría inválida para siniestro' }, { status: 400 })
     }
     // Normalización: cualquier upload que llegue con categoria='fotos' se

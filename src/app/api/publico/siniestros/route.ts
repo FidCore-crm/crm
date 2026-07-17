@@ -394,7 +394,7 @@ export async function POST(request: NextRequest) {
     for (const key of camposCustomCatalogo) {
       const raw = formData.get(`custom_${key}`)
       if (typeof raw === 'string' && raw.trim()) {
-        detalleSiniestro[key] = raw.trim().slice(0, 2000)
+        detalleSiniestro[key] = raw.trim().slice(0, 10000)
       }
     }
 
@@ -421,11 +421,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Sanitizar todos los strings dentro de detalle_siniestro para evitar XSS.
-    // IMPORTANTE: cortamos a 2000 ANTES de sanitizar — si el texto incluía un
+    // IMPORTANTE: cortamos a 10000 ANTES de sanitizar — si el texto incluía un
     // `&`, `sanitizeText` lo expande a `&amp;` (5 chars) y un slice posterior
     // podría partir la entidad HTML dejando "&am..." y rompiendo el render.
+    // Límite de 10 KB por campo es generoso: un relato típico entra en <2 KB, pero
+    // relatos detallados con listas de daños pueden llegar a 4-6 KB.
     const sanitizarRecursivo = (v: any): any => {
-      if (typeof v === 'string') return sanitizeText(v.slice(0, 2000))
+      if (typeof v === 'string') return sanitizeText(v.slice(0, 10000))
       if (Array.isArray(v)) return v.map(sanitizarRecursivo)
       if (v && typeof v === 'object') {
         const out: Record<string, any> = {}
@@ -677,15 +679,18 @@ export async function POST(request: NextRequest) {
 
       pdfBuffer = await generarPDFSiniestro(datosPDF)
 
+      // El PDF de la denuncia queda en `documentacion/` (la subcarpeta ya se
+      // creó al procesar los archivos). Antes iba a la raíz del siniestro y
+      // no aparecía en el GestorArchivos del CRM ni en el listado del portal.
       const pdfNombre = `Denuncia_${numeroCaso}.pdf`
-      const pdfRuta = path.join(carpetaSiniestro, pdfNombre)
+      const pdfRuta = path.join(carpetaSiniestro, 'documentacion', pdfNombre)
       await writeFile(pdfRuta, pdfBuffer)
 
       await supabase.from('siniestro_archivos').insert({
         siniestro_id: siniestro.id,
         categoria: 'documentacion',
         nombre: pdfNombre,
-        ruta: `siniestros/${numeroCaso}/${pdfNombre}`,
+        ruta: `siniestros/${numeroCaso}/documentacion/${pdfNombre}`,
         mime_type: 'application/pdf',
         tamano: pdfBuffer.length,
       })
@@ -715,10 +720,14 @@ export async function POST(request: NextRequest) {
       usuario_id: persona.usuario_id ?? null,
     })
 
-    // ── Emails ───────────────────────────────────────────
+    // ── Email al asegurado ───────────────────────────────────────
+    // El email al PAS fue eliminado en v1.0.134: el CRM ya notifica al PAS
+    // por otros medios (ícono sirena en navbar, notif in-app crítica, tab
+    // "denuncias pendientes") y el PDF queda como archivo en la ficha del
+    // siniestro, categoría 'documentacion'. Un email adicional era ruido.
     let emailEnviado = false
     try {
-      const [{ data: configCorreos }, { data: configComunic }, { data: configOrgEmail }] = await Promise.all([
+      const [{ data: configCorreos }, { data: configComunic }] = await Promise.all([
         supabase
           .from('configuracion_correos')
           .select('from_email, from_name, configurado')
@@ -726,29 +735,14 @@ export async function POST(request: NextRequest) {
           .maybeSingle(),
         supabase
           .from('configuracion_comunicaciones')
-          .select('envio_automatico_denuncia_publica_cliente, envio_automatico_denuncia_publica_pas')
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('configuracion')
-          .select('email')
+          .select('envio_automatico_denuncia_publica_cliente')
           .limit(1)
           .maybeSingle(),
       ])
 
-      // Email operativo del PAS (el que lee el correo) — priorizamos éste sobre
-      // configCorreos.from_email para evitar que el email al PAS se envíe al
-      // mismo buzón SMTP (Gmail y otros aplican anti-loop y lo mandan a
-      // "Enviados" en lugar del Inbox → el PAS cree que no le llega).
-      const emailPAS = (configOrgEmail as any)?.email?.trim() || (configCorreos as any)?.from_email
-
-      // Toggles individuales — el admin puede apagar cada uno por separado.
-      // Default true (si no hay config_comunicaciones, se envían).
+      // Toggle del asegurado (default true si no hay config).
       const enviarAlCliente = configComunic
         ? (configComunic as any).envio_automatico_denuncia_publica_cliente !== false
-        : true
-      const enviarAlPAS = configComunic
-        ? (configComunic as any).envio_automatico_denuncia_publica_pas !== false
         : true
 
       if (!configCorreos || !configCorreos.configurado) {
@@ -756,13 +750,13 @@ export async function POST(request: NextRequest) {
         await registrarEventoBitacoraSiniestro(supabase, {
           siniestro_id: siniestro.id,
           tipo: 'NOTA',
-          texto: 'No se pudieron enviar emails: configuración SMTP no disponible.',
+          texto: 'No se pudo enviar email al asegurado: configuración SMTP no disponible.',
         })
-      } else if (!enviarAlCliente && !enviarAlPAS) {
+      } else if (!enviarAlCliente) {
         await registrarEventoBitacoraSiniestro(supabase, {
           siniestro_id: siniestro.id,
           tipo: 'NOTA',
-          texto: 'No se enviaron emails: ambos toggles de denuncia pública están desactivados en Configuración.',
+          texto: 'No se envió email al asegurado: el toggle de confirmación está desactivado en Configuración.',
         })
       } else {
         // Color de marca configurado por el PAS (cae a default si no está)
@@ -777,78 +771,35 @@ export async function POST(request: NextRequest) {
           ? [{ filename: `Denuncia_${numeroCaso}.pdf`, content: pdfBuffer }]
           : []
 
-        if (enviarAlCliente) {
-          const htmlCliente = construirEmailCliente({
-            numeroCaso, persona, poliza: poliza as any, companiaNombre, ramoNombre,
-            tipo_siniestro, fecha_siniestro, archivosInfo, tonos,
-          })
-          const asuntoCliente = `Confirmación de denuncia - Caso ${numeroCaso}`
-          const resCliente = await enviarEmail({
-            to: email.trim(),
-            subject: asuntoCliente,
-            html: htmlCliente,
-            attachments,
-          })
-          if (resCliente.ok) emailEnviado = true
-          else {
-            logger.error({ modulo: 'formulario-publico', mensaje: 'Error email cliente', contexto: { numero_caso: numeroCaso, error: resCliente.error } })
-          }
-          // Registrar post-hoc en email_envios para tener tracking + auditoría
-          // en el tab Comunicaciones de la ficha del cliente.
-          await registrarEnvioDirecto({
-            destinatario_email: email.trim(),
-            destinatario_nombre: nombreCliente,
-            persona_id: persona.id,
-            poliza_id: (poliza as any).id,
-            asunto: asuntoCliente,
-            tipo_envio: 'SINIESTRO_DENUNCIA_CLIENTE',
-            estado: resCliente.ok ? 'ENVIADO' : 'FALLIDO',
-            error: resCliente.ok ? undefined : resCliente.error,
-            archivos_adjuntos: attachments.map(a => ({ filename: a.filename })),
-            variables_extra: { numero_caso: numeroCaso },
-          })
+        const htmlCliente = construirEmailCliente({
+          numeroCaso, persona, poliza: poliza as any, companiaNombre, ramoNombre,
+          tipo_siniestro, fecha_siniestro, archivosInfo, tonos,
+        })
+        const asuntoCliente = `Confirmación de denuncia - Caso ${numeroCaso}`
+        const resCliente = await enviarEmail({
+          to: email.trim(),
+          subject: asuntoCliente,
+          html: htmlCliente,
+          attachments,
+        })
+        if (resCliente.ok) emailEnviado = true
+        else {
+          logger.error({ modulo: 'formulario-publico', mensaje: 'Error email cliente', contexto: { numero_caso: numeroCaso, error: resCliente.error } })
         }
-
-        if (enviarAlPAS) {
-          if (!emailPAS) {
-            logger.warn({ modulo: 'formulario-publico', mensaje: 'Email al PAS no enviado: no hay email operativo configurado en configuracion.email ni en configuracion_correos.from_email', contexto: { numero_caso: numeroCaso } })
-          } else if (emailPAS === (configCorreos as any).from_email) {
-            logger.warn({ modulo: 'formulario-publico', mensaje: 'Email al PAS se enviará al mismo buzón que from_email (Gmail y otros lo pueden filtrar como self-send)', contexto: { numero_caso: numeroCaso, email: emailPAS } })
-          }
-          const htmlPAS = construirEmailPAS({
-            numeroCaso, persona, email: email.trim(), telefono: telefono || '',
-            poliza: poliza as any, companiaNombre, ramoNombre,
-            tipo_siniestro, fecha_siniestro, hora_siniestro, lugar_siniestro, localidad_siniestro,
-            descripcion, denuncia_policial, acta_policial,
-            tipoRiesgo, esAutoMoto, esHogar,
-            conductor_es_asegurado, conductor,
-            hubo_tercero, tercero_fuga, tercero,
-            hubo_lesionados, detalle_lesiones,
-            danos_propios,
-            hubo_testigos, testigos: testigosForm,
-            tipo_vivienda, que_paso, ambiente_afectado, causa_siniestro,
-            archivosInfo, ip, tonos,
-          })
-          const asuntoPAS = `Nueva denuncia - ${numeroCaso} - ${persona.apellido} ${persona.nombre || ''}`
-          const resPAS = emailPAS
-            ? await enviarEmail({ to: emailPAS, subject: asuntoPAS, html: htmlPAS, attachments })
-            : { ok: false, error: 'No hay email operativo del PAS configurado' } as const
-          if (!resPAS.ok) {
-            logger.error({ modulo: 'formulario-publico', mensaje: 'Error email PAS', contexto: { numero_caso: numeroCaso, error: resPAS.error } })
-          }
-          await registrarEnvioDirecto({
-            destinatario_email: emailPAS ?? '(no configurado)',
-            destinatario_nombre: null,
-            persona_id: persona.id,
-            poliza_id: (poliza as any).id,
-            asunto: asuntoPAS,
-            tipo_envio: 'SINIESTRO_DENUNCIA_PAS',
-            estado: resPAS.ok ? 'ENVIADO' : 'FALLIDO',
-            error: resPAS.ok ? undefined : resPAS.error,
-            archivos_adjuntos: attachments.map(a => ({ filename: a.filename })),
-            variables_extra: { numero_caso: numeroCaso },
-          })
-        }
+        // Registrar post-hoc en email_envios para tener tracking + auditoría
+        // en el tab Comunicaciones de la ficha del cliente.
+        await registrarEnvioDirecto({
+          destinatario_email: email.trim(),
+          destinatario_nombre: nombreCliente,
+          persona_id: persona.id,
+          poliza_id: (poliza as any).id,
+          asunto: asuntoCliente,
+          tipo_envio: 'SINIESTRO_DENUNCIA_CLIENTE',
+          estado: resCliente.ok ? 'ENVIADO' : 'FALLIDO',
+          error: resCliente.ok ? undefined : resCliente.error,
+          archivos_adjuntos: attachments.map(a => ({ filename: a.filename })),
+          variables_extra: { numero_caso: numeroCaso },
+        })
       }
     } catch (err: any) {
       logger.error({ modulo: 'formulario-publico', mensaje: 'Error en envío de emails', contexto: { numero_caso: numeroCaso, error: err.message } })
@@ -913,176 +864,3 @@ function construirEmailCliente(args: {
     </div>`
 }
 
-function construirEmailPAS(args: {
-  numeroCaso: string
-  persona: any
-  email: string
-  telefono: string
-  poliza: any
-  companiaNombre: string
-  ramoNombre: string
-  tipo_siniestro: string | null
-  fecha_siniestro: string
-  hora_siniestro: string | null
-  lugar_siniestro: string | null
-  localidad_siniestro: string | null
-  descripcion: string
-  denuncia_policial: string | null
-  acta_policial: string | null
-  tipoRiesgo: string
-  esAutoMoto: boolean
-  esHogar: boolean
-  conductor_es_asegurado: boolean
-  conductor?: ConductorData
-  hubo_tercero: boolean
-  tercero_fuga: boolean
-  tercero?: TerceroData
-  hubo_lesionados: boolean
-  detalle_lesiones: string | null
-  danos_propios: string | null
-  hubo_testigos: boolean
-  testigos: TestigoData[]
-  tipo_vivienda: string | null
-  que_paso: string | null
-  ambiente_afectado: string | null
-  causa_siniestro: string | null
-  archivosInfo: Array<{ nombre: string; tipo: string; tamano: number; categoria: string }>
-  ip: string
-  tonos: TonosDerivados
-}): string {
-  const a = args
-  const tonos = a.tonos
-  const archivosPorCategoria = a.archivosInfo.reduce<Record<string, number>>((acc, x) => {
-    acc[x.categoria] = (acc[x.categoria] ?? 0) + 1
-    return acc
-  }, {})
-
-  function row(label: string, value: string | null | undefined, alt: boolean = false): string {
-    if (!value) return ''
-    return `<tr${alt ? ' style="background:#f8fafc;"' : ''}><td style="padding:4px 12px;color:#64748b;font-size:13px;">${label}</td><td style="padding:4px 12px;">${sanitizeText(String(value))}</td></tr>`
-  }
-
-  let alt = false
-  function nextAlt(): boolean { alt = !alt; return alt }
-
-  const seccionConductor = a.esAutoMoto ? `
-    <h3 style="color:${tonos.base};margin:16px 0 8px;">Conductor</h3>
-    <table style="width:100%;border-collapse:collapse;">
-      ${row('¿Era el asegurado?', a.conductor_es_asegurado ? 'Sí' : 'No')}
-      ${!a.conductor_es_asegurado && a.conductor ? `
-        ${row('Apellido', a.conductor.apellido, nextAlt())}
-        ${row('Nombre', a.conductor.nombre, nextAlt())}
-        ${row('DNI', a.conductor.dni, nextAlt())}
-        ${row('Teléfono', a.conductor.telefono, nextAlt())}
-        ${row('Relación', a.conductor.relacion, nextAlt())}
-        ${row('Registro', a.conductor.registro, nextAlt())}
-      ` : ''}
-    </table>
-  ` : ''
-
-  const seccionTercero = a.esAutoMoto && a.hubo_tercero ? `
-    <h3 style="color:${tonos.base};margin:16px 0 8px;">Tercero involucrado</h3>
-    <table style="width:100%;border-collapse:collapse;">
-      ${a.tercero_fuga ? row('Estado', 'Se dio a la fuga') : (a.tercero ? `
-        ${row('Nombre', a.tercero.nombre)}
-        ${row('DNI', a.tercero.dni, true)}
-        ${row('Teléfono', a.tercero.telefono)}
-        ${row('Compañía', a.tercero.compania, true)}
-        ${row('Nro. póliza', a.tercero.poliza)}
-        ${row('Tipo vehículo', a.tercero.tipo_vehiculo, true)}
-        ${row('Patente', a.tercero.patente)}
-        ${row('Marca/modelo', [a.tercero.marca, a.tercero.modelo, a.tercero.anio].filter(Boolean).join(' '), true)}
-        ${row('Daños', a.tercero.danos)}
-      ` : '')}
-    </table>
-  ` : ''
-
-  const seccionLesionados = a.esAutoMoto && a.hubo_lesionados ? `
-    <h3 style="color:${tonos.base};margin:16px 0 8px;">Lesionados</h3>
-    <p style="color:#334155;background:#f8fafc;padding:12px;border-radius:6px;">${sanitizeText(a.detalle_lesiones || '—')}</p>
-  ` : ''
-
-  const seccionDanos = a.esAutoMoto && a.danos_propios ? `
-    <h3 style="color:${tonos.base};margin:16px 0 8px;">Daños propios</h3>
-    <p style="color:#334155;background:#f8fafc;padding:12px;border-radius:6px;">${sanitizeText(a.danos_propios)}</p>
-  ` : ''
-
-  const seccionHogar = a.esHogar && (a.tipo_vivienda || a.que_paso || a.ambiente_afectado || a.causa_siniestro) ? `
-    <h3 style="color:${tonos.base};margin:16px 0 8px;">Inmueble</h3>
-    <table style="width:100%;border-collapse:collapse;">
-      ${row('Tipo de vivienda', a.tipo_vivienda)}
-      ${row('¿Qué pasó?', a.que_paso, true)}
-      ${row('Ambiente', a.ambiente_afectado)}
-      ${row('Causa', a.causa_siniestro, true)}
-    </table>
-  ` : ''
-
-  const seccionTestigos = a.hubo_testigos && a.testigos.length > 0 ? `
-    <h3 style="color:${tonos.base};margin:16px 0 8px;">Testigos</h3>
-    <table style="width:100%;border-collapse:collapse;">
-      ${a.testigos.map((t, i) => row(`Testigo ${i + 1}`, `${t.nombre}${t.telefono ? ' · ' + t.telefono : ''}`, i % 2 === 1)).join('')}
-    </table>
-  ` : ''
-
-  const seccionDenunciaPolicial = a.denuncia_policial ? `
-    <p style="color:#334155;margin-top:12px;"><strong>Denuncia policial:</strong> ${a.denuncia_policial === 'si' ? 'Sí' : 'No'}${a.acta_policial ? ` (acta ${sanitizeText(a.acta_policial)})` : ''}</p>
-  ` : ''
-
-  const seccionArchivos = a.archivosInfo.length > 0 ? `
-    <h3 style="color:${tonos.base};margin:16px 0 8px;">Archivos adjuntos</h3>
-    <p style="color:#64748b;font-size:13px;">${a.archivosInfo.length} archivo(s). Ubicación: <code>storage/siniestros/${a.numeroCaso}/documentacion/</code></p>
-    <ul style="color:#475569;font-size:13px;margin:0;padding-left:20px;">
-      ${Object.entries(archivosPorCategoria).map(([cat, n]) => `<li>${cat}: ${n}</li>`).join('')}
-    </ul>
-  ` : ''
-
-  return `
-    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-      <div style="background:${tonos.base};color:${tonos.textoSobreColor};padding:20px 24px;border-radius:8px 8px 0 0;">
-        <h1 style="margin:0;font-size:20px;">Nueva Denuncia de Siniestro</h1>
-        <p style="margin:6px 0 0;color:#94a3b8;font-size:14px;">Caso ${a.numeroCaso}</p>
-      </div>
-      <div style="border:1px solid #e2e8f0;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
-        <p style="color:#334155;">Se recibió una nueva denuncia de siniestro a través del formulario público.</p>
-
-        <h3 style="color:${tonos.base};margin:16px 0 8px;">Asegurado</h3>
-        <table style="width:100%;border-collapse:collapse;">
-          ${row('Nombre', `${a.persona.apellido}, ${a.persona.nombre || ''}`)}
-          ${row('DNI', a.persona.dni_cuil, true)}
-          ${row('Email', a.email)}
-          ${row('Teléfono', a.telefono || a.persona.telefono || '—', true)}
-        </table>
-
-        <h3 style="color:${tonos.base};margin:16px 0 8px;">Póliza</h3>
-        <table style="width:100%;border-collapse:collapse;">
-          ${row('Número', a.poliza.numero_poliza)}
-          ${row('Compañía', a.companiaNombre, true)}
-          ${row('Ramo', a.ramoNombre)}
-        </table>
-
-        <h3 style="color:${tonos.base};margin:16px 0 8px;">Siniestro</h3>
-        <table style="width:100%;border-collapse:collapse;">
-          ${row('Tipo', a.tipo_siniestro || '—')}
-          ${row('Fecha', a.fecha_siniestro, true)}
-          ${row('Hora', a.hora_siniestro || '—')}
-          ${row('Lugar', a.lugar_siniestro || '—', true)}
-          ${row('Localidad', a.localidad_siniestro || '—')}
-        </table>
-
-        <h3 style="color:${tonos.base};margin:16px 0 8px;">Descripción</h3>
-        <p style="color:#334155;background:#f8fafc;padding:12px;border-radius:6px;">${sanitizeText(a.descripcion)}</p>
-
-        ${seccionConductor}
-        ${seccionDanos}
-        ${seccionTercero}
-        ${seccionLesionados}
-        ${seccionTestigos}
-        ${seccionHogar}
-        ${seccionDenunciaPolicial}
-        ${seccionArchivos}
-
-        <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;">
-        <p style="color:#94a3b8;font-size:12px;">IP: ${a.ip} — Registrado el ${new Date().toLocaleString('es-AR')}</p>
-      </div>
-    </div>`
-}

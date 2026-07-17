@@ -30,7 +30,7 @@ interface Props {
   siniestroId?: string
   numeroCaso?: string
   // Común
-  categoria: 'inspeccion' | 'documentacion' | 'documentacion_renovada'
+  categoria: 'inspeccion' | 'documentacion' | 'documentacion_renovada' | 'documentacion_denuncia'
   titulo: string
 }
 

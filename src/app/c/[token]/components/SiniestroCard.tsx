@@ -254,7 +254,10 @@ export default function SiniestroCard({
 
         {/* 2 TOGGLES INDEPENDIENTES */}
         <div className="flex flex-col gap-2">
-          {/* Documentación */}
+          {/* Documentación que subió el productor para el asegurado
+              (denuncia administrativa, certificado de cobertura, carta de
+              franquicia, respuestas de la compañía). Nunca se muestra lo que
+              subió el propio asegurado al denunciar — el asegurado ya lo tiene. */}
           {cantidadArchivos > 0 && (
             <div>
               <button
@@ -264,7 +267,7 @@ export default function SiniestroCard({
               >
                 <span className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-slate-500" />
-                  Documentación
+                  Documentación del productor
                   <span className="text-xs text-slate-500">({cantidadArchivos})</span>
                 </span>
                 <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${docsAbierto ? 'rotate-180' : ''}`} />

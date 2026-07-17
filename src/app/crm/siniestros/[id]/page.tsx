@@ -237,6 +237,26 @@ const LABEL_BITACORA: Record<string, string> = {
   PURGA_DEFINITIVA: 'Eliminación definitiva',
 }
 
+/**
+ * Muestra un campo etiquetado. Si el valor está vacío o es undefined,
+ * muestra "—" en cursiva gris. Usado por el rediseño v1.0.134 de la ficha.
+ */
+function Campo({ label, valor, mono = false }: { label: string; valor: unknown; mono?: boolean }) {
+  const vacio = valor == null || (typeof valor === 'string' && !valor.trim())
+  return (
+    <div>
+      <p className="text-2xs text-slate-500 uppercase tracking-wide mb-0.5">{label}</p>
+      {vacio ? (
+        <p className="text-xs text-slate-400 italic">—</p>
+      ) : (
+        <p className={`text-sm text-slate-800 ${mono ? 'font-mono' : ''}`}>
+          {typeof valor === 'string' ? valor : String(valor)}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function EntradaItem({ e }: { e: EntradaBitacora }) {
   const badgeAnterior = e.estado_anterior ? getEstadoBadge(e.estado_anterior) : null
   const badgeNuevo    = e.estado_nuevo    ? getEstadoBadge(e.estado_nuevo)    : null
@@ -741,399 +761,714 @@ export default function FichaSiniestroPage() {
         <StepperEstados estadoActual={siniestro.estado} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {/* ═══════════════════════════════════════════════════════
+          REDISEÑO v1.0.134 — Filosofía "cero silencio":
+          cada sección semántica dice algo. Si el asegurado NO cargó
+          datos, mostramos POR QUÉ (indicó que no aplica, se dio a la
+          fuga, no completó, etc.) — no dejamos secciones en blanco.
+          ═══════════════════════════════════════════════════════ */}
 
-        {/* Columna izquierda — info */}
-        <div className="lg:col-span-1 flex flex-col gap-2">
+      {(() => {
+        // Helpers locales de "cero silencio" para leer el detalle_siniestro.
+        // El asegurado puede haber respondido true/'Sí'/'si' o false/'No'/'no',
+        // o simplemente no haber completado (undefined/null/'').
+        const esSi = (v: unknown): boolean => {
+          if (v === true) return true
+          if (typeof v === 'string') {
+            const s = v.toLowerCase().trim()
+            return s === 'sí' || s === 'si' || s === 'true'
+          }
+          return false
+        }
+        const esNo = (v: unknown): boolean => {
+          if (v === false) return true
+          if (typeof v === 'string') {
+            const s = v.toLowerCase().trim()
+            return s === 'no' || s === 'false'
+          }
+          return false
+        }
+        const respondio = (v: unknown): boolean => esSi(v) || esNo(v)
 
-          {/* Número de siniestro de la compañía (se carga después de la denuncia administrativa) */}
-          <div className={`bg-white border rounded overflow-hidden ${siniestro.numero_siniestro ? 'border-slate-200' : 'border-amber-300'}`}>
-            <div className={`px-3 py-2 border-b flex items-center justify-between ${siniestro.numero_siniestro ? 'border-slate-100 bg-slate-50' : 'border-amber-200 bg-amber-50'}`}>
-              <h3 className={`text-2xs font-semibold uppercase tracking-wide ${siniestro.numero_siniestro ? 'text-slate-500' : 'text-amber-800'}`}>
-                Siniestro N° ({siniestro.poliza?.compania?.nombre ?? 'compañía'})
-              </h3>
-              {siniestro.numero_siniestro && !editandoNumSiniestro && (
-                <button
-                  type="button"
-                  onClick={() => { setNumSiniestroInput(siniestro.numero_siniestro ?? ''); setEditandoNumSiniestro(true) }}
-                  className="text-2xs text-blue-600 hover:underline"
-                >
-                  Editar
-                </button>
-              )}
-            </div>
-            <div className="p-3 flex flex-col gap-2">
-              {!editandoNumSiniestro && siniestro.numero_siniestro && (
-                <span className="font-mono text-sm font-semibold text-slate-700">{siniestro.numero_siniestro}</span>
-              )}
-              {!editandoNumSiniestro && !siniestro.numero_siniestro && (
-                <>
-                  <p className="text-2xs text-amber-800 leading-relaxed">
-                    Pendiente de carga. Cargá acá el número que te asignó la compañía al hacer la denuncia administrativa.
+        // Datos crudos del detalle
+        const conductor = (detalle.conductor as Record<string, any>) ?? {}
+        const tercero = (detalle.tercero as Record<string, any>) ?? {}
+        const testigosDet = Array.isArray(detalle.testigos) ? detalle.testigos as any[] : []
+        const denunciaPolicialResp = detalle.denuncia_policial
+        const actaPolicial = detalle.acta_policial as string | undefined
+        const motivoSinDatos = detalle.motivo_sin_datos_tercero as string | undefined
+
+        // Categoría del tercero legible
+        const categoriaLabelsTercero: Record<string, string> = {
+          vehiculo: 'Otro vehículo',
+          moto: 'Otra moto',
+          bici: 'Bicicleta',
+          peaton: 'Peatón',
+          objeto_fijo: 'Objeto fijo',
+          persona: 'Persona',
+          otro: 'Otro',
+        }
+        const cat = tercero.categoria as string | undefined
+        const catLabel = cat ? (categoriaLabelsTercero[cat] ?? cat) : ''
+
+        // Motivo sin datos → texto legible
+        const motivoLabels: Record<string, string> = {
+          fuga: 'Se dio a la fuga o no se identificó',
+          no_brindo: 'No me brindó sus datos',
+          adjunto: 'Los adjunto en la documentación',
+        }
+        const motivoLabel = motivoSinDatos ? (motivoLabels[motivoSinDatos] ?? motivoSinDatos) : ''
+
+        // Detección "se dio a la fuga" (checkbox aparte por compat)
+        const seFuga = detalle.tercero_fuga === true || motivoSinDatos === 'fuga'
+
+        // Bien afectado inline
+        const bien = siniestro.poliza?.riesgos?.[0]?.detalle_tecnico
+
+        return (
+          <div className="flex flex-col gap-3">
+
+            {/* ═════ 📍 CUÁNDO Y DÓNDE ═════ */}
+            <div className="bg-white border border-slate-200 rounded overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-slate-50">
+                <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                  📍 Cuándo y dónde ocurrió
+                </h3>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Fecha</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {siniestro.fecha_ocurrencia ? formatFecha(siniestro.fecha_ocurrencia) : (
+                      <span className="text-amber-700 italic text-xs">No especificada</span>
+                    )}
                   </p>
+                </div>
+                <div>
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Hora</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {siniestro.hora_siniestro || <span className="text-slate-400 text-xs italic">Sin dato</span>}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Lugar</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {siniestro.lugar_siniestro || <span className="text-amber-700 italic text-xs">No especificado</span>}
+                  </p>
+                  {siniestro.localidad_siniestro && (
+                    <p className="text-xs text-slate-600 mt-0.5">{siniestro.localidad_siniestro}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ═════ 📝 RELATO DE LOS HECHOS ═════ */}
+            <div className="bg-white border border-slate-200 rounded overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                  📝 Relato de los hechos
+                </h3>
+              </div>
+              <div className="p-4">
+                {siniestro.descripcion ? (
+                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
+                    {siniestro.descripcion}
+                  </p>
+                ) : (
+                  <p className="text-xs italic text-amber-700">El asegurado no describió los hechos.</p>
+                )}
+              </div>
+            </div>
+
+            {/* ═════ Grid: Asegurado + Póliza ═════ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Asegurado */}
+              <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                  <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                    👤 Asegurado
+                  </h3>
+                </div>
+                <div className="p-4 flex flex-col gap-2">
+                  <button
+                    onClick={() => router.push(`/crm/personas/${siniestro.asegurado?.id}`)}
+                    className="flex items-center gap-1.5 text-blue-600 hover:underline text-sm font-medium text-left"
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    {nombreAsegurado(siniestro)}
+                  </button>
+                  {siniestro.asegurado?.telefono && (
+                    <p className="text-xs text-slate-500 font-mono">{siniestro.asegurado.telefono}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Póliza + Bien afectado */}
+              <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                  <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                    🚗 Póliza y bien afectado
+                  </h3>
+                </div>
+                <div className="p-4 flex flex-col gap-2">
                   <button
                     type="button"
-                    onClick={() => { setNumSiniestroInput(''); setEditandoNumSiniestro(true) }}
-                    className="btn-primary self-start"
+                    onClick={() => router.push(`/crm/polizas/${siniestro.poliza?.id}`)}
+                    className="flex items-center gap-1.5 text-blue-600 hover:underline text-left"
                   >
-                    <Save className="h-3 w-3" /> Cargar número
+                    <FileText className="h-3.5 w-3.5" />
+                    <span className="font-mono text-sm font-semibold">{siniestro.poliza?.numero_poliza}</span>
                   </button>
-                </>
-              )}
-              {editandoNumSiniestro && (
-                <>
-                  <input
-                    type="text"
-                    className="form-input font-mono"
-                    value={numSiniestroInput}
-                    onChange={e => setNumSiniestroInput(e.target.value)}
-                    placeholder="Ej: SIN-2026-001234"
-                    autoFocus
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') guardarNumeroSiniestro()
-                      else if (e.key === 'Escape') setEditandoNumSiniestro(false)
-                    }}
-                  />
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={guardarNumeroSiniestro}
-                      disabled={guardandoNumSiniestro}
-                      className="btn-primary"
-                    >
-                      {guardandoNumSiniestro ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                      {guardandoNumSiniestro ? 'Guardando...' : 'Guardar'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditandoNumSiniestro(false)}
-                      className="btn-secondary"
-                    >
-                      Cancelar
-                    </button>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                    {iconoRamo(tipoRiesgo)}
+                    <span>{(siniestro.poliza?.ramo as any)?.nombre ?? '—'}</span>
+                    {siniestro.poliza?.compania && (
+                      <>
+                        <span className="text-slate-400">·</span>
+                        <span>{siniestro.poliza.compania.nombre}</span>
+                      </>
+                    )}
                   </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Asegurado */}
-          <div className="bg-white border border-slate-200 rounded overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Asegurado</h3>
-            </div>
-            <div className="p-3 flex flex-col gap-1.5">
-              <button onClick={() => router.push(`/crm/personas/${siniestro.asegurado?.id}`)}
-                className="flex items-center gap-1.5 text-blue-600 hover:underline text-xs font-medium text-left">
-                <User className="h-3 w-3" />
-                {nombreAsegurado(siniestro)}
-              </button>
-              {siniestro.asegurado?.telefono && (
-                <p className="text-xs text-slate-500 font-mono">{siniestro.asegurado.telefono}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Póliza */}
-          <div className="bg-white border border-slate-200 rounded overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Póliza vinculada</h3>
-            </div>
-            <div className="p-3 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => router.push(`/crm/polizas/${siniestro.poliza?.id}`)}
-                className="flex items-center gap-1.5 text-blue-600 hover:underline text-left"
-                title="Ir a la ficha de la póliza"
-              >
-                <FileText className="h-3 w-3" />
-                <span className="font-mono text-xs font-semibold">{siniestro.poliza?.numero_poliza}</span>
-              </button>
-              <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                {iconoRamo(tipoRiesgo)}
-                {(siniestro.poliza?.ramo as any)?.nombre ?? '—'}
-              </div>
-              {siniestro.poliza?.compania && (
-                <p className="text-xs text-slate-500">{siniestro.poliza.compania.nombre}</p>
-              )}
-              <div className="border-t border-slate-100 pt-2 mt-1">
-                <p className="text-2xs text-slate-500 mb-1 uppercase tracking-wide font-semibold">Bien afectado</p>
-                <DescripcionBien tipoRiesgo={tipoRiesgo} dt={siniestro.poliza?.riesgos?.[0]?.detalle_tecnico} />
-              </div>
-            </div>
-          </div>
-
-          {/* Montos */}
-          <div className="bg-white border border-slate-200 rounded overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Montos</h3>
-            </div>
-            <div className="p-3 flex flex-col gap-2">
-              <div>
-                <p className="text-2xs text-slate-500 mb-0.5">Estimado</p>
-                <p className="text-sm font-semibold text-slate-700">
-                  {siniestro.monto_estimado ? formatPeso(siniestro.monto_estimado) : '—'}
-                </p>
-              </div>
-              {siniestro.monto_liquidado && (
-                <div>
-                  <p className="text-2xs text-slate-500 mb-0.5">Liquidado</p>
-                  <p className="text-sm font-semibold text-emerald-700">{formatPeso(siniestro.monto_liquidado)}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Detalle específico del ramo. Mostramos los campos en el orden del
-              catálogo del ramo (los que el PAS configuró en "Campos del siniestro")
-              y al final cualquier key extra que haya quedado en el JSONB pero que
-              ya no esté en el catálogo. */}
-          {(() => {
-            const camposCatalogo = extraerCamposCustom(siniestro.poliza?.ramo?.metadata as any)
-            const labelsMap = mapaLabelsPorKey(camposCatalogo)
-            // Filtramos keys vacías. Un objeto/array cuenta como no-vacío si
-            // tiene al menos un valor útil. Booleans (aún false) y strings
-            // como "no"/"sí" SIEMPRE cuentan como contenido — son datos
-            // significativos: "no hubo lesionados" es una respuesta, no ruido.
-            const tieneContenido = (v: unknown): boolean => {
-              if (v == null || v === '') return false
-              if (typeof v === 'boolean') return true
-              if (Array.isArray(v)) return v.some(tieneContenido)
-              if (typeof v === 'object') return Object.values(v as Record<string, unknown>).some(tieneContenido)
-              return true
-            }
-            const keysVisibles = Object.keys(detalle).filter(k => k !== 'tipo_riesgo' && tieneContenido(detalle[k]))
-            if (keysVisibles.length === 0) return null
-            const keysOrdenadas = [
-              ...camposCatalogo.map(c => c.key).filter(k => keysVisibles.includes(k)),
-              ...keysVisibles.filter(k => !labelsMap[k]),
-            ]
-
-            /** Convierte cualquier valor del detalle en JSX legible. */
-            const renderValor = (valor: unknown): React.ReactNode => {
-              if (valor == null || valor === '') return '—'
-              if (typeof valor === 'boolean') return valor ? 'Sí' : 'No'
-              if (typeof valor === 'number') return String(valor)
-              if (typeof valor === 'string') return valorLegible(valor)
-              // Array (ej: testigos): lista con separador
-              if (Array.isArray(valor)) {
-                if (valor.length === 0) return '—'
-                return (
-                  <div className="flex flex-col gap-2">
-                    {valor.map((item, i) => (
-                      <div key={i} className="border-l-2 border-slate-200 pl-2">
-                        <p className="text-2xs text-slate-400 mb-0.5">#{i + 1}</p>
-                        {renderValor(item)}
-                      </div>
-                    ))}
-                  </div>
-                )
-              }
-              // Object (ej: conductor, tercero): sub-campos con label + valor
-              if (typeof valor === 'object') {
-                const entries = Object.entries(valor as Record<string, unknown>).filter(([, v]) => tieneContenido(v))
-                if (entries.length === 0) return '—'
-                return (
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                    {entries.map(([k, v]) => (
-                      <div key={k}>
-                        <span className="text-2xs text-slate-400">{labelDeSubKey(k)}: </span>
-                        <span className="text-xs text-slate-700">{renderValor(v)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )
-              }
-              return String(valor)
-            }
-
-            return (
-              <div className="bg-white border border-slate-200 rounded overflow-hidden">
-                <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-                  <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Detalles del siniestro</h3>
-                </div>
-                <div className="p-3 flex flex-col gap-3">
-                  {keysOrdenadas.map(k => (
-                    <div key={k}>
-                      <p className="text-2xs text-slate-500 mb-1 font-medium">{labelDeCampo(k, labelsMap)}</p>
-                      <div className="text-xs text-slate-700">{renderValor(detalle[k])}</div>
+                  {bien && (
+                    <div className="border-t border-slate-100 pt-2 mt-1">
+                      <DescripcionBien tipoRiesgo={tipoRiesgo} dt={bien} />
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
-            )
-          })()}
-
-        </div>
-
-        {/* Columna derecha — gestión + bitácora */}
-        <div className="lg:col-span-2 flex flex-col gap-2">
-
-          {/* Descripción */}
-          {siniestro.descripcion && (
-            <div className="bg-white border border-slate-200 rounded p-3">
-              <p className="text-2xs text-slate-500 mb-1 font-semibold uppercase tracking-wide">Relato de los hechos</p>
-              <p className="text-xs text-slate-700 leading-relaxed">{siniestro.descripcion}</p>
             </div>
-          )}
 
-          {/* Panel de gestión: cambiar estado */}
-          {!esEstadoTerminal(siniestro.estado) ? (
-          <div className="bg-white border border-slate-200 rounded overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Actualizar estado</h3>
-            </div>
-            <div className="p-3 flex flex-wrap items-end gap-2">
-              <div className="flex-1 min-w-36">
-                <label className="text-xs text-slate-500 mb-1 block">Nuevo estado</label>
-                <select className="form-input w-full" value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)}>
-                  <option value={siniestro.estado}>{getEstadoBadge(siniestro.estado).label} (actual)</option>
-                  {obtenerEstadosSiguientes(siniestro.estado).map(est => {
-                    const badge = getEstadoBadge(est)
-                    return <option key={est} value={est}>{badge.label}</option>
-                  })}
-                </select>
+            {/* ═════ 🚦 CONDUCTOR (solo automotor) ═════ */}
+            {(tipoRiesgo === 'automotor' || tipoRiesgo === 'moto') && (
+              <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                  <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                    🚦 Conductor
+                  </h3>
+                </div>
+                <div className="p-4">
+                  {detalle.otra_persona_conduce === 'Otra persona' || esSi(detalle.otra_persona_conduce) ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
+                      <Campo label="Nombre" valor={[conductor.apellido, conductor.nombre].filter(Boolean).join(', ') || conductor.nombre} />
+                      <Campo label="DNI" valor={conductor.dni} mono />
+                      <Campo label="Teléfono" valor={conductor.telefono} mono />
+                      <Campo label="Relación con el asegurado" valor={conductor.relacion} />
+                      <Campo label="Nro. registro" valor={conductor.registro} mono />
+                    </div>
+                  ) : detalle.otra_persona_conduce === 'El asegurado' || esNo(detalle.otra_persona_conduce) ? (
+                    <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-3 py-2">
+                      <CheckCircle className="h-4 w-4" />
+                      <span>El conductor era el propio asegurado.</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs italic text-amber-700">
+                      El asegurado no indicó quién conducía al momento del siniestro.
+                    </p>
+                  )}
+                </div>
               </div>
-              {(nuevoEstado === 'LIQUIDACION' || nuevoEstado === 'FINALIZADO') && (
-                <div className="flex-1 min-w-36">
-                  <label className="text-xs text-slate-500 mb-1 block">Monto liquidado</label>
-                  <div className="flex gap-1">
-                    <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
-                    <input className="form-input font-mono rounded-l-none flex-1"
-                      value={montoActualizado}
-                      onChange={e => setMontoActualizado(e.target.value.replace(/[^\d.]/g, ''))}
-                      placeholder="0" inputMode="decimal" />
+            )}
+
+            {/* ═════ 👥 TERCEROS INVOLUCRADOS ═════ */}
+            <div className="bg-white border border-slate-200 rounded overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                  👥 Terceros involucrados
+                </h3>
+              </div>
+              <div className="p-4">
+                {esNo(detalle.hubo_tercero) ? (
+                  <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded px-3 py-2">
+                    <span>ℹ️ El asegurado indicó que <strong>NO hubo terceros</strong> involucrados.</span>
+                  </div>
+                ) : esSi(detalle.hubo_tercero) ? (
+                  <div className="flex flex-col gap-3">
+                    {catLabel && (
+                      <div>
+                        <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Categoría</p>
+                        <p className="text-sm font-semibold text-slate-800">{catLabel}</p>
+                      </div>
+                    )}
+                    {seFuga || motivoLabel ? (
+                      <div className="flex items-center gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        <span>{seFuga ? 'El tercero se dio a la fuga o no se identificó.' : motivoLabel}</span>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
+                        <Campo label="Nombre" valor={tercero.nombre || siniestro.tercero_nombre} />
+                        <Campo label="DNI" valor={tercero.dni || siniestro.tercero_dni} mono />
+                        <Campo label="Teléfono" valor={tercero.telefono || siniestro.tercero_telefono} mono />
+                        <Campo label="Compañía" valor={tercero.compania} />
+                        <Campo label="Nº póliza" valor={tercero.poliza} mono />
+                        <Campo label="Patente" valor={tercero.patente || siniestro.tercero_patente} mono />
+                        <Campo label="Marca / modelo" valor={[tercero.marca, tercero.modelo, tercero.anio].filter(Boolean).join(' ')} />
+                        <div className="col-span-2 md:col-span-3">
+                          <Campo label="Daños del tercero" valor={tercero.danos} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs italic text-amber-700">
+                    El asegurado no indicó si hubo terceros involucrados.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* ═════ Grid: Lesionados + Daños propios ═════ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Lesionados */}
+              <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                  <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                    🩹 Lesionados
+                  </h3>
+                </div>
+                <div className="p-4">
+                  {(() => {
+                    const v = detalle.hubo_lesionados
+                    // El catálogo actual usa 'No' | 'Sí — leves' | 'Sí — graves'
+                    const noHubo = typeof v === 'string' && v.toLowerCase().trim() === 'no'
+                    const huboAlguno = typeof v === 'string' && v.toLowerCase().includes('sí') || esSi(v)
+                    if (noHubo) {
+                      return (
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <span>ℹ️ El asegurado indicó que <strong>NO hubo lesionados</strong>.</span>
+                        </div>
+                      )
+                    }
+                    if (huboAlguno) {
+                      return (
+                        <div className="flex flex-col gap-2">
+                          {typeof v === 'string' && v !== 'Sí' && v !== 'si' && (
+                            <p className="text-xs font-semibold text-slate-700">{v}</p>
+                          )}
+                          {detalle.detalle_lesiones ? (
+                            <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                              {detalle.detalle_lesiones as string}
+                            </p>
+                          ) : (
+                            <p className="text-xs italic text-amber-700">Sin detalle de las lesiones.</p>
+                          )}
+                        </div>
+                      )
+                    }
+                    return <p className="text-xs italic text-amber-700">No indicó si hubo lesionados.</p>
+                  })()}
+                </div>
+              </div>
+
+              {/* Daños propios */}
+              <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                  <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                    🔧 Daños propios
+                  </h3>
+                </div>
+                <div className="p-4">
+                  {detalle.danos_propios ? (
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                      {detalle.danos_propios as string}
+                    </p>
+                  ) : (
+                    <p className="text-xs italic text-slate-500">El asegurado no describió los daños propios.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ═════ Grid: Testigos + Denuncia policial ═════ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Testigos */}
+              <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                  <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                    👁 Testigos
+                  </h3>
+                </div>
+                <div className="p-4">
+                  {esNo(detalle.hubo_testigos) ? (
+                    <p className="text-sm text-slate-600">ℹ️ El asegurado indicó que <strong>NO hubo testigos</strong>.</p>
+                  ) : esSi(detalle.hubo_testigos) && testigosDet.length > 0 ? (
+                    <ol className="flex flex-col gap-2">
+                      {testigosDet.map((t, i) => {
+                        const nombre = (t?.nombre as string) || ''
+                        const telefono = (t?.telefono as string) || ''
+                        return (
+                          <li key={i} className="text-sm text-slate-700 flex items-start gap-2">
+                            <span className="text-2xs text-slate-400 mt-0.5">#{i + 1}</span>
+                            <span>
+                              <span className="font-medium">{nombre || 'Sin nombre'}</span>
+                              {telefono && <span className="text-slate-500 font-mono ml-2">{telefono}</span>}
+                            </span>
+                          </li>
+                        )
+                      })}
+                    </ol>
+                  ) : esSi(detalle.hubo_testigos) ? (
+                    <p className="text-xs italic text-amber-700">Indicó que hubo testigos pero no cargó sus datos.</p>
+                  ) : (
+                    <p className="text-xs italic text-amber-700">No indicó si hubo testigos.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Denuncia policial */}
+              <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                  <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                    🚔 Denuncia policial
+                  </h3>
+                </div>
+                <div className="p-4">
+                  {esSi(denunciaPolicialResp) ? (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm text-slate-700"><strong>Sí</strong>, se realizó denuncia policial.</p>
+                      {actaPolicial && (
+                        <p className="text-xs text-slate-600 font-mono">Nº acta: {actaPolicial}</p>
+                      )}
+                    </div>
+                  ) : esNo(denunciaPolicialResp) ? (
+                    <p className="text-sm text-slate-600">ℹ️ El asegurado indicó que <strong>NO realizó denuncia policial</strong>.</p>
+                  ) : !respondio(denunciaPolicialResp) ? (
+                    <p className="text-xs italic text-amber-700">No indicó si realizó denuncia policial.</p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            {/* ═════ 📄 CAMPOS ADICIONALES DEL RAMO (custom) ═════ */}
+            {(() => {
+              const camposCatalogo = extraerCamposCustom(siniestro.poliza?.ramo?.metadata as any)
+              const labelsMap = mapaLabelsPorKey(camposCatalogo)
+              // Excluimos las keys que ya renderizamos en las secciones semánticas de arriba
+              // para no duplicarlas en la sección genérica.
+              const keysExcluidas = new Set([
+                'tipo_riesgo', 'conductor', 'tercero', 'testigos', 'hubo_tercero', 'hubo_lesionados',
+                'hubo_testigos', 'detalle_lesiones', 'danos_propios', 'denuncia_policial',
+                'acta_policial', 'otra_persona_conduce', 'vehiculo_estacionado',
+                'tercero_fuga', 'motivo_sin_datos_tercero', 'tipo_otro_descripcion',
+              ])
+              const tieneContenido = (v: unknown): boolean => {
+                if (v == null || v === '') return false
+                if (typeof v === 'boolean') return true
+                if (Array.isArray(v)) return v.some(tieneContenido)
+                if (typeof v === 'object') return Object.values(v as Record<string, unknown>).some(tieneContenido)
+                return true
+              }
+              const keysVisibles = Object.keys(detalle).filter(
+                k => !keysExcluidas.has(k) && tieneContenido(detalle[k])
+              )
+              if (keysVisibles.length === 0) return null
+              const keysOrdenadas = [
+                ...camposCatalogo.map(c => c.key).filter(k => keysVisibles.includes(k)),
+                ...keysVisibles.filter(k => !labelsMap[k]),
+              ]
+
+              const renderValor = (valor: unknown): React.ReactNode => {
+                if (valor == null || valor === '') return '—'
+                if (typeof valor === 'boolean') return valor ? 'Sí' : 'No'
+                if (typeof valor === 'number') return String(valor)
+                if (typeof valor === 'string') return valorLegible(valor)
+                if (Array.isArray(valor)) {
+                  if (valor.length === 0) return '—'
+                  return (
+                    <div className="flex flex-col gap-2">
+                      {valor.map((item, i) => (
+                        <div key={i} className="border-l-2 border-slate-200 pl-2">
+                          <p className="text-2xs text-slate-400 mb-0.5">#{i + 1}</p>
+                          {renderValor(item)}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                }
+                if (typeof valor === 'object') {
+                  const entries = Object.entries(valor as Record<string, unknown>).filter(([, v]) => tieneContenido(v))
+                  if (entries.length === 0) return '—'
+                  return (
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                      {entries.map(([k, v]) => (
+                        <div key={k}>
+                          <span className="text-2xs text-slate-400">{labelDeSubKey(k)}: </span>
+                          <span className="text-xs text-slate-700">{renderValor(v)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                }
+                return String(valor)
+              }
+
+              return (
+                <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                      📄 Datos adicionales
+                    </h3>
+                  </div>
+                  <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {keysOrdenadas.map(k => (
+                      <div key={k}>
+                        <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">{labelDeCampo(k, labelsMap)}</p>
+                        <div className="text-sm text-slate-700">{renderValor(detalle[k])}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
-              <button
-                onClick={cambiarEstado}
-                disabled={guardandoEstado || nuevoEstado === siniestro.estado || (nuevoEstado === 'RECHAZADO' && !motivoRechazo.trim())}
-                className="btn-primary">
-                {guardandoEstado ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                {guardandoEstado ? 'Guardando...' : 'Actualizar'}
-              </button>
-              {nuevoEstado === 'RECHAZADO' && (
-                <div className="basis-full">
-                  <label className="text-xs text-slate-500 mb-1 block">
-                    Motivo del rechazo <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    className="form-input w-full resize-none text-xs"
-                    rows={2}
-                    placeholder="Ej: Cobertura no aplicable, falta de documentación, fuera de vigencia..."
-                    value={motivoRechazo}
-                    onChange={e => setMotivoRechazo(e.target.value)}
-                  />
+              )
+            })()}
+
+            {/* ═════ Grid: Gestión (izq) + Seguimiento (der) ═════ */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+
+              {/* Columna izquierda — Gestión (Nº siniestro + Estado + Montos) */}
+              <div className="lg:col-span-1 flex flex-col gap-3">
+
+                {/* N° siniestro de la compañía */}
+                <div className={`bg-white border rounded overflow-hidden ${siniestro.numero_siniestro ? 'border-slate-200' : 'border-amber-300'}`}>
+                  <div className={`px-4 py-2.5 border-b flex items-center justify-between ${siniestro.numero_siniestro ? 'border-slate-100 bg-slate-50' : 'border-amber-200 bg-amber-50'}`}>
+                    <h3 className={`text-xs font-semibold uppercase tracking-wide ${siniestro.numero_siniestro ? 'text-slate-700' : 'text-amber-800'}`}>
+                      Nº compañía
+                    </h3>
+                    {siniestro.numero_siniestro && !editandoNumSiniestro && (
+                      <button
+                        type="button"
+                        onClick={() => { setNumSiniestroInput(siniestro.numero_siniestro ?? ''); setEditandoNumSiniestro(true) }}
+                        className="text-2xs text-blue-600 hover:underline"
+                      >
+                        Editar
+                      </button>
+                    )}
+                  </div>
+                  <div className="p-4 flex flex-col gap-2">
+                    {!editandoNumSiniestro && siniestro.numero_siniestro && (
+                      <span className="font-mono text-sm font-semibold text-slate-700">{siniestro.numero_siniestro}</span>
+                    )}
+                    {!editandoNumSiniestro && !siniestro.numero_siniestro && (
+                      <>
+                        <p className="text-2xs text-amber-800 leading-relaxed">
+                          Pendiente. Cargá acá el número que te asignó la compañía al hacer la denuncia administrativa.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => { setNumSiniestroInput(''); setEditandoNumSiniestro(true) }}
+                          className="btn-primary self-start"
+                        >
+                          <Save className="h-3 w-3" /> Cargar número
+                        </button>
+                      </>
+                    )}
+                    {editandoNumSiniestro && (
+                      <>
+                        <input
+                          type="text"
+                          className="form-input font-mono"
+                          value={numSiniestroInput}
+                          onChange={e => setNumSiniestroInput(e.target.value)}
+                          placeholder="Ej: SIN-2026-001234"
+                          autoFocus
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') guardarNumeroSiniestro()
+                            else if (e.key === 'Escape') setEditandoNumSiniestro(false)
+                          }}
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={guardarNumeroSiniestro}
+                            disabled={guardandoNumSiniestro}
+                            className="btn-primary"
+                          >
+                            {guardandoNumSiniestro ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                            {guardandoNumSiniestro ? 'Guardando...' : 'Guardar'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditandoNumSiniestro(false)}
+                            className="btn-secondary"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-          ) : (
-          <div className="bg-white border border-slate-200 rounded p-3">
-            <p className="text-xs text-slate-500 flex items-center gap-1.5">
-              <CheckCircle className="h-3.5 w-3.5 text-slate-400" />
-              Este siniestro está en estado terminal ({getEstadoBadge(siniestro.estado).label}). No se puede cambiar de estado.
-            </p>
-          </div>
-          )}
 
-          {/* Bitácora */}
-          <div className="bg-white border border-slate-200 rounded overflow-hidden flex flex-col">
-            <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Bitácora de seguimiento</h3>
-              <span className="text-2xs text-slate-500">{bitacora.length} entradas</span>
-            </div>
+                {/* Panel Estado */}
+                {!esEstadoTerminal(siniestro.estado) ? (
+                  <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                    <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                      <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Actualizar estado</h3>
+                    </div>
+                    <div className="p-4 flex flex-col gap-2">
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">Nuevo estado</label>
+                        <select className="form-input w-full" value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)}>
+                          <option value={siniestro.estado}>{getEstadoBadge(siniestro.estado).label} (actual)</option>
+                          {obtenerEstadosSiguientes(siniestro.estado).map(est => {
+                            const badge = getEstadoBadge(est)
+                            return <option key={est} value={est}>{badge.label}</option>
+                          })}
+                        </select>
+                      </div>
+                      {(nuevoEstado === 'LIQUIDACION' || nuevoEstado === 'FINALIZADO') && (
+                        <div>
+                          <label className="text-xs text-slate-500 mb-1 block">Monto liquidado</label>
+                          <div className="flex gap-1">
+                            <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
+                            <input className="form-input font-mono rounded-l-none flex-1"
+                              value={montoActualizado}
+                              onChange={e => setMontoActualizado(e.target.value.replace(/[^\d.]/g, ''))}
+                              placeholder="0" inputMode="decimal" />
+                          </div>
+                        </div>
+                      )}
+                      {nuevoEstado === 'RECHAZADO' && (
+                        <div>
+                          <label className="text-xs text-slate-500 mb-1 block">
+                            Motivo del rechazo <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            className="form-input w-full resize-none text-xs"
+                            rows={3}
+                            placeholder="Ej: Cobertura no aplicable, falta de documentación..."
+                            value={motivoRechazo}
+                            onChange={e => setMotivoRechazo(e.target.value)}
+                          />
+                        </div>
+                      )}
+                      <button
+                        onClick={cambiarEstado}
+                        disabled={guardandoEstado || nuevoEstado === siniestro.estado || (nuevoEstado === 'RECHAZADO' && !motivoRechazo.trim())}
+                        className="btn-primary self-start">
+                        {guardandoEstado ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                        {guardandoEstado ? 'Guardando...' : 'Actualizar'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white border border-slate-200 rounded p-4">
+                    <p className="text-xs text-slate-600 flex items-center gap-1.5">
+                      <CheckCircle className="h-3.5 w-3.5 text-slate-400" />
+                      Estado terminal: {getEstadoBadge(siniestro.estado).label}.
+                    </p>
+                  </div>
+                )}
 
-            {/* Input nueva nota */}
-            <div className="p-3 border-b border-slate-100">
-              <textarea
-                ref={textareaRef}
-                className="form-input w-full resize-none text-xs"
-                rows={2}
-                placeholder="Escribí una nota de seguimiento..."
-                value={notaTexto}
-                onChange={e => setNotaTexto(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) agregarNota() }}
-              />
-              <div className="flex items-center justify-between mt-1.5">
-                <span className="text-2xs text-slate-500">Ctrl+Enter para enviar</span>
-                <button onClick={agregarNota} disabled={guardandoNota || !notaTexto.trim()} className="btn-primary">
-                  {guardandoNota ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
-                  Agregar nota
-                </button>
+                {/* Montos */}
+                <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Montos</h3>
+                  </div>
+                  <div className="p-4 flex flex-col gap-2">
+                    <div>
+                      <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Estimado</p>
+                      <p className="text-sm font-semibold text-slate-700">
+                        {siniestro.monto_estimado ? formatPeso(siniestro.monto_estimado) : '—'}
+                      </p>
+                    </div>
+                    {siniestro.monto_liquidado != null && (
+                      <div>
+                        <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Liquidado</p>
+                        <p className="text-sm font-semibold text-emerald-700">{formatPeso(siniestro.monto_liquidado)}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Observaciones internas */}
+                <div className="bg-white border border-slate-200 rounded overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 flex items-baseline justify-between">
+                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Observaciones internas</h3>
+                    <span className="text-2xs text-slate-500">No se comparte con el asegurado</span>
+                  </div>
+                  <div className="p-4">
+                    <textarea
+                      className="w-full form-input min-h-[80px] py-2 text-xs resize-none"
+                      value={notasInput}
+                      onChange={e => setNotasInput(e.target.value)}
+                      placeholder="Notas internas, gestiones con la compañía, próximos pasos..."
+                      disabled={guardandoNotas}
+                    />
+                    {notasInput.trim() !== (siniestro.notas ?? '').trim() && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <button onClick={guardarNotas} disabled={guardandoNotas} className="btn-primary text-xs">
+                          {guardandoNotas ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                          Guardar
+                        </button>
+                        <button onClick={() => setNotasInput(siniestro.notas ?? '')} disabled={guardandoNotas} className="btn-secondary text-xs">
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Columna derecha — Bitácora full height */}
+              <div className="lg:col-span-2">
+                <div className="bg-white border border-slate-200 rounded overflow-hidden flex flex-col h-full">
+                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Bitácora de seguimiento</h3>
+                    <span className="text-2xs text-slate-500">{bitacora.length} entradas</span>
+                  </div>
+                  <div className="p-4 border-b border-slate-100">
+                    <textarea
+                      ref={textareaRef}
+                      className="form-input w-full resize-none text-xs"
+                      rows={2}
+                      placeholder="Escribí una nota de seguimiento..."
+                      value={notaTexto}
+                      onChange={e => setNotaTexto(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) agregarNota() }}
+                    />
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-2xs text-slate-500">Ctrl+Enter para enviar</span>
+                      <button onClick={agregarNota} disabled={guardandoNota || !notaTexto.trim()} className="btn-primary">
+                        {guardandoNota ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                        Agregar nota
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-4 flex flex-col gap-0 overflow-y-auto max-h-96">
+                    {bitacora.length === 0 ? (
+                      <p className="text-xs text-slate-500 text-center py-6">
+                        Sin entradas todavía. Agregá la primera nota arriba.
+                      </p>
+                    ) : bitacora.map(e => <EntradaItem key={e.id} e={e} />)}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Lista de entradas */}
-            <div className="p-3 flex flex-col gap-0 overflow-y-auto max-h-96">
-              {bitacora.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-6">
-                  Sin entradas todavía. Agregá la primera nota arriba.
-                </p>
-              ) : bitacora.map(e => <EntradaItem key={e.id} e={e} />)}
-            </div>
+            {/* ═════ 📥 DOCUMENTACIÓN DEL SINIESTRO (lo que subió el asegurado — no visible en portal) ═════ */}
+            <GestorArchivos
+              siniestroId={siniestro.id}
+              numeroCaso={siniestro.numero_caso}
+              categoria="documentacion"
+              titulo="📥 Documentación del siniestro (que cargó el asegurado)"
+            />
+
+            {/* ═════ 📤 DOCUMENTACIÓN DE LA DENUNCIA (que subís vos — visible en portal del asegurado) ═════ */}
+            <GestorArchivos
+              siniestroId={siniestro.id}
+              numeroCaso={siniestro.numero_caso}
+              categoria="documentacion_denuncia"
+              titulo="📤 Documentación de la denuncia (visible en el portal del asegurado)"
+            />
+
+            {error && (
+              <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+                <AlertCircle className="h-3.5 w-3.5" />{error}
+              </div>
+            )}
           </div>
-
-          {/* Observaciones internas — análogo a polizas.notas. Solo el PAS las ve,
-              nunca visibles al asegurado. Editable inline con auto-guardado al
-              hacer click en Guardar (solo se muestra si cambió respecto al valor
-              en DB). */}
-          <div className="bg-white border border-slate-200 rounded overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-baseline justify-between">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
-                Observaciones internas
-              </h3>
-              <span className="inline-flex items-center gap-1 text-2xs text-slate-500">
-                No se comparte con el asegurado
-              </span>
-            </div>
-            <div className="p-3">
-              <textarea
-                className="w-full form-input min-h-[80px] py-2 text-xs resize-none"
-                value={notasInput}
-                onChange={e => setNotasInput(e.target.value)}
-                placeholder="Anotá info interna del caso — gestiones con la compañía, contactos, próximos pasos, cualquier cosa que no vaya en la bitácora pública..."
-                disabled={guardandoNotas}
-              />
-              {notasInput.trim() !== (siniestro.notas ?? '').trim() && (
-                <div className="flex items-center gap-1.5 mt-2">
-                  <button
-                    onClick={guardarNotas}
-                    disabled={guardandoNotas}
-                    className="btn-primary text-xs"
-                  >
-                    {guardandoNotas ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                    Guardar
-                  </button>
-                  <button
-                    onClick={() => setNotasInput(siniestro.notas ?? '')}
-                    disabled={guardandoNotas}
-                    className="btn-secondary text-xs"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Documentación del siniestro — unificado (fotos + documentación en un solo lugar,
-              desde v1.0.124). El asegurado sube todo en una sola categoría. */}
-          <GestorArchivos
-            siniestroId={siniestro.id}
-            numeroCaso={siniestro.numero_caso}
-            categoria="documentacion"
-            titulo="Documentación del siniestro"
-          />
-
-          {error && (
-            <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-              <AlertCircle className="h-3.5 w-3.5" />{error}
-            </div>
-          )}
-        </div>
-      </div>
+        )
+      })()}
 
       {/* ── Modal Editar ─────────────────────────────────────── */}
       <EditarSiniestroModal

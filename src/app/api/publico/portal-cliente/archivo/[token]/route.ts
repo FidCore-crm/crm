@@ -85,14 +85,21 @@ export async function GET(
     }
 
     // 4. Validación estricta del formato de ruta:
-    //    polizas/{numero}/documentacion/{archivo}      (de pólizas vigentes)
-    //    siniestros/{numero_caso}/documentacion/{archivo}  (de siniestros del asegurado)
+    //    polizas/{numero}/documentacion/{archivo}              (de pólizas vigentes)
+    //    siniestros/{numero_caso}/documentacion_denuncia/{archivo}  (que subió el PAS
+    //      para el asegurado — no se expone 'documentacion' que es la que subió el
+    //      propio cliente al denunciar).
     if (ruta.includes('..') || ruta.includes('\\')) {
       return NextResponse.json({ ok: false, error: 'Ruta inválida' }, { status: 400 })
     }
 
     const partes = ruta.split('/')
-    if (partes.length !== 4 || partes[2] !== 'documentacion') {
+    const carpetaValidaPorTipo: Record<string, string> = {
+      polizas: 'documentacion',
+      siniestros: 'documentacion_denuncia',
+    }
+    const tipoCandidato = partes[0]
+    if (partes.length !== 4 || partes[2] !== carpetaValidaPorTipo[tipoCandidato]) {
       return NextResponse.json({ ok: false, error: 'Ruta no permitida' }, { status: 403 })
     }
 
@@ -148,7 +155,7 @@ export async function GET(
       if (s.persona_id !== validacion.persona_id) {
         return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 403 })
       }
-      dirRel = path.join('siniestros', idEntidad, 'documentacion')
+      dirRel = path.join('siniestros', idEntidad, 'documentacion_denuncia')
     } else {
       return NextResponse.json({ ok: false, error: 'Tipo de recurso no permitido' }, { status: 403 })
     }

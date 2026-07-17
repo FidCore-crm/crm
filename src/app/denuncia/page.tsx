@@ -165,7 +165,8 @@ function DenunciarPageContent() {
   const [descripcion, setDescripcion] = useState('')
 
   // Paso 3 — Conductor (auto/moto)
-  const [conductorEsAsegurado, setConductorEsAsegurado] = useState(true)
+  // Radio con "" inicial fuerza al asegurado a elegir explícito.
+  const [conductorEsAsegurado, setConductorEsAsegurado] = useState<'si' | 'no' | ''>('')
   const [conductorNombre, setConductorNombre] = useState('')
   const [conductorApellido, setConductorApellido] = useState('')
   const [conductorDni, setConductorDni] = useState('')
@@ -177,9 +178,15 @@ function DenunciarPageContent() {
   const [vehiculoEstacionado, setVehiculoEstacionado] = useState<'si' | 'no' | ''>('')
 
   // Paso 3 — Tercero / Otra persona o vehículo involucrado (Opción C)
-  const [huboTercero, setHuboTercero] = useState(false)
+  // Los toggles usan 'si' | 'no' | '' para forzar al asegurado a ELEGIR explícito
+  // — un checkbox sin marcar podría interpretarse como "no lo pensé" o "olvidé
+  // marcarlo". Con radio required + vacío inicial no puede avanzar sin respuesta.
+  const [huboTercero, setHuboTercero] = useState<'si' | 'no' | ''>('')
   const [terceroCategoria, setTerceroCategoria] = useState<CategoriaInvolucrado | ''>('')
   const [terceroFuga, setTerceroFuga] = useState(false)
+  const [motivoSinDatosTercero, setMotivoSinDatosTercero] = useState<
+    '' | 'fuga' | 'no_brindo' | 'adjunto'
+  >('')
   const [terceroNombre, setTerceroNombre] = useState('')
   const [terceroDni, setTerceroDni] = useState('')
   const [terceroTelefono, setTerceroTelefono] = useState('')
@@ -193,11 +200,11 @@ function DenunciarPageContent() {
   const [terceroDanos, setTerceroDanos] = useState('')
 
   // Paso 3 — Lesionados (auto/moto)
-  const [huboLesionados, setHuboLesionados] = useState(false)
+  const [huboLesionados, setHuboLesionados] = useState<'si' | 'no' | ''>('')
   const [detalleLesiones, setDetalleLesiones] = useState('')
 
   // Paso 3 — Testigos
-  const [huboTestigos, setHuboTestigos] = useState(false)
+  const [huboTestigos, setHuboTestigos] = useState<'si' | 'no' | ''>('')
   const [testigos, setTestigos] = useState<TestigoData[]>([{ nombre: '', telefono: '' }])
 
   // Paso 3 — Daños propios (auto/moto)
@@ -404,35 +411,57 @@ function DenunciarPageContent() {
   function validatePaso3(): boolean {
     const e: Record<string, string> = {}
 
-    // Conductor (auto/moto — solo ACCIDENTE_TRANSITO)
-    if (usarBloqueAutomotorHardcoded && !conductorEsAsegurado) {
-      if (!conductorNombre.trim()) e.conductor_nombre = 'Requerido'
-      if (!conductorApellido.trim()) e.conductor_apellido = 'Requerido'
-      if (!conductorDni.trim()) e.conductor_dni = 'Requerido'
-      else {
-        const clean = conductorDni.replace(/[.\s-]/g, '')
-        if (!/^\d{7,11}$/.test(clean)) e.conductor_dni = 'DNI inválido'
+    // ═════ Bloque hardcoded ACCIDENTE_TRANSITO ═════
+    // Filosofía "cero silencio": todos los radio-Sí/No requieren respuesta
+    // explícita — no permitimos que se envíe silenciosamente el default.
+    if (usarBloqueAutomotorHardcoded) {
+      // Vehículo estacionado
+      if (!vehiculoEstacionado) {
+        e.vehiculo_estacionado = 'Indicá si el vehículo estaba estacionado'
       }
-    }
-
-    // Tercero / otra persona o vehículo involucrado (solo ACCIDENTE_TRANSITO)
-    if (usarBloqueAutomotorHardcoded && huboTercero) {
-      if (!terceroCategoria) {
-        e.tercero_categoria = 'Indicá con qué o con quién'
-      } else if (!terceroFuga && terceroCategoria !== 'objeto_fijo') {
-        if (!terceroNombre.trim()) e.tercero_nombre = 'Requerido (o marcá "se dio a la fuga / no se identificó")'
+      // Conductor: ¿lo conducía el asegurado u otra persona?
+      if (!conductorEsAsegurado) {
+        e.conductor_es_asegurado = 'Indicá quién conducía al momento del siniestro'
+      } else if (conductorEsAsegurado === 'no') {
+        if (!conductorNombre.trim()) e.conductor_nombre = 'Requerido'
+        if (!conductorApellido.trim()) e.conductor_apellido = 'Requerido'
+        if (!conductorDni.trim()) e.conductor_dni = 'Requerido'
+        else {
+          const clean = conductorDni.replace(/[.\s-]/g, '')
+          if (!/^\d{7,11}$/.test(clean)) e.conductor_dni = 'DNI inválido'
+        }
       }
-    }
 
-    // Testigos (solo ACCIDENTE_TRANSITO)
-    if (usarBloqueAutomotorHardcoded && huboTestigos) {
-      const validos = testigos.filter(t => t.nombre.trim() || t.telefono.trim())
-      if (validos.length === 0) e.testigos = 'Cargá al menos un testigo o desactivá esta opción'
-    }
+      // Tercero: obligatorio elegir Sí/No
+      if (!huboTercero) {
+        e.hubo_tercero = 'Indicá si hubo un tercero involucrado'
+      } else if (huboTercero === 'si') {
+        if (!terceroCategoria) {
+          e.tercero_categoria = 'Indicá con qué o con quién'
+        } else if (terceroCategoria !== 'objeto_fijo') {
+          // Si NO se dio a la fuga y no cargó nombre → obligar a elegir el
+          // motivo por el que no completa (o cargar los datos).
+          if (!terceroFuga && !terceroNombre.trim() && !motivoSinDatosTercero) {
+            e.motivo_sin_datos_tercero =
+              'Cargá los datos del tercero o indicá por qué no los cargás'
+          }
+        }
+      }
 
-    // Lesionados (solo ACCIDENTE_TRANSITO)
-    if (usarBloqueAutomotorHardcoded && huboLesionados && !detalleLesiones.trim()) {
-      e.detalle_lesiones = 'Describí brevemente las lesiones'
+      // Testigos: obligatorio elegir Sí/No
+      if (!huboTestigos) {
+        e.hubo_testigos = 'Indicá si hubo testigos'
+      } else if (huboTestigos === 'si') {
+        const validos = testigos.filter(t => t.nombre.trim() || t.telefono.trim())
+        if (validos.length === 0) e.testigos = 'Cargá al menos un testigo o cambiá a "No"'
+      }
+
+      // Lesionados: obligatorio elegir Sí/No
+      if (!huboLesionados) {
+        e.hubo_lesionados = 'Indicá si hubo lesionados'
+      } else if (huboLesionados === 'si' && !detalleLesiones.trim()) {
+        e.detalle_lesiones = 'Describí brevemente las lesiones'
+      }
     }
 
     // Validación de tipos no-accidente: los campos requeridos del bloque dinámico
@@ -456,17 +485,21 @@ function DenunciarPageContent() {
             || (typeof r === 'string' && !r.trim())
           if (vacio) e.rueda_robada = 'Marcá qué rueda o ruedas robaron'
         }
+        // RC_TERCEROS (integrales/hogar): forzar `hubo_tercero='Sí'`. Semánticamente
+        // un reclamo de terceros implica que HAY un tercero — el sistema no debe
+        // permitir avanzar sin datos ni marca explícita.
+        if (tipoSiniestro === 'RC_TERCEROS') {
+          const huboT = valoresDinamicos.hubo_tercero
+          if (huboT !== 'Sí' && huboT !== 'si') {
+            e.hubo_tercero = 'En un reclamo de terceros el sistema necesita los datos del tercero'
+          }
+        }
       }
     }
 
     // Hogar
     if (esHogar) {
       if (!quePaso) e.que_paso = 'Seleccioná qué pasó'
-    }
-
-    // Denuncia policial
-    if (esRobo && denunciaPolicial !== 'si') {
-      e.denuncia_policial = 'En caso de robo la denuncia policial es obligatoria'
     }
 
     // Documentación auto/moto: licencia + cédula + DNI conductor frente y dorso
@@ -611,8 +644,10 @@ function DenunciarPageContent() {
 
       // Conductor + bloques específicos de auto — solo si ACCIDENTE_TRANSITO
       if (usarBloqueAutomotorHardcoded) {
-        fd.append('conductor_es_asegurado', conductorEsAsegurado ? 'si' : 'no')
-        if (!conductorEsAsegurado) {
+        // Los toggles ahora son 'si' | 'no' | ''. Validaciones bloquean '' antes
+        // de llegar acá, pero por defensiva mapeamos '' → 'no'.
+        fd.append('conductor_es_asegurado', conductorEsAsegurado === 'no' ? 'no' : 'si')
+        if (conductorEsAsegurado === 'no') {
           fd.append('conductor_nombre', conductorNombre.trim())
           fd.append('conductor_apellido', conductorApellido.trim())
           fd.append('conductor_dni', conductorDni.replace(/[.\s-]/g, ''))
@@ -624,11 +659,13 @@ function DenunciarPageContent() {
         // Vehículo estacionado
         if (vehiculoEstacionado) fd.append('vehiculo_estacionado', vehiculoEstacionado)
 
-        // Tercero / Otra persona o vehículo involucrado (Opción C)
-        fd.append('hubo_tercero', huboTercero ? 'si' : 'no')
-        if (huboTercero) {
+        // Tercero / Otra persona o vehículo involucrado
+        fd.append('hubo_tercero', huboTercero === 'si' ? 'si' : 'no')
+        if (huboTercero === 'si') {
           if (terceroCategoria) fd.append('tercero_categoria', terceroCategoria)
           fd.append('tercero_fuga', terceroFuga ? 'si' : 'no')
+          // Motivo por el que no se cargan los datos (si aplica)
+          if (motivoSinDatosTercero) fd.append('motivo_sin_datos_tercero', motivoSinDatosTercero)
           if (!terceroFuga) {
             if (terceroNombre)       fd.append('tercero_nombre', terceroNombre.trim())
             if (terceroDni)          fd.append('tercero_dni', terceroDni.replace(/[.\s-]/g, ''))
@@ -651,8 +688,10 @@ function DenunciarPageContent() {
         }
 
         // Lesionados
-        fd.append('hubo_lesionados', huboLesionados ? 'si' : 'no')
-        if (huboLesionados && detalleLesiones) fd.append('detalle_lesiones', detalleLesiones.trim())
+        fd.append('hubo_lesionados', huboLesionados === 'si' ? 'si' : 'no')
+        if (huboLesionados === 'si' && detalleLesiones) {
+          fd.append('detalle_lesiones', detalleLesiones.trim())
+        }
 
         // Daños propios
         if (danosPropios) fd.append('danos_propios', danosPropios.trim())
@@ -667,8 +706,8 @@ function DenunciarPageContent() {
       }
 
       // Testigos
-      if (huboTestigos) {
-        fd.append('hubo_testigos', 'si')
+      fd.append('hubo_testigos', huboTestigos === 'si' ? 'si' : 'no')
+      if (huboTestigos === 'si') {
         const validos = testigos.filter(t => t.nombre.trim() || t.telefono.trim()).slice(0, MAX_TESTIGOS)
         validos.forEach((t, i) => {
           if (t.nombre)   fd.append(`testigo_${i + 1}_nombre`, t.nombre.trim())
@@ -915,7 +954,8 @@ function DenunciarPageContent() {
               esVida={esVida}
               esRobo={esRobo}
               conductor={{
-                esAsegurado: conductorEsAsegurado, setEsAsegurado: setConductorEsAsegurado,
+                esAsegurado: conductorEsAsegurado,
+                setEsAsegurado: (v) => { setConductorEsAsegurado(v); clearError('conductor_es_asegurado') },
                 nombre: conductorNombre, setNombre: (v) => { setConductorNombre(v); clearError('conductor_nombre') },
                 apellido: conductorApellido, setApellido: (v) => { setConductorApellido(v); clearError('conductor_apellido') },
                 dni: conductorDni, setDni: (v) => { setConductorDni(v); clearError('conductor_dni') },
@@ -927,12 +967,17 @@ function DenunciarPageContent() {
               tercero={{
                 hubo: huboTercero, setHubo: (v) => {
                   setHuboTercero(v)
-                  if (!v) { setTerceroFuga(false); setTerceroCategoria('') }
-                  clearError('tercero_nombre'); clearError('tercero_categoria')
+                  if (v !== 'si') {
+                    setTerceroFuga(false); setTerceroCategoria('')
+                    setMotivoSinDatosTercero('')
+                  }
+                  clearError('tercero_nombre'); clearError('tercero_categoria'); clearError('hubo_tercero')
                 },
                 categoria: terceroCategoria,
                 setCategoria: (v) => { setTerceroCategoria(v); clearError('tercero_categoria') },
                 fuga: terceroFuga, setFuga: setTerceroFuga,
+                motivoSinDatos: motivoSinDatosTercero,
+                setMotivoSinDatos: (v) => { setMotivoSinDatosTercero(v); clearError('motivo_sin_datos_tercero') },
                 nombre: terceroNombre, setNombre: (v) => { setTerceroNombre(v); clearError('tercero_nombre') },
                 dni: terceroDni, setDni: setTerceroDni,
                 telefono: terceroTelefono, setTelefono: setTerceroTelefono,
@@ -946,14 +991,15 @@ function DenunciarPageContent() {
                 danos: terceroDanos, setDanos: setTerceroDanos,
               }}
               lesionados={{
-                hubo: huboLesionados, setHubo: setHuboLesionados,
+                hubo: huboLesionados,
+                setHubo: (v) => { setHuboLesionados(v); clearError('hubo_lesionados') },
                 detalle: detalleLesiones, setDetalle: (v) => { setDetalleLesiones(v); clearError('detalle_lesiones') },
               }}
               testigos={{
                 hubo: huboTestigos,
                 setHubo: (v) => {
-                  setHuboTestigos(v); clearError('testigos')
-                  if (!v) setTestigos([{ nombre: '', telefono: '' }])
+                  setHuboTestigos(v); clearError('testigos'); clearError('hubo_testigos')
+                  if (v !== 'si') setTestigos([{ nombre: '', telefono: '' }])
                 },
                 lista: testigos, setLista: setTestigos,
               }}
@@ -991,7 +1037,9 @@ function DenunciarPageContent() {
               conductorEsAsegurado={conductorEsAsegurado}
               conductor={{ nombre: conductorNombre, apellido: conductorApellido, dni: conductorDni, telefono: conductorTelefono, relacion: conductorRelacion, registro: conductorRegistro }}
               vehiculoEstacionado={vehiculoEstacionado}
-              huboTercero={huboTercero} terceroFuga={terceroFuga} terceroCategoria={terceroCategoria}
+              huboTercero={huboTercero} terceroFuga={terceroFuga}
+              motivoSinDatosTercero={motivoSinDatosTercero}
+              terceroCategoria={terceroCategoria}
               tercero={{ nombre: terceroNombre, dni: terceroDni, telefono: terceroTelefono, compania: terceroCompania, poliza: terceroPoliza, tipoVehiculo: terceroTipoVehiculo, patente: terceroPatente, marca: terceroMarca, modelo: terceroModelo, anio: terceroAnio, danos: terceroDanos }}
               huboLesionados={huboLesionados} detalleLesiones={detalleLesiones}
               danosPropios={danosPropios}
@@ -1307,8 +1355,10 @@ function Paso2({
 //   PASO 3 — Detalles + Documentación (dinámico por ramo)
 // ════════════════════════════════════════════════════════════
 
+type SiNo = 'si' | 'no' | ''
+
 interface ConductorProps {
-  esAsegurado: boolean; setEsAsegurado: (v: boolean) => void
+  esAsegurado: SiNo; setEsAsegurado: (v: SiNo) => void
   nombre: string; setNombre: (v: string) => void
   apellido: string; setApellido: (v: string) => void
   dni: string; setDni: (v: string) => void
@@ -1318,10 +1368,12 @@ interface ConductorProps {
 }
 
 interface TerceroProps {
-  hubo: boolean; setHubo: (v: boolean) => void
+  hubo: SiNo; setHubo: (v: SiNo) => void
   categoria: CategoriaInvolucrado | ''
   setCategoria: (v: CategoriaInvolucrado | '') => void
   fuga: boolean; setFuga: (v: boolean) => void
+  motivoSinDatos: '' | 'fuga' | 'no_brindo' | 'adjunto'
+  setMotivoSinDatos: (v: '' | 'fuga' | 'no_brindo' | 'adjunto') => void
   nombre: string; setNombre: (v: string) => void
   dni: string; setDni: (v: string) => void
   telefono: string; setTelefono: (v: string) => void
@@ -1336,12 +1388,12 @@ interface TerceroProps {
 }
 
 interface LesionadosProps {
-  hubo: boolean; setHubo: (v: boolean) => void
+  hubo: SiNo; setHubo: (v: SiNo) => void
   detalle: string; setDetalle: (v: string) => void
 }
 
 interface TestigosProps {
-  hubo: boolean; setHubo: (v: boolean) => void
+  hubo: SiNo; setHubo: (v: SiNo) => void
   lista: TestigoData[]; setLista: (v: TestigoData[] | ((prev: TestigoData[]) => TestigoData[])) => void
 }
 
@@ -1402,15 +1454,18 @@ function Paso3({
             <div className="toggle-pregunta-label">¿El conductor era el asegurado?</div>
             <div className="toggle-pregunta-opciones">
               <button type="button"
-                className={`toggle-btn ${conductor.esAsegurado ? 'active' : ''}`}
-                onClick={() => conductor.setEsAsegurado(true)}>Sí</button>
+                className={`toggle-btn ${conductor.esAsegurado === 'si' ? 'active' : ''}`}
+                onClick={() => conductor.setEsAsegurado('si')}>Sí</button>
               <button type="button"
-                className={`toggle-btn ${!conductor.esAsegurado ? 'active' : ''}`}
-                onClick={() => conductor.setEsAsegurado(false)}>No</button>
+                className={`toggle-btn ${conductor.esAsegurado === 'no' ? 'active' : ''}`}
+                onClick={() => conductor.setEsAsegurado('no')}>No</button>
             </div>
+            {errores.conductor_es_asegurado && (
+              <div className="form-error" style={{ marginTop: 8 }}>{errores.conductor_es_asegurado}</div>
+            )}
           </div>
 
-          {!conductor.esAsegurado && (
+          {conductor.esAsegurado === 'no' && (
             <div className="form-grid" style={{ marginTop: 16 }}>
               <FormField label="Apellido del conductor" required error={errores.conductor_apellido}>
                 <input className={`form-input uppercase ${errores.conductor_apellido ? 'error' : ''}`}
@@ -1459,6 +1514,9 @@ function Paso3({
                 className={`toggle-btn ${vehiculoEstacionado === 'no' ? 'active' : ''}`}
                 onClick={() => setVehiculoEstacionado('no')}>No, estaba en circulación</button>
             </div>
+            {errores.vehiculo_estacionado && (
+              <div className="form-error" style={{ marginTop: 8 }}>{errores.vehiculo_estacionado}</div>
+            )}
           </div>
         </SectionCard>
       )}
@@ -1484,15 +1542,18 @@ function Paso3({
           <div className="toggle-pregunta">
             <div className="toggle-pregunta-opciones">
               <button type="button"
-                className={`toggle-btn ${tercero.hubo ? 'active' : ''}`}
-                onClick={() => tercero.setHubo(true)}>Sí</button>
+                className={`toggle-btn ${tercero.hubo === 'si' ? 'active' : ''}`}
+                onClick={() => tercero.setHubo('si')}>Sí</button>
               <button type="button"
-                className={`toggle-btn ${!tercero.hubo ? 'active' : ''}`}
-                onClick={() => tercero.setHubo(false)}>No</button>
+                className={`toggle-btn ${tercero.hubo === 'no' ? 'active' : ''}`}
+                onClick={() => tercero.setHubo('no')}>No</button>
             </div>
+            {errores.hubo_tercero && (
+              <div className="form-error" style={{ marginTop: 8 }}>{errores.hubo_tercero}</div>
+            )}
           </div>
 
-          {tercero.hubo && (
+          {tercero.hubo === 'si' && (
             <>
               {/* Selector de categoría */}
               <div style={{ marginTop: 16 }}>
@@ -1515,10 +1576,45 @@ function Paso3({
                   <div className="checkbox-mini" style={{ marginTop: 16 }}>
                     <label className="checkbox-mini-label">
                       <input type="checkbox" checked={tercero.fuga}
-                        onChange={e => tercero.setFuga(e.target.checked)} />
+                        onChange={e => {
+                          tercero.setFuga(e.target.checked)
+                          if (e.target.checked) tercero.setMotivoSinDatos('')
+                        }} />
                       <span>No cuento con los datos (se dio a la fuga / no se identificó)</span>
                     </label>
                   </div>
+
+                  {/* Si NO se dio a la fuga y la categoría admite datos (no objeto fijo),
+                      ofrecemos un motivo alternativo por si el asegurado no va a
+                      completar los datos ahora. La validación forzará elegir si deja
+                      los inputs vacíos. */}
+                  {!tercero.fuga && tercero.categoria !== 'objeto_fijo' && (
+                    <div style={{
+                      marginTop: 12, padding: '12px 14px', background: '#f8fafc',
+                      border: '1px solid #e2e8f0', borderRadius: 6,
+                    }}>
+                      <p style={{ fontSize: 13, color: '#475569', marginBottom: 8, fontWeight: 500 }}>
+                        Si no vas a completar los datos del tercero, indicá el motivo:
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ display: 'flex', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                          <input type="radio" name="motivo_sin_datos_tercero"
+                            checked={tercero.motivoSinDatos === 'no_brindo'}
+                            onChange={() => tercero.setMotivoSinDatos('no_brindo')} />
+                          <span>No me brindó sus datos</span>
+                        </label>
+                        <label style={{ display: 'flex', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                          <input type="radio" name="motivo_sin_datos_tercero"
+                            checked={tercero.motivoSinDatos === 'adjunto'}
+                            onChange={() => tercero.setMotivoSinDatos('adjunto')} />
+                          <span>Los cargo en la documentación adjunta</span>
+                        </label>
+                      </div>
+                      {errores.motivo_sin_datos_tercero && (
+                        <div className="form-error" style={{ marginTop: 8 }}>{errores.motivo_sin_datos_tercero}</div>
+                      )}
+                    </div>
+                  )}
 
                   {!tercero.fuga && (
                     <div className="form-grid" style={{ marginTop: 16 }}>
@@ -1609,14 +1705,17 @@ function Paso3({
             <div className="toggle-pregunta-label">¿Hubo personas lesionadas?</div>
             <div className="toggle-pregunta-opciones">
               <button type="button"
-                className={`toggle-btn ${lesionados.hubo ? 'active' : ''}`}
-                onClick={() => lesionados.setHubo(true)}>Sí</button>
+                className={`toggle-btn ${lesionados.hubo === 'si' ? 'active' : ''}`}
+                onClick={() => lesionados.setHubo('si')}>Sí</button>
               <button type="button"
-                className={`toggle-btn ${!lesionados.hubo ? 'active' : ''}`}
-                onClick={() => lesionados.setHubo(false)}>No</button>
+                className={`toggle-btn ${lesionados.hubo === 'no' ? 'active' : ''}`}
+                onClick={() => lesionados.setHubo('no')}>No</button>
             </div>
+            {errores.hubo_lesionados && (
+              <div className="form-error" style={{ marginTop: 8 }}>{errores.hubo_lesionados}</div>
+            )}
           </div>
-          {lesionados.hubo && (
+          {lesionados.hubo === 'si' && (
             <div className="form-group" style={{ marginTop: 12 }}>
               <label className="form-label">Detalle de las lesiones <span className="required">*</span></label>
               <textarea className={`form-textarea ${errores.detalle_lesiones ? 'error' : ''}`}
@@ -1635,15 +1734,18 @@ function Paso3({
           <div className="toggle-pregunta-label">¿Hubo testigos del hecho?</div>
           <div className="toggle-pregunta-opciones">
             <button type="button"
-              className={`toggle-btn ${testigos.hubo ? 'active' : ''}`}
-              onClick={() => testigos.setHubo(true)}>Sí</button>
+              className={`toggle-btn ${testigos.hubo === 'si' ? 'active' : ''}`}
+              onClick={() => testigos.setHubo('si')}>Sí</button>
             <button type="button"
-              className={`toggle-btn ${!testigos.hubo ? 'active' : ''}`}
-              onClick={() => testigos.setHubo(false)}>No</button>
+              className={`toggle-btn ${testigos.hubo === 'no' ? 'active' : ''}`}
+              onClick={() => testigos.setHubo('no')}>No</button>
           </div>
+          {errores.hubo_testigos && (
+            <div className="form-error" style={{ marginTop: 8 }}>{errores.hubo_testigos}</div>
+          )}
         </div>
         {errores.testigos && <div className="form-error" style={{ marginTop: 8 }}>{errores.testigos}</div>}
-        {testigos.hubo && (
+        {testigos.hubo === 'si' && (
           <div style={{ marginTop: 16 }}>
             {testigos.lista.map((t, idx) => (
               <div key={idx} className="testigo-row">
@@ -1903,14 +2005,16 @@ function Paso4(props: {
   descripcion: string
   tipoRiesgo: TipoRiesgoSiniestro
   esAutoMoto: boolean; esHogar: boolean
-  conductorEsAsegurado: boolean
+  conductorEsAsegurado: SiNo
   conductor: { nombre: string; apellido: string; dni: string; telefono: string; relacion: string; registro: string }
   vehiculoEstacionado: 'si' | 'no' | ''
-  huboTercero: boolean; terceroFuga: boolean; terceroCategoria: CategoriaInvolucrado | ''
+  huboTercero: SiNo; terceroFuga: boolean
+  motivoSinDatosTercero: '' | 'fuga' | 'no_brindo' | 'adjunto'
+  terceroCategoria: CategoriaInvolucrado | ''
   tercero: { nombre: string; dni: string; telefono: string; compania: string; poliza: string; tipoVehiculo: string; patente: string; marca: string; modelo: string; anio: string; danos: string }
-  huboLesionados: boolean; detalleLesiones: string
+  huboLesionados: SiNo; detalleLesiones: string
   danosPropios: string
-  huboTestigos: boolean; testigos: TestigoData[]
+  huboTestigos: SiNo; testigos: TestigoData[]
   tipoVivienda: string; quePaso: string; ambienteAfectado: string; causaSiniestro: string
   denunciaPolicial: string; actaPolicial: string
   docSlots: DocSlots; archivosGenerales: File[]
@@ -1996,8 +2100,11 @@ function Paso4(props: {
         <>
           <div className="summary-section">
             <div className="summary-section-title">🚗 Conductor</div>
-            <SummaryRow label="¿Era el asegurado?" value={props.conductorEsAsegurado ? 'Sí' : 'No'} />
-            {!props.conductorEsAsegurado && (
+            <SummaryRow
+              label="¿Era el asegurado?"
+              value={props.conductorEsAsegurado === 'si' ? 'Sí' : props.conductorEsAsegurado === 'no' ? 'No' : '—'}
+            />
+            {props.conductorEsAsegurado === 'no' && (
               <>
                 <SummaryRow label="Nombre" value={`${props.conductor.apellido}, ${props.conductor.nombre}`} />
                 <SummaryRow label="DNI" value={props.conductor.dni} />
@@ -2015,35 +2122,49 @@ function Paso4(props: {
             </div>
           )}
 
-          {props.huboTercero && (
-            <div className="summary-section">
-              <div className="summary-section-title">🚙 Otra persona / vehículo involucrado</div>
-              {categoriaInvolucradoLabel && <SummaryRow label="Tipo" value={categoriaInvolucradoLabel} />}
-              {props.terceroFuga ? (
-                <SummaryRow label="Estado" value="Se dio a la fuga / no se identificó" />
-              ) : (
-                <>
-                  {props.tercero.nombre && <SummaryRow label="Nombre" value={props.tercero.nombre} />}
-                  {props.tercero.dni && <SummaryRow label="DNI" value={props.tercero.dni} />}
-                  {props.tercero.telefono && <SummaryRow label="Teléfono" value={props.tercero.telefono} />}
-                  {props.tercero.compania && <SummaryRow label="Compañía" value={props.tercero.compania} />}
-                  {props.tercero.poliza && <SummaryRow label="Póliza" value={props.tercero.poliza} />}
-                  {props.tercero.patente && <SummaryRow label="Patente" value={props.tercero.patente} />}
-                  {(props.tercero.marca || props.tercero.modelo) && (
-                    <SummaryRow label="Vehículo" value={[props.tercero.marca, props.tercero.modelo, props.tercero.anio].filter(Boolean).join(' ')} />
-                  )}
-                  {props.tercero.danos && <SummaryRow label="Daños / detalle" value={props.tercero.danos} />}
-                </>
-              )}
-            </div>
-          )}
+          <div className="summary-section">
+            <div className="summary-section-title">🚙 Otra persona / vehículo involucrado</div>
+            <SummaryRow
+              label="¿Hubo tercero?"
+              value={props.huboTercero === 'si' ? 'Sí' : props.huboTercero === 'no' ? 'No' : '—'}
+            />
+            {props.huboTercero === 'si' && (
+              <>
+                {categoriaInvolucradoLabel && <SummaryRow label="Tipo" value={categoriaInvolucradoLabel} />}
+                {props.terceroFuga ? (
+                  <SummaryRow label="Estado" value="Se dio a la fuga / no se identificó" />
+                ) : props.motivoSinDatosTercero === 'no_brindo' ? (
+                  <SummaryRow label="Motivo sin datos" value="El tercero no me brindó sus datos" />
+                ) : props.motivoSinDatosTercero === 'adjunto' ? (
+                  <SummaryRow label="Motivo sin datos" value="Los cargo en la documentación adjunta" />
+                ) : (
+                  <>
+                    {props.tercero.nombre && <SummaryRow label="Nombre" value={props.tercero.nombre} />}
+                    {props.tercero.dni && <SummaryRow label="DNI" value={props.tercero.dni} />}
+                    {props.tercero.telefono && <SummaryRow label="Teléfono" value={props.tercero.telefono} />}
+                    {props.tercero.compania && <SummaryRow label="Compañía" value={props.tercero.compania} />}
+                    {props.tercero.poliza && <SummaryRow label="Póliza" value={props.tercero.poliza} />}
+                    {props.tercero.patente && <SummaryRow label="Patente" value={props.tercero.patente} />}
+                    {(props.tercero.marca || props.tercero.modelo) && (
+                      <SummaryRow label="Vehículo" value={[props.tercero.marca, props.tercero.modelo, props.tercero.anio].filter(Boolean).join(' ')} />
+                    )}
+                    {props.tercero.danos && <SummaryRow label="Daños / detalle" value={props.tercero.danos} />}
+                  </>
+                )}
+              </>
+            )}
+          </div>
 
-          {props.huboLesionados && (
-            <div className="summary-section">
-              <div className="summary-section-title">🏥 Lesionados</div>
-              <div className="summary-description">{props.detalleLesiones}</div>
-            </div>
-          )}
+          <div className="summary-section">
+            <div className="summary-section-title">🏥 Lesionados</div>
+            <SummaryRow
+              label="¿Hubo lesionados?"
+              value={props.huboLesionados === 'si' ? 'Sí' : props.huboLesionados === 'no' ? 'No' : '—'}
+            />
+            {props.huboLesionados === 'si' && props.detalleLesiones && (
+              <div className="summary-description" style={{ marginTop: 8 }}>{props.detalleLesiones}</div>
+            )}
+          </div>
 
           {props.danosPropios && (
             <div className="summary-section">
@@ -2064,14 +2185,17 @@ function Paso4(props: {
         </div>
       )}
 
-      {props.huboTestigos && props.testigos.some(t => t.nombre || t.telefono) && (
-        <div className="summary-section">
-          <div className="summary-section-title">👥 Testigos</div>
-          {props.testigos.filter(t => t.nombre || t.telefono).map((t, i) => (
-            <SummaryRow key={i} label={`Testigo ${i + 1}`} value={`${t.nombre}${t.telefono ? ` · ${t.telefono}` : ''}`} />
-          ))}
-        </div>
-      )}
+      <div className="summary-section">
+        <div className="summary-section-title">👥 Testigos</div>
+        <SummaryRow
+          label="¿Hubo testigos?"
+          value={props.huboTestigos === 'si' ? 'Sí' : props.huboTestigos === 'no' ? 'No' : '—'}
+        />
+        {props.huboTestigos === 'si' && props.testigos.filter(t => t.nombre || t.telefono).map((t, i) => (
+          <SummaryRow key={i} label={`Testigo ${i + 1}`} value={`${t.nombre}${t.telefono ? ` · ${t.telefono}` : ''}`} />
+        ))}
+      </div>
+
 
       {props.denunciaPolicial && (
         <div className="summary-section">

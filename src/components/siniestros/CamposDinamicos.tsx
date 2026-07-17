@@ -36,9 +36,25 @@ import { SelectorRueda } from '@/components/SelectorRueda'
 // Tipos del componente
 // ────────────────────────────────────────────────────────────
 
+/**
+ * Los toggles Sí/No pueden venir como boolean (registros viejos con checkbox)
+ * o como string 'Sí'/'No' (a partir de v1.0.134 el catálogo usa `tipo: 'radio'`
+ * para forzar respuesta explícita). Helper `esSi()` normaliza ambos formatos.
+ */
+type ToggleSiNo = boolean | 'Sí' | 'No' | 'si' | 'no' | ''
+
+export function esSi(valor: unknown): boolean {
+  if (valor === true) return true
+  if (typeof valor === 'string') {
+    const v = valor.toLowerCase().trim()
+    return v === 'sí' || v === 'si' || v === 'true'
+  }
+  return false
+}
+
 export interface ValoresDinamicos {
-  vehiculo_estacionado?: boolean
-  otra_persona_conduce?: boolean
+  vehiculo_estacionado?: ToggleSiNo
+  otra_persona_conduce?: ToggleSiNo | 'El asegurado' | 'Otra persona'
   conductor?: {
     nombre?: string
     apellido?: string
@@ -47,8 +63,9 @@ export interface ValoresDinamicos {
     relacion?: string
     registro?: string
   }
-  hubo_tercero?: boolean
+  hubo_tercero?: ToggleSiNo
   tercero_fuga?: boolean
+  motivo_sin_datos_tercero?: string
   tercero?: {
     categoria?: string
     nombre?: string
@@ -62,7 +79,7 @@ export interface ValoresDinamicos {
     anio?: string
     danos?: string
   }
-  hubo_testigos?: boolean
+  hubo_testigos?: ToggleSiNo
   testigos?: Array<{ nombre?: string; dni?: string; telefono?: string }>
   hubo_lesionados?: string
   detalle_lesiones?: string
@@ -225,11 +242,15 @@ function BloqueRender({ bloqueId, valores, onChange, errores, disabled }: Bloque
   const toggleTipo = primerCampo?.tipo
 
   // Determina si el bloque está "activo" (mostrar sub-campos o no).
+  // Los toggles ahora usan radio 'Sí'/'No' — usamos esSi() para normalizar
+  // valores legacy (boolean) y nuevos (string).
   let activo = true
   if (bloqueId === 'conductor') {
-    activo = Boolean(valores.otra_persona_conduce)
+    // 'Otra persona' significa que conducía alguien distinto al asegurado.
+    const v = valores.otra_persona_conduce
+    activo = v === 'Otra persona' || v === true
   } else if (bloqueId === 'tercero') {
-    activo = Boolean(valores.hubo_tercero)
+    activo = esSi(valores.hubo_tercero)
   } else if (bloqueId === 'lesionados') {
     activo = valores.hubo_lesionados !== undefined && valores.hubo_lesionados !== '' && valores.hubo_lesionados !== 'No'
   }
