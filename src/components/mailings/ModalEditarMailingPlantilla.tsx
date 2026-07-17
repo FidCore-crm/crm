@@ -16,10 +16,11 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Loader2, Save, Eye } from 'lucide-react'
+import { X, Loader2, Save, Eye, Image as ImageIcon } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import type { MailingPlantilla } from './TabMailingPlantillas'
+import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from '@/components/biblioteca/SelectorImagenBiblioteca'
 
 interface Props {
   plantilla: MailingPlantilla | null  // null = creando nueva
@@ -55,6 +56,28 @@ export default function ModalEditarMailingPlantilla({ plantilla, onCerrar, onGua
   const [previewCargando, setPreviewCargando] = useState(false)
 
   const focusedRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
+  const cuerpoRef = useRef<HTMLTextAreaElement | null>(null)
+  const [selectorImagenAbierto, setSelectorImagenAbierto] = useState(false)
+
+  function insertarImagenEnCuerpo(archivo: ArchivoBiblioteca) {
+    const marcador = `[[IMG:${archivo.id}]]`
+    const ta = cuerpoRef.current
+    if (!ta) {
+      setCuerpo(prev => `${prev}${prev && !prev.endsWith('\n') ? '\n' : ''}${marcador}\n`)
+      setSelectorImagenAbierto(false)
+      return
+    }
+    const inicio = ta.selectionStart ?? cuerpo.length
+    const fin = ta.selectionEnd ?? cuerpo.length
+    const nuevo = cuerpo.substring(0, inicio) + marcador + cuerpo.substring(fin)
+    setCuerpo(nuevo)
+    setSelectorImagenAbierto(false)
+    setTimeout(() => {
+      ta.focus()
+      const pos = inicio + marcador.length
+      ta.setSelectionRange(pos, pos)
+    }, 0)
+  }
 
   // Preview en vivo (debounced). actualizarPreview usa los mismos state values
   // del array de deps; declararla explícitamente sería redundante.
@@ -76,11 +99,12 @@ export default function ModalEditarMailingPlantilla({ plantilla, onCerrar, onGua
         body: {
           asunto,
           saludo,
-          // Concatenamos cuerpo + CTA al final si hay
-          cuerpo: ctaTexto && ctaUrl
-            ? `${cuerpo}\n\n[${ctaTexto}](${ctaUrl})`
-            : cuerpo,
+          cuerpo,
           cierre,
+          // El endpoint genera el HTML real del botón desde cta_texto/cta_url
+          // e inyecta {{boton_accion}} en el cuerpo si no está ya (v1.0.142).
+          cta_texto: ctaTexto.trim() || undefined,
+          cta_url: ctaUrl.trim() || undefined,
           variables: { titulo: asunto, cuerpo_mensaje: cuerpo },
         },
       },
@@ -236,9 +260,19 @@ export default function ModalEditarMailingPlantilla({ plantilla, onCerrar, onGua
 
           {/* Cuerpo */}
           <div>
-            <label className="block text-2xs font-medium text-slate-600 mb-1">Cuerpo del mensaje *</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-2xs font-medium text-slate-600">Cuerpo del mensaje *</label>
+              <button
+                type="button"
+                onClick={() => setSelectorImagenAbierto(true)}
+                className="text-xs px-3 py-1.5 border border-blue-200 bg-blue-50 rounded hover:bg-blue-100 hover:border-blue-300 flex items-center gap-1.5 text-blue-700 font-medium"
+              >
+                <ImageIcon className="h-3.5 w-3.5" /> Insertar imagen
+              </button>
+            </div>
             <textarea
               name="cuerpo"
+              ref={cuerpoRef}
               value={cuerpo}
               onChange={e => setCuerpo(e.target.value)}
               onFocus={e => { focusedRef.current = e.target }}
@@ -325,6 +359,14 @@ export default function ModalEditarMailingPlantilla({ plantilla, onCerrar, onGua
           </button>
         </div>
       </div>
+
+      {/* Selector de imagen de la biblioteca (v1.0.142) */}
+      <SelectorImagenBiblioteca
+        abierto={selectorImagenAbierto}
+        onCerrar={() => setSelectorImagenAbierto(false)}
+        onElegir={insertarImagenEnCuerpo}
+        titulo="Insertar imagen en el cuerpo"
+      />
     </div>
   )
 }

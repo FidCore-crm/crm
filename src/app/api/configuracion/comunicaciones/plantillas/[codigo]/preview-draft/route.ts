@@ -4,6 +4,7 @@ import { renderizarPlantillaDraft } from '@/lib/email-templates/renderizador'
 import { obtenerVariablesOrganizacion } from '@/lib/email-variables'
 import { construirUrlPortalDinamica } from '@/lib/urls-publicas'
 import { logoComoDataUrl } from '@/lib/email-templates/logo-preview'
+import { generarBotonHtml } from '@/lib/email-templates/botones'
 
 /**
  * POST — Renderiza un draft de plantilla (textos aún no guardados) para
@@ -25,10 +26,25 @@ export async function POST(
     return NextResponse.json({ ok: false, error: 'Body inválido' }, { status: 400 })
   }
 
+  // Botón CTA opcional para preview (v1.0.142). Si vienen texto+URL, generamos
+  // el HTML real del botón e inyectamos `{{boton_accion}}` al final del cuerpo
+  // si no está ya (mismo patrón que enviarComunicacion en el flujo real).
+  const ctaTexto = typeof body.cta_texto === 'string' ? body.cta_texto.trim() : ''
+  const ctaUrl = typeof body.cta_url === 'string' ? body.cta_url.trim() : ''
+  let cuerpoConBoton = body.cuerpo || ''
+  let botonHtml: string | undefined
+  if (ctaTexto && ctaUrl) {
+    if (!cuerpoConBoton.includes('{{boton_accion}}')) {
+      cuerpoConBoton = cuerpoConBoton.trim()
+        ? `${cuerpoConBoton}\n\n{{boton_accion}}`
+        : `{{boton_accion}}`
+    }
+  }
+
   const draft = {
     asunto: body.asunto || '',
     saludo: body.saludo || '',
-    cuerpo: body.cuerpo || '',
+    cuerpo: cuerpoConBoton,
     cierre: body.cierre || '',
   }
 
@@ -56,6 +72,17 @@ export async function POST(
 
   const organizacionVars = await obtenerVariablesOrganizacion()
   const variables = { ...organizacionVars, ...variablesBase, ...(body.variables || {}) }
+
+  // Generar el HTML del botón con el color de marca (v1.0.142)
+  if (ctaTexto && ctaUrl) {
+    botonHtml = generarBotonHtml({
+      texto: ctaTexto,
+      url: ctaUrl,
+      color_marca: variables.organizacion_color_marca || undefined,
+    })
+    // El renderer trata `boton_accion` como variable html-safe.
+    ;(variables as any).boton_accion = botonHtml
+  }
 
   // Logo como data URL inline: garantiza que se vea en el iframe del editor
   // sin depender de sandbox / cookies / origin del browser.
