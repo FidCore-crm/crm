@@ -54,6 +54,17 @@ interface Siniestro {
   origen_creacion: 'MANUAL_PAS' | 'PORTAL_CLIENTE'
   revisado_por_pas: boolean
   fecha_revision: string | null
+  denuncia_metadata: {
+    ip?: string | null
+    user_agent?: string | null
+    browser?: { nombre: string; version: string | null }
+    os?: { nombre: string; version: string | null }
+    dispositivo?: 'movil' | 'tablet' | 'desktop' | 'bot' | 'desconocido'
+    referer?: string | null
+    idioma?: string | null
+    pais?: string | null
+    fecha_hora?: string | null
+  } | null
   asegurado: { id: string; apellido: string; nombre: string; razon_social: string | null; telefono?: string | null; whatsapp?: string | null; usuario_id?: string | null }
   poliza: {
     id: string
@@ -378,6 +389,7 @@ export default function FichaSiniestroPage() {
         notas,
         deleted_at, updated_at,
         origen_creacion, revisado_por_pas, fecha_revision,
+        denuncia_metadata,
         asegurado:personas!persona_id (id, apellido, nombre, razon_social, telefono, whatsapp, usuario_id),
         poliza:polizas!poliza_id (
           id, numero_poliza,
@@ -666,6 +678,88 @@ export default function FichaSiniestroPage() {
           </button>
         </div>
       )}
+
+      {/* Trazabilidad de la denuncia (solo si viene del portal + hay metadata) */}
+      {siniestro.origen_creacion === 'PORTAL_CLIENTE' && siniestro.denuncia_metadata && (() => {
+        const m = siniestro.denuncia_metadata!
+        const fechaHoraFmt = m.fecha_hora
+          ? new Date(m.fecha_hora).toLocaleString('es-AR', {
+              day: '2-digit', month: '2-digit', year: 'numeric',
+              hour: '2-digit', minute: '2-digit', second: '2-digit',
+              timeZone: 'America/Argentina/Buenos_Aires',
+            })
+          : null
+        const dispositivoEmoji =
+          m.dispositivo === 'movil'    ? '📱' :
+          m.dispositivo === 'tablet'   ? '📱' :
+          m.dispositivo === 'desktop'  ? '💻' :
+          m.dispositivo === 'bot'      ? '🤖' : '❓'
+        const dispositivoLabel =
+          m.dispositivo === 'movil'    ? 'Móvil' :
+          m.dispositivo === 'tablet'   ? 'Tablet' :
+          m.dispositivo === 'desktop'  ? 'Computadora' :
+          m.dispositivo === 'bot'      ? 'Bot' : 'Desconocido'
+        const browserStr = m.browser
+          ? `${m.browser.nombre}${m.browser.version ? ` ${m.browser.version.split('.')[0]}` : ''}`
+          : null
+        const osStr = m.os
+          ? `${m.os.nombre}${m.os.version ? ` ${m.os.version}` : ''}`
+          : null
+
+        return (
+          <div className="bg-slate-50 border border-slate-200 rounded overflow-hidden">
+            <div className="px-4 py-2 border-b border-slate-200 bg-white">
+              <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                🔍 Trazabilidad de la denuncia
+              </h3>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-xs">
+              {fechaHoraFmt && (
+                <div>
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Fecha y hora exacta</p>
+                  <p className="text-slate-800 font-medium">{fechaHoraFmt}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Dispositivo</p>
+                <p className="text-slate-800 font-medium">{dispositivoEmoji} {dispositivoLabel}</p>
+              </div>
+              {(browserStr || osStr) && (
+                <div>
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Navegador y sistema</p>
+                  <p className="text-slate-800 font-medium">
+                    {browserStr}{browserStr && osStr ? ' · ' : ''}{osStr}
+                  </p>
+                </div>
+              )}
+              {m.ip && (
+                <div>
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">IP{m.pais ? ` (${m.pais})` : ''}</p>
+                  <p className="text-slate-800 font-mono text-2xs break-all">{m.ip}</p>
+                </div>
+              )}
+              {m.idioma && (
+                <div>
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Idioma del navegador</p>
+                  <p className="text-slate-800 font-medium">{m.idioma}</p>
+                </div>
+              )}
+              {m.referer && (
+                <div className="md:col-span-2">
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Origen del acceso</p>
+                  <p className="text-slate-700 font-mono text-2xs break-all">{m.referer}</p>
+                </div>
+              )}
+              {m.user_agent && (
+                <div className="md:col-span-3 lg:col-span-4">
+                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">User-Agent completo</p>
+                  <p className="text-slate-600 font-mono text-2xs break-all leading-relaxed">{m.user_agent}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -1498,6 +1592,7 @@ export default function FichaSiniestroPage() {
             notas,
             deleted_at,
             origen_creacion, revisado_por_pas, fecha_revision,
+            denuncia_metadata,
             asegurado:personas!persona_id (id, apellido, nombre, razon_social, telefono, whatsapp, usuario_id),
             poliza:polizas!poliza_id (
               id, numero_poliza,

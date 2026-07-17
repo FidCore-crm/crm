@@ -9,6 +9,7 @@ import { existsSync } from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import { checkRateLimit as rlCheck, getClientIp } from '@/lib/rate-limit'
+import { parseUserAgent, etiquetaBrowserOS, etiquetaDispositivo } from '@/lib/parse-user-agent'
 import { logger } from '@/lib/errores'
 import { validarDNI, validarPatente } from '@/lib/importacion/validators'
 import { validarYNormalizarSiniestro } from '@/lib/siniestros-validacion'
@@ -103,6 +104,12 @@ const MSG_DATOS_NO_COINCIDEN_DEFAULT =
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request)
   const userAgent = (request.headers.get('user-agent') || '').slice(0, 500)
+  // Captura de metadata adicional para trazabilidad (v1.0.138)
+  const referer = (request.headers.get('referer') || request.headers.get('origin') || '').slice(0, 500)
+  const idioma = (request.headers.get('accept-language') || '').slice(0, 100)
+  const pais = request.headers.get('cf-ipcountry') || null  // Cloudflare Tunnel expone este header con el país aproximado
+  const uaParsed = parseUserAgent(userAgent)
+  const fechaHoraIso = new Date().toISOString()
 
   try {
     // Body size total
@@ -521,6 +528,18 @@ export async function POST(request: NextRequest) {
         tercero_patente: datosSiniestro.tercero_patente ?? null,
         origen_creacion: 'PORTAL_CLIENTE',
         revisado_por_pas: false,
+        // Trazabilidad completa del origen de la denuncia (v1.0.138 — mig 132)
+        denuncia_metadata: {
+          ip,
+          user_agent: uaParsed.user_agent_raw,
+          browser: uaParsed.browser,
+          os: uaParsed.os,
+          dispositivo: uaParsed.dispositivo,
+          referer: referer || null,
+          idioma: idioma || null,
+          pais: pais || null,
+          fecha_hora: fechaHoraIso,
+        },
       } as any)
       .select('id, numero_caso')
       .single()
@@ -699,12 +718,21 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Bitácora ─────────────────────────────────────────
+    const dispositivoLabel = etiquetaDispositivo(uaParsed.dispositivo)
+    const browserOsLabel = etiquetaBrowserOS(uaParsed)
+    const trazaBitacora = [
+      `Siniestro denunciado a través del formulario público por ${persona.nombre || ''} ${persona.apellido}.`,
+      `Dispositivo: ${dispositivoLabel} · ${browserOsLabel}.`,
+      `IP: ${ip}${pais ? ` (${pais})` : ''}.`,
+      referer ? `Origen: ${referer}.` : null,
+    ].filter(Boolean).join(' ')
+
     await registrarEventoBitacoraSiniestro(supabase, {
       siniestro_id: siniestro.id,
       tipo: 'CREACION',
       estado_nuevo: 'DENUNCIADO',
       usuario_id: null,
-      texto: `Siniestro denunciado a través del formulario público por ${persona.nombre || ''} ${persona.apellido}. IP: ${ip}.`,
+      texto: trazaBitacora,
     })
 
     // ── Notificación in-app al PAS ───────────────────────
@@ -713,7 +741,9 @@ export async function POST(request: NextRequest) {
       tipo: 'SINIESTRO_DENUNCIA_PUBLICA',
       prioridad: 'CRITICA',
       titulo: 'Nueva denuncia desde el formulario público',
-      mensaje: `${nombreCliente} denunció un siniestro (caso #${numeroCaso}) sobre la póliza ${(poliza as any).numero_poliza}.`,
+      mensaje:
+        `${nombreCliente} denunció un siniestro (caso #${numeroCaso}) sobre la póliza ${(poliza as any).numero_poliza}. ` +
+        `Enviado desde ${dispositivoLabel.replace(/^[^ ]+ /, '')} (${browserOsLabel}) · IP ${ip}${pais ? ` · ${pais}` : ''}.`,
       entidad_tipo: 'siniestro',
       entidad_id: siniestro.id,
       url: `/crm/siniestros/${siniestro.id}`,
