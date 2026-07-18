@@ -25,6 +25,7 @@ import { renderizarPlantillaDraft } from '@/lib/email-templates/renderizador'
 import { obtenerVariablesOrganizacion } from '@/lib/email-variables'
 import { construirUrlPortalDinamica } from '@/lib/urls-publicas'
 import { logoComoDataUrl } from '@/lib/email-templates/logo-preview'
+import { generarBotonHtml } from '@/lib/email-templates/botones'
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin(request)
@@ -50,6 +51,8 @@ export async function POST(request: NextRequest) {
   let saludoBase = ''
   let cuerpoBase = ''
   let cierreBase = ''
+  let ctaTexto = ''
+  let ctaUrl = ''
 
   if (mensaje_tipo === 'mailing_plantilla') {
     const plantillaId = body.mailing_plantilla_id as string | undefined
@@ -62,7 +65,7 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin()
     const { data: plantilla, error } = await supabase
       .from('mailing_plantillas')
-      .select('asunto, saludo, cuerpo, cierre')
+      .select('asunto, saludo, cuerpo, cierre, cta_texto, cta_url')
       .eq('id', plantillaId)
       .single()
     if (error || !plantilla) {
@@ -77,6 +80,10 @@ export async function POST(request: NextRequest) {
     saludoBase = plantilla.saludo
     cuerpoBase = plantilla.cuerpo
     cierreBase = plantilla.cierre
+    // Fix v1.0.147: leer CTA de la plantilla para que aparezca en el preview
+    // del último paso del wizard (mismo botón que aparece en el mail real).
+    ctaTexto = (plantilla.cta_texto ?? '').trim()
+    ctaUrl = (plantilla.cta_url ?? '').trim()
   } else {
     asuntoBase = (body.asunto as string) || ''
     // Modo libre: no hay saludo ni cierre separado — el wizard-enviar
@@ -85,6 +92,9 @@ export async function POST(request: NextRequest) {
     saludoBase = 'Hola {{nombre}}!'
     cuerpoBase = (body.cuerpo as string) || ''
     cierreBase = 'Saludos,'
+    // Modo libre acepta CTA en el body directamente (paso "libre" del wizard).
+    ctaTexto = (body.cta_texto_libre as string | undefined)?.trim() || ''
+    ctaUrl = (body.cta_url_libre as string | undefined)?.trim() || ''
   }
 
   // URL del portal (usada por variables como {{url_portal}})
@@ -110,7 +120,28 @@ export async function POST(request: NextRequest) {
   }
 
   const organizacionVars = await obtenerVariablesOrganizacion()
-  const variables = { ...organizacionVars, ...variablesBase }
+  const variables: Record<string, string> = { ...organizacionVars, ...variablesBase }
+
+  // Fix v1.0.147: si vienen texto+URL del botón, generar el HTML del botón
+  // con el color de marca del PAS e inyectar `{{boton_accion}}` al final del
+  // cuerpo si no está ya. Mismo patrón que usa enviarComunicacion() en el
+  // sender real para que el preview sea idéntico al mail que llega.
+  if (ctaTexto && ctaUrl) {
+    const botonHtml = generarBotonHtml({
+      texto: ctaTexto,
+      url: ctaUrl,
+      color_marca: variables.organizacion_color_marca || undefined,
+    })
+    variables.boton_accion = botonHtml
+    if (!cuerpoBase.includes('{{boton_accion}}')) {
+      cuerpoBase = cuerpoBase.trim()
+        ? `${cuerpoBase}\n\n{{boton_accion}}`
+        : `{{boton_accion}}`
+    }
+    // Refrescar la variable cuerpo_mensaje con el cuerpo actualizado (por si
+    // la plantilla usa {{cuerpo_mensaje}} en vez de tener el texto inline).
+    variables.cuerpo_mensaje = cuerpoBase
+  }
 
   const logoDataUrl = await logoComoDataUrl(variables.organizacion_logo)
 

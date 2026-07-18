@@ -34,6 +34,11 @@ function isPublicRoute(pathname: string): boolean {
   if (pathname.startsWith('/api/publico/')) return true
   if (pathname.startsWith('/api/track/')) return true
   if (pathname.startsWith('/api/comunicaciones/unsubscribe/')) return true
+  // v1.0.147 — imágenes de la biblioteca insertadas en emails deben ser
+  // accesibles sin auth para que el cliente de email del asegurado las
+  // pueda cargar. El endpoint filtra por UUID válido en DB (no expone
+  // ninguna info sensible).
+  if (pathname.startsWith('/api/biblioteca-publica/')) return true
   // Confirmación de blanqueo admin: link clickeable desde el email.
   if (pathname.startsWith('/api/auth/confirmar-blanqueo-admin/')) return true
   if (pathname === '/denuncia') return true

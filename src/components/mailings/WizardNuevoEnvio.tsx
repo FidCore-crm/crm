@@ -304,6 +304,8 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
                   mailingPlantillaId={mPlantillaId}
                   asuntoOverride={cAsuntoOverride}
                   cuerpoLibre={mCuerpoLibre}
+                  ctaTextoLibre={mCtaTexto}
+                  ctaUrlLibre={mCtaUrl}
                 />
               )}
             </div>
@@ -582,7 +584,7 @@ function PasoConfig({ mensajeTipo, plantillas, plantillaId, asuntoOverride, setA
   )
 }
 
-function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoFinal, adjuntos, mailingPlantillaId, asuntoOverride, cuerpoLibre }: any) {
+function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoFinal, adjuntos, mailingPlantillaId, asuntoOverride, cuerpoLibre, ctaTextoLibre, ctaUrlLibre }: any) {
   const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null)
   const [emailPreviewCargando, setEmailPreviewCargando] = useState(false)
   const [emailPreviewError, setEmailPreviewError] = useState<string | null>(null)
@@ -599,6 +601,11 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
     } else {
       body.asunto = asuntoFinal
       body.cuerpo = cuerpoLibre
+      // v1.0.147: mandar CTA del modo libre para que el preview lo muestre.
+      if (ctaTextoLibre && ctaUrlLibre) {
+        body.cta_texto_libre = ctaTextoLibre
+        body.cta_url_libre = ctaUrlLibre
+      }
     }
     const r = await apiCall<{ html: string; asunto: string }>(
       '/api/comunicaciones/wizard-enviar/preview',
@@ -611,7 +618,7 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
       setEmailPreviewError(r.error?.mensaje ?? 'No se pudo generar el preview')
     }
     setEmailPreviewCargando(false)
-  }, [mensajeTipo, mailingPlantillaId, asuntoOverride, asuntoFinal, cuerpoLibre])
+  }, [mensajeTipo, mailingPlantillaId, asuntoOverride, asuntoFinal, cuerpoLibre, ctaTextoLibre, ctaUrlLibre])
 
   // Auto-cargar el preview al entrar al paso
   useEffect(() => {
