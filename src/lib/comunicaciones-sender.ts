@@ -321,7 +321,7 @@ export async function obtenerBloquePortalAsegurado(
             <td style="padding:0;word-break:break-word;">En Safari tocá el botón <em>Compartir</em> y elegí <em>Agregar a pantalla de inicio</em>.</td>
           </tr>
         </table>
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;border-collapse:separate;"><tr><td class="fc-bloque-portal-cta" align="center" valign="middle" bgcolor="${escapeHtml(acento)}" style="border-radius:8px;padding:12px 22px;"><a href="${escapeHtml(urlPortal)}" style="color:#ffffff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-weight:600;text-decoration:none;font-size:14px;line-height:1.2;display:inline-block;">Abrir mi Portal del Asegurado</a></td></tr></table>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;border-collapse:separate;"><tr><td class="fc-bloque-portal-cta" align="center" valign="middle" bgcolor="${escapeHtml(acento)}" style="border-radius:8px;"><a href="${escapeHtml(urlPortal)}" style="display:inline-block;padding:12px 22px;border-radius:8px;color:#ffffff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-weight:600;text-decoration:none;font-size:14px;line-height:1.2;">Abrir mi Portal del Asegurado</a></td></tr></table>
       </div>
     `.trim()
   } catch (err) {
@@ -640,7 +640,7 @@ export async function procesarEmailEncolado(envio_id: string): Promise<{ ok: boo
           ? variables.organizacion_color_marca
           : '#0A1628'
         const linkHtml = info.url_portal
-          ? `<p style="margin:12px 0 0;font-size:14px;color:#64748b;">Podés descargarlos desde tu Portal del Asegurado:</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:12px auto 0;border-collapse:separate;"><tr><td align="center" valign="middle" bgcolor="${escapeHtml(colorBoton)}" style="border-radius:8px;padding:12px 22px;"><a href="${escapeHtml(info.url_portal)}" style="color:#ffffff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-weight:600;text-decoration:none;font-size:14px;line-height:1.2;display:inline-block;">Abrir mi Portal del Asegurado</a></td></tr></table>`
+          ? `<p style="margin:12px 0 0;font-size:14px;color:#64748b;">Podés descargarlos desde tu Portal del Asegurado:</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:12px auto 0;border-collapse:separate;"><tr><td align="center" valign="middle" bgcolor="${escapeHtml(colorBoton)}" style="border-radius:8px;"><a href="${escapeHtml(info.url_portal)}" style="display:inline-block;padding:12px 22px;border-radius:8px;color:#ffffff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-weight:600;text-decoration:none;font-size:14px;line-height:1.2;">Abrir mi Portal del Asegurado</a></td></tr></table>`
           : `<p style="margin:8px 0 0;font-size:14px;color:#64748b;">Contactanos si necesitás recibirlos por otro medio.</p>`
         bloqueExtraHtml = `
           <div style="border-top:1px solid #e2e8f0;padding-top:16px;">
