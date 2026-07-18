@@ -189,14 +189,46 @@ function PolizasContent() {
     const en30str = `${en30.getFullYear()}-${String(en30.getMonth() + 1).padStart(2, '0')}-${String(en30.getDate()).padStart(2, '0')}`
     let qV = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE')
     let qPV = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'VIGENTE').lte('fecha_fin', en30str).gte('fecha_fin', hoy)
-    let qNV = supabase.from('polizas').select('id', { count: 'exact', head: true }).eq('estado', 'NO_VIGENTE')
     let qProg = supabase.from('polizas').select('id', { count: 'exact', head: true }).in('estado', ['PROGRAMADA', 'RENOVADA'])
     qV = filtrarPorPersonas(qV, idsPersonas, 'asegurado_id')
     qPV = filtrarPorPersonas(qPV, idsPersonas, 'asegurado_id')
-    qNV = filtrarPorPersonas(qNV, idsPersonas, 'asegurado_id')
     qProg = filtrarPorPersonas(qProg, idsPersonas, 'asegurado_id')
-    const [v, pv, nv, prog] = await Promise.all([qV, qPV, qNV, qProg])
-    setKpis({ vigentes: v.count ?? 0, porVencer: pv.count ?? 0, noVigentes: nv.count ?? 0, programadas: prog.count ?? 0 })
+
+    // "Vencidas sin renovar" REAL (v1.0.146 — feedback Nahuel):
+    // NO_VIGENTE que NO tiene una hija activa (RENOVADA/VIGENTE/PROGRAMADA).
+    // Antes contábamos TODAS las NO_VIGENTE (incluyendo las que ya renovaste
+    // — se guardan como histórico). Las que sí renovaste no son problema
+    // operativo. Las verdaderamente abandonadas son las que no tienen hija.
+    let qOrigenesConHija = supabase
+      .from('polizas')
+      .select('poliza_origen_id')
+      .not('poliza_origen_id', 'is', null)
+      .in('estado', ['RENOVADA', 'VIGENTE', 'PROGRAMADA'])
+    qOrigenesConHija = filtrarPorPersonas(qOrigenesConHija, idsPersonas, 'asegurado_id')
+    const { data: origenesData } = await qOrigenesConHija
+    const idsYaRenovadas = new Set<string>(
+      ((origenesData ?? []) as Array<{ poliza_origen_id: string | null }>)
+        .map(r => r.poliza_origen_id)
+        .filter((x): x is string => !!x),
+    )
+
+    let qNVSinRenovar = supabase
+      .from('polizas')
+      .select('id')
+      .eq('estado', 'NO_VIGENTE')
+    qNVSinRenovar = filtrarPorPersonas(qNVSinRenovar, idsPersonas, 'asegurado_id')
+    const { data: nvData } = await qNVSinRenovar
+    const nvSinRenovarCount = ((nvData ?? []) as Array<{ id: string }>)
+      .filter(p => !idsYaRenovadas.has(p.id))
+      .length
+
+    const [v, pv, prog] = await Promise.all([qV, qPV, qProg])
+    setKpis({
+      vigentes: v.count ?? 0,
+      porVencer: pv.count ?? 0,
+      noVigentes: nvSinRenovarCount,
+      programadas: prog.count ?? 0,
+    })
   }, [supabase, usuario])
 
   useEffect(() => { cargarKpis() }, [cargarKpis])
@@ -307,6 +339,18 @@ function PolizasContent() {
       if (filtroEstado === 'ACTIVAS') {
         // Default: ocultamos las terminales para reducir ruido visual.
         query = query.in('estado', ['VIGENTE', 'PROGRAMADA', 'RENOVADA'])
+      } else if (filtroEstado === 'NO_VIGENTE_SIN_RENOVAR') {
+        // Filtro "vencidas sin renovar" REAL (v1.0.146): NO_VIGENTE que NO
+        // tienen una hija activa. Excluye NO_VIGENTE que ya fueron reemplazadas
+        // por una renovación (esas viven como histórico, no requieren gestión).
+        query = query.eq('estado', 'NO_VIGENTE')
+        const idsRenovadasArr = Array.from(idsConRenovacion)
+        if (idsRenovadasArr.length > 0) {
+          // Supabase JS: `.not.in()` no acepta arrays vacíos correctamente,
+          // por eso el guard. Si la lista está vacía, TODAS las NO_VIGENTE
+          // son "sin renovar" (no hay ninguna renovada activa).
+          query = query.not('id', 'in', `(${idsRenovadasArr.map(id => `"${id}"`).join(',')})`)
+        }
       } else if (filtroEstado) {
         query = query.eq('estado', filtroEstado)
       }
@@ -340,7 +384,7 @@ function PolizasContent() {
       setTotal(count ?? 0)
     }
     setCargando(false)
-  }, [supabase, usuario, filtroCompania, filtroRamo, filtroEstado, filtroTemporal, busquedaDebounce, pagina, sortField, sortDir, idsImportacion, importacionId, filtroAsignado])
+  }, [supabase, usuario, filtroCompania, filtroRamo, filtroEstado, filtroTemporal, busquedaDebounce, pagina, sortField, sortDir, idsImportacion, importacionId, filtroAsignado, idsConRenovacion])
 
   useEffect(() => { cargarPolizas() }, [cargarPolizas])
 
@@ -513,13 +557,13 @@ function PolizasContent() {
           <span className="kpi-value text-amber-700">{kpis.porVencer.toLocaleString('es-AR')}</span>
           <span className="kpi-sub">requieren renovación</span>
         </div>
-        <div className={`kpi-card bg-slate-50 border border-slate-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'noVigentes' ? 'ring-2 ring-slate-400' : ''}`}
-          onClick={() => { if (kpiActivo === 'noVigentes') { setKpiActivo(null); setFiltroEstado('ACTIVAS'); setFiltroTemporal('') } else { setKpiActivo('noVigentes'); setFiltroEstado('NO_VIGENTE'); setFiltroTemporal('') } setPagina(0) }}>
+        <div className={`kpi-card bg-red-50 border border-red-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'noVigentes' ? 'ring-2 ring-red-400' : ''}`}
+          onClick={() => { if (kpiActivo === 'noVigentes') { setKpiActivo(null); setFiltroEstado('ACTIVAS'); setFiltroTemporal('') } else { setKpiActivo('noVigentes'); setFiltroEstado('NO_VIGENTE_SIN_RENOVAR'); setFiltroTemporal('') } setPagina(0) }}>
           <span className="kpi-label flex items-center gap-1">
-            <XCircle className="h-3.5 w-3.5 text-slate-500"/> No vigentes
+            <XCircle className="h-3.5 w-3.5 text-red-600"/> Vencidas sin renovar
           </span>
-          <span className="kpi-value text-slate-700">{kpis.noVigentes.toLocaleString('es-AR')}</span>
-          <span className="kpi-sub">vencidas sin renovar</span>
+          <span className="kpi-value text-red-700">{kpis.noVigentes.toLocaleString('es-AR')}</span>
+          <span className="kpi-sub">requieren gestión</span>
         </div>
         <div className={`kpi-card bg-blue-50 border border-blue-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'programadas' ? 'ring-2 ring-blue-400' : ''}`}
           onClick={() => { if (kpiActivo === 'programadas') { setKpiActivo(null); setFiltroEstado('ACTIVAS'); setFiltroTemporal('') } else { setKpiActivo('programadas'); setFiltroEstado(''); setFiltroTemporal('programadas') } setPagina(0) }}>
