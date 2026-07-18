@@ -212,12 +212,31 @@ for backup in "${BACKUPS_PRE_UPDATE[@]}"; do
 done
 
 # ─── Eliminar los que no se mantienen ──────────────────────────────────
+# Fix v1.0.143b: también eliminamos el registro de la DB. Antes solo se
+# borraba el archivo físico y el registro quedaba huérfano, inflando el
+# contador de "Total backups" y "Espacio usado" que muestra la UI en
+# /crm/configuracion/backups. Los huérfanos se acumulaban con cada rotación.
 
 ELIMINADOS=0
 for backup in $BACKUPS; do
   if [ -z "${A_MANTENER[$backup]+x}" ]; then
     rm -f "$BACKUP_BASE/$backup"
+    # Borrar también el registro DB (nombre en `backups.nombre` = filename sin extensión)
+    NOMBRE_SIN_EXT="${backup%.crmbak}"
+    psql_query "DELETE FROM backups WHERE nombre='${NOMBRE_SIN_EXT}'" >/dev/null 2>&1 || true
     ELIMINADOS=$((ELIMINADOS + 1))
+  fi
+done
+
+# Además: limpiar registros huérfanos (archivo desapareció por cualquier vía)
+# Idempotente y barato: iteramos rows de DB y borramos los que no tengan
+# archivo físico. Cubre casos donde el archivo se borra a mano o falla
+# el rm anterior por permisos.
+HUERFANOS_LIMPIADOS=0
+psql_query "SELECT nombre, archivo_unico_path FROM backups WHERE archivo_unico_path IS NOT NULL" 2>/dev/null | while IFS='|' read -r nombre path; do
+  if [ -n "$path" ] && [ ! -f "$path" ]; then
+    psql_query "DELETE FROM backups WHERE nombre='${nombre}'" >/dev/null 2>&1 || true
+    HUERFANOS_LIMPIADOS=$((HUERFANOS_LIMPIADOS + 1))
   fi
 done
 
