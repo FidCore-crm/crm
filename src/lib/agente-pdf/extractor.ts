@@ -203,7 +203,24 @@ ${construirSeccionTiposRiesgo()}
      Campos esperados en detalle_tecnico:
        • "descripcion" (Descripción libre del bien o riesgo asegurado)
 
-10. CRÍTICO — Para "detalle_tecnico" usá EXACTAMENTE las keys listadas arriba para el tipo identificado. NO inventes keys nuevas, NO uses sinónimos. Si un campo del listado no aparece en el PDF, omitilo del objeto (no lo pongas como null). Si el PDF tiene datos relevantes que no encajan en ninguna key del tipo, agregalos como una key "observaciones" con texto libre.
+10. Para "detalle_tecnico" priorizá las keys listadas arriba para el tipo identificado — usalas siempre que el PDF traiga esa info. Si un campo del listado no aparece en el PDF, omitilo (no pongas null).
+    PROHIBIDO: duplicar información con sinónimos. Antes de agregar CUALQUIER key extra, verificá que la info NO esté ya cubierta por una key core. Si "anio" es una key core y el PDF dice "AÑO: 2020", usá "anio: 2020" — NO agregues "año", "año_modelo", "año_fabricacion", "modelo_anio" ni ninguna variante. Si "modelo" es core, no crees "modelo_vehiculo", "descripcion_modelo", "version". Si "patente" es core, no uses "dominio", "chapa" ni "matricula". La misma regla vale para TODAS las keys core del tipo: marca, chasis, motor, calle, numero, localidad, etc.
+    SIN EMBARGO — si el PDF trae DATOS ÚTILES para el PAS que NO están cubiertos por ninguna key core, AGREGALAS como keys extras con snake_case en el mismo detalle_tecnico. Estos datos estructurados son mucho más útiles que un texto libre en "observaciones". Ejemplos habituales:
+     • Automotor/Moto: combustible, gnc, alarma, alarma_monitoreada, rastreador_satelital, garage, uso_comercial, transporta_pasajeros_pagos, kilometraje_anual, tipo_llanta, accesorios, adicionales
+     • Hogar/Integrales: alarma_monitoreada, empresa_monitoreo, rejas, medidas_seguridad_adicionales, cerraduras_multipunto, caja_fuerte, valor_contenido, cobertura_electrodomesticos
+     • Transporte: tipo_transporte, ruta_habitual, valor_promedio_carga, tipo_carga
+     • ART / Personas: profesion, actividad, categoria_ocupacion, tiene_beneficiarios
+     • Cualquier tipo: observaciones (SOLO para info que no se puede estructurar en una key)
+    Regla: si podés convertir la info en una key con nombre claro, hacelo. "observaciones" es el último recurso para texto libre que no encaje en nada estructurado.
+10.b CLÁUSULAS ESPECIALES DE LA PÓLIZA — CRÍTICO para renovaciones. Los PDFs suelen listar cláusulas específicas del contrato (cláusulas adicionales, endosos incluidos, condiciones particulares, cláusulas de exclusión, limitaciones, franquicias especiales, tolerancias, ampliaciones de cobertura, adhesiones a servicios) que NO están en las coberturas estándar y son específicas de esa póliza en particular. Estas cláusulas cambian entre pólizas y son las que el PAS necesita comparar en cada renovación para detectar si la compañía las agregó, quitó o modificó.
+    Extraelas SIEMPRE que aparezcan como una key "clausulas" en detalle_tecnico, con formato array de strings. Cada string es una cláusula tal como figura en el PDF (podés recortar palabras redundantes pero mantené el sentido). Ejemplos:
+     • "Cláusula de robo total y parcial con franquicia del 5%"
+     • "Amparo por daños ocasionados por granizo — extendido hasta el 31/12"
+     • "Exclusión: no cubre daños causados por participación en carreras"
+     • "Adhesión a servicio de asistencia mecánica 24hs (Assist Card)"
+     • "Cláusula de tolerancia por mora — 15 días"
+     • "Ampliación de suma asegurada para accesorios hasta USD 500"
+    Si no hay cláusulas especiales (póliza estándar sin agregados), omití la key "clausulas" (no la pongas como array vacío).
 11. Patente, motor y chasis siempre en MAYÚSCULA, sin espacios ni guiones en la patente.
 12. Si detectás inconsistencias (ej: fecha_fin antes de fecha_inicio), agregá advertencia a "advertencias_ia".
 
@@ -577,6 +594,7 @@ QUÉ CONSIDERAR COMO CAMBIO MATERIAL:
 - Cambio de zonas geográficas cubiertas (ej: "ya no cubre Chile").
 - Cambio de exclusiones o restricciones.
 - Cambio de moneda (ARS → USD o viceversa).
+- **Cláusulas específicas del contrato** (cláusulas adicionales, endosos incorporados, condiciones particulares, cláusulas de tolerancia, adhesiones a servicios opcionales, ampliaciones o restricciones puntuales). Enumeralas COMPLETAS de ambos PDFs y detectá cuáles fueron agregadas, cuáles quitadas y cuáles modificadas. Estas cláusulas son específicas de la póliza y no son parte de las coberturas estándar — el PAS necesita saber si desapareció una cláusula que le importaba al cliente o si aparecieron nuevas restricciones. Marcá cada cambio con la categoría "Cláusulas".
 
 QUÉ CONSIDERAR COSMÉTICO (marcá igual, pero con tipo 'cosmético'):
 - Número de póliza nuevo (es normal en renovaciones).
@@ -662,6 +680,7 @@ QUÉ CONSIDERAR COMO CAMBIO MATERIAL:
 - Cambio de zonas geográficas cubiertas (ej: "ya no cubre Chile").
 - Cambio de exclusiones o restricciones.
 - Cambio de moneda (ARS → USD o viceversa).
+- **Cláusulas específicas del contrato** (cláusulas adicionales, endosos incorporados, condiciones particulares, cláusulas de tolerancia, adhesiones a servicios opcionales, ampliaciones o restricciones puntuales). Enumeralas COMPLETAS de ambos PDFs y detectá cuáles fueron agregadas, cuáles quitadas y cuáles modificadas. Estas cláusulas son específicas de la póliza y no son parte de las coberturas estándar — el PAS necesita saber si desapareció una cláusula que le importaba al cliente o si aparecieron nuevas restricciones. Marcá cada cambio con la categoría "Cláusulas".
 
 QUÉ CONSIDERAR COSMÉTICO (marcá igual, pero con tipo 'cosmético'):
 - Número de póliza nuevo (es normal en renovaciones).
