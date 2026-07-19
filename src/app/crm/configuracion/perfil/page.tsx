@@ -71,9 +71,8 @@ export default function PerfilPage() {
   const [colorMarca,   setColorMarca]   = useState(COLOR_MARCA_DEFAULT)
   const [emailHeaderEstilo, setEmailHeaderEstilo] = useState<'banda' | 'compacto' | 'lateral' | 'banda_solo_logo' | 'blanco_solo_logo'>('banda')
   const [emailHeaderSubtitulo, setEmailHeaderSubtitulo] = useState('')
-  // v1.0.149: si el PAS activa esto, el renderer no pinta el nombre al lado
-  // del logo. Útil cuando el logo ya lo incluye en su diseño.
-  const [emailHeaderOcultarNombre, setEmailHeaderOcultarNombre] = useState(false)
+  // v1.0.151: state `emailHeaderOcultarNombre` eliminado — las variantes
+  // "Solo logo — fondo color/blanco" (v1.0.150) reemplazaron el caso de uso.
 
   // Mensaje pre-armado del envío por WhatsApp (el email de cotización se
   // edita como plantilla desde /crm/configuracion/comunicaciones).
@@ -121,7 +120,6 @@ export default function PerfilPage() {
           setEmailHeaderEstilo(estiloGuardado)
         }
         setEmailHeaderSubtitulo((data as any).email_header_subtitulo ?? '')
-        setEmailHeaderOcultarNombre((data as any).email_header_ocultar_nombre === true)
         setCotWspTemplate(data.cotizacion_whatsapp_template ?? '')
         setCotAclaraciones((data as any).cotizacion_aclaraciones ?? '')
         if (data.logo_path) setLogoPreview(`/api/storage/${data.logo_path}`)
@@ -187,7 +185,6 @@ export default function PerfilPage() {
         color_marca:    normalizarColorMarca(colorMarca),
         email_header_estilo: emailHeaderEstilo,
         email_header_subtitulo: emailHeaderSubtitulo.trim().slice(0, 80),
-        email_header_ocultar_nombre: emailHeaderOcultarNombre,
         cotizacion_whatsapp_template:     cotWspTemplate.trim() || null,
         cotizacion_aclaraciones:          cotAclaraciones.trim() || null,
       }
@@ -835,6 +832,10 @@ export default function PerfilPage() {
               },
               // v1.0.150: 2 variantes nuevas "solo logo" para quienes tienen
               // el nombre integrado en el diseño del logo.
+              // v1.0.151: los previews usan altura fija en el cuadro
+              // contenedor para que no colapsen cuando el logo es chico o
+              // tarda en cargar. Antes el flex sin min-height dejaba el
+              // cuadro invisible.
               {
                 valor: 'banda_solo_logo',
                 titulo: 'Solo logo — fondo color',
@@ -847,10 +848,17 @@ export default function PerfilPage() {
                         background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.oscuro} 100%)`,
                       }}
                     >
-                      <div className="bg-white rounded-md px-3 py-2 flex items-center justify-center">
+                      <div
+                        className="bg-white rounded-md flex items-center justify-center"
+                        style={{ height: 42, minWidth: 110, padding: '6px 12px' }}
+                      >
                         {mostrarLogo ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={logoPreview!} alt="" className="max-h-6 max-w-[110px] object-contain" />
+                          <img
+                            src={logoPreview!}
+                            alt=""
+                            style={{ height: 28, maxWidth: 110, objectFit: 'contain', display: 'block' }}
+                          />
                         ) : (
                           <span className="text-xs font-bold" style={{ color: tonos.base }}>{nombreOrg}</span>
                         )}
@@ -867,10 +875,17 @@ export default function PerfilPage() {
                 preview: (
                   <div className="rounded overflow-hidden bg-white">
                     <div className="h-[3px]" style={{ backgroundColor: tonos.base }}></div>
-                    <div className="py-4 flex items-center justify-center bg-white">
+                    <div
+                      className="flex items-center justify-center bg-white"
+                      style={{ height: 56, padding: '8px 12px' }}
+                    >
                       {mostrarLogo ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={logoPreview!} alt="" className="max-h-7 max-w-[130px] object-contain" />
+                        <img
+                          src={logoPreview!}
+                          alt=""
+                          style={{ height: 32, maxWidth: 130, objectFit: 'contain', display: 'block' }}
+                        />
                       ) : (
                         <span className="text-sm font-bold" style={{ color: tonos.base }}>{nombreOrg}</span>
                       )}
@@ -935,27 +950,11 @@ export default function PerfilPage() {
                   </p>
                 </div>
 
-                {/* Toggle universal: ocultar el nombre en el header (v1.0.149) */}
-                <div className="pt-2 border-t border-slate-100">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={emailHeaderOcultarNombre}
-                      onChange={e => setEmailHeaderOcultarNombre(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div>
-                      <p className="text-xs font-medium text-slate-800">
-                        Ocultar el nombre en el encabezado
-                      </p>
-                      <p className="text-2xs text-slate-600 mt-0.5 leading-snug">
-                        Activá esto si <strong>tu logo ya incluye el nombre</strong> en su diseño.
-                        El renderer solo mostrará el logo (más grande, centrado) y ocultará el
-                        texto al lado. Aplica a las 3 variantes.
-                      </p>
-                    </div>
-                  </label>
-                </div>
+                {/* v1.0.151: eliminado el checkbox "Ocultar el nombre en el encabezado"
+                    (v1.0.149). Las 2 variantes nuevas "Solo logo — fondo color" y
+                    "Solo logo — fondo blanco" (v1.0.150) ya cubren ese caso — el
+                    checkbox universal quedaba redundante. La columna DB queda con
+                    su valor pero se ignora en el renderer. */}
               </>
             )
           })()}
