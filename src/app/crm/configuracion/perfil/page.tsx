@@ -69,7 +69,7 @@ export default function PerfilPage() {
   const [socios,       setSocios]       = useState<Socio[]>([])
   const [prefijoCasos, setPrefijoCasos] = useState('CASO')
   const [colorMarca,   setColorMarca]   = useState(COLOR_MARCA_DEFAULT)
-  const [emailHeaderEstilo, setEmailHeaderEstilo] = useState<'banda' | 'compacto' | 'lateral' | 'banda_solo_logo' | 'blanco_solo_logo'>('banda')
+  const [emailHeaderEstilo, setEmailHeaderEstilo] = useState<'banda' | 'compacto' | 'lateral' | 'blanco_solo_logo'>('banda')
   const [emailHeaderSubtitulo, setEmailHeaderSubtitulo] = useState('')
   // v1.0.151: state `emailHeaderOcultarNombre` eliminado — las variantes
   // "Solo logo — fondo color/blanco" (v1.0.150) reemplazaron el caso de uso.
@@ -114,10 +114,14 @@ export default function PerfilPage() {
           estiloGuardado === 'compacto' ||
           estiloGuardado === 'lateral' ||
           estiloGuardado === 'banda' ||
-          estiloGuardado === 'banda_solo_logo' ||
           estiloGuardado === 'blanco_solo_logo'
         ) {
           setEmailHeaderEstilo(estiloGuardado)
+        } else if (estiloGuardado === 'banda_solo_logo') {
+          // v1.0.152: la variante 'banda_solo_logo' se eliminó. Los registros
+          // migrados por la migración 136 pasan a 'blanco_solo_logo'; este
+          // fallback es defensivo por si el load lee un cache viejo.
+          setEmailHeaderEstilo('blanco_solo_logo')
         }
         setEmailHeaderSubtitulo((data as any).email_header_subtitulo ?? '')
         setCotWspTemplate(data.cotizacion_whatsapp_template ?? '')
@@ -743,7 +747,7 @@ export default function PerfilPage() {
             const inicial = (nombreOrg.charAt(0) || '?').toUpperCase()
             const mostrarLogo = usarLogo && !!logoPreview
             const opciones: Array<{
-              valor: 'banda' | 'compacto' | 'lateral' | 'banda_solo_logo' | 'blanco_solo_logo'
+              valor: 'banda' | 'compacto' | 'lateral' | 'blanco_solo_logo'
               titulo: string
               descripcion: string
               preview: React.ReactNode
@@ -830,44 +834,8 @@ export default function PerfilPage() {
                   </div>
                 ),
               },
-              // v1.0.150: 2 variantes nuevas "solo logo" para quienes tienen
-              // el nombre integrado en el diseño del logo.
-              // v1.0.151: los previews usan altura fija en el cuadro
-              // contenedor para que no colapsen cuando el logo es chico o
-              // tarda en cargar. Antes el flex sin min-height dejaba el
-              // cuadro invisible.
-              {
-                valor: 'banda_solo_logo',
-                titulo: 'Solo logo — fondo color',
-                descripcion: 'Banda con color de marca + logo grande centrado.',
-                preview: (
-                  <div className="rounded overflow-hidden">
-                    <div
-                      className="py-4 flex items-center justify-center"
-                      style={{
-                        background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.oscuro} 100%)`,
-                      }}
-                    >
-                      <div
-                        className="bg-white rounded-md flex items-center justify-center"
-                        style={{ height: 42, minWidth: 110, padding: '6px 12px' }}
-                      >
-                        {mostrarLogo ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={logoPreview!}
-                            alt=""
-                            style={{ height: 28, maxWidth: 110, objectFit: 'contain', display: 'block' }}
-                          />
-                        ) : (
-                          <span className="text-xs font-bold" style={{ color: tonos.base }}>{nombreOrg}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="h-[2px]" style={{ backgroundColor: '#D4DDE8' }}></div>
-                  </div>
-                ),
-              },
+              // v1.0.150 agregó 2 variantes "solo logo". v1.0.152 sacó
+              // 'banda_solo_logo' — queda solo la de fondo blanco.
               {
                 valor: 'blanco_solo_logo',
                 titulo: 'Solo logo — fondo blanco',
@@ -899,7 +867,7 @@ export default function PerfilPage() {
               : 'Productor Asesor de Seguros'
             return (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                   {opciones.map(op => {
                     const seleccionada = emailHeaderEstilo === op.valor
                     return (
