@@ -45,7 +45,11 @@ export interface OrganizacionInfo {
   //   - 'compacto': header bajo con nombre a la izquierda y cuadrito de logo a la derecha.
   //   - 'lateral': sin bloque de color; logo en cuadro de marca, nombre en marca,
   //                el contenedor de 600px recibe un border-top de 5px en marca.
-  email_header_estilo?: 'banda' | 'compacto' | 'lateral' | null
+  //   - 'banda_solo_logo' (v1.0.150): header con gradient del color de marca + logo grande
+  //                       centrado sobre cuadro blanco. Sin nombre. Para logos con nombre integrado.
+  //   - 'blanco_solo_logo' (v1.0.150): fondo blanco + barra fina de acento arriba + logo grande
+  //                        centrado. Sin nombre. Para logos con fondo blanco/transparente.
+  email_header_estilo?: 'banda' | 'compacto' | 'lateral' | 'banda_solo_logo' | 'blanco_solo_logo' | null
   // Subtítulo editable que aparece debajo del nombre solo en variante 'banda'
   // (migración 098). Si está vacío, no se muestra el <p> del subtítulo.
   email_header_subtitulo?: string | null
@@ -192,7 +196,7 @@ export async function obtenerPlantilla(codigo: string): Promise<PlantillaEmail |
 // Header del email — 3 variantes seleccionables por el PAS
 // ---------------------------------------------------------------------------
 
-type EstiloHeader = 'banda' | 'compacto' | 'lateral'
+type EstiloHeader = 'banda' | 'compacto' | 'lateral' | 'banda_solo_logo' | 'blanco_solo_logo'
 
 /**
  * Devuelve el bloque `<tr>` del header (más la barra de acento si aplica)
@@ -282,6 +286,42 @@ function generarHeaderHtml(
   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
     ${filaLateral}
   </table>
+</td></tr>`
+  }
+
+  if (estilo === 'banda_solo_logo') {
+    // v1.0.150: banda con gradient del color de marca + logo grande centrado
+    // sobre un cuadro blanco. Sin nombre al lado. Para logos que ya incluyen
+    // el nombre en su diseño y quieren que sea el protagonista.
+    const logoImg = organizacion.logo_url
+      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" style="max-width:260px;max-height:90px;object-fit:contain;display:block;margin:0 auto;" />`
+      : `<span style="color:${tonos.base};font-weight:bold;font-size:36px;font-family:${stack};">${nombreEscapado}</span>`
+    return `
+<!-- HEADER: banda solo logo -->
+<tr><td class="fc-header-banda-solo" align="center" style="${gradient}padding:28px 20px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
+    <tr><td align="center" valign="middle" bgcolor="#ffffff" style="background:#ffffff;border-radius:12px;padding:12px 20px;">
+      ${logoImg}
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- Barra de acento fina -->
+<tr><td style="background-color:#D4DDE8;height:5px;line-height:5px;font-size:0;">&nbsp;</td></tr>`
+  }
+
+  if (estilo === 'blanco_solo_logo') {
+    // v1.0.150: fondo blanco + barra fina de acento arriba en color de marca
+    // + logo grande centrado. Sin nombre. Ideal cuando el logo del PAS tiene
+    // fondo blanco o transparente y no querés conflicto con cuadros de color.
+    const logoImg = organizacion.logo_url
+      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" style="max-width:280px;max-height:100px;object-fit:contain;display:block;margin:0 auto;" />`
+      : `<span style="color:${tonos.base};font-weight:bold;font-size:36px;font-family:${stack};">${nombreEscapado}</span>`
+    return `
+<!-- HEADER: blanco solo logo -->
+<tr><td style="background-color:${tonos.base};height:5px;line-height:5px;font-size:0;">&nbsp;</td></tr>
+<tr><td class="fc-header-blanco-solo" align="center" style="background-color:#ffffff;padding:28px 20px;">
+  ${logoImg}
 </td></tr>`
   }
 

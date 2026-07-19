@@ -69,7 +69,7 @@ export default function PerfilPage() {
   const [socios,       setSocios]       = useState<Socio[]>([])
   const [prefijoCasos, setPrefijoCasos] = useState('CASO')
   const [colorMarca,   setColorMarca]   = useState(COLOR_MARCA_DEFAULT)
-  const [emailHeaderEstilo, setEmailHeaderEstilo] = useState<'banda' | 'compacto' | 'lateral'>('banda')
+  const [emailHeaderEstilo, setEmailHeaderEstilo] = useState<'banda' | 'compacto' | 'lateral' | 'banda_solo_logo' | 'blanco_solo_logo'>('banda')
   const [emailHeaderSubtitulo, setEmailHeaderSubtitulo] = useState('')
   // v1.0.149: si el PAS activa esto, el renderer no pinta el nombre al lado
   // del logo. Útil cuando el logo ya lo incluye en su diseño.
@@ -111,7 +111,13 @@ export default function PerfilPage() {
         setPrefijoCasos(data.prefijo_casos ?? 'CASO')
         setColorMarca(normalizarColorMarca(data.color_marca))
         const estiloGuardado = (data as any).email_header_estilo
-        if (estiloGuardado === 'compacto' || estiloGuardado === 'lateral' || estiloGuardado === 'banda') {
+        if (
+          estiloGuardado === 'compacto' ||
+          estiloGuardado === 'lateral' ||
+          estiloGuardado === 'banda' ||
+          estiloGuardado === 'banda_solo_logo' ||
+          estiloGuardado === 'blanco_solo_logo'
+        ) {
           setEmailHeaderEstilo(estiloGuardado)
         }
         setEmailHeaderSubtitulo((data as any).email_header_subtitulo ?? '')
@@ -740,7 +746,7 @@ export default function PerfilPage() {
             const inicial = (nombreOrg.charAt(0) || '?').toUpperCase()
             const mostrarLogo = usarLogo && !!logoPreview
             const opciones: Array<{
-              valor: 'banda' | 'compacto' | 'lateral'
+              valor: 'banda' | 'compacto' | 'lateral' | 'banda_solo_logo' | 'blanco_solo_logo'
               titulo: string
               descripcion: string
               preview: React.ReactNode
@@ -827,13 +833,58 @@ export default function PerfilPage() {
                   </div>
                 ),
               },
+              // v1.0.150: 2 variantes nuevas "solo logo" para quienes tienen
+              // el nombre integrado en el diseño del logo.
+              {
+                valor: 'banda_solo_logo',
+                titulo: 'Solo logo — fondo color',
+                descripcion: 'Banda con color de marca + logo grande centrado.',
+                preview: (
+                  <div className="rounded overflow-hidden">
+                    <div
+                      className="py-4 flex items-center justify-center"
+                      style={{
+                        background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.oscuro} 100%)`,
+                      }}
+                    >
+                      <div className="bg-white rounded-md px-3 py-2 flex items-center justify-center">
+                        {mostrarLogo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={logoPreview!} alt="" className="max-h-6 max-w-[110px] object-contain" />
+                        ) : (
+                          <span className="text-xs font-bold" style={{ color: tonos.base }}>{nombreOrg}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="h-[2px]" style={{ backgroundColor: '#D4DDE8' }}></div>
+                  </div>
+                ),
+              },
+              {
+                valor: 'blanco_solo_logo',
+                titulo: 'Solo logo — fondo blanco',
+                descripcion: 'Fondo blanco + barra fina de acento arriba.',
+                preview: (
+                  <div className="rounded overflow-hidden bg-white">
+                    <div className="h-[3px]" style={{ backgroundColor: tonos.base }}></div>
+                    <div className="py-4 flex items-center justify-center bg-white">
+                      {mostrarLogo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={logoPreview!} alt="" className="max-h-7 max-w-[130px] object-contain" />
+                      ) : (
+                        <span className="text-sm font-bold" style={{ color: tonos.base }}>{nombreOrg}</span>
+                      )}
+                    </div>
+                  </div>
+                ),
+              },
             ]
             const placeholderSubtitulo = tipoOperacion === 'SOCIEDAD'
               ? 'Sociedad de Productores Asesores de Seguros'
               : 'Productor Asesor de Seguros'
             return (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
                   {opciones.map(op => {
                     const seleccionada = emailHeaderEstilo === op.valor
                     return (
