@@ -98,7 +98,6 @@ export async function POST(
       color_marca: variables.organizacion_color_marca || undefined,
       email_header_estilo: (variables.organizacion_email_header_estilo as 'banda' | 'compacto' | 'lateral' | 'blanco_solo_logo' | undefined) || undefined,
       email_header_subtitulo: variables.organizacion_email_header_subtitulo || undefined,
-      email_header_ocultar_nombre: variables.organizacion_email_header_ocultar_nombre === '1',
     })
     return NextResponse.json({ ok: true, html: cuerpo_html, asunto })
   } catch (err: any) {

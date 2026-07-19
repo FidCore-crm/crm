@@ -169,7 +169,6 @@ export async function POST(request: NextRequest) {
             | 'blanco_solo_logo'
             | undefined) || undefined,
         email_header_subtitulo: variables.organizacion_email_header_subtitulo || undefined,
-        email_header_ocultar_nombre: variables.organizacion_email_header_ocultar_nombre === '1',
       },
     )
     return NextResponse.json({ ok: true, data: { html: cuerpo_html, asunto } })

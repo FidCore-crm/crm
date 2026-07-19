@@ -51,11 +51,6 @@ export interface OrganizacionInfo {
   // Subtítulo editable que aparece debajo del nombre solo en variante 'banda'
   // (migración 098). Si está vacío, no se muestra el <p> del subtítulo.
   email_header_subtitulo?: string | null
-  // v1.0.149: cuando es true, el renderer no pinta el nombre en ninguna
-  // de las 3 variantes. Útil cuando el logo del PAS ya incluye el nombre
-  // en su diseño y no queremos duplicarlo al lado. El logo pasa a ocupar
-  // el espacio central del header (más grande, sin celda de nombre).
-  email_header_ocultar_nombre?: boolean | null
 }
 
 export interface RenderOptions {
@@ -216,9 +211,6 @@ function generarHeaderHtml(
   const stack = `-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif`
   // Subtítulo solo se muestra en variante 'banda' y solo si tiene texto.
   const subtituloBanda = (organizacion.email_header_subtitulo ?? '').trim()
-  // v1.0.149: cuando el PAS activa "ocultar nombre en header", el renderer
-  // no dibuja el bloque con el nombre. Útil para logos que ya lo incluyen.
-  const ocultarNombre = organizacion.email_header_ocultar_nombre === true
 
   // Gradient del header (banda y compacto): de color base a oscuro.
   // Outlook ignora gradient y cae al background-color plano (fallback).
@@ -226,8 +218,7 @@ function generarHeaderHtml(
 
   if (estilo === 'compacto') {
     // Compacto: header bajo, nombre a la izquierda, cuadrito logo a la derecha.
-    // v1.0.149: logo agrandado 34→48 y cuadro 42→54 (+29%). Si `ocultarNombre`
-    // está activo, el logo se centra en el header (sin celda de nombre).
+    // v1.0.149: logo agrandado 34→48 y cuadro 42→54 (+29%).
     const cuadroLogo = organizacion.logo_url
       ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="48" style="max-width:48px;max-height:48px;display:block;" />`
       : `<span style="color:${tonos.base};font-weight:bold;font-size:22px;font-family:${stack};">${inicial}</span>`
@@ -236,19 +227,16 @@ function generarHeaderHtml(
             ${cuadroLogo}
           </td></tr>
         </table>`
-    const filaCompacto = ocultarNombre
-      ? `<tr><td align="center" valign="middle">${cuadroContenedor}</td></tr>`
-      : `<tr>
-      <td valign="middle">
-        <span class="fc-header-nombre" style="font-size:18px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
-      </td>
-      <td width="54" align="right" valign="middle" style="width:54px;">${cuadroContenedor}</td>
-    </tr>`
     return `
 <!-- HEADER: compacto -->
 <tr><td class="fc-header-compacto" style="${gradient}padding:22px 26px;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-    ${filaCompacto}
+    <tr>
+      <td valign="middle">
+        <span class="fc-header-nombre" style="font-size:18px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
+      </td>
+      <td width="54" align="right" valign="middle" style="width:54px;">${cuadroContenedor}</td>
+    </tr>
   </table>
 </td></tr>
 
@@ -269,20 +257,17 @@ function generarHeaderHtml(
             ${cuadroLogo}
           </td></tr>
         </table>`
-    const filaLateral = ocultarNombre
-      ? `<tr><td valign="middle">${cuadroContenedor}</td></tr>`
-      : `<tr>
+    return `
+<!-- HEADER: lateral (fondo blanco; el border-top de marca va en el contenedor de 600px) -->
+<tr><td class="fc-header-lateral" style="background-color:#ffffff;padding:24px 24px 0;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+    <tr>
       <td width="74" valign="middle" style="width:74px;">${cuadroContenedor}</td>
       <td width="16" style="width:16px;font-size:0;line-height:0;">&nbsp;</td>
       <td valign="middle">
         <span class="fc-header-nombre" style="font-size:19px;font-weight:bold;color:${tonos.base};font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
       </td>
-    </tr>`
-    return `
-<!-- HEADER: lateral (fondo blanco; el border-top de marca va en el contenedor de 600px) -->
-<tr><td class="fc-header-lateral" style="background-color:#ffffff;padding:24px 24px 0;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-    ${filaLateral}
+    </tr>
   </table>
 </td></tr>`
   }
@@ -313,21 +298,18 @@ function generarHeaderHtml(
             ${cuadroLogo}
           </td></tr>
         </table>`
-  const filaBanda = ocultarNombre
-    ? `<tr><td align="center" valign="middle">${cuadroContenedorBanda}</td></tr>`
-    : `<tr>
+  return `
+<!-- HEADER: banda horizontal -->
+<tr><td class="fc-header-banda" style="${gradient}padding:30px 30px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
       <td width="84" valign="middle" style="width:84px;">${cuadroContenedorBanda}</td>
       <td width="18" style="width:18px;font-size:0;line-height:0;">&nbsp;</td>
       <td valign="middle">
         <p class="fc-header-nombre" style="margin:0;font-size:22px;font-weight:bold;color:#ffffff;line-height:1.15;font-family:${stack};word-break:break-word;">${nombreEscapado}</p>
         ${subtituloBanda ? `<p class="fc-header-subtitulo" style="margin:4px 0 0;font-size:12px;color:#cbd5e1;letter-spacing:1px;text-transform:uppercase;font-family:${stack};word-break:break-word;">${escapeHtml(subtituloBanda)}</p>` : ''}
       </td>
-    </tr>`
-  return `
-<!-- HEADER: banda horizontal -->
-<tr><td class="fc-header-banda" style="${gradient}padding:30px 30px;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-    ${filaBanda}
+    </tr>
   </table>
 </td></tr>
 
