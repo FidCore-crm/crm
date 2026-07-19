@@ -32,7 +32,7 @@ function IconoRamo({ tipo }: { tipo: string }) {
   if (t === 'automotor' || t === 'auto' || t === 'moto') return <Car className="h-4 w-4 text-blue-500" />
   if (t === 'hogar') return <Home className="h-4 w-4 text-amber-500" />
   if (t === 'vida') return <Heart className="h-4 w-4 text-rose-500" />
-  return <Package className="h-4 w-4 text-slate-400" />
+  return <Package className="h-4 w-4 text-slate-500" />
 }
 
 export default function RevisarPDFPage() {
@@ -263,7 +263,7 @@ export default function RevisarPDFPage() {
 
   if (!estado || !datos) {
     return (
-      <div className="max-w-3xl mx-auto p-8 text-center text-sm text-slate-500">
+      <div className="max-w-3xl mx-auto p-8 text-center text-sm text-slate-600">
         <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
         Cargando datos del análisis...
       </div>
@@ -280,7 +280,7 @@ export default function RevisarPDFPage() {
     <div className="max-w-3xl mx-auto flex flex-col gap-4 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <button onClick={cancelar} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800">
+        <button onClick={cancelar} className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-800">
           <ArrowLeft className="h-4 w-4" /> Cancelar
         </button>
       </div>
@@ -288,7 +288,7 @@ export default function RevisarPDFPage() {
         <h1 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-blue-600" /> {titulo}
         </h1>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-600">
           Revisá los datos extraídos del PDF y ajustá lo que haga falta antes de crear {tipoOp === 'ENDOSO' ? 'el endoso' : 'la póliza'}.
         </p>
       </div>
@@ -340,7 +340,7 @@ export default function RevisarPDFPage() {
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-2xs text-slate-500 uppercase tracking-wide font-semibold">Tipo de persona</label>
+                  <label className="text-2xs text-slate-600 uppercase tracking-wide font-semibold">Tipo de persona</label>
                   <select
                     className="form-input w-full text-xs mt-0.5"
                     value={d.asegurado.tipo_persona}
@@ -397,7 +397,7 @@ export default function RevisarPDFPage() {
               </div>
 
               <div className="border-t border-slate-100 pt-3 mt-2">
-                <p className="text-2xs text-slate-500 uppercase tracking-wide font-semibold mb-2">Domicilio</p>
+                <p className="text-2xs text-slate-600 uppercase tracking-wide font-semibold mb-2">Domicilio</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2">
                     <CampoEditable label="Calle" valor={d.asegurado.domicilio?.calle} onChange={v => updateDomicilio({ calle: v })} />
@@ -530,7 +530,7 @@ export default function RevisarPDFPage() {
                   motivoDudoso={dudososPorCampo['poliza.fecha_fin']?.motivo}
                 />
                 <div>
-                  <label className="text-2xs text-slate-500 uppercase tracking-wide font-semibold">Moneda</label>
+                  <label className="text-2xs text-slate-600 uppercase tracking-wide font-semibold">Moneda</label>
                   <select
                     className="form-input w-full text-xs mt-0.5"
                     value={d.poliza?.moneda || 'ARS'}
@@ -587,7 +587,7 @@ export default function RevisarPDFPage() {
                     />
                   ))}
                   {Object.keys(d.riesgo?.detalle_tecnico || {}).length === 0 && (
-                    <p className="col-span-2 text-xs text-slate-400 italic">La IA no extrajo datos específicos del bien asegurado.</p>
+                    <p className="col-span-2 text-xs text-slate-500 italic">La IA no extrajo datos específicos del bien asegurado.</p>
                   )}
                 </div>
               )}
@@ -599,7 +599,7 @@ export default function RevisarPDFPage() {
                 <FileText className="h-5 w-5 text-red-500 shrink-0" />
                 <div className="flex-1">
                   <p className="text-xs font-medium text-slate-800">{estado.nombre_archivo}</p>
-                  <p className="text-2xs text-slate-500">
+                  <p className="text-2xs text-slate-600">
                     Se va a guardar en la carpeta{' '}
                     <code className="font-mono text-slate-700">
                       {tipoOp === 'RENOVACION' ? 'documentacion_renovada/' : 'documentacion/'}
@@ -715,7 +715,7 @@ function renderSeccionesEndoso({
             />
           </div>
           <div className="col-span-2">
-            <label className="text-2xs text-slate-500 uppercase tracking-wide font-semibold">Observaciones</label>
+            <label className="text-2xs text-slate-600 uppercase tracking-wide font-semibold">Observaciones</label>
             <textarea
               className="form-input w-full text-xs mt-0.5"
               rows={3}
@@ -733,7 +733,7 @@ function renderSeccionesEndoso({
               <li key={i}>• {c}</li>
             ))}
           </ul>
-          <p className="text-2xs text-slate-400 italic">Verificá estos cambios antes de aprobar.</p>
+          <p className="text-2xs text-slate-500 italic">Verificá estos cambios antes de aprobar.</p>
         </SeccionCard>
       )}
 
@@ -742,7 +742,7 @@ function renderSeccionesEndoso({
           <FileText className="h-5 w-5 text-red-500 shrink-0" />
           <div className="flex-1">
             <p className="text-xs font-medium text-slate-800">{estado.nombre_archivo}</p>
-            <p className="text-2xs text-slate-500">
+            <p className="text-2xs text-slate-600">
               Se va a guardar en la carpeta <code className="font-mono text-slate-700">endosos/</code> de la póliza.
             </p>
           </div>

@@ -208,7 +208,7 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
           <h2 id="editar-siniestro-titulo" className="text-base font-semibold text-slate-800">Editar siniestro</h2>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-600" aria-label="Cerrar">
+          <button onClick={onCerrar} className="text-slate-500 hover:text-slate-600" aria-label="Cerrar">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -222,7 +222,7 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
 
           {/* Fechas + tipo */}
           <section>
-            <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Fechas y tipo</h3>
+            <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Fechas y tipo</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Fecha de ocurrencia</label>
@@ -257,7 +257,7 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
 
           {/* Lugar */}
           <section>
-            <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Lugar del hecho</h3>
+            <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Lugar del hecho</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Lugar (calle / referencia)</label>
@@ -276,7 +276,7 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
 
           {/* Descripción */}
           <section>
-            <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Relato</h3>
+            <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Relato</h3>
             <textarea
               className={`form-input min-h-[80px] ${errClass('descripcion')}`}
               value={descripcion}
@@ -288,7 +288,7 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
 
           {/* Montos */}
           <section>
-            <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Montos</h3>
+            <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Montos</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Estimado</label>
@@ -320,7 +320,7 @@ export default function EditarSiniestroModal({ siniestro, abierto, onCerrar, onG
           {/* Detalle del siniestro (dinámico según tipo) */}
           {tieneCamposDinamicos && configTipo && (
             <section>
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
                 {configTipo.icono} Datos de {configTipo.label.toLowerCase()}
               </h3>
               <CamposDinamicos

@@ -51,7 +51,7 @@ const ESTADO_META: Record<MailingCampana['estado'], { label: string; color: stri
   EJECUTANDO: { label: 'Ejecutando',   color: 'bg-blue-50 text-blue-700 border-blue-200',         icon: Loader2 },
   COMPLETADA: { label: 'Completada',   color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
   PAUSADA:    { label: 'Pausada',      color: 'bg-violet-50 text-violet-700 border-violet-200',    icon: Pause },
-  CANCELADA:  { label: 'Cancelada',    color: 'bg-slate-100 text-slate-500 border-slate-200',     icon: Ban },
+  CANCELADA:  { label: 'Cancelada',    color: 'bg-slate-100 text-slate-600 border-slate-200',     icon: Ban },
 }
 
 export default function TabMailingCampanas() {
@@ -129,7 +129,7 @@ export default function TabMailingCampanas() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-600">
           Campañas guardadas: audiencia + plantilla + schedule + métricas. Permiten reutilizar
           y trackear envíos a lo largo del tiempo.
         </p>
@@ -143,14 +143,14 @@ export default function TabMailingCampanas() {
       </div>
 
       {cargando ? (
-        <div className="py-10 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
+        <div className="py-10 text-center text-slate-500 text-sm flex items-center justify-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando campañas...
         </div>
       ) : campanas.length === 0 ? (
         <div className="bg-slate-50 border border-slate-200 rounded p-10 text-center">
           <Megaphone className="h-10 w-10 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-slate-700">Sin campañas todavía</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+          <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto leading-relaxed">
             Una campaña combina una audiencia + una plantilla + un schedule.
             Útil para enviar promociones, avisos masivos o seguir métricas de un mailing puntual.
           </p>
@@ -184,7 +184,7 @@ export default function TabMailingCampanas() {
                     <td>
                       <div className="text-sm text-slate-800 font-medium">{c.nombre}</div>
                       {c.descripcion && (
-                        <div className="text-2xs text-slate-500 mt-0.5 truncate max-w-xs">{c.descripcion}</div>
+                        <div className="text-2xs text-slate-600 mt-0.5 truncate max-w-xs">{c.descripcion}</div>
                       )}
                     </td>
                     <td>
@@ -201,10 +201,10 @@ export default function TabMailingCampanas() {
                     <td className="text-2xs text-slate-600">
                       {c.programada_para
                         ? new Date(c.programada_para).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })
-                        : <span className="text-slate-400 italic">—</span>}
+                        : <span className="text-slate-500 italic">—</span>}
                     </td>
                     <td className="text-2xs text-slate-700 font-mono">
-                      {c.total_destinatarios > 0 ? c.total_destinatarios : <span className="text-slate-400 italic">por calcular</span>}
+                      {c.total_destinatarios > 0 ? c.total_destinatarios : <span className="text-slate-500 italic">por calcular</span>}
                     </td>
                     <td className="text-2xs">
                       {c.estado === 'COMPLETADA' || c.estado === 'EJECUTANDO' || c.estado === 'PAUSADA' ? (
@@ -214,7 +214,7 @@ export default function TabMailingCampanas() {
                           {c.fallidos > 0 && <span className="text-red-700" title="Fallidos">✗ {c.fallidos}</span>}
                         </div>
                       ) : (
-                        <span className="text-slate-400 italic">—</span>
+                        <span className="text-slate-500 italic">—</span>
                       )}
                     </td>
                     <td className="text-right">

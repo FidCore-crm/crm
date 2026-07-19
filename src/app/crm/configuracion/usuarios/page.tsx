@@ -192,7 +192,7 @@ export default function UsuariosPage() {
   if (!isAdmin) return null
 
   if (cargando) return (
-    <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+    <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
       <Loader2 className="h-4 w-4 animate-spin" /> Cargando usuarios...
     </div>
   )
@@ -214,7 +214,7 @@ export default function UsuariosPage() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Gestión de usuarios</h1>
-            <p className="text-xs text-slate-500">Creá y administrá los usuarios del sistema</p>
+            <p className="text-xs text-slate-600">Creá y administrá los usuarios del sistema</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -283,7 +283,7 @@ export default function UsuariosPage() {
                 <tr key={u.id} className={solicitud?.estado === 'PENDIENTE' ? 'bg-amber-50/40' : solicitud?.estado === 'HABILITADA' ? 'bg-emerald-50/40' : undefined}>
                   <td>
                     <div className="text-xs font-medium text-slate-700">{u.apellido}, {u.nombre}</div>
-                    <div className="text-2xs text-slate-400">{u.email}</div>
+                    <div className="text-2xs text-slate-500">{u.email}</div>
                     {solicitud?.estado === 'PENDIENTE' && (
                       <div className="mt-1 inline-flex items-center gap-1 text-2xs font-medium px-1.5 py-0.5 rounded border bg-amber-100 text-amber-800 border-amber-300">
                         <Hourglass className="h-2.5 w-2.5" /> Blanqueo solicitado
@@ -333,13 +333,13 @@ export default function UsuariosPage() {
                     )}
                   </td>
                   <td>
-                    <span className="text-2xs text-slate-500">{tiempoRelativo(u.ultimo_acceso)}</span>
+                    <span className="text-2xs text-slate-600">{tiempoRelativo(u.ultimo_acceso)}</span>
                   </td>
                   <td>
                     {u.acceso_cartera === 'PROPIA' ? (
                       <span className="text-xs font-mono text-slate-600">{u.clientes_asignados}</span>
                     ) : (
-                      <span className="text-xs text-slate-400">—</span>
+                      <span className="text-xs text-slate-500">—</span>
                     )}
                   </td>
                   <td>
@@ -505,7 +505,7 @@ function ModalRechazarBlanqueo({ usuario, solicitud, onClose, onRechazado }: {
           <h3 className="text-sm font-semibold text-slate-800">
             Rechazar blanqueo — {usuario.nombre} {usuario.apellido}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-600"><X className="h-4 w-4" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-4 flex flex-col gap-3">
           <p className="text-xs text-slate-600 leading-relaxed">
@@ -574,10 +574,10 @@ function ModalCrearUsuario({ onClose, onCreated }: { onClose: () => void; onCrea
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md border border-slate-200">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
           <h3 className="text-sm font-semibold text-slate-800">Invitar usuario</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-600"><X className="h-4 w-4" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-4 flex flex-col gap-3">
-          <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded px-3 py-2">
+          <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded px-3 py-2">
             El usuario va a recibir un email con un link para activar su cuenta y definir su propia contraseña.
             La cuenta queda inactiva hasta que acepte la invitación.
           </p>
@@ -594,7 +594,7 @@ function ModalCrearUsuario({ onClose, onCreated }: { onClose: () => void; onCrea
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Email <span className="text-red-500">*</span></label>
             <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="usuario@dominio.com" className="form-input w-full" />
-            <p className="text-2xs text-slate-400 mt-1">
+            <p className="text-2xs text-slate-500 mt-1">
               Tiene que ser un correo real al que el usuario tenga acceso — ahí va a llegar el link de activación.
             </p>
           </div>
@@ -612,7 +612,7 @@ function ModalCrearUsuario({ onClose, onCreated }: { onClose: () => void; onCrea
                 <option value="PROPIA">Solo su cartera</option>
                 <option value="TOTAL">Toda la cartera</option>
               </select>
-              <p className="text-2xs text-slate-400 mt-1">
+              <p className="text-2xs text-slate-500 mt-1">
                 {acceso === 'PROPIA' ? 'Solo ve los clientes que él crea o que le asignes' : 'Puede ver y gestionar todos los clientes del sistema'}
               </p>
             </div>
@@ -668,7 +668,7 @@ function ModalEditarUsuario({ usuario, totalAdmins, onClose, onSaved }: {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md border border-slate-200">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
           <h3 className="text-sm font-semibold text-slate-800">Editar usuario — {usuario.nombre} {usuario.apellido}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-600"><X className="h-4 w-4" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-4 flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
@@ -757,7 +757,7 @@ function ModalResetPassword({ usuario, onClose, onSaved }: {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-sm border border-slate-200">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
           <h3 className="text-sm font-semibold text-slate-800">Cambiar contraseña — {usuario.nombre} {usuario.apellido}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-600"><X className="h-4 w-4" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-4 flex flex-col gap-3">
           <div>
@@ -768,7 +768,7 @@ function ModalResetPassword({ usuario, onClose, onSaved }: {
             <label className="block text-xs font-medium text-slate-600 mb-1">Repetir contraseña <span className="text-red-500">*</span></label>
             <input type="password" required value={password2} onChange={e => setPassword2(e.target.value)} className="form-input w-full" />
           </div>
-          <p className="text-2xs text-slate-400">La nueva contraseña se aplica inmediatamente. Las sesiones activas del usuario se mantendrán.</p>
+          <p className="text-2xs text-slate-500">La nueva contraseña se aplica inmediatamente. Las sesiones activas del usuario se mantendrán.</p>
           {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>

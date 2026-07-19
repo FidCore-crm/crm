@@ -214,7 +214,7 @@ export function DenunciasWebNavbar() {
         type="button"
         onClick={togglePanel}
         aria-label="Denuncias recibidas por el asegurado"
-        className="relative flex h-7 w-7 items-center justify-center rounded text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+        className="relative flex h-7 w-7 items-center justify-center rounded text-slate-600 hover:text-slate-700 hover:bg-slate-100 transition-colors"
       >
         <Siren className={`h-4 w-4 ${hayCriticas ? 'text-red-600' : ''}`} />
         {contadores.total_no_leidas > 0 && (
@@ -233,7 +233,7 @@ export function DenunciasWebNavbar() {
               <Siren className="h-4 w-4 text-red-500" />
               <span className="text-sm font-semibold text-slate-700">Denuncias recibidas</span>
               {contadores.total_no_leidas > 0 && (
-                <span className="text-xs text-slate-500">({contadores.total_no_leidas} nuevas)</span>
+                <span className="text-xs text-slate-600">({contadores.total_no_leidas} nuevas)</span>
               )}
             </div>
             {contadores.total_no_leidas > 0 && (
@@ -249,14 +249,14 @@ export function DenunciasWebNavbar() {
 
           <div className="max-h-[420px] overflow-y-auto">
             {cargando && (
-              <div className="flex items-center justify-center py-8 text-slate-400">
+              <div className="flex items-center justify-center py-8 text-slate-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
             )}
             {!cargando && denuncias.length === 0 && (
-              <div className="px-4 py-8 text-center text-sm text-slate-500">
+              <div className="px-4 py-8 text-center text-sm text-slate-600">
                 No hay denuncias recibidas por el asegurado.
-                <div className="mt-1 text-xs text-slate-400">
+                <div className="mt-1 text-xs text-slate-500">
                   Cuando un cliente cargue una denuncia por el formulario o
                   desde el portal, aparecerá acá.
                 </div>
@@ -270,13 +270,13 @@ export function DenunciasWebNavbar() {
                 className={`w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors ${!d.leida ? 'bg-red-50/40' : ''}`}
               >
                 <div className="flex items-start gap-2">
-                  <Siren className={`h-4 w-4 mt-0.5 flex-shrink-0 ${!d.leida ? 'text-red-600' : 'text-slate-400'}`} />
+                  <Siren className={`h-4 w-4 mt-0.5 flex-shrink-0 ${!d.leida ? 'text-red-600' : 'text-slate-500'}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className={`text-sm truncate ${!d.leida ? 'font-semibold text-slate-800' : 'text-slate-700'}`}>
                         {d.titulo}
                       </div>
-                      <div className="text-2xs text-slate-400 flex-shrink-0">{tiempoRelativo(d.created_at)}</div>
+                      <div className="text-2xs text-slate-500 flex-shrink-0">{tiempoRelativo(d.created_at)}</div>
                     </div>
                     {d.mensaje && (
                       <div className="text-xs text-slate-600 mt-0.5 line-clamp-2">{d.mensaje}</div>

@@ -107,7 +107,7 @@ export function PasoLicencia({ pasoActual, totalPasos, onAtras, onContinuar, onS
       continuarHabilitado={!subiendo}
     >
       {cargando ? (
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex items-center gap-2 text-sm text-slate-600">
           <Loader2 className="h-4 w-4 animate-spin" /> Verificando licencia...
         </div>
       ) : tieneLicenciaActiva ? (
@@ -151,7 +151,7 @@ export function PasoLicencia({ pasoActual, totalPasos, onAtras, onContinuar, onS
             <code className="text-xs font-mono bg-white px-2 py-1 rounded border border-slate-200 text-slate-700 block break-all">
               {estado?.instalacion_id ?? 'desconocido'}
             </code>
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-slate-600">
               Si todavía no tenés tu archivo <code>.lic</code>, pasale este ID a tu contacto
               de FidCore para que te emita la licencia.
             </p>
@@ -169,11 +169,11 @@ export function PasoLicencia({ pasoActual, totalPasos, onAtras, onContinuar, onS
               dragOver ? 'border-orange-500 bg-orange-50' : 'border-slate-300 bg-white'
             }`}
           >
-            <Upload className="h-8 w-8 text-slate-400 mx-auto mb-3" />
+            <Upload className="h-8 w-8 text-slate-500 mx-auto mb-3" />
             <p className="text-sm text-slate-700 font-medium">
               Arrastrá tu archivo <code>.lic</code> acá
             </p>
-            <p className="text-xs text-slate-500 mt-1">o</p>
+            <p className="text-xs text-slate-600 mt-1">o</p>
             <label className="inline-block mt-2 cursor-pointer">
               <span className="btn-primary inline-flex items-center gap-2">
                 {subiendo ? (

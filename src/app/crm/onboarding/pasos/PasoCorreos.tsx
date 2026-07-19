@@ -130,7 +130,7 @@ export function PasoCorreos({ pasoActual, totalPasos, onAtras, onContinuar, onSk
   if (cargando) {
     return (
       <WizardLayout pasoActual={pasoActual} totalPasos={totalPasos} titulo="Correos del CRM">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex items-center gap-2 text-sm text-slate-600">
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
         </div>
       </WizardLayout>

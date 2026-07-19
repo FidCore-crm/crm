@@ -118,7 +118,7 @@ function iconoArchivo(nombre: string) {
   if (ext === 'pdf') {
     return <FileText className="w-5 h-5 text-red-600" />;
   }
-  return <FileIcon className="w-5 h-5 text-slate-500" />;
+  return <FileIcon className="w-5 h-5 text-slate-600" />;
 }
 
 export default function HistorialDetallePage() {
@@ -221,7 +221,7 @@ export default function HistorialDetallePage() {
   if (cargando || !imp) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
       </div>
     );
   }
@@ -292,36 +292,36 @@ export default function HistorialDetallePage() {
         </h2>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-xs">
           <div>
-            <dt className="text-slate-500">Fecha de inicio</dt>
+            <dt className="text-slate-600">Fecha de inicio</dt>
             <dd className="text-slate-900">{formatFechaHora(imp.fecha_inicio)}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Fecha de finalización</dt>
+            <dt className="text-slate-600">Fecha de finalización</dt>
             <dd className="text-slate-900">{formatFechaHora(imp.fecha_fin)}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Duración</dt>
+            <dt className="text-slate-600">Duración</dt>
             <dd className="text-slate-900">
               {formatDuracion(imp.fecha_inicio, imp.fecha_fin)}
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Realizada por</dt>
+            <dt className="text-slate-600">Realizada por</dt>
             <dd className="text-slate-900">{usuarioLabel}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Tipo</dt>
+            <dt className="text-slate-600">Tipo</dt>
             <dd className="text-slate-900">{imp.tipo || 'INICIAL'}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Estado</dt>
+            <dt className="text-slate-600">Estado</dt>
             <dd>
               <EstadoImportacionBadge estado={imp.estado_proceso} size="sm" />
             </dd>
           </div>
           {imp.notas && (
             <div className="md:col-span-2">
-              <dt className="text-slate-500">Nota descriptiva</dt>
+              <dt className="text-slate-600">Nota descriptiva</dt>
               <dd className="text-slate-900 whitespace-pre-wrap">{imp.notas}</dd>
             </div>
           )}
@@ -334,7 +334,7 @@ export default function HistorialDetallePage() {
           Archivos importados
         </h2>
         {archivos.length === 0 ? (
-          <p className="text-xs text-slate-500">Sin archivos registrados</p>
+          <p className="text-xs text-slate-600">Sin archivos registrados</p>
         ) : (
           <ul className="space-y-2">
             {archivos.map((a, i: number) => {
@@ -352,12 +352,12 @@ export default function HistorialDetallePage() {
                       <p className="text-xs font-mono text-slate-900 truncate">
                         {nombre}
                       </p>
-                      <p className="text-2xs text-slate-500">{formatTamano(tamano)}</p>
+                      <p className="text-2xs text-slate-600">{formatTamano(tamano)}</p>
                     </div>
                   </div>
                   {archivosPurgados ? (
                     <span
-                      className="text-2xs text-slate-400 inline-flex items-center gap-1 opacity-50 cursor-not-allowed"
+                      className="text-2xs text-slate-500 inline-flex items-center gap-1 opacity-50 cursor-not-allowed"
                       title="Archivo purgado (>30 días)"
                     >
                       <Download className="w-3 h-3" />
@@ -386,37 +386,37 @@ export default function HistorialDetallePage() {
         <h2 className="text-sm font-semibold text-slate-900 mb-3">Resultados</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-slate-500">Registros procesados</p>
+            <p className="text-slate-600">Registros procesados</p>
             <p className="text-xl font-bold text-slate-900 mt-1">
               {(imp.total_filas ?? 0).toLocaleString('es-AR')}
             </p>
           </div>
           <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-slate-500">Personas creadas</p>
+            <p className="text-slate-600">Personas creadas</p>
             <p className="text-xl font-bold text-slate-900 mt-1">
               {(imp.clientes_creados ?? 0).toLocaleString('es-AR')}
             </p>
           </div>
           <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-slate-500">Personas actualizadas</p>
+            <p className="text-slate-600">Personas actualizadas</p>
             <p className="text-xl font-bold text-slate-900 mt-1">
               {personasActualizadas.toLocaleString('es-AR')}
             </p>
           </div>
           <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-slate-500">Pólizas creadas</p>
+            <p className="text-slate-600">Pólizas creadas</p>
             <p className="text-xl font-bold text-slate-900 mt-1">
               {(imp.polizas_creadas ?? 0).toLocaleString('es-AR')}
             </p>
           </div>
           <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-slate-500">Pólizas actualizadas</p>
+            <p className="text-slate-600">Pólizas actualizadas</p>
             <p className="text-xl font-bold text-slate-900 mt-1">
               {polizasActualizadas.toLocaleString('es-AR')}
             </p>
           </div>
           <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-slate-500">Riesgos creados</p>
+            <p className="text-slate-600">Riesgos creados</p>
             <p className="text-xl font-bold text-slate-900 mt-1">
               {riesgosCreados.toLocaleString('es-AR')}
             </p>
@@ -479,7 +479,7 @@ export default function HistorialDetallePage() {
             <p className="text-sm font-semibold text-slate-900">
               Ver clientes importados
             </p>
-            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+            <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
               Ir al listado <ArrowRight className="w-3 h-3" />
             </p>
           </button>
@@ -491,7 +491,7 @@ export default function HistorialDetallePage() {
             <p className="text-sm font-semibold text-slate-900">
               Ver pólizas importadas
             </p>
-            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+            <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
               Ir al listado <ArrowRight className="w-3 h-3" />
             </p>
           </button>

@@ -85,7 +85,7 @@ const TIPO_INTERACCION_ICON: Record<string, React.ReactNode> = {
   EMAIL:    <Mail className="h-3.5 w-3.5 text-amber-500"/>,
   WHATSAPP: <MessageCircle className="h-3.5 w-3.5 text-green-500"/>,
   REUNION:  <Users className="h-3.5 w-3.5 text-violet-500"/>,
-  NOTA:     <StickyNote className="h-3.5 w-3.5 text-slate-400"/>,
+  NOTA:     <StickyNote className="h-3.5 w-3.5 text-slate-500"/>,
 }
 
 const TIPO_INTERACCION_LABEL: Record<string, string> = {
@@ -366,7 +366,7 @@ export default function FichaLeadPage() {
   }
 
   if (cargando) return (
-    <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+    <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
       <Loader2 className="h-4 w-4 animate-spin"/> Cargando ficha del lead...
     </div>
   )
@@ -374,7 +374,7 @@ export default function FichaLeadPage() {
   if (!lead) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
       <AlertCircle className="h-8 w-8 text-slate-300"/>
-      <span className="text-sm text-slate-400">Lead no encontrado</span>
+      <span className="text-sm text-slate-500">Lead no encontrado</span>
       <button onClick={() => router.push('/crm/comercial/leads')} className="btn-secondary">
         <ArrowLeft className="h-3 w-3"/> Volver al listado
       </button>
@@ -403,7 +403,7 @@ export default function FichaLeadPage() {
                 Interés {lead.nivel_interes.toLowerCase()}
               </span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600">
               {lead.empresa ? `${lead.cargo ? lead.cargo + ' en ' : ''}${lead.empresa}` : 'Lead'}
               {' · '}Ingresó el {formatFechaLocalLarga(lead.created_at)}
             </p>
@@ -486,34 +486,34 @@ export default function FichaLeadPage() {
           {/* Info del lead */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Información del lead</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Información del lead</h3>
             </div>
             <div className="p-3 flex flex-col gap-2 text-xs">
               <div>
-                <p className="text-2xs text-slate-500">Nombre completo</p>
+                <p className="text-2xs text-slate-600">Nombre completo</p>
                 <p className="text-slate-700 font-medium">{lead.nombre} {lead.apellido}</p>
               </div>
               {lead.dni && (
                 <div>
-                  <p className="text-2xs text-slate-500">DNI</p>
+                  <p className="text-2xs text-slate-600">DNI</p>
                   <p className="text-slate-700 font-mono">{lead.dni}</p>
                 </div>
               )}
               {lead.telefono && (
                 <div>
-                  <p className="text-2xs text-slate-500">Teléfono</p>
+                  <p className="text-2xs text-slate-600">Teléfono</p>
                   <a href={`tel:${lead.telefono}`} className="text-blue-600 hover:underline font-mono">{lead.telefono}</a>
                 </div>
               )}
               {lead.email && (
                 <div>
-                  <p className="text-2xs text-slate-500">Email</p>
+                  <p className="text-2xs text-slate-600">Email</p>
                   <a href={`mailto:${lead.email}`} className="text-blue-600 hover:underline">{lead.email}</a>
                 </div>
               )}
               {(lead.empresa || lead.cargo) && (
                 <div>
-                  <p className="text-2xs text-slate-500">Empresa / Cargo</p>
+                  <p className="text-2xs text-slate-600">Empresa / Cargo</p>
                   <p className="text-slate-700">{[lead.cargo, lead.empresa].filter(Boolean).join(' en ')}</p>
                 </div>
               )}
@@ -521,26 +521,26 @@ export default function FichaLeadPage() {
               <div className="border-t border-slate-100 pt-2 mt-1"/>
 
               <div>
-                <p className="text-2xs text-slate-500 mb-1">Fuente</p>
+                <p className="text-2xs text-slate-600 mb-1">Fuente</p>
                 <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${FUENTE_BADGE[lead.fuente]}`}>
                   {FUENTE_LABEL[lead.fuente] ?? lead.fuente}
                 </span>
               </div>
               {lead.canal && (
                 <div>
-                  <p className="text-2xs text-slate-500">Canal</p>
+                  <p className="text-2xs text-slate-600">Canal</p>
                   <p className="text-slate-700">{CANAL_LABEL[lead.canal] ?? lead.canal}</p>
                 </div>
               )}
               <div>
-                <p className="text-2xs text-slate-500 mb-1">Nivel de interés</p>
+                <p className="text-2xs text-slate-600 mb-1">Nivel de interés</p>
                 <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${INTERES_BADGE[lead.nivel_interes]}`}>
                   {lead.nivel_interes}
                 </span>
               </div>
               {lead.productos_interes && (
                 <div>
-                  <p className="text-2xs text-slate-500">Productos de interés</p>
+                  <p className="text-2xs text-slate-600">Productos de interés</p>
                   <p className="text-slate-700">{lead.productos_interes}</p>
                 </div>
               )}
@@ -548,9 +548,9 @@ export default function FichaLeadPage() {
               <div className="border-t border-slate-100 pt-2 mt-1"/>
 
               <div>
-                <p className="text-2xs text-slate-500">Fecha de ingreso</p>
+                <p className="text-2xs text-slate-600">Fecha de ingreso</p>
                 <p className="text-slate-700">{formatFechaLocalLarga(lead.created_at)}</p>
-                <p className="text-2xs text-slate-500">{diasDesde(lead.created_at)}</p>
+                <p className="text-2xs text-slate-600">{diasDesde(lead.created_at)}</p>
               </div>
 
               {lead.motivo_descarte && (
@@ -565,7 +565,7 @@ export default function FichaLeadPage() {
           {/* Notas */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Notas</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Notas</h3>
             </div>
             <div className="p-3">
               <p className="text-xs text-slate-600 leading-relaxed">{lead.notas ?? 'Sin notas'}</p>
@@ -575,12 +575,12 @@ export default function FichaLeadPage() {
           {/* Cotizaciones */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Cotizaciones</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Cotizaciones</h3>
             </div>
             <div className="p-3">
               {cotizaciones.length === 0 ? (
                 <div className="text-center py-3">
-                  <p className="text-xs text-slate-500 mb-2">Sin cotizaciones</p>
+                  <p className="text-xs text-slate-600 mb-2">Sin cotizaciones</p>
                   <button onClick={() => router.push(`/crm/comercial/cotizaciones/nueva?lead_id=${id}`)}
                     className="text-xs text-blue-600 hover:underline">Crear cotización</button>
                 </div>
@@ -594,7 +594,7 @@ export default function FichaLeadPage() {
                         className="flex items-center justify-between px-2 py-1.5 rounded border border-slate-100 hover:bg-slate-50 transition-colors text-left w-full">
                         <div>
                           <span className="font-mono text-xs font-semibold text-slate-700">{c.numero_cotizacion}</span>
-                          <p className="text-2xs text-slate-500">{formatTimestamp(c.created_at)}</p>
+                          <p className="text-2xs text-slate-600">{formatTimestamp(c.created_at)}</p>
                         </div>
                         <div className="flex items-center gap-1">
                           <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${cb.color}`}>{cb.label}</span>
@@ -611,12 +611,12 @@ export default function FichaLeadPage() {
           {/* Tareas */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Tareas</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Tareas</h3>
             </div>
             <div className="p-3">
               {tareasAsociadas.length === 0 ? (
                 <div className="text-center py-3">
-                  <p className="text-xs text-slate-500 mb-2">Sin tareas</p>
+                  <p className="text-xs text-slate-600 mb-2">Sin tareas</p>
                   <button onClick={() => router.push(`/crm/tareas/nueva?lead_id=${id}`)}
                     className="text-xs text-blue-600 hover:underline">+ Nueva tarea</button>
                 </div>
@@ -650,7 +650,7 @@ export default function FichaLeadPage() {
 
           <div className="bg-white border border-slate-200 rounded overflow-hidden flex flex-col">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">
                 Historial de interacciones
               </h3>
               {!mostrarFormInt && (
@@ -665,7 +665,7 @@ export default function FichaLeadPage() {
               <div className="p-3 border-b border-slate-100 bg-blue-50/30">
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div>
-                    <label className="text-2xs text-slate-500 mb-1 block">Tipo *</label>
+                    <label className="text-2xs text-slate-600 mb-1 block">Tipo *</label>
                     <select className="form-input w-full" value={intTipo} onChange={e => setIntTipo(e.target.value)}>
                       <option value="LLAMADA">Llamada</option>
                       <option value="EMAIL">Email</option>
@@ -675,7 +675,7 @@ export default function FichaLeadPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-2xs text-slate-500 mb-1 block">Fecha y hora *</label>
+                    <label className="text-2xs text-slate-600 mb-1 block">Fecha y hora *</label>
                     <input
                       type="datetime-local"
                       className="form-input w-full"
@@ -686,7 +686,7 @@ export default function FichaLeadPage() {
                   </div>
                 </div>
                 <div className="mb-2">
-                  <label className="text-2xs text-slate-500 mb-1 block">Descripción *</label>
+                  <label className="text-2xs text-slate-600 mb-1 block">Descripción *</label>
                   <textarea className="form-input w-full resize-none text-xs" rows={3} value={intDescripcion}
                     onChange={e => setIntDescripcion(e.target.value)}
                     placeholder="Qué se habló, qué se acordó..."/>
@@ -705,14 +705,14 @@ export default function FichaLeadPage() {
             {/* Lista de interacciones */}
             <div className="p-3 flex flex-col gap-0 overflow-y-auto max-h-[600px]">
               {interacciones.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-8">
+                <p className="text-xs text-slate-600 text-center py-8">
                   No hay interacciones registradas. Registrá el primer contacto con este lead.
                 </p>
               ) : interacciones.map(int => (
                 <div key={int.id} className="flex gap-3">
                   <div className="flex flex-col items-center">
                     <div className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 border bg-slate-50 border-slate-200">
-                      {TIPO_INTERACCION_ICON[int.tipo] ?? <StickyNote className="h-3.5 w-3.5 text-slate-400"/>}
+                      {TIPO_INTERACCION_ICON[int.tipo] ?? <StickyNote className="h-3.5 w-3.5 text-slate-500"/>}
                     </div>
                     <div className="w-px flex-1 bg-slate-100 mt-1"/>
                   </div>
@@ -722,7 +722,7 @@ export default function FichaLeadPage() {
                         <span className="text-xs font-semibold text-slate-700">
                           {TIPO_INTERACCION_LABEL[int.tipo] ?? int.tipo}
                         </span>
-                        <span className="text-2xs text-slate-500">
+                        <span className="text-2xs text-slate-600">
                           {formatTimestamp(int.fecha)} · {formatHora(int.fecha)}
                         </span>
                       </div>
@@ -748,36 +748,36 @@ export default function FichaLeadPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
               <h3 className="text-sm font-semibold text-slate-800">Convertir lead en cliente</h3>
-              <button onClick={() => setModalConversion(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalConversion(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4"/>
               </button>
             </div>
             <div className="p-4 flex flex-col gap-3">
-              <p className="text-xs text-slate-500">Se creará un nuevo cliente con estos datos. El lead quedará marcado como convertido y se preservará su historial.</p>
+              <p className="text-xs text-slate-600">Se creará un nuevo cliente con estos datos. El lead quedará marcado como convertido y se preservará su historial.</p>
 
               <div className="bg-slate-50 border border-slate-200 rounded p-3 flex flex-col gap-1.5 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Nombre</span>
+                  <span className="text-slate-600">Nombre</span>
                   <span className="text-slate-700 font-medium">{lead.nombre} {lead.apellido}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">DNI</span>
+                  <span className="text-slate-600">DNI</span>
                   <span className="text-slate-700 font-mono">{lead.dni || 'Sin DNI — se puede completar abajo'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Teléfono</span>
+                  <span className="text-slate-600">Teléfono</span>
                   <span className="text-slate-700">{lead.telefono ?? '—'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Email</span>
+                  <span className="text-slate-600">Email</span>
                   <span className="text-slate-700">{lead.email ?? '—'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Origen</span>
+                  <span className="text-slate-600">Origen</span>
                   <span className="text-slate-700">LEAD</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Estado</span>
+                  <span className="text-slate-600">Estado</span>
                   <span className="text-emerald-700 font-medium">ACTIVO</span>
                 </div>
               </div>
@@ -822,7 +822,7 @@ export default function FichaLeadPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
               <h3 className="text-sm font-semibold text-slate-800">Descartar lead</h3>
-              <button onClick={() => setModalDescarte(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalDescarte(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4"/>
               </button>
             </div>

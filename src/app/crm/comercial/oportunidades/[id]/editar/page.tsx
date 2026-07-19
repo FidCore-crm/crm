@@ -151,7 +151,7 @@ export default function EditarOportunidadPage() {
 
   if (cargando) {
     return (
-      <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+      <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
         <Loader2 className="h-4 w-4 animate-spin"/> Cargando...
       </div>
     )
@@ -164,7 +164,7 @@ export default function EditarOportunidadPage() {
           <CheckCircle className="h-6 w-6 text-green-600"/>
         </div>
         <p className="text-sm font-medium text-slate-700">Cambios guardados</p>
-        <p className="text-xs text-slate-500">Redirigiendo a la ficha...</p>
+        <p className="text-xs text-slate-600">Redirigiendo a la ficha...</p>
       </div>
     )
   }
@@ -180,7 +180,7 @@ export default function EditarOportunidadPage() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Editar oportunidad</h1>
-            <p className="text-xs text-slate-500">Cliente: {personaNombre}</p>
+            <p className="text-xs text-slate-600">Cliente: {personaNombre}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -241,7 +241,7 @@ export default function EditarOportunidadPage() {
         <div className="p-4 grid grid-cols-2 gap-3">
           <Campo label="Monto estimado" error={errores.monto_estimado}>
             <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">$</span>
               <input type="number" min={0} step="0.01"
                 className={`form-input w-full pl-5 ${errores.monto_estimado ? 'border-red-300' : ''}`}
                 value={montoEstimado}
@@ -249,7 +249,7 @@ export default function EditarOportunidadPage() {
                 placeholder="0.00"
                 disabled={cerrada}/>
             </div>
-            <span className="text-2xs text-slate-500 mt-0.5">Valor anual estimado de la prima si se cierra la venta</span>
+            <span className="text-2xs text-slate-600 mt-0.5">Valor anual estimado de la prima si se cierra la venta</span>
           </Campo>
           <Campo label="Probabilidad de cierre" error={errores.probabilidad_cierre}>
             <div className="relative">
@@ -259,9 +259,9 @@ export default function EditarOportunidadPage() {
                 onChange={e => { setProbabilidadCierre(e.target.value); setErrores(er => ({ ...er, probabilidad_cierre: '' })) }}
                 placeholder="50"
                 disabled={cerrada}/>
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
             </div>
-            <span className="text-2xs text-slate-500 mt-0.5">¿Qué tan probable es que esta oportunidad se cierre?</span>
+            <span className="text-2xs text-slate-600 mt-0.5">¿Qué tan probable es que esta oportunidad se cierre?</span>
           </Campo>
           <Campo label="Fecha estimada de cierre">
             <input type="date" className="form-input" value={fechaEstimadaCierre}

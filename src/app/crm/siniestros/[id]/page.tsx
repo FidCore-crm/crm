@@ -26,6 +26,8 @@ import { construirUrlWhatsapp } from '@/lib/whatsapp-templates'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { extraerCamposCustom, mapaLabelsPorKey, labelDeCampo, labelDeSubKey, valorLegible } from '@/lib/siniestros-campos-custom'
 import { ModalConflictoEdicion } from '@/components/ModalConflictoEdicion'
+import { obtenerConfigTipoSiniestro } from '@/lib/siniestros-catalogo'
+import { normalizarTipoRiesgo } from '@/lib/siniestros-tipos'
 
 // ── Tipos ────────────────────────────────────────────────────
 interface Siniestro {
@@ -104,7 +106,7 @@ function iconoRamo(tipo: string) {
   if (tipo === 'automotor') return <Car    className="h-4 w-4 text-blue-500" />
   if (tipo === 'hogar')     return <Home   className="h-4 w-4 text-amber-500" />
   if (tipo === 'vida')      return <Heart  className="h-4 w-4 text-rose-500" />
-  return <Package className="h-4 w-4 text-slate-400" />
+  return <Package className="h-4 w-4 text-slate-500" />
 }
 function bienAfectado(s: Siniestro) {
   const dt = s.poliza?.riesgos?.[0]?.detalle_tecnico
@@ -119,7 +121,7 @@ function bienAfectado(s: Siniestro) {
  * Otros: descripción libre y campos genéricos.
  */
 function DescripcionBien({ tipoRiesgo, dt }: { tipoRiesgo: string; dt: any }) {
-  if (!dt) return <p className="text-xs text-slate-400">Sin datos del bien</p>
+  if (!dt) return <p className="text-xs text-slate-500">Sin datos del bien</p>
   const filas: Array<{ label: string; valor: string }> = []
   const add = (label: string, v: any) => {
     if (v == null || v === '') return
@@ -148,12 +150,12 @@ function DescripcionBien({ tipoRiesgo, dt }: { tipoRiesgo: string; dt: any }) {
       filas.push({ label: k.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()), valor: String(v) })
     }
   }
-  if (filas.length === 0) return <p className="text-xs text-slate-400">Sin datos del bien</p>
+  if (filas.length === 0) return <p className="text-xs text-slate-500">Sin datos del bien</p>
   return (
     <div className="flex flex-col gap-1">
       {filas.map(({ label, valor }) => (
         <div key={label} className="flex items-baseline gap-1.5">
-          <span className="text-2xs text-slate-500 shrink-0">{label}:</span>
+          <span className="text-2xs text-slate-600 shrink-0">{label}:</span>
           <span className="text-xs font-medium text-slate-700 break-words">{valor}</span>
         </div>
       ))}
@@ -193,7 +195,7 @@ function StepperEstados({ estadoActual }: { estadoActual: string }) {
                 ? `${badge.color} border ring-2 ring-offset-1 ring-current`
                 : pasado && !esRechazado
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-slate-50 text-slate-400 border border-slate-200'
+                  : 'bg-slate-50 text-slate-500 border border-slate-200'
               }`}>
               {pasado && !esRechazado
                 ? <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" />
@@ -228,13 +230,13 @@ function iconoBitacora(tipo: EntradaBitacora['tipo']) {
   switch (tipo) {
     case 'CREACION':       return { bg: 'bg-emerald-50 border-emerald-200', icon: <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> }
     case 'ESTADO':         return { bg: 'bg-violet-50 border-violet-200',   icon: <CheckCircle className="h-3.5 w-3.5 text-violet-600" /> }
-    case 'EDICION':        return { bg: 'bg-slate-50 border-slate-200',     icon: <FileText className="h-3.5 w-3.5 text-slate-500" /> }
+    case 'EDICION':        return { bg: 'bg-slate-50 border-slate-200',     icon: <FileText className="h-3.5 w-3.5 text-slate-600" /> }
     case 'ELIMINACION':    return { bg: 'bg-amber-50 border-amber-200',     icon: <Trash2 className="h-3.5 w-3.5 text-amber-600" /> }
     case 'RESTAURACION':   return { bg: 'bg-emerald-50 border-emerald-200', icon: <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> }
     case 'PURGA_DEFINITIVA': return { bg: 'bg-red-50 border-red-200',       icon: <Trash2 className="h-3.5 w-3.5 text-red-600" /> }
     case 'ARCHIVO':        return { bg: 'bg-blue-50 border-blue-200',       icon: <FolderOpen className="h-3.5 w-3.5 text-blue-600" /> }
     case 'NOTA':
-    default:               return { bg: 'bg-slate-50 border-slate-200',     icon: <MessageCircle className="h-3.5 w-3.5 text-slate-400" /> }
+    default:               return { bg: 'bg-slate-50 border-slate-200',     icon: <MessageCircle className="h-3.5 w-3.5 text-slate-500" /> }
   }
 }
 
@@ -257,9 +259,9 @@ function Campo({ label, valor, mono = false }: { label: string; valor: unknown; 
   const vacio = valor == null || (typeof valor === 'string' && !valor.trim())
   return (
     <div>
-      <p className="text-2xs text-slate-500 uppercase tracking-wide mb-0.5">{label}</p>
+      <p className="text-2xs text-slate-600 uppercase tracking-wide mb-0.5">{label}</p>
       {vacio ? (
-        <p className="text-xs text-slate-400 italic">—</p>
+        <p className="text-xs text-slate-500 italic">—</p>
       ) : (
         <p className={`text-sm text-slate-800 ${mono ? 'font-mono' : ''}`}>
           {typeof valor === 'string' ? valor : String(valor)}
@@ -285,23 +287,23 @@ function EntradaItem({ e }: { e: EntradaBitacora }) {
       <div className="flex-1 pb-4 min-w-0">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <span className="text-2xs font-semibold text-slate-600">{LABEL_BITACORA[e.tipo] ?? e.tipo}</span>
-          <span className="text-2xs text-slate-500">{formatTimestamp(e.created_at)} · {formatHora(e.created_at)}</span>
+          <span className="text-2xs text-slate-600">{formatTimestamp(e.created_at)} · {formatHora(e.created_at)}</span>
           {e.tipo === 'ESTADO' && badgeAnterior && badgeNuevo && (
             <div className="flex items-center gap-1">
               <span className={`text-2xs px-1.5 py-0.5 rounded border ${badgeAnterior.color}`}>{badgeAnterior.label}</span>
-              <ChevronRight className="h-3 w-3 text-slate-400" />
+              <ChevronRight className="h-3 w-3 text-slate-500" />
               <span className={`text-2xs px-1.5 py-0.5 rounded border ${badgeNuevo.color}`}>{badgeNuevo.label}</span>
             </div>
           )}
           {e.monto_actualizado != null && (
-            <span className="text-2xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+            <span className="text-2xs text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded font-mono">
               Monto: {formatPeso(e.monto_actualizado)}
             </span>
           )}
         </div>
         {Array.isArray(e.campos_modificados) && e.campos_modificados.length > 0 && (
-          <p className="text-2xs text-slate-500 mb-1">
-            <span className="text-slate-400">Campos: </span>
+          <p className="text-2xs text-slate-600 mb-1">
+            <span className="text-slate-500">Campos: </span>
             <span className="font-mono">{e.campos_modificados.join(', ')}</span>
           </p>
         )}
@@ -311,7 +313,7 @@ function EntradaItem({ e }: { e: EntradaBitacora }) {
           </p>
         )}
         {e.usuario && (
-          <p className="text-2xs text-slate-400 mt-1">
+          <p className="text-2xs text-slate-500 mt-1">
             Por: {[e.usuario.apellido, e.usuario.nombre].filter(Boolean).join(', ') || e.usuario.id}
           </p>
         )}
@@ -539,12 +541,12 @@ export default function FichaSiniestroPage() {
 
   if (cargando) return (
     <div className="flex items-center justify-center h-48">
-      <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+      <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
     </div>
   )
 
   if (!siniestro) return (
-    <div className="flex flex-col items-center justify-center h-48 gap-2 text-slate-400">
+    <div className="flex flex-col items-center justify-center h-48 gap-2 text-slate-500">
       <AlertCircle className="h-8 w-8" />
       <p className="text-sm">Siniestro no encontrado</p>
     </div>
@@ -559,6 +561,27 @@ export default function FichaSiniestroPage() {
   const tipoRiesgo = (siniestro.poliza?.ramo as any)?.metadata?.tipo_riesgo ?? ''
   const detalle    = siniestro.detalle_siniestro ?? {}
   const estadoActual = getEstadoBadge(siniestro.estado)
+
+  // v1.0.149: qué bloques activó el tipo de siniestro elegido — la ficha
+  // solo debe pintar cards de bloques que el form efectivamente pidió al
+  // asegurado. Si el tipo es GRANIZO o ROBO_TOTAL, mostrar "no indicó
+  // lesionados/testigos" es un falso positivo — al asegurado nunca se
+  // le preguntó eso.
+  const configTipoSiniestro = obtenerConfigTipoSiniestro(
+    normalizarTipoRiesgo(tipoRiesgo),
+    siniestro.tipo_siniestro,
+  )
+  const bloquesActivos = new Set(configTipoSiniestro?.bloques ?? [])
+  // Legacy: siniestros creados con el bloque hardcoded ACCIDENTE_TRANSITO
+  // pre-v1.0.149 no pasaban por el catálogo. Si el tipo es ACCIDENTE_TRANSITO
+  // asumimos los 6 bloques del catálogo aunque el matcheo falle.
+  const esAccidenteTransito = siniestro.tipo_siniestro === 'ACCIDENTE_TRANSITO'
+    && (tipoRiesgo === 'automotor' || tipoRiesgo === 'moto')
+  const mostrarConductor    = bloquesActivos.has('conductor')    || esAccidenteTransito
+  const mostrarTercero      = bloquesActivos.has('tercero')      || esAccidenteTransito
+  const mostrarLesionados   = bloquesActivos.has('lesionados')   || esAccidenteTransito
+  const mostrarDanosPropios = bloquesActivos.has('danos_propios') || esAccidenteTransito
+  const mostrarTestigos     = bloquesActivos.has('testigos')     || esAccidenteTransito
 
   const enPapelera = !!siniestro.deleted_at
   const diasParaPurga = enPapelera
@@ -689,87 +712,9 @@ export default function FichaSiniestroPage() {
         </div>
       )}
 
-      {/* Trazabilidad de la denuncia (solo si viene del portal + hay metadata) */}
-      {siniestro.origen_creacion === 'PORTAL_CLIENTE' && siniestro.denuncia_metadata && (() => {
-        const m = siniestro.denuncia_metadata!
-        const fechaHoraFmt = m.fecha_hora
-          ? new Date(m.fecha_hora).toLocaleString('es-AR', {
-              day: '2-digit', month: '2-digit', year: 'numeric',
-              hour: '2-digit', minute: '2-digit', second: '2-digit',
-              timeZone: 'America/Argentina/Buenos_Aires',
-            })
-          : null
-        const dispositivoEmoji =
-          m.dispositivo === 'movil'    ? '📱' :
-          m.dispositivo === 'tablet'   ? '📱' :
-          m.dispositivo === 'desktop'  ? '💻' :
-          m.dispositivo === 'bot'      ? '🤖' : '❓'
-        const dispositivoLabel =
-          m.dispositivo === 'movil'    ? 'Móvil' :
-          m.dispositivo === 'tablet'   ? 'Tablet' :
-          m.dispositivo === 'desktop'  ? 'Computadora' :
-          m.dispositivo === 'bot'      ? 'Bot' : 'Desconocido'
-        const browserStr = m.browser
-          ? `${m.browser.nombre}${m.browser.version ? ` ${m.browser.version.split('.')[0]}` : ''}`
-          : null
-        const osStr = m.os
-          ? `${m.os.nombre}${m.os.version ? ` ${m.os.version}` : ''}`
-          : null
-
-        return (
-          <div className="bg-slate-50 border border-slate-200 rounded overflow-hidden">
-            <div className="px-4 py-2 border-b border-slate-200 bg-white">
-              <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
-                🔍 Trazabilidad de la denuncia
-              </h3>
-            </div>
-            <div className="p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-xs">
-              {fechaHoraFmt && (
-                <div>
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Fecha y hora exacta</p>
-                  <p className="text-slate-800 font-medium">{fechaHoraFmt}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Dispositivo</p>
-                <p className="text-slate-800 font-medium">{dispositivoEmoji} {dispositivoLabel}</p>
-              </div>
-              {(browserStr || osStr) && (
-                <div>
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Navegador y sistema</p>
-                  <p className="text-slate-800 font-medium">
-                    {browserStr}{browserStr && osStr ? ' · ' : ''}{osStr}
-                  </p>
-                </div>
-              )}
-              {m.ip && (
-                <div>
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">IP{m.pais ? ` (${m.pais})` : ''}</p>
-                  <p className="text-slate-800 font-mono text-2xs break-all">{m.ip}</p>
-                </div>
-              )}
-              {m.idioma && (
-                <div>
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Idioma del navegador</p>
-                  <p className="text-slate-800 font-medium">{m.idioma}</p>
-                </div>
-              )}
-              {m.referer && (
-                <div className="md:col-span-2">
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Origen del acceso</p>
-                  <p className="text-slate-700 font-mono text-2xs break-all">{m.referer}</p>
-                </div>
-              )}
-              {m.user_agent && (
-                <div className="md:col-span-3 lg:col-span-4">
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">User-Agent completo</p>
-                  <p className="text-slate-600 font-mono text-2xs break-all leading-relaxed">{m.user_agent}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })()}
+      {/* Trazabilidad — se movió al FINAL de la ficha (colapsable). Se accede
+          solo cuando el PAS realmente necesita auditar la denuncia (fraude,
+          suplantación). No aporta al flujo operativo diario. */}
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -791,23 +736,23 @@ export default function FichaSiniestroPage() {
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
               <span className="font-semibold text-slate-800">{tipoLabel(siniestro.tipo_siniestro)}</span>
-              <span className="text-slate-400">•</span>
+              <span className="text-slate-500">•</span>
               <span className="text-slate-700">
                 Denunciado el <span className="font-medium">{formatFechaLocalLarga(siniestro.fecha_denuncia)}</span>
               </span>
               {siniestro.numero_siniestro ? (
                 <>
-                  <span className="text-slate-400">•</span>
+                  <span className="text-slate-500">•</span>
                   <span className="text-slate-700">
                     N° <span className="font-mono font-semibold">{siniestro.numero_siniestro}</span>
                     {siniestro.poliza?.compania?.nombre && (
-                      <span className="text-slate-500"> ({siniestro.poliza.compania.nombre})</span>
+                      <span className="text-slate-600"> ({siniestro.poliza.compania.nombre})</span>
                     )}
                   </span>
                 </>
               ) : (
                 <>
-                  <span className="text-slate-400">•</span>
+                  <span className="text-slate-500">•</span>
                   <span className="italic text-amber-700">N° siniestro pendiente de carga</span>
                 </>
               )}
@@ -948,7 +893,7 @@ export default function FichaSiniestroPage() {
                   {!editandoNumSiniestro && siniestro.numero_siniestro && (
                     <>
                       <span className="font-mono text-lg font-bold text-slate-800">{siniestro.numero_siniestro}</span>
-                      <p className="text-2xs text-slate-500">
+                      <p className="text-2xs text-slate-600">
                         Otorgado por <strong>{siniestro.poliza?.compania?.nombre ?? 'la compañía'}</strong> al cargar la denuncia administrativa.
                       </p>
                     </>
@@ -1012,7 +957,7 @@ export default function FichaSiniestroPage() {
                   </div>
                   <div className="p-4 flex flex-col gap-2">
                     <div>
-                      <label className="text-xs text-slate-500 mb-1 block">Nuevo estado</label>
+                      <label className="text-xs text-slate-600 mb-1 block">Nuevo estado</label>
                       <select className="form-input w-full" value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)}>
                         <option value={siniestro.estado}>{getEstadoBadge(siniestro.estado).label} (actual)</option>
                         {obtenerEstadosSiguientes(siniestro.estado).map(est => {
@@ -1023,9 +968,9 @@ export default function FichaSiniestroPage() {
                     </div>
                     {(nuevoEstado === 'LIQUIDACION' || nuevoEstado === 'FINALIZADO') && (
                       <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Monto liquidado</label>
+                        <label className="text-xs text-slate-600 mb-1 block">Monto liquidado</label>
                         <div className="flex gap-1">
-                          <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
+                          <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-600 border-r-0">$</span>
                           <input className="form-input font-mono rounded-l-none flex-1"
                             value={montoActualizado}
                             onChange={e => setMontoActualizado(e.target.value.replace(/[^\d.]/g, ''))}
@@ -1035,7 +980,7 @@ export default function FichaSiniestroPage() {
                     )}
                     {nuevoEstado === 'RECHAZADO' && (
                       <div>
-                        <label className="text-xs text-slate-500 mb-1 block">
+                        <label className="text-xs text-slate-600 mb-1 block">
                           Motivo del rechazo <span className="text-red-500">*</span>
                         </label>
                         <textarea
@@ -1058,7 +1003,7 @@ export default function FichaSiniestroPage() {
                 </div>
               ) : (
                 <div className="bg-white border border-slate-200 rounded p-4 flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-slate-400" />
+                  <CheckCircle className="h-4 w-4 text-slate-500" />
                   <p className="text-xs text-slate-600">
                     Estado terminal: <strong>{getEstadoBadge(siniestro.estado).label}</strong>. No hay transiciones posibles.
                   </p>
@@ -1076,7 +1021,7 @@ export default function FichaSiniestroPage() {
               <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Asegurado (col 1) */}
                 <div className="md:col-span-1 flex flex-col gap-1">
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide">Asegurado</p>
+                  <p className="text-2xs text-slate-600 uppercase tracking-wide">Asegurado</p>
                   <button
                     onClick={() => router.push(`/crm/personas/${siniestro.asegurado?.id}`)}
                     className="flex items-center gap-1.5 text-blue-600 hover:underline text-sm font-semibold text-left"
@@ -1085,13 +1030,13 @@ export default function FichaSiniestroPage() {
                     {nombreAsegurado(siniestro)}
                   </button>
                   {siniestro.asegurado?.telefono && (
-                    <p className="text-xs text-slate-500 font-mono">{siniestro.asegurado.telefono}</p>
+                    <p className="text-xs text-slate-600 font-mono">{siniestro.asegurado.telefono}</p>
                   )}
                 </div>
 
                 {/* Póliza (col 2) */}
                 <div className="md:col-span-1 flex flex-col gap-1">
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide">Póliza</p>
+                  <p className="text-2xs text-slate-600 uppercase tracking-wide">Póliza</p>
                   <button
                     type="button"
                     onClick={() => router.push(`/crm/polizas/${siniestro.poliza?.id}`)}
@@ -1111,11 +1056,11 @@ export default function FichaSiniestroPage() {
 
                 {/* Bien afectado (col 3-4) */}
                 <div className="md:col-span-2 flex flex-col gap-1">
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide">Bien afectado</p>
+                  <p className="text-2xs text-slate-600 uppercase tracking-wide">Bien afectado</p>
                   {bien ? (
                     <DescripcionBien tipoRiesgo={tipoRiesgo} dt={bien} />
                   ) : (
-                    <p className="text-xs text-slate-400 italic">Sin datos del bien</p>
+                    <p className="text-xs text-slate-500 italic">Sin datos del bien</p>
                   )}
                 </div>
               </div>
@@ -1130,7 +1075,7 @@ export default function FichaSiniestroPage() {
               </div>
               <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Fecha</p>
+                  <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">Fecha</p>
                   <p className="text-sm font-semibold text-slate-800">
                     {siniestro.fecha_ocurrencia ? formatFecha(siniestro.fecha_ocurrencia) : (
                       <span className="text-amber-700 italic text-xs">No especificada</span>
@@ -1138,13 +1083,13 @@ export default function FichaSiniestroPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Hora</p>
+                  <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">Hora</p>
                   <p className="text-sm font-semibold text-slate-800">
-                    {siniestro.hora_siniestro || <span className="text-slate-400 text-xs italic">Sin dato</span>}
+                    {siniestro.hora_siniestro || <span className="text-slate-500 text-xs italic">Sin dato</span>}
                   </p>
                 </div>
                 <div className="md:col-span-2">
-                  <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Lugar</p>
+                  <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">Lugar</p>
                   <p className="text-sm font-semibold text-slate-800">
                     {siniestro.lugar_siniestro || <span className="text-amber-700 italic text-xs">No especificado</span>}
                   </p>
@@ -1173,8 +1118,8 @@ export default function FichaSiniestroPage() {
               </div>
             </div>
 
-            {/* ═════ 🚦 CONDUCTOR (solo automotor/moto) ═════ */}
-            {(tipoRiesgo === 'automotor' || tipoRiesgo === 'moto') && (
+            {/* ═════ 🚦 CONDUCTOR — solo si el tipo lo pidió ═════ */}
+            {(tipoRiesgo === 'automotor' || tipoRiesgo === 'moto') && mostrarConductor && (
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
                   <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
@@ -1201,7 +1146,8 @@ export default function FichaSiniestroPage() {
               </div>
             )}
 
-            {/* ═════ 👥 TERCEROS INVOLUCRADOS ═════ */}
+            {/* ═════ 👥 TERCEROS INVOLUCRADOS — solo si el tipo lo pidió ═════ */}
+            {mostrarTercero && (
             <div className="bg-white border border-slate-200 rounded overflow-hidden">
               <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
                 <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
@@ -1217,7 +1163,7 @@ export default function FichaSiniestroPage() {
                   <div className="flex flex-col gap-3">
                     {catLabel && (
                       <div>
-                        <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">Categoría</p>
+                        <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">Categoría</p>
                         <p className="text-sm font-semibold text-slate-800">{catLabel}</p>
                       </div>
                     )}
@@ -1248,10 +1194,13 @@ export default function FichaSiniestroPage() {
                 )}
               </div>
             </div>
+            )}
 
-            {/* ═════ Grid: Lesionados + Daños propios ═════ */}
+            {/* ═════ Grid: Lesionados + Daños propios — solo si el tipo los pidió ═════ */}
+            {(mostrarLesionados || mostrarDanosPropios) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Lesionados */}
+              {mostrarLesionados && (
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
                   <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
@@ -1290,29 +1239,48 @@ export default function FichaSiniestroPage() {
                   })()}
                 </div>
               </div>
+              )}
 
-              {/* Daños propios */}
+              {/* Daños propios — v1.0.149 respeta la pregunta Sí/No */}
+              {mostrarDanosPropios && (
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
                   <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
-                    🔧 Daños propios
+                    🔧 Daños del vehículo asegurado
                   </h3>
                 </div>
                 <div className="p-4">
-                  {detalle.danos_propios ? (
-                    <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
-                      {detalle.danos_propios as string}
-                    </p>
-                  ) : (
-                    <p className="text-xs italic text-slate-500">El asegurado no describió los daños propios.</p>
-                  )}
+                  {(() => {
+                    const sufrio = detalle.sufrio_danos_propios
+                    if (esNo(sufrio)) {
+                      return (
+                        <p className="text-sm text-slate-600">
+                          ℹ️ El asegurado indicó que <strong>NO sufrió daños</strong>.
+                        </p>
+                      )
+                    }
+                    if (esSi(sufrio) || detalle.danos_propios) {
+                      return detalle.danos_propios ? (
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                          {detalle.danos_propios as string}
+                        </p>
+                      ) : (
+                        <p className="text-xs italic text-amber-700">Indicó que sufrió daños pero no los describió.</p>
+                      )
+                    }
+                    return <p className="text-xs italic text-amber-700">No indicó si el vehículo sufrió daños.</p>
+                  })()}
                 </div>
               </div>
+              )}
             </div>
+            )}
 
-            {/* ═════ Grid: Testigos + Denuncia policial ═════ */}
+            {/* ═════ Grid: Testigos + Denuncia policial — se muestran solo si aplican ═════ */}
+            {(mostrarTestigos || respondio(denunciaPolicialResp)) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Testigos */}
+              {/* Testigos — solo si el tipo lo pidió */}
+              {mostrarTestigos && (
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
                   <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
@@ -1329,10 +1297,10 @@ export default function FichaSiniestroPage() {
                         const telefono = (t?.telefono as string) || ''
                         return (
                           <li key={i} className="text-sm text-slate-700 flex items-start gap-2">
-                            <span className="text-2xs text-slate-400 mt-0.5">#{i + 1}</span>
+                            <span className="text-2xs text-slate-500 mt-0.5">#{i + 1}</span>
                             <span>
                               <span className="font-medium">{nombre || 'Sin nombre'}</span>
-                              {telefono && <span className="text-slate-500 font-mono ml-2">{telefono}</span>}
+                              {telefono && <span className="text-slate-600 font-mono ml-2">{telefono}</span>}
                             </span>
                           </li>
                         )
@@ -1345,8 +1313,11 @@ export default function FichaSiniestroPage() {
                   )}
                 </div>
               </div>
+              )}
 
-              {/* Denuncia policial */}
+              {/* Denuncia policial — solo si el asegurado respondió Sí/No.
+                  Sino, ni siquiera se le preguntó (tipos como GRANIZO no la piden). */}
+              {respondio(denunciaPolicialResp) && (
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
                   <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
@@ -1361,14 +1332,14 @@ export default function FichaSiniestroPage() {
                         <p className="text-xs text-slate-600 font-mono">Nº acta: {actaPolicial}</p>
                       )}
                     </div>
-                  ) : esNo(denunciaPolicialResp) ? (
+                  ) : (
                     <p className="text-sm text-slate-600">ℹ️ El asegurado indicó que <strong>NO realizó denuncia policial</strong>.</p>
-                  ) : !respondio(denunciaPolicialResp) ? (
-                    <p className="text-xs italic text-amber-700">No indicó si realizó denuncia policial.</p>
-                  ) : null}
+                  )}
                 </div>
               </div>
+              )}
             </div>
+            )}
 
             {/* ═════ 📄 CAMPOS ADICIONALES DEL RAMO (custom) ═════ */}
             {(() => {
@@ -1403,11 +1374,27 @@ export default function FichaSiniestroPage() {
                 if (typeof valor === 'string') return valorLegible(valor)
                 if (Array.isArray(valor)) {
                   if (valor.length === 0) return '—'
+                  // v1.0.149: si el array es de strings simples (multi-select
+                  // como ruedas robadas o cristales rotos), listar prolijamente
+                  // con badges — sin numerar cada item con "#1 #2 #3".
+                  const soloStrings = valor.every(v => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+                  if (soloStrings) {
+                    return (
+                      <ul className="flex flex-col gap-1">
+                        {valor.map((item, i) => (
+                          <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                            <span>{typeof item === 'string' ? valorLegible(item) : String(item)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )
+                  }
                   return (
                     <div className="flex flex-col gap-2">
                       {valor.map((item, i) => (
                         <div key={i} className="border-l-2 border-slate-200 pl-2">
-                          <p className="text-2xs text-slate-400 mb-0.5">#{i + 1}</p>
+                          <p className="text-2xs text-slate-500 mb-0.5">#{i + 1}</p>
                           {renderValor(item)}
                         </div>
                       ))}
@@ -1421,7 +1408,7 @@ export default function FichaSiniestroPage() {
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                       {entries.map(([k, v]) => (
                         <div key={k}>
-                          <span className="text-2xs text-slate-400">{labelDeSubKey(k)}: </span>
+                          <span className="text-2xs text-slate-500">{labelDeSubKey(k)}: </span>
                           <span className="text-xs text-slate-700">{renderValor(v)}</span>
                         </div>
                       ))}
@@ -1441,7 +1428,7 @@ export default function FichaSiniestroPage() {
                   <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                     {keysOrdenadas.map(k => (
                       <div key={k}>
-                        <p className="text-2xs text-slate-500 uppercase tracking-wide mb-1">{labelDeCampo(k, labelsMap)}</p>
+                        <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">{labelDeCampo(k, labelsMap)}</p>
                         <div className="text-sm text-slate-700">{renderValor(detalle[k])}</div>
                       </div>
                     ))}
@@ -1458,7 +1445,7 @@ export default function FichaSiniestroPage() {
                 <div className="bg-white border border-slate-200 rounded overflow-hidden flex flex-col h-full">
                   <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                     <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Bitácora de seguimiento</h3>
-                    <span className="text-2xs text-slate-500">{bitacora.length} entradas</span>
+                    <span className="text-2xs text-slate-600">{bitacora.length} entradas</span>
                   </div>
                   <div className="p-4 border-b border-slate-100">
                     <textarea
@@ -1471,7 +1458,7 @@ export default function FichaSiniestroPage() {
                       onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) agregarNota() }}
                     />
                     <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-2xs text-slate-500">Ctrl+Enter para enviar</span>
+                      <span className="text-2xs text-slate-600">Ctrl+Enter para enviar</span>
                       <button onClick={agregarNota} disabled={guardandoNota || !notaTexto.trim()} className="btn-primary">
                         {guardandoNota ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                         Agregar nota
@@ -1480,7 +1467,7 @@ export default function FichaSiniestroPage() {
                   </div>
                   <div className="p-4 flex flex-col gap-0 overflow-y-auto max-h-[500px]">
                     {bitacora.length === 0 ? (
-                      <p className="text-xs text-slate-500 text-center py-6">
+                      <p className="text-xs text-slate-600 text-center py-6">
                         Sin entradas todavía. Agregá la primera nota arriba.
                       </p>
                     ) : bitacora.map(e => <EntradaItem key={e.id} e={e} />)}
@@ -1497,26 +1484,26 @@ export default function FichaSiniestroPage() {
                   </div>
                   <div className="p-4 grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Estimado</p>
+                      <p className="text-2xs text-slate-600 mb-0.5 uppercase tracking-wide">Estimado</p>
                       <p className="text-sm font-semibold text-slate-700">
                         {siniestro.monto_estimado ? formatPeso(siniestro.monto_estimado) : '—'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Liquidado</p>
+                      <p className="text-2xs text-slate-600 mb-0.5 uppercase tracking-wide">Liquidado</p>
                       <p className="text-sm font-semibold text-emerald-700">
                         {siniestro.monto_liquidado != null ? formatPeso(siniestro.monto_liquidado) : '—'}
                       </p>
                     </div>
                     {siniestro.franquicia_aplicada != null && (
                       <div>
-                        <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Franquicia</p>
+                        <p className="text-2xs text-slate-600 mb-0.5 uppercase tracking-wide">Franquicia</p>
                         <p className="text-sm font-semibold text-slate-700">{formatPeso(siniestro.franquicia_aplicada)}</p>
                       </div>
                     )}
                     {siniestro.monto_cobrado != null && (
                       <div>
-                        <p className="text-2xs text-slate-500 mb-0.5 uppercase tracking-wide">Cobrado</p>
+                        <p className="text-2xs text-slate-600 mb-0.5 uppercase tracking-wide">Cobrado</p>
                         <p className="text-sm font-semibold text-emerald-700">{formatPeso(siniestro.monto_cobrado)}</p>
                       </div>
                     )}
@@ -1527,7 +1514,7 @@ export default function FichaSiniestroPage() {
                 <div className="bg-white border border-slate-200 rounded overflow-hidden flex-1 flex flex-col">
                   <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 flex items-baseline justify-between">
                     <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Observaciones internas</h3>
-                    <span className="text-2xs text-slate-500">No se comparte con el asegurado</span>
+                    <span className="text-2xs text-slate-600">No se comparte con el asegurado</span>
                   </div>
                   <div className="p-4 flex-1 flex flex-col">
                     <textarea
@@ -1568,6 +1555,93 @@ export default function FichaSiniestroPage() {
               categoria="documentacion_denuncia"
               titulo="📤 Documentación de la denuncia (visible en el portal del asegurado)"
             />
+
+            {/* ═════ 🔍 TRAZABILIDAD DE LA DENUNCIA — al final, colapsable ═════
+                Info necesaria para auditar denuncias potencialmente sospechosas
+                (dispositivo, IP, browser, país). En operación normal el PAS
+                no la consulta. Se abre solo cuando hace falta. */}
+            {siniestro.origen_creacion === 'PORTAL_CLIENTE' && siniestro.denuncia_metadata && (() => {
+              const m = siniestro.denuncia_metadata!
+              const fechaHoraFmt = m.fecha_hora
+                ? new Date(m.fecha_hora).toLocaleString('es-AR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    timeZone: 'America/Argentina/Buenos_Aires',
+                  })
+                : null
+              const dispositivoEmoji =
+                m.dispositivo === 'movil'    ? '📱' :
+                m.dispositivo === 'tablet'   ? '📱' :
+                m.dispositivo === 'desktop'  ? '💻' :
+                m.dispositivo === 'bot'      ? '🤖' : '❓'
+              const dispositivoLabel =
+                m.dispositivo === 'movil'    ? 'Móvil' :
+                m.dispositivo === 'tablet'   ? 'Tablet' :
+                m.dispositivo === 'desktop'  ? 'Computadora' :
+                m.dispositivo === 'bot'      ? 'Bot' : 'Desconocido'
+              const browserStr = m.browser
+                ? `${m.browser.nombre}${m.browser.version ? ` ${m.browser.version.split('.')[0]}` : ''}`
+                : null
+              const osStr = m.os
+                ? `${m.os.nombre}${m.os.version ? ` ${m.os.version}` : ''}`
+                : null
+
+              return (
+                <details className="bg-slate-50 border border-slate-200 rounded overflow-hidden group">
+                  <summary className="px-4 py-2.5 border-b border-slate-200 bg-white cursor-pointer select-none flex items-center justify-between hover:bg-slate-50">
+                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                      🔍 Trazabilidad de la denuncia
+                    </h3>
+                    <span className="text-2xs text-slate-600 group-open:hidden">Ver detalle</span>
+                    <span className="text-2xs text-slate-600 hidden group-open:inline">Ocultar</span>
+                  </summary>
+                  <div className="p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-xs">
+                    {fechaHoraFmt && (
+                      <div>
+                        <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">Fecha y hora exacta</p>
+                        <p className="text-slate-800 font-medium">{fechaHoraFmt}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">Dispositivo</p>
+                      <p className="text-slate-800 font-medium">{dispositivoEmoji} {dispositivoLabel}</p>
+                    </div>
+                    {(browserStr || osStr) && (
+                      <div>
+                        <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">Navegador y sistema</p>
+                        <p className="text-slate-800 font-medium">
+                          {browserStr}{browserStr && osStr ? ' · ' : ''}{osStr}
+                        </p>
+                      </div>
+                    )}
+                    {m.ip && (
+                      <div>
+                        <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">IP{m.pais ? ` (${m.pais})` : ''}</p>
+                        <p className="text-slate-800 font-mono text-2xs break-all">{m.ip}</p>
+                      </div>
+                    )}
+                    {m.idioma && (
+                      <div>
+                        <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">Idioma del navegador</p>
+                        <p className="text-slate-800 font-medium">{m.idioma}</p>
+                      </div>
+                    )}
+                    {m.referer && (
+                      <div className="md:col-span-2">
+                        <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">Origen del acceso</p>
+                        <p className="text-slate-700 font-mono text-2xs break-all">{m.referer}</p>
+                      </div>
+                    )}
+                    {m.user_agent && (
+                      <div className="md:col-span-3 lg:col-span-4">
+                        <p className="text-2xs text-slate-600 uppercase tracking-wide mb-1">User-Agent completo</p>
+                        <p className="text-slate-600 font-mono text-2xs break-all leading-relaxed">{m.user_agent}</p>
+                      </div>
+                    )}
+                  </div>
+                </details>
+              )
+            })()}
 
           </div>
         )
@@ -1620,7 +1694,7 @@ export default function FichaSiniestroPage() {
                 <Trash2 className="h-4 w-4 text-red-600" />
                 <h3 className="text-sm font-semibold text-red-800">Mover siniestro a la papelera</h3>
               </div>
-              <button onClick={() => setModalEliminar(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalEliminar(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -1632,15 +1706,15 @@ export default function FichaSiniestroPage() {
               </p>
               {eliminarResumen && (eliminarResumen.bitacora > 0 || eliminarResumen.archivos > 0) && (
                 <div className="bg-slate-50 border border-slate-200 rounded p-3 flex flex-col gap-1.5">
-                  <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Se eliminará al purgar:</p>
+                  <p className="text-2xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Se eliminará al purgar:</p>
                   {eliminarResumen.bitacora > 0 && (
                     <div className="flex items-center gap-2 text-xs text-slate-700">
-                      <MessageCircle className="h-3 w-3 text-slate-400" /> {eliminarResumen.bitacora} entrada(s) en la bitácora
+                      <MessageCircle className="h-3 w-3 text-slate-500" /> {eliminarResumen.bitacora} entrada(s) en la bitácora
                     </div>
                   )}
                   {eliminarResumen.archivos > 0 && (
                     <div className="flex items-center gap-2 text-xs text-slate-700">
-                      <FolderOpen className="h-3 w-3 text-slate-400" /> {eliminarResumen.archivos} archivo(s) físico(s)
+                      <FolderOpen className="h-3 w-3 text-slate-500" /> {eliminarResumen.archivos} archivo(s) físico(s)
                     </div>
                   )}
                 </div>

@@ -123,7 +123,7 @@ export function LicenciaGuard({ children }: { children: React.ReactNode }) {
                 )}
               </button>
             </div>
-            <p className="text-xs text-slate-500 mt-2">
+            <p className="text-xs text-slate-600 mt-2">
               Pasale este ID a tu contacto de FidCore para que te emita una licencia nueva.
             </p>
           </div>
@@ -150,7 +150,7 @@ export function LicenciaGuard({ children }: { children: React.ReactNode }) {
         </div>
 
         {!isAdmin && (
-          <p className="text-xs text-slate-400 mt-4">
+          <p className="text-xs text-slate-500 mt-4">
             Contactá al administrador del sistema para que cargue una licencia.
           </p>
         )}

@@ -108,7 +108,7 @@ export default function EmbudoTab() {
     <div className="flex flex-col gap-3">
       {/* Filtros */}
       <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2 flex-wrap">
-        <Filter className="h-3 w-3 text-slate-400" />
+        <Filter className="h-3 w-3 text-slate-500" />
         <span className="text-xs font-semibold text-slate-600">Período:</span>
         {([
           { k: 'mes', label: 'Este mes' },
@@ -137,7 +137,7 @@ export default function EmbudoTab() {
               value={desde}
               onChange={e => setDesde(e.target.value)}
             />
-            <span className="text-xs text-slate-400">a</span>
+            <span className="text-xs text-slate-500">a</span>
             <input
               type="date"
               className="form-input text-xs"
@@ -166,7 +166,7 @@ export default function EmbudoTab() {
       </div>
 
       {cargando ? (
-        <div className="bg-white border border-slate-200 rounded p-10 text-center text-xs text-slate-400">
+        <div className="bg-white border border-slate-200 rounded p-10 text-center text-xs text-slate-500">
           <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
           Calculando embudo...
         </div>
@@ -200,7 +200,7 @@ export default function EmbudoTab() {
                       </div>
                     </div>
                     {i < data.etapas.length - 1 && (
-                      <div className="text-2xs text-slate-500 py-0.5 flex items-center gap-1">
+                      <div className="text-2xs text-slate-600 py-0.5 flex items-center gap-1">
                         <TrendingDown className="h-3 w-3" />
                         tasa: <span className="font-mono font-semibold">{tasasEntre[i]}%</span>
                       </div>
@@ -245,10 +245,10 @@ export default function EmbudoTab() {
               </span>
               <span className="kpi-value text-red-700 text-base">
                 {data.metricas.tasa_perdida_por_etapa.ops}%
-                <span className="text-2xs font-normal text-slate-500"> ops</span>
+                <span className="text-2xs font-normal text-slate-600"> ops</span>
                 {' / '}
                 {data.metricas.tasa_perdida_por_etapa.cotizaciones}%
-                <span className="text-2xs font-normal text-slate-500"> cotiz</span>
+                <span className="text-2xs font-normal text-slate-600"> cotiz</span>
               </span>
               <span className="kpi-sub">por etapa</span>
             </div>
@@ -260,7 +260,7 @@ export default function EmbudoTab() {
               <h3 className="text-xs font-semibold text-slate-700">Top 5 razones de pérdida</h3>
             </div>
             {data.razones_perdida_top5.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-400">
+              <div className="p-6 text-center text-xs text-slate-500">
                 No hay pérdidas registradas en el período
               </div>
             ) : (

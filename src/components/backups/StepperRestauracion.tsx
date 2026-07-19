@@ -56,7 +56,7 @@ export default function StepperRestauracion({ estadoActual, porcentaje, incluirP
                     ? 'bg-green-500 text-white'
                     : activo
                       ? 'bg-blue-500 text-white animate-pulse'
-                      : 'bg-slate-200 text-slate-400'
+                      : 'bg-slate-200 text-slate-500'
                 }`}
               >
                 {completado ? (
@@ -73,7 +73,7 @@ export default function StepperRestauracion({ estadoActual, porcentaje, incluirP
                     ? 'text-slate-700 line-through decoration-slate-300'
                     : activo
                       ? 'text-slate-900 font-medium'
-                      : 'text-slate-400'
+                      : 'text-slate-500'
                 }`}
               >
                 {p.label}
@@ -85,7 +85,7 @@ export default function StepperRestauracion({ estadoActual, porcentaje, incluirP
 
       <div className="mt-2">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-2xs text-slate-500">Progreso</span>
+          <span className="text-2xs text-slate-600">Progreso</span>
           <span className="text-2xs font-mono text-slate-600">{porcentaje}%</span>
         </div>
         <div className="h-2 bg-slate-200 rounded overflow-hidden">

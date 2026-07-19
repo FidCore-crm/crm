@@ -98,7 +98,7 @@ export async function obtenerVariablesOrganizacion(): Promise<Record<string, str
   const supabase = getSupabaseAdmin()
   const { data } = await supabase
     .from('configuracion')
-    .select('nombre, telefono, email, logo_path, color_marca, usar_logo, email_header_estilo, email_header_subtitulo')
+    .select('nombre, telefono, email, sitio_web, logo_path, color_marca, usar_logo, email_header_estilo, email_header_subtitulo, email_header_ocultar_nombre')
     .limit(1)
     .maybeSingle()
 
@@ -114,19 +114,26 @@ export async function obtenerVariablesOrganizacion(): Promise<Record<string, str
   const nombre = data.nombre || ''
   const telefono = data.telefono || ''
   const email = data.email || ''
+  const sitioWeb = (data as any).sitio_web || ''
   const logo = mostrarLogo ? (data.logo_path || '') : ''
   const colorMarca = data.color_marca || ''
   const headerEstilo = (data as any).email_header_estilo || 'banda'
   const headerSubtitulo = (data as any).email_header_subtitulo ?? ''
+  // v1.0.149. Guardamos el boolean como string '1'/'' porque el mapa de
+  // variables está tipado como Record<string, string>. En el caller comparamos
+  // con `=== '1'`.
+  const ocultarNombreHeader = (data as any).email_header_ocultar_nombre === true ? '1' : ''
 
   const vars = {
     organizacion_nombre: nombre,
     organizacion_telefono: telefono,
     organizacion_email: email,
+    organizacion_sitio_web: sitioWeb,
     organizacion_logo: logo,
     organizacion_color_marca: colorMarca,
     organizacion_email_header_estilo: headerEstilo,
     organizacion_email_header_subtitulo: headerSubtitulo,
+    organizacion_email_header_ocultar_nombre: ocultarNombreHeader,
   }
   _cacheOrganizacion = { data: vars, expira: Date.now() + TTL_ORGANIZACION_MS }
   return vars

@@ -70,7 +70,7 @@ export default function AyudaTooltip({ clave, inline = false, align = 'left' }: 
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setAbierto((v) => !v) }}
-        className="inline-flex items-center justify-center text-slate-400 hover:text-blue-600 transition-colors"
+        className="inline-flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors"
         aria-label={`Ayuda: ${dato.titulo}`}
         title={dato.titulo}
       >
@@ -87,7 +87,7 @@ export default function AyudaTooltip({ clave, inline = false, align = 'left' }: 
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setAbierto(false) }}
-              className="text-slate-400 hover:text-slate-600 -mr-1 -mt-1"
+              className="text-slate-500 hover:text-slate-600 -mr-1 -mt-1"
               aria-label="Cerrar"
             >
               <X className="h-3 w-3" />

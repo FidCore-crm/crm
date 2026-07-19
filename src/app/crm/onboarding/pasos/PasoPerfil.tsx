@@ -185,7 +185,7 @@ export function PasoPerfil({ pasoActual, totalPasos, onAtras, onContinuar }: Pro
   if (cargando) {
     return (
       <WizardLayout pasoActual={pasoActual} totalPasos={totalPasos} titulo="Tu perfil profesional">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex items-center gap-2 text-sm text-slate-600">
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
         </div>
       </WizardLayout>
@@ -223,7 +223,7 @@ export function PasoPerfil({ pasoActual, totalPasos, onAtras, onContinuar }: Pro
               />
               <div>
                 <div className="text-sm font-medium text-slate-900">PAS individual</div>
-                <div className="text-xs text-slate-500 mt-0.5">
+                <div className="text-xs text-slate-600 mt-0.5">
                   Sos el titular único, sin sociedad inscripta.
                 </div>
               </div>
@@ -243,7 +243,7 @@ export function PasoPerfil({ pasoActual, totalPasos, onAtras, onContinuar }: Pro
               />
               <div>
                 <div className="text-sm font-medium text-slate-900">En sociedad</div>
-                <div className="text-xs text-slate-500 mt-0.5">
+                <div className="text-xs text-slate-600 mt-0.5">
                   Trabajás con otros productores bajo una organización con razón social.
                 </div>
               </div>
@@ -339,7 +339,7 @@ export function PasoPerfil({ pasoActual, totalPasos, onAtras, onContinuar }: Pro
             />
             <div>
               <div className="text-sm text-slate-700">No usar logo</div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 Si lo marcás, en todo el sistema aparece solo el nombre sin imagen.
               </p>
             </div>
@@ -386,7 +386,7 @@ export function PasoPerfil({ pasoActual, totalPasos, onAtras, onContinuar }: Pro
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-slate-400">PNG, JPG o SVG. Máximo 2MB.</p>
+                <p className="text-xs text-slate-500">PNG, JPG o SVG. Máximo 2MB.</p>
               </div>
             </div>
           )}

@@ -221,7 +221,7 @@ export default function NotificacionesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-base font-bold text-slate-800">Notificaciones</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Alertas y avisos del sistema</p>
+          <p className="text-xs text-slate-600 mt-0.5">Alertas y avisos del sistema</p>
         </div>
       </div>
 
@@ -247,10 +247,10 @@ export default function NotificacionesPage() {
         </div>
         <div className="kpi-card bg-slate-50 border border-slate-200">
           <span className="kpi-label flex items-center gap-1">
-            <Bell className="h-3.5 w-3.5 text-slate-400" /> Total histórico
+            <Bell className="h-3.5 w-3.5 text-slate-500" /> Total histórico
           </span>
           <span className="kpi-value text-slate-600">{totalHistorico}</span>
-          <span className="text-2xs text-slate-500">todas las notificaciones</span>
+          <span className="text-2xs text-slate-600">todas las notificaciones</span>
         </div>
       </div>
 
@@ -307,13 +307,13 @@ export default function NotificacionesPage() {
             {cargando ? (
               <tr>
                 <td colSpan={6} className="text-center py-8">
-                  <Loader2 className="h-4 w-4 animate-spin inline-block text-slate-400" />
+                  <Loader2 className="h-4 w-4 animate-spin inline-block text-slate-500" />
                 </td>
               </tr>
             ) : notifPagina.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-8">
-                  <div className="flex flex-col items-center gap-1.5 text-slate-400">
+                  <div className="flex flex-col items-center gap-1.5 text-slate-500">
                     <Bell className="h-5 w-5" />
                     <span className="text-xs">
                       {hayFiltros ? 'No hay notificaciones que coincidan con los filtros.' : 'No hay notificaciones'}
@@ -350,12 +350,12 @@ export default function NotificacionesPage() {
                     <div className={`text-xs text-slate-700 ${!n.leida ? 'font-semibold' : ''} break-words`}>
                       {n.titulo}
                     </div>
-                    <div className="text-2xs text-slate-500 break-words leading-relaxed mt-0.5">
+                    <div className="text-2xs text-slate-600 break-words leading-relaxed mt-0.5">
                       {n.mensaje}
                     </div>
                   </td>
                   <td title={fechaCompleta(n.created_at)}>
-                    <span className="text-2xs text-slate-500">{tiempoRelativo(n.created_at)}</span>
+                    <span className="text-2xs text-slate-600">{tiempoRelativo(n.created_at)}</span>
                   </td>
                   <td onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
@@ -393,7 +393,7 @@ export default function NotificacionesPage() {
 
       {/* Paginación */}
       {totalPaginas > 1 && (
-        <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="flex items-center justify-between text-xs text-slate-600">
           <span>Mostrando {pagina * POR_PAGINA + 1}–{Math.min((pagina + 1) * POR_PAGINA, totalFiltrado)} de {totalFiltrado}</span>
           <div className="flex items-center gap-1">
             <button
@@ -421,7 +421,7 @@ export default function NotificacionesPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-slate-800">Limpiar notificaciones antiguas</h3>
-              <button onClick={() => setMostrarModalLimpiar(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setMostrarModalLimpiar(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>

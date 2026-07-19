@@ -131,7 +131,7 @@ export function SeparadorColumnaModal({
           <button
             type="button"
             onClick={onCancelar}
-            className="text-slate-400 hover:text-slate-600 p-1"
+            className="text-slate-500 hover:text-slate-600 p-1"
           >
             <X className="w-4 h-4" />
           </button>
@@ -140,13 +140,13 @@ export function SeparadorColumnaModal({
         {/* Ejemplos */}
         {ejemplosDatos.length > 0 && (
           <div className="mb-3 bg-slate-50 border border-slate-200 rounded p-2">
-            <div className="text-2xs uppercase font-semibold text-slate-500 mb-1">
+            <div className="text-2xs uppercase font-semibold text-slate-600 mb-1">
               Ejemplos del archivo
             </div>
             <div className="space-y-0.5">
               {ejemplosDatos.slice(0, 5).map((e, i) => (
                 <div key={i} className="font-mono text-xs text-slate-700 truncate">
-                  {e || <span className="italic text-slate-400">(vacío)</span>}
+                  {e || <span className="italic text-slate-500">(vacío)</span>}
                 </div>
               ))}
             </div>
@@ -189,7 +189,7 @@ export function SeparadorColumnaModal({
           <div className="space-y-1.5">
             {campos.map((c, i) => (
               <div key={i} className="flex gap-2 items-center">
-                <span className="text-2xs text-slate-500 w-16 shrink-0">
+                <span className="text-2xs text-slate-600 w-16 shrink-0">
                   Campo {i + 1}
                 </span>
                 <select
@@ -233,7 +233,7 @@ export function SeparadorColumnaModal({
 
         {/* Preview */}
         <div className="mb-3 bg-slate-50 border border-slate-200 rounded p-2">
-          <div className="text-2xs uppercase font-semibold text-slate-500 mb-1">
+          <div className="text-2xs uppercase font-semibold text-slate-600 mb-1">
             Preview
           </div>
           {campos.map((c, i) => {

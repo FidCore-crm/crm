@@ -24,7 +24,7 @@ export function EstadoCarga({
 }: Props) {
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+      <div className="flex flex-col items-center justify-center py-12 text-slate-600">
         <Loader2 className="w-8 h-8 animate-spin mb-3" />
         <p className="text-sm">Cargando...</p>
       </div>
@@ -40,7 +40,7 @@ export function EstadoCarga({
         </h3>
         <p className="text-sm text-slate-600 mb-4 max-w-md">{error.mensaje}</p>
         {error.codigo && (
-          <p className="text-xs text-slate-400 font-mono mb-4">{error.codigo}</p>
+          <p className="text-xs text-slate-500 font-mono mb-4">{error.codigo}</p>
         )}
         {onReintentar && (
           <button
@@ -57,8 +57,8 @@ export function EstadoCarga({
 
   if (empty) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">
-        {emptyIcono || <Inbox className="w-12 h-12 mb-3 text-slate-400" />}
+      <div className="flex flex-col items-center justify-center py-12 text-center text-slate-600">
+        {emptyIcono || <Inbox className="w-12 h-12 mb-3 text-slate-500" />}
         <p className="text-sm">{emptyMensaje}</p>
       </div>
     )

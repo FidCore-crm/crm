@@ -31,7 +31,7 @@ const ESTADO_META: Record<string, { label: string; color: string; icon: any }> =
   EJECUTANDO: { label: 'Ejecutando',   color: 'text-blue-700 bg-blue-50 border-blue-200',    icon: Loader2 },
   COMPLETADA: { label: 'Completada',   color: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: CheckCircle2 },
   PAUSADA:    { label: 'Pausada',      color: 'text-violet-700 bg-violet-50 border-violet-200', icon: Pause },
-  CANCELADA:  { label: 'Cancelada',    color: 'text-slate-500 bg-slate-100 border-slate-200', icon: Ban },
+  CANCELADA:  { label: 'Cancelada',    color: 'text-slate-600 bg-slate-100 border-slate-200', icon: Ban },
 }
 
 function fmtFecha(s: string | null): string {
@@ -73,7 +73,7 @@ export default function ModalDetalleCampana({ campanaId, onCerrar }: Props) {
   if (cargando || !data) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-white rounded-lg shadow-xl p-10 flex items-center gap-3 text-sm text-slate-500">
+        <div className="bg-white rounded-lg shadow-xl p-10 flex items-center gap-3 text-sm text-slate-600">
           <Loader2 className="h-5 w-5 animate-spin" /> Cargando...
         </div>
       </div>
@@ -96,7 +96,7 @@ export default function ModalDetalleCampana({ campanaId, onCerrar }: Props) {
             <Megaphone className="h-4 w-4 text-blue-600" />
             {data.nombre}
           </h3>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onCerrar} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -109,7 +109,7 @@ export default function ModalDetalleCampana({ campanaId, onCerrar }: Props) {
               {meta.label}
             </span>
             {data.descripcion && (
-              <span className="text-xs text-slate-500 flex-1 text-right">{data.descripcion}</span>
+              <span className="text-xs text-slate-600 flex-1 text-right">{data.descripcion}</span>
             )}
           </div>
 
@@ -145,30 +145,30 @@ export default function ModalDetalleCampana({ campanaId, onCerrar }: Props) {
           {/* Info temporal */}
           <div className="bg-slate-50 border border-slate-200 rounded p-3 grid grid-cols-2 gap-3 text-xs">
             <div>
-              <p className="text-slate-500 mb-0.5 flex items-center gap-1"><Calendar className="h-3 w-3" /> Creada</p>
+              <p className="text-slate-600 mb-0.5 flex items-center gap-1"><Calendar className="h-3 w-3" /> Creada</p>
               <p className="text-slate-800 font-mono">{fmtFecha(data.created_at)}</p>
             </div>
             {data.programada_para && (
               <div>
-                <p className="text-slate-500 mb-0.5 flex items-center gap-1"><Clock className="h-3 w-3" /> Programada para</p>
+                <p className="text-slate-600 mb-0.5 flex items-center gap-1"><Clock className="h-3 w-3" /> Programada para</p>
                 <p className="text-slate-800 font-mono">{fmtFecha(data.programada_para)}</p>
               </div>
             )}
             {data.fecha_inicio_ejecucion && (
               <div>
-                <p className="text-slate-500 mb-0.5 flex items-center gap-1"><Activity className="h-3 w-3" /> Inicio ejecución</p>
+                <p className="text-slate-600 mb-0.5 flex items-center gap-1"><Activity className="h-3 w-3" /> Inicio ejecución</p>
                 <p className="text-slate-800 font-mono">{fmtFecha(data.fecha_inicio_ejecucion)}</p>
               </div>
             )}
             {data.fecha_fin_ejecucion && (
               <div>
-                <p className="text-slate-500 mb-0.5">Fin ejecución</p>
+                <p className="text-slate-600 mb-0.5">Fin ejecución</p>
                 <p className="text-slate-800 font-mono">{fmtFecha(data.fecha_fin_ejecucion)}</p>
               </div>
             )}
             {data.fecha_inicio_ejecucion && (
               <div className="col-span-2">
-                <p className="text-slate-500 mb-0.5">Duración</p>
+                <p className="text-slate-600 mb-0.5">Duración</p>
                 <p className="text-slate-800 font-mono">{fmtDuracion(data.fecha_inicio_ejecucion, data.fecha_fin_ejecucion)}</p>
               </div>
             )}
@@ -187,7 +187,7 @@ export default function ModalDetalleCampana({ campanaId, onCerrar }: Props) {
 
         {/* Footer */}
         <div className="border-t border-slate-200 px-5 py-3 flex items-center justify-between shrink-0">
-          <p className="text-2xs text-slate-400">
+          <p className="text-2xs text-slate-500">
             Actualizado {fmtFecha(data.updated_at)}
             {data.estado === 'EJECUTANDO' && <span className="ml-2 text-blue-600">· refresh automático cada 5s</span>}
           </p>

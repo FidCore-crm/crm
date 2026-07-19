@@ -129,7 +129,7 @@ export default function PapeleraPersonasPage() {
             <h1 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
               <Trash2 className="h-4 w-4 text-amber-600" /> Papelera de clientes
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-600 mt-0.5">
               Los clientes eliminados se conservan {DIAS_RETENCION} días antes de borrarse definitivamente
             </p>
           </div>
@@ -152,7 +152,7 @@ export default function PapeleraPersonasPage() {
       {/* Buscador */}
       <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
           <input
             type="text"
             value={busqueda}
@@ -171,7 +171,7 @@ export default function PapeleraPersonasPage() {
       {/* Tabla */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">
         <div className="px-3 py-1.5 border-b border-slate-100 bg-slate-50">
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-600">
             <span className="font-medium text-slate-700">{personasFiltradas.length}</span>{' '}
             cliente{personasFiltradas.length !== 1 ? 's' : ''} en papelera
           </span>

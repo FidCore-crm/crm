@@ -520,7 +520,7 @@ export default function RenovarPolizaPage() {
 
   if (!origen) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
-      <span className="text-slate-400 text-sm">Póliza no encontrada</span>
+      <span className="text-slate-500 text-sm">Póliza no encontrada</span>
       <button onClick={() => router.push('/crm/renovaciones')} className="btn-secondary">
         <ArrowLeft className="h-3 w-3" /> Volver
       </button>
@@ -533,7 +533,7 @@ export default function RenovarPolizaPage() {
         <CheckCircle className="h-6 w-6 text-green-600" />
       </div>
       <p className="text-sm font-medium text-slate-700">Renovación guardada</p>
-      <p className="text-xs text-slate-500">Redirigiendo a la nueva póliza...</p>
+      <p className="text-xs text-slate-600">Redirigiendo a la nueva póliza...</p>
     </div>
   )
 
@@ -549,7 +549,7 @@ export default function RenovarPolizaPage() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Renovar Póliza</h1>
-            <p className="text-xs text-slate-500">Póliza actual: <span className="font-mono font-semibold">{origen.numero_poliza}</span></p>
+            <p className="text-xs text-slate-600">Póliza actual: <span className="font-mono font-semibold">{origen.numero_poliza}</span></p>
           </div>
         </div>
         <button onClick={guardar} disabled={guardando} className="btn-primary px-5">
@@ -571,23 +571,23 @@ export default function RenovarPolizaPage() {
         </div>
         <div className="p-4 grid grid-cols-3 gap-3 text-xs">
           <div>
-            <span className="text-slate-500">Cliente</span>
+            <span className="text-slate-600">Cliente</span>
             <p className="text-slate-700 font-medium">{nombreCompleto(origen.asegurado)}</p>
           </div>
           <div>
-            <span className="text-slate-500">Compañía</span>
+            <span className="text-slate-600">Compañía</span>
             <p className="text-slate-700 font-medium">{origen.compania?.nombre ?? '—'}</p>
           </div>
           <div>
-            <span className="text-slate-500">Ramo / Cobertura</span>
+            <span className="text-slate-600">Ramo / Cobertura</span>
             <p className="text-slate-700 font-medium">{ramoNombre}{origen.cobertura ? ` · ${origen.cobertura.nombre}` : ''}</p>
           </div>
           <div>
-            <span className="text-slate-500">Vigencia anterior</span>
+            <span className="text-slate-600">Vigencia anterior</span>
             <p className="text-slate-700 font-medium">{formatFecha(origen.fecha_inicio)} → {formatFecha(origen.fecha_fin)}</p>
           </div>
           <div>
-            <span className="text-slate-500">Estado</span>
+            <span className="text-slate-600">Estado</span>
             <p><span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${getPolizaBadgeColor(origen.estado)}`}>{getLabelEstado(origen.estado)}</span></p>
           </div>
         </div>
@@ -643,7 +643,7 @@ export default function RenovarPolizaPage() {
             <div className="form-input bg-slate-50 text-slate-600 flex items-center">
               {fechaInicio && fechaFin
                 ? vigenciaTextoDesdeFechas(fechaInicio, fechaFin)
-                : <span className="text-slate-400">Se calcula con las fechas</span>}
+                : <span className="text-slate-500">Se calcula con las fechas</span>}
             </div>
           </Campo>
           <Campo label="Suma asegurada">
@@ -665,7 +665,7 @@ export default function RenovarPolizaPage() {
                 className="mt-0.5"/>
               <span className="text-xs text-slate-600 leading-tight">
                 Permitir que el asegurado vea la suma asegurada en el portal.
-                <span className="block text-slate-400 mt-0.5">
+                <span className="block text-slate-500 mt-0.5">
                   Recomendado para sumas fijas (hogar, robo de bien no registrable, etc.).
                   Dejar destildado si la suma varía mes a mes (típico en auto).
                 </span>
@@ -715,7 +715,7 @@ export default function RenovarPolizaPage() {
                   <button
                     type="button"
                     onClick={() => eliminarRiesgo(i)}
-                    className="px-1.5 py-1 text-slate-400 hover:text-red-600"
+                    className="px-1.5 py-1 text-slate-500 hover:text-red-600"
                     title="Eliminar este bien"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -855,7 +855,7 @@ export default function RenovarPolizaPage() {
                 <div className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-blue-500" />
                   Datos adicionales
-                  <span className="text-2xs text-slate-400 font-normal">
+                  <span className="text-2xs text-slate-500 font-normal">
                     · cargados por el agente IA o importados
                   </span>
                 </div>
@@ -926,7 +926,7 @@ export default function RenovarPolizaPage() {
           <div>
             <div className="flex items-baseline justify-between mb-1">
               <label className="text-xs text-slate-700 font-medium">Notas internas</label>
-              <span className="text-2xs text-slate-500 font-medium">Uso interno · no se comparte con el asegurado</span>
+              <span className="text-2xs text-slate-600 font-medium">Uso interno · no se comparte con el asegurado</span>
             </div>
             <textarea
               className="form-input w-full resize-none"

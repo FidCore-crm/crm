@@ -53,10 +53,12 @@ export async function GET(request: NextRequest) {
           nombre: variables.organizacion_nombre || 'Productor de Seguros',
           telefono: variables.organizacion_telefono,
           email: variables.organizacion_email,
+          sitio_web: variables.organizacion_sitio_web || undefined,
           logo_url: logoDataUrl,
           color_marca: variables.organizacion_color_marca || undefined,
           email_header_estilo: (variables.organizacion_email_header_estilo as 'banda' | 'compacto' | 'lateral' | undefined) || undefined,
           email_header_subtitulo: variables.organizacion_email_header_subtitulo || undefined,
+          email_header_ocultar_nombre: variables.organizacion_email_header_ocultar_nombre === '1',
         },
       )
       return NextResponse.json({ ok: true, html: cuerpo_html })

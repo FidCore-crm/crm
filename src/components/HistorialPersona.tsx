@@ -29,7 +29,7 @@ function iconoEvento(tipo: string) {
     case 'CREACION':
       return <UserPlus className="h-3.5 w-3.5 text-emerald-600" />
     case 'EDICION':
-      return <Pencil className="h-3.5 w-3.5 text-slate-500" />
+      return <Pencil className="h-3.5 w-3.5 text-slate-600" />
     case 'CAMBIO_ESTADO':
       return <RefreshCw className="h-3.5 w-3.5 text-blue-600" />
     case 'ELIMINACION':
@@ -39,7 +39,7 @@ function iconoEvento(tipo: string) {
     case 'PURGA_DEFINITIVA':
       return <ShieldOff className="h-3.5 w-3.5 text-red-600" />
     default:
-      return <Pencil className="h-3.5 w-3.5 text-slate-400" />
+      return <Pencil className="h-3.5 w-3.5 text-slate-500" />
   }
 }
 
@@ -98,19 +98,19 @@ export default function HistorialPersona({ personaId, refreshKey = 0 }: Props) {
         onClick={() => setExpandido(v => !v)}
         className="w-full flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50 hover:bg-slate-100 transition-colors"
       >
-        <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
+        <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">
           Historial del cliente ({eventos.length})
         </h3>
-        {expandido ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
+        {expandido ? <ChevronUp className="h-3.5 w-3.5 text-slate-500" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-500" />}
       </button>
       {expandido && (
         <div className="p-3">
           {cargando ? (
             <div className="text-center py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-slate-400 mx-auto" />
+              <Loader2 className="h-4 w-4 animate-spin text-slate-500 mx-auto" />
             </div>
           ) : eventos.length === 0 ? (
-            <div className="text-center py-4 text-xs text-slate-400">
+            <div className="text-center py-4 text-xs text-slate-500">
               Sin eventos registrados
             </div>
           ) : (
@@ -125,30 +125,30 @@ export default function HistorialPersona({ personaId, refreshKey = 0 }: Props) {
                       <span className="text-xs font-semibold text-slate-700">
                         {labelEvento(e.tipo_evento)}
                       </span>
-                      <span className="text-2xs text-slate-400">{formatFechaHora(e.created_at)}</span>
+                      <span className="text-2xs text-slate-500">{formatFechaHora(e.created_at)}</span>
                     </div>
                     {(e.estado_anterior || e.estado_nuevo) && (
-                      <p className="text-2xs text-slate-500 mt-0.5">
+                      <p className="text-2xs text-slate-600 mt-0.5">
                         {e.estado_anterior && <><span className="font-mono">{e.estado_anterior}</span> → </>}
                         {e.estado_nuevo && <span className="font-mono font-medium">{e.estado_nuevo}</span>}
                       </p>
                     )}
                     {Array.isArray(e.campos_modificados) && e.campos_modificados.length > 0 && (
-                      <p className="text-2xs text-slate-500 mt-0.5">
-                        <span className="text-slate-400">Campos: </span>
+                      <p className="text-2xs text-slate-600 mt-0.5">
+                        <span className="text-slate-500">Campos: </span>
                         <span className="font-mono">{e.campos_modificados.join(', ')}</span>
                       </p>
                     )}
                     {e.motivo && (
                       <p className="text-2xs text-slate-600 mt-0.5">
-                        <span className="text-slate-400">Motivo: </span>{e.motivo}
+                        <span className="text-slate-500">Motivo: </span>{e.motivo}
                       </p>
                     )}
                     {e.observaciones && (
-                      <p className="text-2xs text-slate-500 italic mt-0.5">{e.observaciones}</p>
+                      <p className="text-2xs text-slate-600 italic mt-0.5">{e.observaciones}</p>
                     )}
                     {e.usuario && (
-                      <p className="text-2xs text-slate-400 mt-0.5">
+                      <p className="text-2xs text-slate-500 mt-0.5">
                         Por: {[e.usuario.apellido, e.usuario.nombre].filter(Boolean).join(', ') || e.usuario.id}
                       </p>
                     )}

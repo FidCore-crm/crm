@@ -64,7 +64,7 @@ export function PasoAgenteIA({ pasoActual, totalPasos, onAtras, onContinuar, onS
   if (cargando) {
     return (
       <WizardLayout pasoActual={pasoActual} totalPasos={totalPasos} titulo="Agente IA para PDFs">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex items-center gap-2 text-sm text-slate-600">
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
         </div>
       </WizardLayout>
@@ -152,12 +152,12 @@ export function PasoAgenteIA({ pasoActual, totalPasos, onAtras, onContinuar, onS
               <button
                 type="button"
                 onClick={() => setVerApiKey(v => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600"
               >
                 {verApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-slate-600">
               Se guarda encriptada en tu CRM. No se comparte con nadie.
             </p>
           </div>

@@ -75,7 +75,7 @@ export function ModalConflictoEdicion({
               Otro usuario modificó esta ficha
             </h3>
           </div>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onCerrar} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>

@@ -283,10 +283,10 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
           className={`flex items-center gap-2 ${colapsable ? 'cursor-pointer' : 'cursor-default'}`}
           disabled={!colapsable}
         >
-          <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
+          <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">
             Endosos / Modificaciones
           </h3>
-          <span className="text-2xs text-slate-400">
+          <span className="text-2xs text-slate-500">
             ({endosos.length})
           </span>
         </button>
@@ -312,7 +312,7 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
           <button
             type="button"
             onClick={() => setAbierto(v => !v)}
-            className="ml-auto p-1 rounded hover:bg-slate-200 text-slate-400"
+            className="ml-auto p-1 rounded hover:bg-slate-200 text-slate-500"
             title={abierto ? 'Contraer' : 'Expandir'}
           >
             {abierto ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -382,8 +382,8 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
                   if (e.target.files) setFormArchivos(Array.from(e.target.files))
                 }}
               />
-              <Upload className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <span className="text-xs text-slate-500 flex-1 text-center">
+              <Upload className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+              <span className="text-xs text-slate-600 flex-1 text-center">
                 {formArchivos.length === 0
                   ? 'Hacé clic para seleccionar PDFs o imágenes'
                   : `${formArchivos.length} archivo${formArchivos.length !== 1 ? 's' : ''} seleccionado${formArchivos.length !== 1 ? 's' : ''}`}
@@ -392,13 +392,13 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
             {formArchivos.length > 0 && (
               <ul className="mt-2 space-y-1">
                 {formArchivos.map((f, i) => (
-                  <li key={i} className="text-2xs text-slate-500 flex items-center gap-1">
+                  <li key={i} className="text-2xs text-slate-600 flex items-center gap-1">
                     <FileText className="h-3 w-3" />
                     <span className="flex-1 truncate">{f.name}</span>
                     <button
                       type="button"
                       onClick={() => setFormArchivos(prev => prev.filter((_, idx) => idx !== i))}
-                      className="text-slate-400 hover:text-red-600"
+                      className="text-slate-500 hover:text-red-600"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -421,11 +421,11 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
       )}
 
       {cargando ? (
-        <div className="text-center py-8 text-xs text-slate-400">
+        <div className="text-center py-8 text-xs text-slate-500">
           <Loader2 className="h-4 w-4 animate-spin mx-auto" />
         </div>
       ) : endosos.length === 0 && !formAbierto ? (
-        <div className="text-center py-8 text-xs text-slate-400">
+        <div className="text-center py-8 text-xs text-slate-500">
           Sin endosos registrados — la póliza no tuvo modificaciones
         </div>
       ) : (
@@ -445,7 +445,7 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-medium text-slate-700">{e.motivo}</span>
-                      <span className="text-2xs text-slate-400">{formatFecha(e.fecha)}</span>
+                      <span className="text-2xs text-slate-500">{formatFecha(e.fecha)}</span>
                       {archivos.length > 0 && (
                         <span className="text-2xs text-blue-600 flex items-center gap-0.5">
                           <Paperclip className="h-3 w-3" />
@@ -454,24 +454,24 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
                       )}
                     </div>
                     {e.observaciones && !isExp && (
-                      <p className="text-2xs text-slate-500 mt-0.5 leading-relaxed truncate">{e.observaciones}</p>
+                      <p className="text-2xs text-slate-600 mt-0.5 leading-relaxed truncate">{e.observaciones}</p>
                     )}
                   </div>
-                  {isExp ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
+                  {isExp ? <ChevronUp className="h-3.5 w-3.5 text-slate-500" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-500" />}
                 </div>
 
                 {isExp && (
                   <div className="mt-3 ml-9 space-y-3">
                     {e.observaciones && (
                       <div>
-                        <p className="text-2xs text-slate-400 uppercase mb-0.5 font-semibold">Observaciones</p>
+                        <p className="text-2xs text-slate-500 uppercase mb-0.5 font-semibold">Observaciones</p>
                         <p className="text-xs text-slate-600 leading-relaxed">{e.observaciones}</p>
                       </div>
                     )}
 
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-2xs text-slate-400 uppercase font-semibold">
+                        <p className="text-2xs text-slate-500 uppercase font-semibold">
                           Archivos adjuntos ({archivos.length})
                         </p>
                         <label className="text-xs text-blue-600 hover:underline cursor-pointer flex items-center gap-0.5">
@@ -489,7 +489,7 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
                         </label>
                       </div>
                       {archivos.length === 0 ? (
-                        <p className="text-2xs text-slate-400 italic">Sin archivos adjuntos</p>
+                        <p className="text-2xs text-slate-500 italic">Sin archivos adjuntos</p>
                       ) : (
                         <ul className="space-y-1">
                           {archivos.map(a => (
@@ -501,7 +501,7 @@ export default function EndososSection({ polizaId, numeroPoliza, polizaContexto,
                               )}
                               <div className="flex-1 min-w-0">
                                 <p className="truncate text-slate-700">{a.nombre}</p>
-                                <p className="text-2xs text-slate-400">{formatBytes(a.tamano)}</p>
+                                <p className="text-2xs text-slate-500">{formatBytes(a.tamano)}</p>
                               </div>
                               {esImagen(a.mime_type) && (
                                 <button

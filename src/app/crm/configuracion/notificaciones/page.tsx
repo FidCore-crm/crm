@@ -297,7 +297,7 @@ export default function NotificacionesConfigPage() {
   }
 
   if (cargando) return (
-    <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+    <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
       <Loader2 className="h-4 w-4 animate-spin" /> Cargando configuración...
     </div>
   )
@@ -312,7 +312,7 @@ export default function NotificacionesConfigPage() {
         </button>
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Configuración de notificaciones</h1>
-          <p className="text-xs text-slate-500">Configurá qué alertas genera el sistema, cada cuánto tiempo y con qué frecuencia se repiten.</p>
+          <p className="text-xs text-slate-600">Configurá qué alertas genera el sistema, cada cuánto tiempo y con qué frecuencia se repiten.</p>
         </div>
       </div>
 
@@ -325,7 +325,7 @@ export default function NotificacionesConfigPage() {
             </div>
             <div>
               <h3 className="text-sm font-medium text-slate-800">Sistema de notificaciones</h3>
-              <p className="text-xs text-slate-500">Activar o desactivar todas las notificaciones automáticas del sistema</p>
+              <p className="text-xs text-slate-600">Activar o desactivar todas las notificaciones automáticas del sistema</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -378,7 +378,7 @@ export default function NotificacionesConfigPage() {
                           {tc.prioridad}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5">{tc.descripcion}</p>
+                      <p className="text-xs text-slate-600 mt-0.5">{tc.descripcion}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -404,7 +404,7 @@ export default function NotificacionesConfigPage() {
                   <div className="flex items-center gap-2">
                     {tc.tieneUmbral ? (
                       <>
-                        <label className="text-xs text-slate-500 whitespace-nowrap">{tc.umbralLabel}</label>
+                        <label className="text-xs text-slate-600 whitespace-nowrap">{tc.umbralLabel}</label>
                         <input
                           type="number"
                           min={1}
@@ -417,13 +417,13 @@ export default function NotificacionesConfigPage() {
                           }}
                           className="form-input w-16 text-center font-mono"
                         />
-                        <span className="text-xs text-slate-500">días</span>
+                        <span className="text-xs text-slate-600">días</span>
                         {guardados.has(`${tc.tipo}_umbral`) && (
                           <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
                         )}
                       </>
                     ) : (
-                      <span className="text-xs text-slate-400">Al vencer</span>
+                      <span className="text-xs text-slate-500">Al vencer</span>
                     )}
                   </div>
 
@@ -431,7 +431,7 @@ export default function NotificacionesConfigPage() {
 
                   {/* Anti-spam */}
                   <div className="flex items-center gap-2">
-                    <label className="text-xs text-slate-500 whitespace-nowrap">No repetir en</label>
+                    <label className="text-xs text-slate-600 whitespace-nowrap">No repetir en</label>
                     <input
                       type="number"
                       min={1}
@@ -444,7 +444,7 @@ export default function NotificacionesConfigPage() {
                       }}
                       className="form-input w-16 text-center font-mono"
                     />
-                    <span className="text-xs text-slate-500">días</span>
+                    <span className="text-xs text-slate-600">días</span>
                     {guardados.has(`${tc.tipo}_antispam`) && (
                       <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
                     )}

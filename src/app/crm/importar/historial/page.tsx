@@ -324,7 +324,7 @@ function HistorialContent() {
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="kpi-card">
-          <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+          <p className="text-xs text-slate-600 font-medium uppercase tracking-wide">
             Total de importaciones
           </p>
           <p className="text-3xl font-bold text-slate-900 mt-1">
@@ -332,7 +332,7 @@ function HistorialContent() {
           </p>
         </div>
         <div className="kpi-card">
-          <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+          <p className="text-xs text-slate-600 font-medium uppercase tracking-wide">
             Registros importados
           </p>
           <p className="text-3xl font-bold text-slate-900 mt-1">
@@ -342,11 +342,11 @@ function HistorialContent() {
           </p>
         </div>
         <div className="kpi-card">
-          <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+          <p className="text-xs text-slate-600 font-medium uppercase tracking-wide">
             Última importación
           </p>
           {cargandoKpis ? (
-            <p className="text-sm text-slate-400 mt-1">—</p>
+            <p className="text-sm text-slate-500 mt-1">—</p>
           ) : kpis?.ultima_importacion ? (
             <div className="mt-1">
               <p className="text-sm font-semibold text-slate-900">
@@ -360,11 +360,11 @@ function HistorialContent() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-slate-400 mt-1">Sin datos</p>
+            <p className="text-sm text-slate-500 mt-1">Sin datos</p>
           )}
         </div>
         <div className="kpi-card">
-          <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+          <p className="text-xs text-slate-600 font-medium uppercase tracking-wide">
             Esta semana
           </p>
           <p className="text-3xl font-bold text-slate-900 mt-1">
@@ -379,9 +379,9 @@ function HistorialContent() {
       <div className="bg-white border border-slate-200 rounded-xl p-4 mb-4">
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-[220px]">
-            <label className="text-xs text-slate-500 block mb-1">Búsqueda</label>
+            <label className="text-xs text-slate-600 block mb-1">Búsqueda</label>
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 className="form-input pl-9 w-full"
@@ -392,7 +392,7 @@ function HistorialContent() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Estado</label>
+            <label className="text-xs text-slate-600 block mb-1">Estado</label>
             <select
               className="form-input"
               value={qsEstado}
@@ -406,7 +406,7 @@ function HistorialContent() {
             </select>
           </div>
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Modo</label>
+            <label className="text-xs text-slate-600 block mb-1">Modo</label>
             <select
               className="form-input"
               value={qsTipo}
@@ -418,7 +418,7 @@ function HistorialContent() {
             </select>
           </div>
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Período</label>
+            <label className="text-xs text-slate-600 block mb-1">Período</label>
             <select
               className="form-input"
               value={qsPeriodo}
@@ -442,7 +442,7 @@ function HistorialContent() {
           {qsPeriodo === 'PERSONALIZADO' && (
             <>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Desde</label>
+                <label className="text-xs text-slate-600 block mb-1">Desde</label>
                 <input
                   type="date"
                   className="form-input"
@@ -458,7 +458,7 @@ function HistorialContent() {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Hasta</label>
+                <label className="text-xs text-slate-600 block mb-1">Hasta</label>
                 <input
                   type="date"
                   className="form-input"
@@ -501,12 +501,12 @@ function HistorialContent() {
               {cargando ? (
                 <tr>
                   <td colSpan={7} className="text-center py-10">
-                    <Loader2 className="w-5 h-5 text-slate-400 animate-spin inline" />
+                    <Loader2 className="w-5 h-5 text-slate-500 animate-spin inline" />
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-sm text-slate-500">
+                  <td colSpan={7} className="text-center py-10 text-sm text-slate-600">
                     No hay importaciones que coincidan con los filtros
                   </td>
                 </tr>
@@ -655,7 +655,7 @@ export default function HistorialPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
         </div>
       }
     >

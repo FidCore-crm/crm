@@ -220,7 +220,7 @@ export default function AsignarClientesPage() {
         </button>
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Asignar clientes a usuarios</h1>
-          <p className="text-xs text-slate-500">Reasigná clientes de un usuario a otro, o asigná clientes sin usuario</p>
+          <p className="text-xs text-slate-600">Reasigná clientes de un usuario a otro, o asigná clientes sin usuario</p>
         </div>
       </div>
 
@@ -242,7 +242,7 @@ export default function AsignarClientesPage() {
         <div className="flex-1 max-w-xs">
           <label className="block text-xs font-medium text-slate-600 mb-1">Buscar</label>
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
             <input
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
@@ -277,11 +277,11 @@ export default function AsignarClientesPage() {
       {/* Tabla */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">
         {cargando ? (
-          <div className="flex items-center justify-center py-12 text-slate-400 text-sm gap-2">
+          <div className="flex items-center justify-center py-12 text-slate-500 text-sm gap-2">
             <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
           </div>
         ) : personas.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+          <div className="flex flex-col items-center justify-center py-12 text-slate-500">
             <UserCog className="h-6 w-6 mb-2 text-slate-300" />
             <p className="text-xs">No hay clientes con este filtro</p>
           </div>
@@ -315,7 +315,7 @@ export default function AsignarClientesPage() {
                   </td>
                   <td>
                     <div className="text-xs font-medium text-slate-700">{p.apellido}{p.nombre ? `, ${p.nombre}` : ''}</div>
-                    <div className="text-2xs text-slate-400 font-mono">{p.dni_cuil}</div>
+                    <div className="text-2xs text-slate-500 font-mono">{p.dni_cuil}</div>
                   </td>
                   <td>
                     <span className="text-xs font-mono text-slate-600">{p._polizas_vigentes}</span>
@@ -324,7 +324,7 @@ export default function AsignarClientesPage() {
                     {p._usuario_nombre ? (
                       <span className="text-xs text-slate-600">{p._usuario_nombre}</span>
                     ) : (
-                      <span className="text-xs text-slate-400">Sin asignar</span>
+                      <span className="text-xs text-slate-500">Sin asignar</span>
                     )}
                   </td>
                 </tr>
@@ -336,7 +336,7 @@ export default function AsignarClientesPage() {
 
       {/* Paginación */}
       {totalPaginas > 1 && (
-        <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="flex items-center justify-between text-xs text-slate-600">
           <span>{total} cliente(s) en total</span>
           <div className="flex items-center gap-1">
             <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina === 1} className="btn-secondary px-2 py-1 text-xs disabled:opacity-40">

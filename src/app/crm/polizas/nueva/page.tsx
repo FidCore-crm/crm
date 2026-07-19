@@ -93,7 +93,7 @@ function Campo({ label, required, error, col=1, children }: {
 
 export default function NuevaPolizaPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando...</div>}>
       <NuevaPolizaContent />
     </Suspense>
   )
@@ -414,7 +414,7 @@ function NuevaPolizaContent() {
         <CheckCircle className="h-6 w-6 text-green-600" />
       </div>
       <p className="text-sm font-medium text-slate-700">¡Póliza guardada!</p>
-      <p className="text-xs text-slate-500">Redirigiendo a la ficha...</p>
+      <p className="text-xs text-slate-600">Redirigiendo a la ficha...</p>
     </div>
   )
 
@@ -433,7 +433,7 @@ function NuevaPolizaContent() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Nueva Póliza</h1>
-            <p className="text-xs text-slate-500">¿Cómo querés cargarla?</p>
+            <p className="text-xs text-slate-600">¿Cómo querés cargarla?</p>
           </div>
         </div>
 
@@ -447,7 +447,7 @@ function NuevaPolizaContent() {
             </div>
             <div>
               <h2 className="text-sm font-semibold text-slate-800">Cargar manualmente</h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-600 mt-1">
                 Formulario tradicional paso a paso. Vos ingresás todos los datos.
               </p>
             </div>
@@ -465,7 +465,7 @@ function NuevaPolizaContent() {
             </div>
             <div>
               <h2 className="text-sm font-semibold text-slate-800">Cargar desde PDF</h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-600 mt-1">
                 Subí el PDF de la compañía y el sistema extrae los datos automáticamente.
               </p>
             </div>
@@ -491,7 +491,7 @@ function NuevaPolizaContent() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Nueva Póliza</h1>
-            <p className="text-xs text-slate-500">Registrá una póliza para un asegurado</p>
+            <p className="text-xs text-slate-600">Registrá una póliza para un asegurado</p>
           </div>
         </div>
         <button onClick={guardar} disabled={guardando} className="btn-primary px-5">
@@ -603,7 +603,7 @@ function NuevaPolizaContent() {
             <div className="form-input bg-slate-50 text-slate-600 flex items-center">
               {poliza.fecha_inicio && poliza.fecha_fin
                 ? vigenciaTextoDesdeFechas(poliza.fecha_inicio, poliza.fecha_fin)
-                : <span className="text-slate-400">Se calcula con las fechas</span>}
+                : <span className="text-slate-500">Se calcula con las fechas</span>}
             </div>
           </Campo>
           <Campo label="Suma asegurada">
@@ -626,7 +626,7 @@ function NuevaPolizaContent() {
                 className="mt-0.5"/>
               <span className="text-xs text-slate-600 leading-tight">
                 Permitir que el asegurado vea la suma asegurada en el portal.
-                <span className="block text-slate-400 mt-0.5">
+                <span className="block text-slate-500 mt-0.5">
                   Recomendado para sumas fijas (hogar, robo de bien no registrable, etc.).
                   Dejar destildado si la suma varía mes a mes (típico en auto).
                 </span>
@@ -675,7 +675,7 @@ function NuevaPolizaContent() {
                     <button
                       type="button"
                       onClick={() => eliminarRiesgo(i)}
-                      className="px-1.5 py-1 text-slate-400 hover:text-red-600"
+                      className="px-1.5 py-1 text-slate-500 hover:text-red-600"
                       title="Eliminar este bien"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -823,7 +823,7 @@ function NuevaPolizaContent() {
           <div>
             <div className="flex items-baseline justify-between mb-1">
               <label className="text-xs text-slate-700 font-medium">Notas internas</label>
-              <span className="text-2xs text-slate-500 font-medium">Uso interno · no se comparte con el asegurado</span>
+              <span className="text-2xs text-slate-600 font-medium">Uso interno · no se comparte con el asegurado</span>
             </div>
             <textarea
               className="form-input w-full resize-none"

@@ -203,7 +203,7 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
           <h3 className="text-sm font-semibold text-slate-800">
             {esNueva ? 'Nueva audiencia' : `Editar: ${audiencia.nombre}`}
           </h3>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onCerrar} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -286,7 +286,7 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
                   <span className="text-xs text-slate-700 font-medium">Leads (no convertidos)</span>
                 </label>
               </div>
-              <p className="text-2xs text-slate-500 mt-2">
+              <p className="text-2xs text-slate-600 mt-2">
                 Elegí a qué tipo de destinatarios querés apuntar. Podés combinar ambos en la misma audiencia
                 (ej: clientes ACTIVOS + leads DESCARTADOS para una campaña de reactivación).
               </p>
@@ -316,7 +316,7 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
                       </button>
                     ))}
                   </div>
-                  <p className="text-2xs text-slate-500 mt-1">
+                  <p className="text-2xs text-slate-600 mt-1">
                     Si no seleccionás ninguno, se incluyen todos los estados.
                   </p>
                 </div>
@@ -331,7 +331,7 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
                     placeholder="Ej: precio, tiempo, competencia"
                     className="form-input w-full text-sm"
                   />
-                  <p className="text-2xs text-slate-500 mt-1">
+                  <p className="text-2xs text-slate-600 mt-1">
                     Búsqueda parcial dentro del motivo de descarte. Deja vacío para no filtrar por motivo.
                   </p>
                 </div>
@@ -380,14 +380,14 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
               </button>
             </div>
             {previewCargando && !preview ? (
-              <div className="text-xs text-slate-400 italic">Calculando...</div>
+              <div className="text-xs text-slate-500 italic">Calculando...</div>
             ) : preview ? (
               <>
                 <div className="text-lg font-semibold text-slate-800 font-mono">
                   {preview.total} destinatario{preview.total === 1 ? '' : 's'}
                 </div>
                 {(preview.ids?.length > 0 || (preview.leads_ids && preview.leads_ids.length > 0)) && (
-                  <div className="text-2xs text-slate-500 mt-0.5">
+                  <div className="text-2xs text-slate-600 mt-0.5">
                     {preview.ids.length > 0 && <span>{preview.ids.length} persona{preview.ids.length === 1 ? '' : 's'}</span>}
                     {preview.ids.length > 0 && preview.leads_ids && preview.leads_ids.length > 0 && ' · '}
                     {preview.leads_ids && preview.leads_ids.length > 0 && (
@@ -407,12 +407,12 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
                           <span className="font-medium">
                             {[p.apellido, p.nombre].filter(Boolean).join(', ') || p.razon_social || '—'}
                           </span>
-                          {p.email && <span className="text-slate-400">· {p.email}</span>}
+                          {p.email && <span className="text-slate-500">· {p.email}</span>}
                           {p.tipo !== 'lead' && !p.acepta_marketing && (
                             <span className="text-amber-700">· sin opt-in</span>
                           )}
                           {p.tipo === 'lead' && p.estado_lead && (
-                            <span className="text-slate-500">· {p.estado_lead}</span>
+                            <span className="text-slate-600">· {p.estado_lead}</span>
                           )}
                         </li>
                       ))}
@@ -421,7 +421,7 @@ export default function ModalEditarAudiencia({ audiencia, onCerrar, onGuardada }
                 )}
               </>
             ) : (
-              <div className="text-xs text-slate-400 italic">Sin datos</div>
+              <div className="text-xs text-slate-500 italic">Sin datos</div>
             )}
           </div>
         </div>
@@ -482,7 +482,7 @@ function FiltrosForm(props: any) {
       <Seccion titulo="Cartera (pólizas)">
         <Field label="Compañías">
           {companias.length === 0 ? (
-            <span className="text-2xs text-slate-400 italic">Sin catálogo</span>
+            <span className="text-2xs text-slate-500 italic">Sin catálogo</span>
           ) : (
             <ChipMulti
               opciones={companias.map((c: CatalogoItem) => c.id)}
@@ -494,7 +494,7 @@ function FiltrosForm(props: any) {
         </Field>
         <Field label="Ramos">
           {ramos.length === 0 ? (
-            <span className="text-2xs text-slate-400 italic">Sin catálogo</span>
+            <span className="text-2xs text-slate-500 italic">Sin catálogo</span>
           ) : (
             <ChipMulti
               opciones={ramos.map((r: CatalogoItem) => r.id)}
@@ -687,7 +687,7 @@ function ManualSelector({ supabase, busqueda, setBusqueda, idsSeleccionados, set
     <div className="space-y-3">
       {/* Buscador */}
       <div className="relative">
-        <Search className="h-3.5 w-3.5 absolute left-2 top-2.5 text-slate-400" />
+        <Search className="h-3.5 w-3.5 absolute left-2 top-2.5 text-slate-500" />
         <input
           type="text"
           value={busqueda}
@@ -699,7 +699,7 @@ function ManualSelector({ supabase, busqueda, setBusqueda, idsSeleccionados, set
 
       {/* Resultados de búsqueda */}
       {cargando ? (
-        <div className="text-xs text-slate-400 italic flex items-center gap-1">
+        <div className="text-xs text-slate-500 italic flex items-center gap-1">
           <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
         </div>
       ) : resultados.length > 0 && (
@@ -717,7 +717,7 @@ function ManualSelector({ supabase, busqueda, setBusqueda, idsSeleccionados, set
                 <div className="font-medium">
                   {[p.apellido, p.nombre].filter(Boolean).join(', ') || p.razon_social || '—'}
                 </div>
-                <div className="text-2xs text-slate-500">{p.email ?? 'sin email'}</div>
+                <div className="text-2xs text-slate-600">{p.email ?? 'sin email'}</div>
               </button>
             )
           })}
@@ -730,7 +730,7 @@ function ManualSelector({ supabase, busqueda, setBusqueda, idsSeleccionados, set
           Seleccionados ({idsSeleccionados.length})
         </p>
         {idsSeleccionados.length === 0 ? (
-          <p className="text-2xs text-slate-500 italic">Sin personas seleccionadas. Usá el buscador.</p>
+          <p className="text-2xs text-slate-600 italic">Sin personas seleccionadas. Usá el buscador.</p>
         ) : (
           <div className="flex flex-wrap gap-1">
             {Array.from(seleccionadas.values()).map((p: any) => (

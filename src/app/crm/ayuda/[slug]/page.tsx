@@ -21,7 +21,7 @@ export default function ArticuloAyudaPage() {
   return (
     <div className="flex flex-col gap-4 max-w-3xl">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1 text-xs text-slate-500">
+      <div className="flex items-center gap-1 text-xs text-slate-600">
         <Link href="/crm/ayuda" className="hover:text-blue-600 flex items-center gap-1">
           <BookOpen className="h-3 w-3" />
           Centro de Ayuda
@@ -37,7 +37,7 @@ export default function ArticuloAyudaPage() {
         </div>
         <div className="flex-1">
           <h1 className="text-xl font-semibold text-slate-800">{articulo.titulo}</h1>
-          <p className="text-xs text-slate-500 mt-1">{articulo.descripcion}</p>
+          <p className="text-xs text-slate-600 mt-1">{articulo.descripcion}</p>
         </div>
       </div>
 
@@ -53,9 +53,9 @@ export default function ArticuloAyudaPage() {
             href={`/crm/ayuda/${anterior.slug}`}
             className="group flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-3 hover:border-blue-300 transition-colors"
           >
-            <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:text-blue-500" />
+            <ChevronLeft className="h-4 w-4 text-slate-500 group-hover:text-blue-500" />
             <div className="text-left min-w-0">
-              <div className="text-2xs text-slate-500">Anterior</div>
+              <div className="text-2xs text-slate-600">Anterior</div>
               <div className="text-sm text-slate-800 truncate">{anterior.titulo}</div>
             </div>
           </Link>
@@ -68,10 +68,10 @@ export default function ArticuloAyudaPage() {
             className="group flex items-center justify-end gap-2 bg-white border border-slate-200 rounded-lg p-3 hover:border-blue-300 transition-colors text-right"
           >
             <div className="min-w-0">
-              <div className="text-2xs text-slate-500">Siguiente</div>
+              <div className="text-2xs text-slate-600">Siguiente</div>
               <div className="text-sm text-slate-800 truncate">{siguiente.titulo}</div>
             </div>
-            <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-blue-500" />
+            <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-blue-500" />
           </Link>
         ) : (
           <div />

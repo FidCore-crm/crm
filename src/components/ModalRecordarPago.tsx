@@ -122,7 +122,7 @@ export default function ModalRecordarPago({
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
             <h2 className="text-sm font-semibold text-slate-800">Recordar pago al cliente</h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <button onClick={onClose} className="text-slate-500 hover:text-slate-600">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -132,14 +132,14 @@ export default function ModalRecordarPago({
             <div className="text-slate-700">
               <span className="font-medium">{persona.apellido}{persona.nombre ? `, ${persona.nombre}` : ''}</span>
             </div>
-            <div className="text-2xs text-slate-500 mt-0.5">
+            <div className="text-2xs text-slate-600 mt-0.5">
               Póliza <span className="font-mono">{poliza.numero_poliza}</span> · {poliza.compania} · {poliza.ramo}
             </div>
           </div>
 
           {/* Opciones de canal */}
           <div className="px-4 py-4 flex flex-col gap-2">
-            <p className="text-2xs text-slate-500 mb-1">Elegí cómo enviar el recordatorio:</p>
+            <p className="text-2xs text-slate-600 mb-1">Elegí cómo enviar el recordatorio:</p>
 
             <button
               onClick={() => setModalEmailAbierto(true)}
@@ -150,7 +150,7 @@ export default function ModalRecordarPago({
               <Mail className="h-4 w-4 text-blue-600 shrink-0" />
               <div className="flex-1">
                 <div className="text-xs font-medium text-slate-800">Por email</div>
-                <div className="text-2xs text-slate-500 truncate">
+                <div className="text-2xs text-slate-600 truncate">
                   {tieneEmail ? persona.email : 'Sin email cargado'}
                 </div>
               </div>
@@ -165,7 +165,7 @@ export default function ModalRecordarPago({
               <MessageCircle className="h-4 w-4 text-green-600 shrink-0" />
               <div className="flex-1">
                 <div className="text-xs font-medium text-slate-800">Por WhatsApp</div>
-                <div className="text-2xs text-slate-500 truncate">
+                <div className="text-2xs text-slate-600 truncate">
                   {tieneTel
                     ? (persona.whatsapp || persona.telefono)
                     : 'Sin teléfono ni WhatsApp cargado'}
@@ -176,11 +176,11 @@ export default function ModalRecordarPago({
             {/* Preview del WhatsApp */}
             {tieneTel && (
               <div className="mt-2 border-t border-slate-100 pt-3">
-                <p className="text-2xs text-slate-500 mb-1 font-medium uppercase">
+                <p className="text-2xs text-slate-600 mb-1 font-medium uppercase">
                   Vista previa del mensaje de WhatsApp:
                 </p>
                 {cargandoPreview ? (
-                  <div className="flex items-center gap-2 text-2xs text-slate-400">
+                  <div className="flex items-center gap-2 text-2xs text-slate-500">
                     <Loader2 className="h-3 w-3 animate-spin" /> Cargando...
                   </div>
                 ) : (
@@ -188,7 +188,7 @@ export default function ModalRecordarPago({
                     {previewWhatsapp || '(plantilla vacía)'}
                   </div>
                 )}
-                <p className="text-2xs text-slate-400 mt-1">
+                <p className="text-2xs text-slate-500 mt-1">
                   Podés editar la plantilla en Configuración → Comunicaciones → tab WhatsApp.
                 </p>
               </div>

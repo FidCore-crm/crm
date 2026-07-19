@@ -69,7 +69,7 @@ export default function ComunicacionesPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Comunicaciones</h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Centro de mailings, campañas y segmentación de cartera. Los emails automáticos del sistema se configuran en{' '}
             {isAdmin ? (
               <Link href="/crm/configuracion/comunicaciones" className="text-blue-600 hover:underline">
@@ -176,9 +176,9 @@ export default function ComunicacionesPage() {
         </div>
         <div className={`kpi-card border ${kpis && kpis.fallidos_mes > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'}`}>
           <span className="kpi-label flex items-center gap-1">
-            <AlertTriangle className={`h-3 w-3 ${kpis && kpis.fallidos_mes > 0 ? 'text-red-600' : 'text-slate-400'}`} /> Fallidos este mes
+            <AlertTriangle className={`h-3 w-3 ${kpis && kpis.fallidos_mes > 0 ? 'text-red-600' : 'text-slate-500'}`} /> Fallidos este mes
           </span>
-          <span className={`kpi-value ${kpis && kpis.fallidos_mes > 0 ? 'text-red-700' : 'text-slate-500'}`}>
+          <span className={`kpi-value ${kpis && kpis.fallidos_mes > 0 ? 'text-red-700' : 'text-slate-600'}`}>
             {cargandoKpis ? '…' : (kpis?.fallidos_mes ?? 0).toLocaleString('es-AR')}
           </span>
           <span className="kpi-sub">
@@ -230,7 +230,7 @@ function TabBtn({ active, onClick, icon: Icon, label }: { active: boolean; onCli
     <button
       onClick={onClick}
       className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-        active ? 'border-blue-500 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'
+        active ? 'border-blue-500 text-blue-700' : 'border-transparent text-slate-600 hover:text-slate-700'
       }`}
     >
       <Icon className="h-3.5 w-3.5" />

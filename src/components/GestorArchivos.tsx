@@ -169,10 +169,10 @@ export default function GestorArchivos({ polizaId, numeroPoliza, polizaRaizId, p
         onClick={() => setExpandido(e => !e)}
         className="w-full px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors"
       >
-        <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
+        <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">
           {titulo} ({archivos.length})
         </h3>
-        {expandido ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
+        {expandido ? <ChevronUp className="h-3.5 w-3.5 text-slate-500" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-500" />}
       </button>
 
       {expandido && (<>
@@ -188,11 +188,11 @@ export default function GestorArchivos({ polizaId, numeroPoliza, polizaRaizId, p
         >
           <input ref={inputRef} type="file" accept={accept} multiple className="hidden"
             onChange={e => { if (e.target.files) subirArchivos(e.target.files); e.target.value = '' }} />
-          <Upload className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-          <span className="text-xs text-slate-500 flex-1 text-center">
+          <Upload className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+          <span className="text-xs text-slate-600 flex-1 text-center">
             Arrastrá archivos o <span className="text-blue-600 font-medium">hacé clic para seleccionar</span>
           </span>
-          <span className="text-2xs text-slate-400 shrink-0">
+          <span className="text-2xs text-slate-500 shrink-0">
             {esGaleria ? 'JPG, PNG, WebP' : 'JPG, PNG, WebP, PDF'}
           </span>
         </div>
@@ -234,11 +234,11 @@ export default function GestorArchivos({ polizaId, numeroPoliza, polizaRaizId, p
 
         {/* Contenido */}
         {cargando ? (
-          <div className="text-center py-6 text-xs text-slate-400">
+          <div className="text-center py-6 text-xs text-slate-500">
             <Loader2 className="h-4 w-4 animate-spin mx-auto" />
           </div>
         ) : archivos.length === 0 ? (
-          <div className="text-center py-4 text-xs text-slate-400 pb-4">
+          <div className="text-center py-4 text-xs text-slate-500 pb-4">
             Sin archivos cargados
           </div>
         ) : esGaleria ? (
@@ -266,7 +266,7 @@ export default function GestorArchivos({ polizaId, numeroPoliza, polizaRaizId, p
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <div className="px-1.5 py-1 text-2xs text-slate-500 truncate">{a.nombre}</div>
+                <div className="px-1.5 py-1 text-2xs text-slate-600 truncate">{a.nombre}</div>
               </div>
             ))}
           </div>
@@ -284,7 +284,7 @@ export default function GestorArchivos({ polizaId, numeroPoliza, polizaRaizId, p
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-slate-700 font-medium truncate">{a.nombre}</p>
-                  <p className="text-2xs text-slate-400">{formatBytes(a.tamano)} · {formatFechaCorta(a.created_at)}</p>
+                  <p className="text-2xs text-slate-500">{formatBytes(a.tamano)} · {formatFechaCorta(a.created_at)}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {esImagen(a.mime_type) && (

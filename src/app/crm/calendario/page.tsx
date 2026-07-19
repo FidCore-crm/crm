@@ -103,7 +103,7 @@ function diaSemanaLabel(fecha: string): string {
 //   Oportunidades → violeta
 function tareaColor(t: TareaCal, _hoy: string): string {
   if (t.estado === 'COMPLETADA' || t.estado === 'CANCELADA')
-    return 'bg-slate-100 text-slate-500'
+    return 'bg-slate-100 text-slate-600'
   return 'bg-blue-100 text-blue-700 border border-blue-300'
 }
 
@@ -123,7 +123,7 @@ function oportunidadColor(): string {
 
 function eventoColor(e: EventoCal): string {
   if (e.estado === 'COMPLETADO' || e.estado === 'CANCELADO')
-    return 'bg-slate-100 text-slate-500'
+    return 'bg-slate-100 text-slate-600'
   return 'bg-emerald-100 text-emerald-700 border border-emerald-300'
 }
 
@@ -508,7 +508,7 @@ export default function CalendarioPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Calendario</h1>
-          <p className="text-xs text-slate-500">Tareas y vencimientos de polizas</p>
+          <p className="text-xs text-slate-600">Tareas y vencimientos de polizas</p>
         </div>
       </div>
 
@@ -545,25 +545,25 @@ export default function CalendarioPage() {
 
         <button
           onClick={() => setMostrarTareas(v => !v)}
-          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarTareas ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-400 border-slate-200'}`}
+          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarTareas ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-500 border-slate-200'}`}
         >
           Tareas
         </button>
         <button
           onClick={() => setMostrarPolizas(v => !v)}
-          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarPolizas ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-white text-slate-400 border-slate-200'}`}
+          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarPolizas ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-white text-slate-500 border-slate-200'}`}
         >
           Polizas
         </button>
         <button
           onClick={() => setMostrarOportunidades(v => !v)}
-          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarOportunidades ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-white text-slate-400 border-slate-200'}`}
+          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarOportunidades ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-white text-slate-500 border-slate-200'}`}
         >
           Oportunidades
         </button>
         <button
           onClick={() => setMostrarEventos(v => !v)}
-          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarEventos ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-400 border-slate-200'}`}
+          className={`text-xs px-2 py-1 rounded border transition-colors ${mostrarEventos ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-500 border-slate-200'}`}
         >
           Eventos
         </button>
@@ -584,13 +584,13 @@ export default function CalendarioPage() {
         <div className="ml-auto flex items-center gap-0.5 bg-slate-100 p-0.5 rounded">
           <button
             onClick={() => setVista('calendario')}
-            className={`px-2 py-1 text-xs rounded transition-all ${vista === 'calendario' ? 'bg-white shadow-sm font-medium text-slate-700' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-2 py-1 text-xs rounded transition-all ${vista === 'calendario' ? 'bg-white shadow-sm font-medium text-slate-700' : 'text-slate-600 hover:text-slate-700'}`}
           >
             <CalendarDays className="h-3.5 w-3.5 inline mr-1" />Calendario
           </button>
           <button
             onClick={() => setVista('lista')}
-            className={`px-2 py-1 text-xs rounded transition-all ${vista === 'lista' ? 'bg-white shadow-sm font-medium text-slate-700' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-2 py-1 text-xs rounded transition-all ${vista === 'lista' ? 'bg-white shadow-sm font-medium text-slate-700' : 'text-slate-600 hover:text-slate-700'}`}
           >
             <List className="h-3.5 w-3.5 inline mr-1" />Lista
           </button>
@@ -609,7 +609,7 @@ export default function CalendarioPage() {
           {/* Header días */}
           <div className="grid grid-cols-7 border-b border-slate-200">
             {DIAS_SEMANA.map(d => (
-              <div key={d} className="text-center text-2xs font-semibold text-slate-500 uppercase py-1.5 border-r border-slate-200 last:border-r-0">
+              <div key={d} className="text-center text-2xs font-semibold text-slate-600 uppercase py-1.5 border-r border-slate-200 last:border-r-0">
                 {d}
               </div>
             ))}
@@ -676,7 +676,7 @@ export default function CalendarioPage() {
                       </div>
                     ))}
                     {extra > 0 && (
-                      <span className="text-2xs text-slate-500 font-medium px-1">+{extra} mas</span>
+                      <span className="text-2xs text-slate-600 font-medium px-1">+{extra} mas</span>
                     )}
                   </div>
                 </div>
@@ -688,7 +688,7 @@ export default function CalendarioPage() {
         /* ── Vista Lista ───────────���───────────────────────── */
         <div className="flex flex-col gap-2">
           {eventosLista().length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded p-8 text-center text-xs text-slate-500">
+            <div className="bg-white border border-slate-200 rounded p-8 text-center text-xs text-slate-600">
               No hay eventos en los proximos 30 dias
             </div>
           ) : eventosLista().map(grupo => (
@@ -715,11 +715,11 @@ export default function CalendarioPage() {
                       Tarea
                     </span>
                     <span className={`text-xs flex-1 truncate ${
-                      t.estado === 'COMPLETADA' ? 'text-slate-400 line-through' : 'text-slate-700'
+                      t.estado === 'COMPLETADA' ? 'text-slate-500 line-through' : 'text-slate-700'
                     }`}>
                       {t.titulo}
                     </span>
-                    <span className="text-2xs text-slate-500 truncate max-w-32">
+                    <span className="text-2xs text-slate-600 truncate max-w-32">
                       {nombrePersona(t.persona)}
                     </span>
                     <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${prioridadBadge(t.prioridad).color}`}>
@@ -747,11 +747,11 @@ export default function CalendarioPage() {
                       <span className="text-xs text-slate-700 flex-1 truncate font-mono">
                         {p.numero_poliza}
                       </span>
-                      <span className="text-2xs text-slate-500 truncate max-w-32">
+                      <span className="text-2xs text-slate-600 truncate max-w-32">
                         {nombrePersona(p.asegurado)}
                       </span>
                       {p.compania && (
-                        <span className="text-2xs text-slate-500 truncate max-w-32">{p.compania.nombre}</span>
+                        <span className="text-2xs text-slate-600 truncate max-w-32">{p.compania.nombre}</span>
                       )}
                     </div>
                   )
@@ -782,12 +782,12 @@ export default function CalendarioPage() {
                       Evento
                     </span>
                     <span className={`text-xs flex-1 truncate ${
-                      e.estado === 'COMPLETADO' || e.estado === 'CANCELADO' ? 'text-slate-400 line-through' : 'text-slate-700'
+                      e.estado === 'COMPLETADO' || e.estado === 'CANCELADO' ? 'text-slate-500 line-through' : 'text-slate-700'
                     }`}>
                       {e.titulo}
                     </span>
                     {(e.hora_inicio || e.hora_fin) && (
-                      <span className="text-2xs text-slate-500 font-mono shrink-0">
+                      <span className="text-2xs text-slate-600 font-mono shrink-0">
                         {e.hora_inicio?.slice(0, 5)}{e.hora_inicio && e.hora_fin ? '–' : ''}{e.hora_fin?.slice(0, 5)}
                       </span>
                     )}
@@ -821,7 +821,7 @@ export default function CalendarioPage() {
                   <span className="text-2xs font-semibold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">Hoy</span>
                 )}
               </div>
-              <button onClick={() => setDiaSeleccionado(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setDiaSeleccionado(null)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -829,7 +829,7 @@ export default function CalendarioPage() {
             {/* Content drawer */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
               {drawerData && drawerData.total === 0 ? (
-                <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-500">
+                <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-600">
                   <CalendarDays className="h-8 w-8 text-slate-300" />
                   <p className="text-xs">Sin eventos para este dia</p>
                   <div className="flex gap-2">
@@ -864,10 +864,10 @@ export default function CalendarioPage() {
                               className={`rounded border border-slate-200 p-2.5 cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all ${tareaColor(t, hoy)}`}>
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <p className={`text-xs font-medium ${t.estado === 'COMPLETADA' ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                                  <p className={`text-xs font-medium ${t.estado === 'COMPLETADA' ? 'line-through text-slate-500' : 'text-slate-800'}`}>
                                     {t.titulo}
                                   </p>
-                                  <p className="text-2xs text-slate-500 mt-0.5">
+                                  <p className="text-2xs text-slate-600 mt-0.5">
                                     Tarea · {nombrePersona(t.persona)}
                                   </p>
                                 </div>
@@ -945,8 +945,8 @@ export default function CalendarioPage() {
                                     {nombrePersona(p.asegurado)}
                                   </p>
                                   <div className="flex items-center gap-2 mt-0.5">
-                                    {p.compania && <span className="text-2xs text-slate-500">{p.compania.nombre}</span>}
-                                    {p.ramo && <span className="text-2xs text-slate-500">· {p.ramo.nombre}</span>}
+                                    {p.compania && <span className="text-2xs text-slate-600">{p.compania.nombre}</span>}
+                                    {p.ramo && <span className="text-2xs text-slate-600">· {p.ramo.nombre}</span>}
                                   </div>
                                 </div>
                               </div>
@@ -1014,25 +1014,25 @@ export default function CalendarioPage() {
                                     </span>
                                   )}
                                   {e.compartido && (
-                                    <span className="text-2xs text-slate-500 flex items-center gap-0.5" title="Compartido con el equipo">
+                                    <span className="text-2xs text-slate-600 flex items-center gap-0.5" title="Compartido con el equipo">
                                       Equipo
                                     </span>
                                   )}
                                   {e.recurrencia !== 'NINGUNA' && (
-                                    <span className="text-2xs text-slate-500 flex items-center gap-0.5" title={`Recurrente: ${e.recurrencia.toLowerCase()}`}>
+                                    <span className="text-2xs text-slate-600 flex items-center gap-0.5" title={`Recurrente: ${e.recurrencia.toLowerCase()}`}>
                                       <Repeat className="h-3 w-3" />
                                     </span>
                                   )}
                                 </div>
                                 <p className={`text-xs font-medium ${
                                   e.estado === 'COMPLETADO' || e.estado === 'CANCELADO'
-                                    ? 'line-through text-slate-400'
+                                    ? 'line-through text-slate-500'
                                     : 'text-emerald-900'
                                 }`}>
                                   {e.titulo}
                                 </p>
                                 {(e.hora_inicio || e.hora_fin) && (
-                                  <p className="text-2xs text-slate-500 mt-0.5">
+                                  <p className="text-2xs text-slate-600 mt-0.5">
                                     {e.hora_inicio && e.hora_inicio.slice(0, 5)}
                                     {e.hora_inicio && e.hora_fin && ' – '}
                                     {e.hora_fin && e.hora_fin.slice(0, 5)}
@@ -1080,7 +1080,7 @@ export default function CalendarioPage() {
                 <CheckCircle className="h-4 w-4 text-emerald-600" />
                 <h3 className="text-sm font-semibold text-emerald-800">Completar tarea</h3>
               </div>
-              <button onClick={() => setModalTarea(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalTarea(null)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>

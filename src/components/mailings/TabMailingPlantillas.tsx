@@ -67,7 +67,7 @@ export default function TabMailingPlantillas() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-600">
           Plantillas reutilizables para tus mailings (promociones, avisos, felicitaciones, etc.).
         </p>
         <button
@@ -80,14 +80,14 @@ export default function TabMailingPlantillas() {
       </div>
 
       {cargando ? (
-        <div className="py-10 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
+        <div className="py-10 text-center text-slate-500 text-sm flex items-center justify-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando plantillas...
         </div>
       ) : plantillas.length === 0 ? (
         <div className="bg-slate-50 border border-slate-200 rounded p-10 text-center">
           <FileText className="h-10 w-10 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-slate-700">Sin plantillas todavía</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+          <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto leading-relaxed">
             Creá una plantilla reutilizable para no tener que escribir el mismo email cada vez que
             mandes un mailing. Podés usar variables como <code className="text-2xs bg-white px-1 rounded">{`{{nombre}}`}</code> que se reemplazan por los datos del destinatario.
           </p>
@@ -116,13 +116,13 @@ export default function TabMailingPlantillas() {
                   <td>
                     <div className="text-sm text-slate-800 font-medium">{p.nombre}</div>
                     {p.descripcion && (
-                      <div className="text-2xs text-slate-500 mt-0.5 truncate max-w-md">{p.descripcion}</div>
+                      <div className="text-2xs text-slate-600 mt-0.5 truncate max-w-md">{p.descripcion}</div>
                     )}
                   </td>
                   <td className="text-xs text-slate-600 max-w-xs truncate" title={p.asunto}>
                     {p.asunto}
                   </td>
-                  <td className="text-xs text-slate-500">
+                  <td className="text-xs text-slate-600">
                     {new Date(p.updated_at).toLocaleDateString('es-AR', { dateStyle: 'short' })}
                   </td>
                   <td className="text-right">

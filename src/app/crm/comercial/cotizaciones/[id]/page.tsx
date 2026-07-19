@@ -92,7 +92,7 @@ function iconoRamo(tipo: string) {
   if (tipo === 'automotor') return <Car className="h-4 w-4 text-blue-500" />
   if (tipo === 'hogar')     return <Home className="h-4 w-4 text-amber-500" />
   if (tipo === 'vida')      return <Heart className="h-4 w-4 text-rose-500" />
-  return <Package className="h-4 w-4 text-slate-400" />
+  return <Package className="h-4 w-4 text-slate-500" />
 }
 
 function renderDatosRiesgo(datos: Record<string, any>, tipoRiesgo: string) {
@@ -132,13 +132,13 @@ function renderDatosRiesgo(datos: Record<string, any>, tipoRiesgo: string) {
     if (datos.descripcion) campos.push({ label: 'Descripcion', valor: datos.descripcion })
   }
 
-  if (campos.length === 0) return <p className="text-xs text-slate-500">Sin datos de riesgo</p>
+  if (campos.length === 0) return <p className="text-xs text-slate-600">Sin datos de riesgo</p>
 
   return (
     <div className="space-y-1.5">
       {campos.map((c, i) => (
         <div key={i} className="flex justify-between gap-2">
-          <span className="text-xs text-slate-500">{c.label}</span>
+          <span className="text-xs text-slate-600">{c.label}</span>
           <span className="text-xs text-slate-700 font-medium text-right">{c.valor}</span>
         </div>
       ))}
@@ -746,7 +746,7 @@ export default function FichaCotizacionPage() {
 
   if (cargando) {
     return (
-      <div className="flex items-center justify-center py-32 text-slate-400 text-sm gap-2">
+      <div className="flex items-center justify-center py-32 text-slate-500 text-sm gap-2">
         <Loader2 className="h-5 w-5 animate-spin" /> Cargando cotizacion...
       </div>
     )
@@ -756,7 +756,7 @@ export default function FichaCotizacionPage() {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
         <AlertCircle className="h-10 w-10 text-slate-300" />
-        <p className="text-sm text-slate-500">Cotizacion no encontrada</p>
+        <p className="text-sm text-slate-600">Cotizacion no encontrada</p>
         <button onClick={() => router.push('/crm/comercial/cotizaciones')} className="btn-secondary">
           <ArrowLeft className="h-3 w-3" /> Volver a cotizaciones
         </button>
@@ -800,7 +800,7 @@ export default function FichaCotizacionPage() {
                 {eb.label}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-600 mt-0.5">
               Creada el {formatFechaLocalLarga(cotizacion.created_at)}
             </p>
           </div>
@@ -941,7 +941,7 @@ export default function FichaCotizacionPage() {
 
           {/* Card: Destinatario */}
           <div className="bg-white border border-slate-200 rounded p-3">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
               <User className="h-3.5 w-3.5" /> Destinatario
             </h3>
             {cotizacion.persona ? (
@@ -952,15 +952,15 @@ export default function FichaCotizacionPage() {
                 >
                   {cotizacion.persona.apellido}{cotizacion.persona.nombre ? `, ${cotizacion.persona.nombre}` : ''}
                 </button>
-                <div className="text-xs text-slate-500 font-mono">{cotizacion.persona.dni_cuil}</div>
+                <div className="text-xs text-slate-600 font-mono">{cotizacion.persona.dni_cuil}</div>
                 {cotizacion.persona.telefono && (
                   <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                    <Phone className="h-3 w-3 text-slate-400" /> {cotizacion.persona.telefono}
+                    <Phone className="h-3 w-3 text-slate-500" /> {cotizacion.persona.telefono}
                   </div>
                 )}
                 {cotizacion.persona.email && (
                   <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                    <Mail className="h-3 w-3 text-slate-400" /> {cotizacion.persona.email}
+                    <Mail className="h-3 w-3 text-slate-500" /> {cotizacion.persona.email}
                   </div>
                 )}
               </div>
@@ -977,23 +977,23 @@ export default function FichaCotizacionPage() {
                 </div>
                 {cotizacion.lead.telefono && (
                   <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                    <Phone className="h-3 w-3 text-slate-400" /> {cotizacion.lead.telefono}
+                    <Phone className="h-3 w-3 text-slate-500" /> {cotizacion.lead.telefono}
                   </div>
                 )}
                 {cotizacion.lead.email && (
                   <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                    <Mail className="h-3 w-3 text-slate-400" /> {cotizacion.lead.email}
+                    <Mail className="h-3 w-3 text-slate-500" /> {cotizacion.lead.email}
                   </div>
                 )}
               </div>
             ) : (
-              <p className="text-xs text-slate-500">Sin destinatario asignado</p>
+              <p className="text-xs text-slate-600">Sin destinatario asignado</p>
             )}
           </div>
 
           {/* Card: Datos del riesgo */}
           <div className="bg-white border border-slate-200 rounded p-3">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
               {iconoRamo(tipoRiesgo)} Datos del Bien Asegurado
             </h3>
             {cotizacion.ramo && (
@@ -1004,53 +1004,53 @@ export default function FichaCotizacionPage() {
 
           {/* Card: Informacion */}
           <div className="bg-white border border-slate-200 rounded p-3">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
               <FileText className="h-3.5 w-3.5" /> Informacion
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-xs text-slate-500">Estado</span>
+                <span className="text-xs text-slate-600">Estado</span>
                 <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${eb.color}`}>{eb.label}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-slate-500">Creada</span>
+                <span className="text-xs text-slate-600">Creada</span>
                 <span className="text-xs text-slate-700">{formatFechaLocalLarga(cotizacion.created_at)}</span>
               </div>
               {cotizacion.fecha_envio && (
                 <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Enviada</span>
+                  <span className="text-xs text-slate-600">Enviada</span>
                   <span className="text-xs text-slate-700">{formatFechaLocalLarga(cotizacion.fecha_envio)}</span>
                 </div>
               )}
               {cotizacion.fecha_cierre && (
                 <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Cierre</span>
+                  <span className="text-xs text-slate-600">Cierre</span>
                   <span className="text-xs text-slate-700">{formatFechaLocalLarga(cotizacion.fecha_cierre)}</span>
                 </div>
               )}
               {cotizacion.fecha_vencimiento && (
                 <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Vence</span>
+                  <span className="text-xs text-slate-600">Vence</span>
                   <span className={`text-xs ${vencida ? 'text-red-600 font-semibold' : 'text-slate-700'}`}>
-                    {formatFechaLocalLarga(cotizacion.fecha_vencimiento)} <span className="text-2xs text-slate-500">{diasVencimientoLabel}</span>
+                    {formatFechaLocalLarga(cotizacion.fecha_vencimiento)} <span className="text-2xs text-slate-600">{diasVencimientoLabel}</span>
                   </span>
                 </div>
               )}
               {cotizacion.estado === 'GANADA' && cotizacion.compania_ganadora && (
                 <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Ganadora</span>
+                  <span className="text-xs text-slate-600">Ganadora</span>
                   <span className="text-xs text-emerald-700 font-semibold">{cotizacion.compania_ganadora.nombre}</span>
                 </div>
               )}
               {cotizacion.estado === 'PERDIDA' && cotizacion.motivo_perdida && (
                 <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Motivo</span>
+                  <span className="text-xs text-slate-600">Motivo</span>
                   <span className="text-xs text-red-600">{cotizacion.motivo_perdida}</span>
                 </div>
               )}
               {cotizacion.oportunidad_id && (
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500">Oportunidad</span>
+                  <span className="text-xs text-slate-600">Oportunidad</span>
                   <button
                     onClick={() => router.push(`/crm/comercial/oportunidades/${cotizacion.oportunidad_id}`)}
                     className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
@@ -1061,7 +1061,7 @@ export default function FichaCotizacionPage() {
               )}
               {(cotizacion as any).poliza_generada_id && (cotizacion as any).poliza_generada && (
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500">Póliza generada</span>
+                  <span className="text-xs text-slate-600">Póliza generada</span>
                   <button
                     onClick={() => router.push(`/crm/polizas/${(cotizacion as any).poliza_generada_id}`)}
                     className="text-xs text-emerald-600 hover:text-emerald-800 hover:underline flex items-center gap-1 font-semibold"
@@ -1072,7 +1072,7 @@ export default function FichaCotizacionPage() {
               )}
               {cotizacion.notas && (
                 <div className="pt-1.5 border-t border-slate-100">
-                  <span className="text-xs text-slate-500 block mb-1">Notas</span>
+                  <span className="text-xs text-slate-600 block mb-1">Notas</span>
                   <p className="text-xs text-slate-700 whitespace-pre-line">{cotizacion.notas}</p>
                 </div>
               )}
@@ -1087,15 +1087,15 @@ export default function FichaCotizacionPage() {
           <div className="bg-white border border-slate-200 rounded">
             <div className="px-3 py-2.5 border-b border-slate-100">
               <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                <FileText className="h-4 w-4 text-slate-400" /> Comparativa de opciones
+                <FileText className="h-4 w-4 text-slate-500" /> Comparativa de opciones
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">{opciones.length} {opciones.length === 1 ? 'opcion comparada' : 'opciones comparadas'}</p>
+              <p className="text-xs text-slate-600 mt-0.5">{opciones.length} {opciones.length === 1 ? 'opcion comparada' : 'opciones comparadas'}</p>
             </div>
 
             {opciones.length === 0 ? (
               <div className="flex flex-col items-center py-10 gap-2">
                 <FileText className="h-8 w-8 text-slate-300" />
-                <p className="text-xs text-slate-500">No hay opciones de companias cargadas</p>
+                <p className="text-xs text-slate-600">No hay opciones de companias cargadas</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1105,13 +1105,13 @@ export default function FichaCotizacionPage() {
                       {/* Radio de "Recomendada" — el PAS marca cuál sugerir al
                           cliente ANTES de enviar. Distinto de "seleccionada"
                           (que se setea automáticamente cuando gana). */}
-                      <th className="text-center px-2 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide" style={{ width: 90 }} title="Marcá la opción recomendada">Recomendada</th>
-                      <th className="text-left px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide">Compañía</th>
-                      <th className="text-left px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide">Cobertura</th>
-                      <th className="text-right px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide">Precio</th>
-                      <th className="text-left px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide">Detalle</th>
+                      <th className="text-center px-2 py-2 text-2xs font-semibold text-slate-600 uppercase tracking-wide" style={{ width: 90 }} title="Marcá la opción recomendada">Recomendada</th>
+                      <th className="text-left px-3 py-2 text-2xs font-semibold text-slate-600 uppercase tracking-wide">Compañía</th>
+                      <th className="text-left px-3 py-2 text-2xs font-semibold text-slate-600 uppercase tracking-wide">Cobertura</th>
+                      <th className="text-right px-3 py-2 text-2xs font-semibold text-slate-600 uppercase tracking-wide">Precio</th>
+                      <th className="text-left px-3 py-2 text-2xs font-semibold text-slate-600 uppercase tracking-wide">Detalle</th>
                       {cotizacion.estado === 'GANADA' && (
-                        <th className="text-center px-3 py-2 text-2xs font-semibold text-slate-500 uppercase tracking-wide" style={{ width: 80 }}>Ganadora</th>
+                        <th className="text-center px-3 py-2 text-2xs font-semibold text-slate-600 uppercase tracking-wide" style={{ width: 80 }}>Ganadora</th>
                       )}
                     </tr>
                   </thead>
@@ -1145,7 +1145,7 @@ export default function FichaCotizacionPage() {
                             <span className="text-xs text-slate-600">{nombreCob}</span>
                             {usaComercial && (
                               <span
-                                className="ml-1 text-2xs text-slate-400"
+                                className="ml-1 text-2xs text-slate-500"
                                 title={`Nombre genérico: ${o.cobertura?.nombre ?? '—'}`}
                               >
                                 ({o.cobertura?.nombre ?? '—'})
@@ -1168,18 +1168,18 @@ export default function FichaCotizacionPage() {
                             {(() => {
                               const parseado = parsearDetalleOpcion(o.detalle)
                               if (parseado.items.length === 0 && parseado.notas.length === 0) {
-                                return <span className="text-xs text-slate-400">—</span>
+                                return <span className="text-xs text-slate-500">—</span>
                               }
                               return (
                                 <div className="flex flex-col gap-0.5 max-w-[280px]">
                                   {parseado.items.map((it, i) => (
                                     <div key={i} className="flex items-baseline gap-1.5 text-2xs">
-                                      <span className="text-slate-500">{it.label}:</span>
+                                      <span className="text-slate-600">{it.label}:</span>
                                       <span className="font-mono font-medium text-slate-700 truncate">{it.valor}</span>
                                     </div>
                                   ))}
                                   {parseado.notas.length > 0 && (
-                                    <div className="text-2xs text-slate-500 italic mt-0.5">
+                                    <div className="text-2xs text-slate-600 italic mt-0.5">
                                       {parseado.notas.join(' · ')}
                                     </div>
                                   )}
@@ -1209,7 +1209,7 @@ export default function FichaCotizacionPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-slate-800">Marcar como enviada</h3>
-              <button onClick={() => setMostrarModalEnviar(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setMostrarModalEnviar(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -1238,7 +1238,7 @@ export default function FichaCotizacionPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-slate-800">Cambiar estado</h3>
-              <button onClick={() => setMostrarModalEstado(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setMostrarModalEstado(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>

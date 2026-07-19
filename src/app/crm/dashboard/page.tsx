@@ -955,7 +955,7 @@ export default function DashboardPage() {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
       </div>
     )
   }
@@ -972,9 +972,9 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Dashboard</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Resumen ejecutivo de tu cartera</p>
+          <p className="text-xs text-slate-600 mt-0.5">Resumen ejecutivo de tu cartera</p>
         </div>
-        <span className="text-xs text-slate-500 font-mono">{fechaCapitalizada}</span>
+        <span className="text-xs text-slate-600 font-mono">{fechaCapitalizada}</span>
       </div>
 
       {/* Tabs */}
@@ -986,7 +986,7 @@ export default function DashboardPage() {
             className={`px-4 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
               tabActiva === t.id
                 ? 'border-blue-600 text-blue-700'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                : 'border-transparent text-slate-600 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
             {t.label}
@@ -1054,7 +1054,7 @@ export default function DashboardPage() {
                 onClick={() => router.push('/crm/polizas')}
               />
               <KPICard
-                icono={<XCircle className="h-4 w-4 text-slate-400" />}
+                icono={<XCircle className="h-4 w-4 text-slate-500" />}
                 label="Bajas este mes"
                 valor={kpis.bajas}
                 tendencia={kpis.bajasTendencia}
@@ -1084,7 +1084,7 @@ export default function DashboardPage() {
 
             <div className="bg-amber-50/30 border border-amber-100 rounded-lg p-5" style={{ minHeight: 280 }}>
               {cargandoPostits ? (
-                <div className="flex items-center justify-center h-[200px] text-slate-400 text-xs gap-2">
+                <div className="flex items-center justify-center h-[200px] text-slate-500 text-xs gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" /> Cargando notas...
                 </div>
               ) : (
@@ -1104,7 +1104,7 @@ export default function DashboardPage() {
                         autoFocus
                         rows={5}
                       />
-                      <div className="text-2xs text-slate-400 text-right">{postitTexto.length}/500</div>
+                      <div className="text-2xs text-slate-500 text-right">{postitTexto.length}/500</div>
                       <div className="flex items-center gap-1.5">
                         {Object.entries(POSTIT_COLORES).map(([c, hex]) => (
                           <button
@@ -1132,7 +1132,7 @@ export default function DashboardPage() {
                         >
                           {guardandoPostit ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Guardar'}
                         </button>
-                        <button onClick={cancelarPostit} className="text-2xs text-slate-500 hover:text-slate-700 px-2 py-1">
+                        <button onClick={cancelarPostit} className="text-2xs text-slate-600 hover:text-slate-700 px-2 py-1">
                           Cancelar
                         </button>
                       </div>
@@ -1141,7 +1141,7 @@ export default function DashboardPage() {
 
                   {/* Post-it existentes */}
                   {postits.length === 0 && !creandoPostit && (
-                    <div className="flex flex-col items-center justify-center w-full py-8 text-slate-400">
+                    <div className="flex flex-col items-center justify-center w-full py-8 text-slate-500">
                       <StickyNote className="h-8 w-8 text-slate-200 mb-1" />
                       <span className="text-xs">No hay notas. Hacé clic en &quot;Nueva nota&quot; para empezar.</span>
                     </div>
@@ -1164,8 +1164,8 @@ export default function DashboardPage() {
                         {/* Ícono compartido/personal */}
                         <div className="flex justify-end mb-1">
                           {p.compartido
-                            ? <UsersIcon className="h-3.5 w-3.5 text-slate-400" />
-                            : <User className="h-3.5 w-3.5 text-slate-400" />
+                            ? <UsersIcon className="h-3.5 w-3.5 text-slate-500" />
+                            : <User className="h-3.5 w-3.5 text-slate-500" />
                           }
                         </div>
 
@@ -1210,7 +1210,7 @@ export default function DashboardPage() {
                             <span className="text-xs text-slate-700 text-center font-medium">¿Eliminar nota?</span>
                             <div className="flex items-center gap-2">
                               <button onClick={() => eliminarPostit(p.id)} className="btn-danger text-2xs px-2.5 py-1">Sí</button>
-                              <button onClick={() => setEliminandoPostitId(null)} className="text-2xs text-slate-500 hover:text-slate-700 px-2 py-1">No</button>
+                              <button onClick={() => setEliminandoPostitId(null)} className="text-2xs text-slate-600 hover:text-slate-700 px-2 py-1">No</button>
                             </div>
                           </div>
                         )}
@@ -1220,9 +1220,9 @@ export default function DashboardPage() {
 
                         {/* Footer */}
                         <div className="flex items-end justify-between mt-2">
-                          <span className="text-2xs text-slate-500">{fechaRelativa(p.created_at)}</span>
+                          <span className="text-2xs text-slate-600">{fechaRelativa(p.created_at)}</span>
                           {p.compartido && p.usuario_id !== usuario?.id && p.usuario && (
-                            <span className="text-2xs text-slate-500 italic">— {p.usuario.nombre}</span>
+                            <span className="text-2xs text-slate-600 italic">— {p.usuario.nombre}</span>
                           )}
                         </div>
                       </div>
@@ -1238,7 +1238,7 @@ export default function DashboardPage() {
             <h2 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
               <CalendarCheck className="h-4 w-4 text-blue-500" />
               Agenda del día
-              <span className="font-normal text-slate-500 ml-1">— {fechaCapitalizada}</span>
+              <span className="font-normal text-slate-600 ml-1">— {fechaCapitalizada}</span>
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               {/* Tareas pendientes */}
@@ -1262,7 +1262,7 @@ export default function DashboardPage() {
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-slate-800 truncate">{t.titulo}</p>
-                        <p className="text-2xs text-slate-500 truncate">{nombrePersona(t.persona)}</p>
+                        <p className="text-2xs text-slate-600 truncate">{nombrePersona(t.persona)}</p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {dias > 0 && (
@@ -1301,7 +1301,7 @@ export default function DashboardPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-mono font-medium text-slate-800">{p.numero_poliza}</p>
-                      <p className="text-2xs text-slate-500 truncate">
+                      <p className="text-2xs text-slate-600 truncate">
                         {nombrePersona(p.asegurado)} · {p.compania?.nombre ?? '—'}
                       </p>
                     </div>
@@ -1340,7 +1340,7 @@ export default function DashboardPage() {
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-mono font-medium text-slate-800">{s.numero_caso}</p>
-                        <p className="text-2xs text-slate-500 truncate">{nombrePersona(s.persona)}</p>
+                        <p className="text-2xs text-slate-600 truncate">{nombrePersona(s.persona)}</p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className={`text-2xs font-medium ${s.dias_sin_movimiento >= 30 ? 'text-red-600' : 'text-amber-600'}`}>
@@ -1376,7 +1376,7 @@ export default function DashboardPage() {
           ) : (() => {
             // Helpers visuales para evitar repetir JSX:
             const SinDatos = ({ h = 220 }: { h?: number }) => (
-              <div className="flex items-center justify-center text-xs text-slate-400" style={{ height: h }}>Sin datos</div>
+              <div className="flex items-center justify-center text-xs text-slate-500" style={{ height: h }}>Sin datos</div>
             )
             // Altura dinámica para bar charts horizontales: 36 px por fila + 60 base.
             const heightBarH = (n: number) => Math.max(220, Math.min(600, n * 36 + 60))
@@ -1396,7 +1396,7 @@ export default function DashboardPage() {
                 <div className="bg-white border border-slate-200 rounded p-8 text-center">
                   <BarChart className="h-10 w-10 text-slate-200 mx-auto mb-2" />
                   <p className="text-sm text-slate-600 font-medium">No hay gráficos habilitados</p>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-600 mt-1">
                     Activá los gráficos que querés ver desde{' '}
                     <a href="/crm/configuracion/dashboard" className="text-blue-600 hover:underline">Configuración → Panel de Análisis</a>.
                   </p>
@@ -1565,7 +1565,7 @@ export default function DashboardPage() {
                       titulo="Tasa de siniestralidad por compañía"
                       tono="rose"
                     >
-                      <p className="text-2xs text-slate-500 -mt-2 mb-2">% de pólizas con al menos un siniestro en los últimos 12 meses</p>
+                      <p className="text-2xs text-slate-600 -mt-2 mb-2">% de pólizas con al menos un siniestro en los últimos 12 meses</p>
                       {chartTasaSiniestralidad.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartTasaSiniestralidad.length)}>
                           <BarChart data={chartTasaSiniestralidad} layout="vertical" margin={{ left: 0 }}>
@@ -1587,7 +1587,7 @@ export default function DashboardPage() {
                       titulo="Tiempo promedio de resolución"
                       tono="violet"
                     >
-                      <p className="text-2xs text-slate-500 -mt-2 mb-2">Días promedio entre denuncia y cierre (FINALIZADOS, últimos 12 meses)</p>
+                      <p className="text-2xs text-slate-600 -mt-2 mb-2">Días promedio entre denuncia y cierre (FINALIZADOS, últimos 12 meses)</p>
                       {chartTiempoResolucion.length === 0 ? <SinDatos /> : (
                         <ResponsiveContainer width="100%" height={heightBarH(chartTiempoResolucion.length)}>
                           <BarChart data={chartTiempoResolucion} layout="vertical" margin={{ left: 0 }}>
@@ -1613,14 +1613,14 @@ export default function DashboardPage() {
                     fullWidth
                   >
                     {chartFacturacion.every(d => d.actual === 0 && d.anterior === 0) ? (
-                      <div className="flex flex-col items-center justify-center h-[280px] text-slate-400">
+                      <div className="flex flex-col items-center justify-center h-[280px] text-slate-500">
                         <TrendingUp className="h-8 w-8 text-slate-200 mb-2" />
                         <span className="text-xs">No hay datos de facturación cargados.</span>
                         <span className="text-2xs mt-1">Cargá tus facturaciones desde el módulo de Facturación.</span>
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center gap-4 mb-3 text-2xs text-slate-500">
+                        <div className="flex items-center gap-4 mb-3 text-2xs text-slate-600">
                           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: `linear-gradient(180deg, ${GRADIENTES.navy.from}, ${GRADIENTES.navy.to})` }} /> {anioActual}</span>
                           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: `linear-gradient(180deg, ${GRADIENTES.slate.from}, ${GRADIENTES.slate.to})` }} /> {anioAnterior}</span>
                         </div>
@@ -1667,11 +1667,11 @@ export default function DashboardPage() {
           </h2>
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             {cargandoRenovaciones ? (
-              <div className="flex items-center justify-center py-8 text-slate-400 text-xs gap-2">
+              <div className="flex items-center justify-center py-8 text-slate-500 text-xs gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" /> Cargando renovaciones...
               </div>
             ) : renovacionesMes.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-slate-400">
+              <div className="flex flex-col items-center justify-center py-8 text-slate-500">
                 <Shield className="h-8 w-8 text-slate-200 mb-1" />
                 <span className="text-xs">No hay pólizas que venzan este mes</span>
               </div>
@@ -1745,7 +1745,7 @@ function DonutCard({ data, colors }: { data: { name: string; value: number }[]; 
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-base font-bold text-slate-800 leading-none">{total}</span>
-          <span className="text-2xs text-slate-500 mt-0.5">Total</span>
+          <span className="text-2xs text-slate-600 mt-0.5">Total</span>
         </div>
       </div>
       <div className="flex-1 min-w-0 flex flex-col gap-1.5 max-h-[150px] overflow-y-auto">
@@ -1755,7 +1755,7 @@ function DonutCard({ data, colors }: { data: { name: string; value: number }[]; 
             <div key={d.name} className="flex items-center gap-2 text-2xs">
               <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: colors[i % colors.length] }} />
               <span className="text-slate-700 truncate flex-1">{d.name}</span>
-              <span className="text-slate-500 tabular-nums shrink-0">{d.value} · {pct}%</span>
+              <span className="text-slate-600 tabular-nums shrink-0">{d.value} · {pct}%</span>
             </div>
           )
         })}
@@ -1814,7 +1814,7 @@ function KPICard({
   badge?: { text: string; color: string }
   onClick?: () => void
 }) {
-  let tendenciaColor = 'text-slate-400'
+  let tendenciaColor = 'text-slate-500'
   let TendenciaIcono = Minus
   if (tendencia !== undefined && tendencia !== 0) {
     if (tendencia > 0) {
@@ -1885,13 +1885,13 @@ function AccionCard({
       </div>
       <div className="flex-1 min-h-0">
         {cargando ? (
-          <div className="flex items-center justify-center py-8 text-slate-400 text-xs gap-2">
+          <div className="flex items-center justify-center py-8 text-slate-500 text-xs gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
           </div>
         ) : vacio ? (
           <div className="flex flex-col items-center justify-center py-8 gap-1">
             {vacioIcono}
-            <span className="text-2xs text-slate-400">{vacioTexto}</span>
+            <span className="text-2xs text-slate-500">{vacioTexto}</span>
           </div>
         ) : (
           children

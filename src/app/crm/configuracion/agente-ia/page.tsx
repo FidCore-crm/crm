@@ -227,7 +227,7 @@ export default function AgenteIaPage() {
   }
 
   if (authLoading || !isAdmin) {
-    return <div className="p-8 text-sm text-slate-500">Verificando permisos...</div>
+    return <div className="p-8 text-sm text-slate-600">Verificando permisos...</div>
   }
 
   return (
@@ -236,7 +236,7 @@ export default function AgenteIaPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push('/crm/configuracion')}
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
+          className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-800"
         >
           <ArrowLeft className="h-4 w-4" /> Volver
         </button>
@@ -246,7 +246,7 @@ export default function AgenteIaPage() {
           <Sparkles className="h-5 w-5 text-blue-600" />
           Inteligencia Artificial
         </h1>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-600">
           Configurá la integración con Claude (Anthropic)
         </p>
       </div>
@@ -270,7 +270,7 @@ export default function AgenteIaPage() {
                   <h2 className="text-sm font-semibold text-slate-800">
                     Activá las funciones inteligentes
                   </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-600 mt-0.5">
                     Conectá tu cuenta de Anthropic para habilitar Claude en el CRM.
                   </p>
                 </div>
@@ -283,11 +283,11 @@ export default function AgenteIaPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-3.5 w-3.5 text-slate-300 shrink-0" />
-                  <span className="text-slate-500">[Próximamente] Agente conversacional del CRM</span>
+                  <span className="text-slate-600">[Próximamente] Agente conversacional del CRM</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-3.5 w-3.5 text-slate-300 shrink-0" />
-                  <span className="text-slate-500">[Próximamente] Agente de renovaciones</span>
+                  <span className="text-slate-600">[Próximamente] Agente de renovaciones</span>
                 </li>
               </ul>
 
@@ -324,12 +324,12 @@ export default function AgenteIaPage() {
                 <button
                   type="button"
                   onClick={() => setMostrarKey(v => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
                 >
                   {mostrarKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-2xs text-slate-400 mt-1">
+              <p className="text-2xs text-slate-500 mt-1">
                 La key se guarda encriptada con AES-256-GCM.
               </p>
 
@@ -366,7 +366,7 @@ export default function AgenteIaPage() {
                   <h2 className="text-sm font-semibold text-slate-800">
                     IA configurada y funcionando
                   </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-600 mt-0.5">
                     Las funciones inteligentes del CRM están activas.
                   </p>
                 </div>
@@ -377,24 +377,24 @@ export default function AgenteIaPage() {
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="border border-slate-200 rounded p-3">
-                  <div className="text-2xs text-slate-500 uppercase">Modelo en uso</div>
+                  <div className="text-2xs text-slate-600 uppercase">Modelo en uso</div>
                   <div className="text-sm font-medium text-slate-800 mt-0.5">
                     Claude {estado.familia.charAt(0).toUpperCase() + estado.familia.slice(1)}
                   </div>
                   {estado.modelo_resuelto && (
-                    <div className="text-2xs text-slate-500 font-mono mt-0.5">
+                    <div className="text-2xs text-slate-600 font-mono mt-0.5">
                       {estado.modelo_resuelto}
                     </div>
                   )}
                 </div>
                 <div className="border border-slate-200 rounded p-3">
-                  <div className="text-2xs text-slate-500 uppercase">API key</div>
+                  <div className="text-2xs text-slate-600 uppercase">API key</div>
                   <div className="text-sm font-mono text-slate-800 mt-0.5">
                     {estado.key_preview || '—'}
                   </div>
                 </div>
                 <div className="border border-slate-200 rounded p-3">
-                  <div className="text-2xs text-slate-500 uppercase">Última validación</div>
+                  <div className="text-2xs text-slate-600 uppercase">Última validación</div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-sm text-slate-800">{formatRelativo(estado.ultima_validacion)}</span>
                     {estado.ultima_validacion_ok === true && (
@@ -406,7 +406,7 @@ export default function AgenteIaPage() {
                   </div>
                 </div>
                 <div className="border border-slate-200 rounded p-3">
-                  <div className="text-2xs text-slate-500 uppercase">Estado</div>
+                  <div className="text-2xs text-slate-600 uppercase">Estado</div>
                   <div className="text-sm font-medium text-green-700 mt-0.5">Activa</div>
                 </div>
               </div>
@@ -448,31 +448,31 @@ export default function AgenteIaPage() {
             <h2 className="text-sm font-semibold text-slate-800 mb-3">Estadísticas de uso</h2>
             <div className="grid grid-cols-4 gap-3">
               <div className="border border-slate-200 rounded p-3">
-                <div className="text-2xs text-slate-500 uppercase">Tokens este mes</div>
+                <div className="text-2xs text-slate-600 uppercase">Tokens este mes</div>
                 <div className="text-lg font-semibold text-slate-800 mt-0.5 font-mono">
                   {estado.uso_mes_tokens.toLocaleString('es-AR')}
                 </div>
               </div>
               <div className="border border-slate-200 rounded p-3">
-                <div className="text-2xs text-slate-500 uppercase">Llamadas este mes</div>
+                <div className="text-2xs text-slate-600 uppercase">Llamadas este mes</div>
                 <div className="text-lg font-semibold text-slate-800 mt-0.5 font-mono">
                   {estado.uso_mes_llamadas}
                 </div>
               </div>
               <div className="border border-slate-200 rounded p-3">
-                <div className="text-2xs text-slate-500 uppercase">Tokens totales</div>
+                <div className="text-2xs text-slate-600 uppercase">Tokens totales</div>
                 <div className="text-lg font-semibold text-slate-800 mt-0.5 font-mono">
                   {estado.uso_total_tokens.toLocaleString('es-AR')}
                 </div>
               </div>
               <div className="border border-slate-200 rounded p-3">
-                <div className="text-2xs text-slate-500 uppercase">Costo total</div>
+                <div className="text-2xs text-slate-600 uppercase">Costo total</div>
                 <div className="text-lg font-semibold text-slate-800 mt-0.5 font-mono">
-                  ${estado.uso_total_costo_usd.toFixed(2)} <span className="text-xs font-normal text-slate-500">USD</span>
+                  ${estado.uso_total_costo_usd.toFixed(2)} <span className="text-xs font-normal text-slate-600">USD</span>
                 </div>
               </div>
             </div>
-            <p className="text-2xs text-slate-400 mt-3">
+            <p className="text-2xs text-slate-500 mt-3">
               El consumo se factura directamente a tu cuenta de Anthropic.
             </p>
             <a
@@ -488,7 +488,7 @@ export default function AgenteIaPage() {
           {/* Sección 2.5 — Módulos disponibles */}
           <div className="bg-white border border-slate-200 rounded p-5">
             <h2 className="text-sm font-semibold text-slate-800 mb-1">Módulos disponibles</h2>
-            <p className="text-2xs text-slate-500 mb-4">
+            <p className="text-2xs text-slate-600 mb-4">
               Activá o desactivá las funciones inteligentes del CRM.
             </p>
 
@@ -503,7 +503,7 @@ export default function AgenteIaPage() {
                       <h3 className="text-sm font-semibold text-slate-800">
                         Asistente para carga de pólizas y endosos desde PDF
                       </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-xs text-slate-600 mt-0.5">
                         Subí PDFs de las compañías y el sistema extrae los datos automáticamente para crear pólizas, renovaciones y endosos.
                       </p>
                     </div>
@@ -561,8 +561,8 @@ export default function AgenteIaPage() {
                   <td className="py-2 text-right font-mono">~$2–4 USD</td>
                 </tr>
                 <tr>
-                  <td className="py-2 text-slate-500">Próximamente: agente conversacional</td>
-                  <td className="py-2 text-right font-mono text-slate-500">~$0.003 por pregunta</td>
+                  <td className="py-2 text-slate-600">Próximamente: agente conversacional</td>
+                  <td className="py-2 text-right font-mono text-slate-600">~$0.003 por pregunta</td>
                 </tr>
               </tbody>
             </table>
@@ -581,11 +581,11 @@ export default function AgenteIaPage() {
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
                 <h2 className="text-sm font-semibold text-slate-800">Modelo de Claude</h2>
-                <p className="text-2xs text-slate-500 mt-0.5">
+                <p className="text-2xs text-slate-600 mt-0.5">
                   Elegí por rendimiento y costo. El sistema selecciona automáticamente la versión más nueva vigente de la familia que elijas.
                 </p>
               </div>
-              {guardandoFamilia && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
+              {guardandoFamilia && <Loader2 className="h-4 w-4 animate-spin text-slate-500" />}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -611,7 +611,7 @@ export default function AgenteIaPage() {
                         <CheckCircle className="h-4 w-4 text-blue-600" />
                       )}
                     </div>
-                    <div className="text-2xs text-slate-500 mb-2">{f.descripcion}</div>
+                    <div className="text-2xs text-slate-600 mb-2">{f.descripcion}</div>
                     <p className="text-2xs text-slate-600 leading-relaxed">{f.detalle}</p>
                     <div className="mt-2 inline-block text-2xs px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                       {f.costoRelativo}
@@ -623,13 +623,13 @@ export default function AgenteIaPage() {
 
             {estado.modelo_resuelto && (
               <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded">
-                <div className="text-2xs text-slate-500 uppercase mb-1">
+                <div className="text-2xs text-slate-600 uppercase mb-1">
                   Versión actual en uso
                 </div>
                 <div className="font-mono text-xs text-slate-800">
                   {estado.modelo_resuelto}
                 </div>
-                <p className="text-2xs text-slate-500 mt-1.5 leading-relaxed">
+                <p className="text-2xs text-slate-600 mt-1.5 leading-relaxed">
                   El sistema detecta automáticamente cuando Anthropic publica una versión nueva y se actualiza solo. Si Anthropic discontinúa esta versión, el CRM la reemplaza sin interrumpir el servicio.
                 </p>
               </div>

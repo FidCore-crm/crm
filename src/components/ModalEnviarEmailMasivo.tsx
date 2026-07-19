@@ -208,7 +208,7 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
             Enviar email a {personas.length} destinatario{personas.length !== 1 ? 's' : ''}
           </h2>
           {!enviando && (
-            <button onClick={cerrar} className="text-slate-400 hover:text-slate-600">
+            <button onClick={cerrar} className="text-slate-500 hover:text-slate-600">
               <X className="h-4 w-4" />
             </button>
           )}
@@ -248,7 +248,7 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                         <td className="py-1 px-3">
                           {d.estado === 'enviado' && <span className="text-green-600">Enviado</span>}
                           {d.estado === 'fallido' && <span className="text-red-600" title={d.error}>Fallido</span>}
-                          {d.estado === 'sin_email' && <span className="text-slate-400">Sin email</span>}
+                          {d.estado === 'sin_email' && <span className="text-slate-500">Sin email</span>}
                           {d.estado === 'no_marketing' && <span className="text-amber-600">No acepta marketing</span>}
                           {d.estado === 'baja' && <span className="text-amber-600">Dado de baja</span>}
                           {d.estado === 'limite_diario' && <span className="text-amber-600">Límite diario</span>}
@@ -266,19 +266,19 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                 <div className="grid grid-cols-4 gap-2 text-center text-xs">
                   <div>
                     <p className="font-semibold text-slate-700">{personas.length}</p>
-                    <p className="text-2xs text-slate-500">Seleccionados</p>
+                    <p className="text-2xs text-slate-600">Seleccionados</p>
                   </div>
                   <div>
                     <p className="font-semibold text-green-700">{validos.length}</p>
-                    <p className="text-2xs text-slate-500">Se enviarán</p>
+                    <p className="text-2xs text-slate-600">Se enviarán</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-400">{sinEmail.length}</p>
-                    <p className="text-2xs text-slate-500">Sin email</p>
+                    <p className="font-semibold text-slate-500">{sinEmail.length}</p>
+                    <p className="text-2xs text-slate-600">Sin email</p>
                   </div>
                   <div>
                     <p className="font-semibold text-amber-600">{noMarketing.length}</p>
-                    <p className="text-2xs text-slate-500">No marketing</p>
+                    <p className="text-2xs text-slate-600">No marketing</p>
                   </div>
                 </div>
                 {(sinEmail.length > 0 || noMarketing.length > 0) && (
@@ -291,9 +291,9 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                   </button>
                 )}
                 {mostrarExcluidos && (
-                  <div className="mt-2 border-t border-slate-200 pt-2 max-h-32 overflow-auto text-2xs text-slate-500">
+                  <div className="mt-2 border-t border-slate-200 pt-2 max-h-32 overflow-auto text-2xs text-slate-600">
                     {sinEmail.map(p => (
-                      <div key={p.id}>{p.apellido}{p.nombre ? `, ${p.nombre}` : ''} — <span className="text-slate-400">sin email</span></div>
+                      <div key={p.id}>{p.apellido}{p.nombre ? `, ${p.nombre}` : ''} — <span className="text-slate-500">sin email</span></div>
                     ))}
                     {noMarketing.map(p => (
                       <div key={p.id}>{p.apellido}{p.nombre ? `, ${p.nombre}` : ''} — <span className="text-amber-500">no acepta marketing</span></div>
@@ -336,7 +336,7 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                   )}
                 </div>
                 {cargandoPlantillas ? (
-                  <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 py-2">
                     <Loader2 className="h-3 w-3 animate-spin" /> Cargando plantillas...
                   </div>
                 ) : (
@@ -406,7 +406,7 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                   )}
 
                   {!tieneCamposPersonalizables && (
-                    <div className="text-2xs text-slate-500 bg-slate-50 border border-slate-200 rounded p-2.5">
+                    <div className="text-2xs text-slate-600 bg-slate-50 border border-slate-200 rounded p-2.5">
                       Esta plantilla tiene contenido fijo. Solo se completa con los datos del cliente y de la póliza. Si querés escribir un texto propio, elegí <strong>&quot;Mensaje informativo&quot;</strong> o <strong>&quot;Notificación general&quot;</strong>.
                     </div>
                   )}
@@ -414,7 +414,7 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                   {/* Adjuntos */}
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">
-                      Archivos adjuntos <span className="text-slate-400 font-normal">({archivos.length}/{MAX_FILES})</span>
+                      Archivos adjuntos <span className="text-slate-500 font-normal">({archivos.length}/{MAX_FILES})</span>
                     </label>
                     <div
                       className={`border-2 border-dashed rounded p-2 text-center cursor-pointer transition-colors border-slate-200 hover:border-slate-300 ${archivos.length >= MAX_FILES ? 'opacity-50 pointer-events-none' : ''}`}
@@ -422,8 +422,8 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                     >
                       <input ref={inputRef} type="file" multiple className="hidden"
                         onChange={e => { if (e.target.files) agregarArchivos(e.target.files); e.target.value = '' }} />
-                      <Paperclip className="h-3.5 w-3.5 text-slate-400 mx-auto mb-0.5" />
-                      <p className="text-2xs text-slate-500">
+                      <Paperclip className="h-3.5 w-3.5 text-slate-500 mx-auto mb-0.5" />
+                      <p className="text-2xs text-slate-600">
                         <span className="text-blue-600 font-medium">Seleccionar archivos</span> · Máx. 10MB, {MAX_FILES} archivos
                       </p>
                     </div>
@@ -431,9 +431,9 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                       <div className="mt-1.5 flex flex-col gap-1">
                         {archivos.map((f, i) => (
                           <div key={i} className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 rounded px-2 py-1">
-                            <FileText className="h-3 w-3 text-slate-400 shrink-0" />
+                            <FileText className="h-3 w-3 text-slate-500 shrink-0" />
                             <span className="flex-1 truncate">{f.name}</span>
-                            <button onClick={() => setArchivos(prev => prev.filter((_, j) => j !== i))} className="text-slate-400 hover:text-red-500 shrink-0">
+                            <button onClick={() => setArchivos(prev => prev.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-500 shrink-0">
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -449,7 +449,7 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                 <div className="border border-slate-200 rounded overflow-hidden">
                   <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-100">
                     <span className="text-xs font-medium text-slate-600">Vista previa (primer destinatario)</span>
-                    <button onClick={() => setMostrarPreview(false)} className="text-slate-400 hover:text-slate-600">
+                    <button onClick={() => setMostrarPreview(false)} className="text-slate-500 hover:text-slate-600">
                       <X className="h-3 w-3" />
                     </button>
                   </div>

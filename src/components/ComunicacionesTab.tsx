@@ -221,12 +221,12 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
           <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
             <Mail className="h-3.5 w-3.5" /> Historial de comunicaciones
           </span>
-          <span className="text-2xs text-slate-400 normal-case tracking-normal">{total} {total === 1 ? 'email' : 'emails'}</span>
+          <span className="text-2xs text-slate-500 normal-case tracking-normal">{total} {total === 1 ? 'email' : 'emails'}</span>
         </button>
         {(!colapsable || abierto) && (<>
         {global && (
           <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-500" />
             <input
               type="text"
               value={busqueda}
@@ -283,11 +283,11 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
               <option value="AUTH_CONFIRMACION_EMAIL">Confirmar email</option>
             </optgroup>
           </select>
-          <label className="flex items-center gap-1 text-2xs text-slate-500 cursor-pointer">
+          <label className="flex items-center gap-1 text-2xs text-slate-600 cursor-pointer">
             <input type="checkbox" checked={incluirArchivados} onChange={(e) => { setPage(1); setIncluirArchivados(e.target.checked) }} />
             Incluir archivados
           </label>
-          <button onClick={cargar} className="p-1 rounded hover:bg-slate-200 text-slate-500" title="Refrescar">
+          <button onClick={cargar} className="p-1 rounded hover:bg-slate-200 text-slate-600" title="Refrescar">
             <RefreshCw className="h-3 w-3" />
           </button>
         </div>
@@ -296,7 +296,7 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
           <button
             type="button"
             onClick={() => setAbierto(v => !v)}
-            className="ml-auto p-1 rounded hover:bg-slate-200 text-slate-400"
+            className="ml-auto p-1 rounded hover:bg-slate-200 text-slate-500"
             title={abierto ? 'Contraer' : 'Expandir'}
           >
             {abierto ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -324,12 +324,12 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
 
       {cargando ? (
         <div className="py-8 text-center">
-          <Loader2 className="h-5 w-5 animate-spin text-slate-400 mx-auto" />
+          <Loader2 className="h-5 w-5 animate-spin text-slate-500 mx-auto" />
         </div>
       ) : envios.length === 0 ? (
         <div className="py-8 text-center">
           <Mail className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-          <p className="text-xs text-slate-500">Sin emails {filtroEstado || filtroTipo ? 'con estos filtros' : 'todavía'}.</p>
+          <p className="text-xs text-slate-600">Sin emails {filtroEstado || filtroTipo ? 'con estos filtros' : 'todavía'}.</p>
         </div>
       ) : (
         <table className="crm-table">
@@ -349,16 +349,16 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
               <tr key={e.id} className="border-t border-slate-100 hover:bg-slate-50">
                 <td className="text-xs text-slate-700 font-mono">
                   {fmtFecha(e.fecha_envio || e.fecha_creacion)}
-                  {e.archivado && <Archive className="inline h-3 w-3 ml-1 text-slate-400" />}
+                  {e.archivado && <Archive className="inline h-3 w-3 ml-1 text-slate-500" />}
                 </td>
                 {global && (
                   <td className="text-xs text-slate-700 truncate max-w-[180px]" title={`${e.destinatario_nombre ?? ''} <${e.destinatario_email}>`}>
                     <div className="font-medium">{e.destinatario_nombre || '—'}</div>
-                    <div className="text-2xs text-slate-500 truncate">{e.destinatario_email}</div>
+                    <div className="text-2xs text-slate-600 truncate">{e.destinatario_email}</div>
                   </td>
                 )}
                 <td className="text-xs text-slate-700 truncate max-w-xs" title={e.asunto}>
-                  {e.asunto || <span className="italic text-slate-400">(sin asunto)</span>}
+                  {e.asunto || <span className="italic text-slate-500">(sin asunto)</span>}
                 </td>
                 <td className="text-xs text-slate-600">{labelTipo(e.tipo_envio)}</td>
                 <td><EstadoBadge estado={e.estado} /></td>
@@ -391,7 +391,7 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
 
       {totalPaginas > 1 && (
         <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 text-2xs">
-          <span className="text-slate-500">Página {page} de {totalPaginas}</span>
+          <span className="text-slate-600">Página {page} de {totalPaginas}</span>
           <div className="flex gap-1">
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
@@ -418,31 +418,31 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
               <h2 className="text-sm font-semibold text-slate-800">Detalle del email</h2>
-              <button onClick={() => setDetalleId(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setDetalleId(null)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="px-5 py-4 flex flex-col gap-3 text-xs">
               <div>
-                <p className="text-2xs text-slate-500 uppercase font-medium">Destinatario</p>
+                <p className="text-2xs text-slate-600 uppercase font-medium">Destinatario</p>
                 <p className="text-slate-800">{envioDetalle.destinatario_nombre || '—'} &lt;{envioDetalle.destinatario_email}&gt;</p>
               </div>
               <div>
-                <p className="text-2xs text-slate-500 uppercase font-medium">Asunto</p>
+                <p className="text-2xs text-slate-600 uppercase font-medium">Asunto</p>
                 <p className="text-slate-800">{envioDetalle.asunto || '(sin asunto)'}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-2xs text-slate-500 uppercase font-medium">Tipo</p>
+                  <p className="text-2xs text-slate-600 uppercase font-medium">Tipo</p>
                   <p className="text-slate-800">{labelTipo(envioDetalle.tipo_envio)}</p>
                 </div>
                 <div>
-                  <p className="text-2xs text-slate-500 uppercase font-medium">Estado</p>
+                  <p className="text-2xs text-slate-600 uppercase font-medium">Estado</p>
                   <EstadoBadge estado={envioDetalle.estado} />
                 </div>
               </div>
               <div className="border-t border-slate-200 pt-3">
-                <p className="text-2xs text-slate-500 uppercase font-medium mb-1">Timeline</p>
+                <p className="text-2xs text-slate-600 uppercase font-medium mb-1">Timeline</p>
                 <ul className="space-y-1 text-slate-700">
                   <li>Encolado: {fmtFecha(envioDetalle.fecha_creacion)}</li>
                   {envioDetalle.fecha_envio && <li>Enviado: {fmtFecha(envioDetalle.fecha_envio)}</li>}
@@ -459,7 +459,7 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
               </div>
               {envioDetalle.archivos_adjuntos && envioDetalle.archivos_adjuntos.length > 0 && (
                 <div className="border-t border-slate-200 pt-3">
-                  <p className="text-2xs text-slate-500 uppercase font-medium mb-1">Adjuntos enviados</p>
+                  <p className="text-2xs text-slate-600 uppercase font-medium mb-1">Adjuntos enviados</p>
                   <ul className="list-disc pl-5 text-slate-700">
                     {envioDetalle.archivos_adjuntos.map((a, i) => (
                       <li key={i}>{a.filename}</li>
@@ -468,13 +468,13 @@ export default function ComunicacionesTab({ persona_id, poliza_id, refreshKey, g
                 </div>
               )}
               {envioDetalle.archivado && (
-                <div className="border-t border-slate-200 pt-3 text-slate-500 italic">
+                <div className="border-t border-slate-200 pt-3 text-slate-600 italic">
                   Este email fue archivado por política de retención. Solo quedó la metadata.
                 </div>
               )}
             </div>
             <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3 bg-slate-50">
-              <div className="text-2xs text-slate-500">
+              <div className="text-2xs text-slate-600">
                 {envioDetalle.estado === 'FALLIDO' && 'Podés reintentar el envío creando un nuevo registro.'}
               </div>
               <div className="flex items-center gap-2">

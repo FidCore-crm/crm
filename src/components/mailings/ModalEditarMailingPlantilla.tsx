@@ -176,7 +176,7 @@ export default function ModalEditarMailingPlantilla({ plantilla, onCerrar, onGua
           <h3 className="text-sm font-semibold text-slate-800">
             {esNueva ? 'Nueva plantilla' : `Editar: ${plantilla.nombre}`}
           </h3>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onCerrar} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -215,7 +215,7 @@ export default function ModalEditarMailingPlantilla({ plantilla, onCerrar, onGua
 
           {/* Variables disponibles */}
           <div>
-            <p className="text-2xs text-slate-500 mb-1.5">Variables disponibles (click para insertar):</p>
+            <p className="text-2xs text-slate-600 mb-1.5">Variables disponibles (click para insertar):</p>
             <div className="flex flex-wrap gap-1">
               {VARIABLES_BASE.map(v => (
                 <button
@@ -329,7 +329,7 @@ export default function ModalEditarMailingPlantilla({ plantilla, onCerrar, onGua
               <div className="mt-2 border border-slate-200 rounded overflow-hidden">
                 {previewCargando ? (
                   <div className="py-8 text-center bg-slate-50">
-                    <Loader2 className="h-5 w-5 animate-spin text-slate-400 mx-auto" />
+                    <Loader2 className="h-5 w-5 animate-spin text-slate-500 mx-auto" />
                   </div>
                 ) : previewHtml ? (
                   <iframe
@@ -339,7 +339,7 @@ export default function ModalEditarMailingPlantilla({ plantilla, onCerrar, onGua
                     style={{ height: '500px', border: 'none' }}
                   />
                 ) : (
-                  <div className="py-8 text-center text-xs text-slate-400 bg-slate-50">
+                  <div className="py-8 text-center text-xs text-slate-500 bg-slate-50">
                     Editá los campos para generar el preview
                   </div>
                 )}

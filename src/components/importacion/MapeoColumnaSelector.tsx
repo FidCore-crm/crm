@@ -98,7 +98,7 @@ export function MapeoColumnaSelector({
                 «{columnaArchivo}»
               </span>
             </h3>
-            <p className="text-2xs text-slate-500 mt-0.5">
+            <p className="text-2xs text-slate-600 mt-0.5">
               Elegí a qué campo del CRM corresponde esta columna del archivo.
             </p>
           </div>
@@ -106,7 +106,7 @@ export function MapeoColumnaSelector({
             <button
               type="button"
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 p-1"
+              className="text-slate-500 hover:text-slate-600 p-1"
             >
               <X className="w-4 h-4" />
             </button>
@@ -116,13 +116,13 @@ export function MapeoColumnaSelector({
         {/* Ejemplos */}
         {ejemplosDatos.length > 0 && (
           <div className="mb-3 bg-slate-50 border border-slate-200 rounded p-2">
-            <div className="text-2xs uppercase font-semibold text-slate-500 mb-1">
+            <div className="text-2xs uppercase font-semibold text-slate-600 mb-1">
               Ejemplos del archivo
             </div>
             <div className="space-y-0.5">
               {ejemplosDatos.slice(0, 3).map((e, i) => (
                 <div key={i} className="font-mono text-xs text-slate-700 truncate">
-                  {e || <span className="italic text-slate-400">(vacío)</span>}
+                  {e || <span className="italic text-slate-500">(vacío)</span>}
                 </div>
               ))}
             </div>
@@ -159,7 +159,7 @@ export function MapeoColumnaSelector({
               className={`text-xs font-medium px-3 py-1.5 border-b-2 transition-colors ${
                 tab === t
                   ? 'border-blue-600 text-blue-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
+                  : 'border-transparent text-slate-600 hover:text-slate-700'
               }`}
             >
               {TAB_LABELS[t]}
@@ -171,7 +171,7 @@ export function MapeoColumnaSelector({
         {tab !== 'ESPECIAL' ? (
           <>
             <div className="relative mb-3">
-              <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
                 value={query}
@@ -182,7 +182,7 @@ export function MapeoColumnaSelector({
             </div>
 
             {camposFiltrados.length === 0 ? (
-              <div className="text-xs text-slate-500 italic py-4 text-center">
+              <div className="text-xs text-slate-600 italic py-4 text-center">
                 No hay campos que coincidan.
               </div>
             ) : (
@@ -204,7 +204,7 @@ export function MapeoColumnaSelector({
                     >
                       <div className="font-semibold truncate">{c.label}</div>
                       {c.descripcion && (
-                        <div className="text-2xs text-slate-500 truncate">
+                        <div className="text-2xs text-slate-600 truncate">
                           {c.descripcion}
                         </div>
                       )}
@@ -221,12 +221,12 @@ export function MapeoColumnaSelector({
               onClick={() => onOpenSeparador?.()}
               className="w-full border border-slate-200 rounded p-3 hover:bg-slate-50 flex items-start gap-3 text-left"
             >
-              <Scissors className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+              <Scissors className="w-4 h-4 text-slate-600 mt-0.5 shrink-0" />
               <div>
                 <div className="text-xs font-semibold">
                   Separar en varios campos
                 </div>
-                <div className="text-2xs text-slate-500">
+                <div className="text-2xs text-slate-600">
                   Cuando la columna contiene varios datos juntos (ej: &quot;Nombre
                   Apellido&quot;).
                 </div>
@@ -237,12 +237,12 @@ export function MapeoColumnaSelector({
               onClick={() => onOpenCombinar?.()}
               className="w-full border border-slate-200 rounded p-3 hover:bg-slate-50 flex items-start gap-3 text-left"
             >
-              <Link2 className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+              <Link2 className="w-4 h-4 text-slate-600 mt-0.5 shrink-0" />
               <div>
                 <div className="text-xs font-semibold">
                   Combinar con otras columnas
                 </div>
-                <div className="text-2xs text-slate-500">
+                <div className="text-2xs text-slate-600">
                   Juntar varias columnas del archivo en un solo campo del CRM.
                 </div>
               </div>
@@ -260,7 +260,7 @@ export function MapeoColumnaSelector({
                 <div className="text-xs font-semibold text-red-700">
                   Ignorar esta columna
                 </div>
-                <div className="text-2xs text-slate-500">
+                <div className="text-2xs text-slate-600">
                   No importar los datos de esta columna.
                 </div>
               </div>

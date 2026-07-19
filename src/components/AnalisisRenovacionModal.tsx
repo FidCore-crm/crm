@@ -105,7 +105,7 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
           </div>
           <button
             onClick={onCerrar}
-            className="text-slate-400 hover:text-slate-800 shrink-0"
+            className="text-slate-500 hover:text-slate-800 shrink-0"
             aria-label="Cerrar"
           >
             <X className="h-4 w-4" />
@@ -148,7 +148,7 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
               </p>
 
               {porCategoria.length === 0 && (
-                <p className="text-xs text-slate-500 italic">Sin cambios materiales.</p>
+                <p className="text-xs text-slate-600 italic">Sin cambios materiales.</p>
               )}
 
               {/* Grupos por categoría */}
@@ -163,8 +163,8 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
                         <span className="text-xs font-medium text-slate-800">{c.campo}</span>
                         {(c.antes || c.ahora) && (
                           <div className="flex flex-wrap items-center gap-2 text-xs">
-                            <span className="text-slate-500 line-through break-words">{c.antes || '—'}</span>
-                            <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+                            <span className="text-slate-600 line-through break-words">{c.antes || '—'}</span>
+                            <ArrowRight className="h-3 w-3 text-slate-500 shrink-0" />
                             <span className="text-slate-800 font-medium break-words">{c.ahora || '—'}</span>
                           </div>
                         )}
@@ -178,7 +178,7 @@ export default function AnalisisRenovacionModal({ comparacion, onCerrar }: Props
           )}
 
           {/* Footer discreto — costo/tiempo */}
-          <div className="text-2xs text-slate-400 pt-2 border-t border-slate-100">
+          <div className="text-2xs text-slate-500 pt-2 border-t border-slate-100">
             Análisis IA
             {comparacion.duracion_ms ? ` · ${Math.round(comparacion.duracion_ms / 1000)}s` : ''}
             {comparacion.costo_usd ? ` · US$${comparacion.costo_usd.toFixed(3)}` : ''}

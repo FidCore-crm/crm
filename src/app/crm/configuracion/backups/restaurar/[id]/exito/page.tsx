@@ -20,7 +20,7 @@ export default function RestauracionExitoPage() {
   }, [id])
 
   if (!restauracion) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>
+    return <div className="flex items-center justify-center h-64"><Loader2 className="h-5 w-5 animate-spin text-slate-500" /></div>
   }
 
   const metadata = restauracion.metadata_backup || {}
@@ -41,15 +41,15 @@ export default function RestauracionExitoPage() {
         <h2 className="text-sm font-semibold text-slate-800 mb-3">Resumen</h2>
         <dl className="text-xs space-y-2">
           <div className="flex justify-between border-b border-slate-100 pb-2">
-            <dt className="text-slate-500">Backup restaurado</dt>
+            <dt className="text-slate-600">Backup restaurado</dt>
             <dd className="text-slate-800 font-mono">{metadata.nombre || '-'}</dd>
           </div>
           <div className="flex justify-between border-b border-slate-100 pb-2">
-            <dt className="text-slate-500">Fecha del backup</dt>
+            <dt className="text-slate-600">Fecha del backup</dt>
             <dd className="text-slate-800">{metadata.fecha ? new Date(metadata.fecha).toLocaleString('es-AR') : '-'}</dd>
           </div>
           <div className="flex justify-between border-b border-slate-100 pb-2">
-            <dt className="text-slate-500">Duración</dt>
+            <dt className="text-slate-600">Duración</dt>
             <dd className="text-slate-800">{duracionFmt}</dd>
           </div>
           {restauracion.restaura_db && (

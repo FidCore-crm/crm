@@ -23,7 +23,7 @@ function iconoArchivo(nombre: string) {
   if (ext === 'pdf') {
     return <FileText className="w-5 h-5 text-red-600" />;
   }
-  return <FileText className="w-5 h-5 text-slate-500" />;
+  return <FileText className="w-5 h-5 text-slate-600" />;
 }
 
 function formatearTamano(bytes: number): string {
@@ -141,7 +141,7 @@ export default function ProcesandoPage() {
       <div className="max-w-3xl mx-auto px-6 py-10">
         <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
-            <AlertCircle className="w-8 h-8 text-slate-500" />
+            <AlertCircle className="w-8 h-8 text-slate-600" />
           </div>
           <h1 className="text-xl font-bold text-slate-900 mb-2">Importación cancelada</h1>
           <p className="text-sm text-slate-600 mb-6">
@@ -181,7 +181,7 @@ export default function ProcesandoPage() {
             <StepIcon status={step1} />
             <div className="flex-1 pt-1">
               <p className="text-sm font-semibold text-slate-800">Archivos cargados</p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5">
                 Archivos subidos y validados correctamente
               </p>
             </div>
@@ -192,7 +192,7 @@ export default function ProcesandoPage() {
               <p className="text-sm font-semibold text-slate-800">
                 Analizando estructura con IA
               </p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5">
                 Claude identifica qué contiene cada archivo
               </p>
             </div>
@@ -203,7 +203,7 @@ export default function ProcesandoPage() {
               <p className="text-sm font-semibold text-slate-800">
                 Detectando relaciones entre archivos
               </p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5">
                 Busca vínculos por DNI o número de póliza
               </p>
             </div>
@@ -214,7 +214,7 @@ export default function ProcesandoPage() {
               <p className="text-sm font-semibold text-slate-800">
                 Generando plan de importación
               </p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5">
                 Propone mapeo de columnas y valida catálogos
               </p>
             </div>
@@ -246,7 +246,7 @@ export default function ProcesandoPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-slate-800 truncate">{a.nombre}</p>
                   {a.size_bytes && (
-                    <p className="text-2xs text-slate-500">{formatearTamano(a.size_bytes)}</p>
+                    <p className="text-2xs text-slate-600">{formatearTamano(a.size_bytes)}</p>
                   )}
                 </div>
               </li>

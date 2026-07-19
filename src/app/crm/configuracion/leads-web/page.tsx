@@ -116,7 +116,7 @@ export default function LeadsWebConfigPage() {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </div>
       </div>
     )
@@ -214,7 +214,7 @@ export default function LeadsWebConfigPage() {
             <Inbox className="h-5 w-5 text-emerald-600" />
             Leads desde web
           </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-sm text-slate-600 mt-0.5">
             Recibí leads del formulario de contacto de tu sitio web directamente al CRM.
           </p>
         </div>
@@ -249,15 +249,15 @@ export default function LeadsWebConfigPage() {
 
         <div className="grid grid-cols-3 gap-3 mt-4">
           <div className="bg-white rounded p-3 border border-slate-200">
-            <div className="text-2xs text-slate-500 uppercase tracking-wide">Este mes</div>
+            <div className="text-2xs text-slate-600 uppercase tracking-wide">Este mes</div>
             <div className="text-2xl font-bold text-slate-800 font-mono">{cfg.recibidos_mes_actual}</div>
           </div>
           <div className="bg-white rounded p-3 border border-slate-200">
-            <div className="text-2xs text-slate-500 uppercase tracking-wide">Total acumulado</div>
+            <div className="text-2xs text-slate-600 uppercase tracking-wide">Total acumulado</div>
             <div className="text-2xl font-bold text-slate-800 font-mono">{cfg.recibidos_historico}</div>
           </div>
           <div className="bg-white rounded p-3 border border-slate-200">
-            <div className="text-2xs text-slate-500 uppercase tracking-wide">Último lead</div>
+            <div className="text-2xs text-slate-600 uppercase tracking-wide">Último lead</div>
             <div className="text-sm font-medium text-slate-800 mt-1">
               {cfg.ultimo_lead_recibido_en
                 ? new Date(cfg.ultimo_lead_recibido_en).toLocaleString('es-AR')
@@ -297,7 +297,7 @@ export default function LeadsWebConfigPage() {
             Copiar
           </button>
         </div>
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="text-xs text-slate-600 mt-2">
           Esta es la URL única de tu instalación. Cualquier formulario web que envíe datos a esta dirección los va a crear como leads automáticamente.
         </p>
       </div>
@@ -321,7 +321,7 @@ export default function LeadsWebConfigPage() {
                 className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
                   tabActiva === t.key
                     ? 'border-violet-500 text-violet-700'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                    : 'border-transparent text-slate-600 hover:text-slate-700'
                 }`}
               >
                 {t.label}
@@ -345,7 +345,7 @@ export default function LeadsWebConfigPage() {
                   placeholder="https://tusitio.com/gracias.html"
                   className="form-input"
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-600 mt-1">
                   Si lo completás, después del envío redirige al usuario a esa página. Sino se muestra un mensaje de "¡Gracias!".
                 </p>
               </div>
@@ -492,7 +492,7 @@ Avisame si algo no queda claro.`}
                 key={d}
                 className="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 rounded-full px-3 py-1 text-sm text-slate-700"
               >
-                <Globe className="h-3 w-3 text-slate-500" />
+                <Globe className="h-3 w-3 text-slate-600" />
                 {d}
                 <button
                   onClick={() => quitarDominio(d)}
@@ -526,7 +526,7 @@ Avisame si algo no queda claro.`}
             <option value="ADMIN">Siempre al admin</option>
             <option value="SIN_ASIGNAR">Sin asignar (queda en cola para distribución manual)</option>
           </select>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-600 mt-1">
             {cfg.modo_asignacion === 'ROTATIVO' && 'Cada lead va al siguiente usuario activo, en orden. Si sos el único usuario, todos van a vos.'}
             {cfg.modo_asignacion === 'ADMIN' && 'Todos los leads van al admin. Útil si querés filtrarlos antes de distribuir.'}
             {cfg.modo_asignacion === 'SIN_ASIGNAR' && 'Los leads quedan sin dueño. Cualquier admin puede asignarlos manualmente desde la ficha del lead.'}
@@ -538,7 +538,7 @@ Avisame si algo no queda claro.`}
             <Inbox className="h-4 w-4 text-emerald-600 mt-0.5" />
             <div>
               <div className="text-sm font-medium text-slate-700">Notificación en el CRM</div>
-              <div className="text-xs text-slate-500">Muestra el lead nuevo en el ícono Inbox del navbar (al lado de la campana).</div>
+              <div className="text-xs text-slate-600">Muestra el lead nuevo en el ícono Inbox del navbar (al lado de la campana).</div>
             </div>
           </div>
           <button
@@ -555,7 +555,7 @@ Avisame si algo no queda claro.`}
             <Mail className="h-4 w-4 text-blue-600 mt-0.5" />
             <div>
               <div className="text-sm font-medium text-slate-700">Email al admin</div>
-              <div className="text-xs text-slate-500">Recibí un email cada vez que llegue un lead nuevo. Editable desde Comunicaciones → plantilla "Lead nuevo desde la web".</div>
+              <div className="text-xs text-slate-600">Recibí un email cada vez que llegue un lead nuevo. Editable desde Comunicaciones → plantilla "Lead nuevo desde la web".</div>
             </div>
           </div>
           <button
@@ -584,13 +584,13 @@ Avisame si algo no queda claro.`}
           </div>
         )}
         {intentos.length === 0 ? (
-          <div className="text-sm text-slate-500 text-center py-6">
+          <div className="text-sm text-slate-600 text-center py-6">
             Todavía no llegó ningún intento al endpoint.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-2xs uppercase tracking-wide text-slate-500">
+              <thead className="bg-slate-50 text-2xs uppercase tracking-wide text-slate-600">
                 <tr>
                   <th className="text-left px-2 py-2">Fecha</th>
                   <th className="text-left px-2 py-2">Estado</th>

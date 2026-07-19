@@ -104,7 +104,7 @@ export default function ErroresSistemaPage() {
   if (authLoading || !isAdmin) {
     return (
       <div className="flex items-center justify-center p-6">
-        <RefreshCw className="h-5 w-5 animate-spin text-slate-400" />
+        <RefreshCw className="h-5 w-5 animate-spin text-slate-500" />
       </div>
     )
   }
@@ -116,7 +116,7 @@ export default function ErroresSistemaPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.push('/crm/configuracion')}
-            className="text-slate-500 hover:text-slate-700"
+            className="text-slate-600 hover:text-slate-700"
             title="Volver"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -126,7 +126,7 @@ export default function ErroresSistemaPage() {
               <AlertTriangle className="h-4 w-4 text-red-500" />
               Errores del sistema
             </h1>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600">
               Errores críticos persistidos con agregación y retención automática.
             </p>
           </div>
@@ -144,12 +144,12 @@ export default function ErroresSistemaPage() {
       {/* Filtros */}
       <div className="rounded border border-slate-200 bg-white p-3">
         <div className="flex items-center gap-2 mb-2">
-          <Filter className="h-3 w-3 text-slate-400" />
+          <Filter className="h-3 w-3 text-slate-500" />
           <span className="text-xs font-medium text-slate-600">Filtros</span>
         </div>
         <div className="grid grid-cols-5 gap-2">
           <div>
-            <label className="block text-2xs text-slate-500 mb-1">Módulo</label>
+            <label className="block text-2xs text-slate-600 mb-1">Módulo</label>
             <select
               value={filtroModulo}
               onChange={(e) => setFiltroModulo(e.target.value)}
@@ -162,7 +162,7 @@ export default function ErroresSistemaPage() {
             </select>
           </div>
           <div>
-            <label className="block text-2xs text-slate-500 mb-1">Código</label>
+            <label className="block text-2xs text-slate-600 mb-1">Código</label>
             <select
               value={filtroCodigo}
               onChange={(e) => setFiltroCodigo(e.target.value)}
@@ -175,7 +175,7 @@ export default function ErroresSistemaPage() {
             </select>
           </div>
           <div>
-            <label className="block text-2xs text-slate-500 mb-1">Desde</label>
+            <label className="block text-2xs text-slate-600 mb-1">Desde</label>
             <input
               type="datetime-local"
               value={filtroDesde}
@@ -184,7 +184,7 @@ export default function ErroresSistemaPage() {
             />
           </div>
           <div>
-            <label className="block text-2xs text-slate-500 mb-1">Hasta</label>
+            <label className="block text-2xs text-slate-600 mb-1">Hasta</label>
             <input
               type="datetime-local"
               value={filtroHasta}
@@ -208,11 +208,11 @@ export default function ErroresSistemaPage() {
       {/* Tabla */}
       <div className="rounded border border-slate-200 bg-white overflow-hidden">
         {cargando ? (
-          <div className="p-8 text-center text-xs text-slate-400">
+          <div className="p-8 text-center text-xs text-slate-500">
             <RefreshCw className="h-4 w-4 animate-spin inline mr-2" /> Cargando…
           </div>
         ) : errores.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400">
+          <div className="p-8 text-center text-xs text-slate-500">
             Sin errores para los filtros aplicados.
           </div>
         ) : (
@@ -249,7 +249,7 @@ export default function ErroresSistemaPage() {
                     </td>
                     <td className="px-3 py-2">
                       <div className="text-slate-800 truncate max-w-md">{mensaje}</div>
-                      <div className="text-2xs text-slate-400 font-mono mt-0.5">{e.codigo}</div>
+                      <div className="text-2xs text-slate-500 font-mono mt-0.5">{e.codigo}</div>
                     </td>
                     <td className="px-3 py-2 text-slate-600">{e.modulo || '—'}</td>
                     <td className="px-3 py-2 text-right">
@@ -310,16 +310,16 @@ function ModalDetalle({
             <span className={`rounded border px-2 py-0.5 text-xs ${colorPorCategoria(categoria)}`}>
               {categoria}
             </span>
-            <span className="font-mono text-2xs text-slate-400">{error.codigo}</span>
+            <span className="font-mono text-2xs text-slate-500">{error.codigo}</span>
             {error.archivado && (
-              <span className="rounded bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.5 text-2xs">
+              <span className="rounded bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 text-2xs">
                 ARCHIVADO
               </span>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-slate-500 hover:text-slate-600"
           >
             <X className="h-4 w-4" />
           </button>
@@ -333,7 +333,7 @@ function ModalDetalle({
               className={`py-2 text-xs font-medium border-b-2 transition-colors ${
                 tab === 'resumen'
                   ? 'border-blue-500 text-blue-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
+                  : 'border-transparent text-slate-600 hover:text-slate-700'
               }`}
             >
               Resumen
@@ -343,7 +343,7 @@ function ModalDetalle({
               className={`py-2 text-xs font-medium border-b-2 transition-colors ${
                 tab === 'tecnico'
                   ? 'border-blue-500 text-blue-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
+                  : 'border-transparent text-slate-600 hover:text-slate-700'
               }`}
             >
               Detalle técnico
@@ -373,9 +373,9 @@ function ResumenTab({ error }: { error: ErrorEnriquecido }) {
       {/* Mensaje humano */}
       <div className="rounded border border-slate-200 bg-slate-50 p-3">
         <div className="flex items-start gap-2">
-          <Info className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
+          <Info className="h-4 w-4 text-slate-600 mt-0.5 shrink-0" />
           <div>
-            <div className="text-2xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+            <div className="text-2xs font-medium text-slate-600 uppercase tracking-wide mb-1">
               Qué pasó
             </div>
             <div className="text-sm text-slate-800">{mensaje}</div>
@@ -410,7 +410,7 @@ function ResumenTab({ error }: { error: ErrorEnriquecido }) {
       </div>
       <DetalleRow label="Endpoint" value={error.endpoint} mono />
       {error.archivado && (
-        <div className="rounded border border-slate-200 bg-slate-50 p-3 text-slate-500">
+        <div className="rounded border border-slate-200 bg-slate-50 p-3 text-slate-600">
           Este error fue archivado por la política de retención — el detalle
           técnico (stack trace, contexto, request) fue eliminado pero la
           metadata queda para análisis de tendencias.
@@ -423,7 +423,7 @@ function ResumenTab({ error }: { error: ErrorEnriquecido }) {
 function TecnicoTab({ error }: { error: ErrorEnriquecido }) {
   if (error.archivado) {
     return (
-      <div className="rounded border border-slate-200 bg-slate-50 p-3 text-slate-500">
+      <div className="rounded border border-slate-200 bg-slate-50 p-3 text-slate-600">
         Este error fue archivado — el detalle técnico (stack trace, contexto,
         request) fue eliminado por la política de retención.
       </div>
@@ -472,7 +472,7 @@ function DetalleRow({
 }) {
   return (
     <div>
-      <div className="text-2xs font-medium text-slate-500 uppercase tracking-wide">{label}</div>
+      <div className="text-2xs font-medium text-slate-600 uppercase tracking-wide">{label}</div>
       <div className={`text-slate-800 ${mono ? 'font-mono' : ''}`}>{value || '—'}</div>
     </div>
   )

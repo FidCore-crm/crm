@@ -164,8 +164,9 @@ export default function PortalAseguradoPage() {
         <div className="max-w-3xl mx-auto px-4 pt-6 pb-8">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              {/* Logo en círculo blanco — el logo ocupa casi todo el diámetro */}
-              <div className="h-14 w-14 rounded-full bg-white shadow-md flex items-center justify-center shrink-0 overflow-hidden p-1">
+              {/* Logo en círculo blanco — el logo ocupa casi todo el diámetro.
+                  v1.0.149: agrandado de 56→76 px (+35%) para que se vea mejor. */}
+              <div className="h-[76px] w-[76px] rounded-full bg-white shadow-md flex items-center justify-center shrink-0 overflow-hidden p-1.5">
                 {logoUrl ? (
                   <img
                     src={logoUrl}
@@ -173,14 +174,14 @@ export default function PortalAseguradoPage() {
                     className="h-full w-full object-contain"
                   />
                 ) : (
-                  <Shield className="h-7 w-7 text-blue-700" />
+                  <Shield className="h-9 w-9 text-blue-700" />
                 )}
               </div>
               <div className="min-w-0">
                 <p className="text-2xs uppercase tracking-wider font-medium" style={{ color: textoSecundarioHero }}>
                   Mi portal
                 </p>
-                <p className="text-base font-semibold truncate">{data.organizacion.nombre || 'Mi seguro'}</p>
+                <p className="text-[17px] font-semibold truncate">{data.organizacion.nombre || 'Mi seguro'}</p>
               </div>
             </div>
           </div>

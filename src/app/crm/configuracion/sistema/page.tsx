@@ -96,7 +96,7 @@ export default function SistemaPage() {
   }
 
   if (authLoading || !isAdmin) {
-    return <div className="p-8 text-sm text-slate-500">Verificando permisos...</div>
+    return <div className="p-8 text-sm text-slate-600">Verificando permisos...</div>
   }
 
   return (
@@ -105,7 +105,7 @@ export default function SistemaPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push('/crm/configuracion')}
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
+          className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-800"
         >
           <ArrowLeft className="h-4 w-4" /> Volver
         </button>
@@ -115,7 +115,7 @@ export default function SistemaPage() {
           <Power className="h-5 w-5 text-slate-600" />
           Sistema
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-slate-600 mt-1">
           Apagado y reinicio del servidor del CRM. Solo para administradores.
         </p>
       </div>
@@ -146,7 +146,7 @@ export default function SistemaPage() {
           </div>
           <div>
             <h2 className="text-base font-semibold text-slate-800">Reiniciar servidor</h2>
-            <p className="text-2xs text-slate-500 mt-1">
+            <p className="text-2xs text-slate-600 mt-1">
               Apaga y vuelve a encender el servidor. Útil para aplicar actualizaciones.
             </p>
           </div>
@@ -163,7 +163,7 @@ export default function SistemaPage() {
           </div>
           <div>
             <h2 className="text-base font-semibold text-slate-800">Apagar servidor</h2>
-            <p className="text-2xs text-slate-500 mt-1">
+            <p className="text-2xs text-slate-600 mt-1">
               Apaga el servidor por completo. Necesitás acceso físico para encenderlo.
             </p>
           </div>
@@ -228,7 +228,7 @@ export default function SistemaPage() {
                               : 'border-slate-300 focus:ring-blue-200'
                           }`}
                         />
-                        <p className="text-2xs text-slate-500 mt-1.5 flex items-center gap-1">
+                        <p className="text-2xs text-slate-600 mt-1.5 flex items-center gap-1">
                           {textoOk ? (
                             <span className="text-emerald-700">✓ Confirmado, podés ejecutar</span>
                           ) : (

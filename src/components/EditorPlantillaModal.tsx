@@ -168,7 +168,7 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
                 <CheckCircle className="h-3 w-3" /> Guardado
               </span>
             )}
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <button onClick={onClose} className="text-slate-500 hover:text-slate-600">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -176,7 +176,7 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
 
         {cargando ? (
           <div className="py-16 text-center">
-            <Loader2 className="h-6 w-6 animate-spin text-slate-400 mx-auto" />
+            <Loader2 className="h-6 w-6 animate-spin text-slate-500 mx-auto" />
           </div>
         ) : !plantilla ? (
           <div className="px-5 py-8 text-center text-xs text-red-600">
@@ -192,9 +192,9 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
 
             {/* Info de la plantilla */}
             <div className="bg-slate-50 border border-slate-200 rounded p-3">
-              <p className="text-2xs text-slate-500 uppercase font-medium">Código</p>
+              <p className="text-2xs text-slate-600 uppercase font-medium">Código</p>
               <p className="text-xs font-mono text-slate-800">{plantilla.codigo}</p>
-              <p className="text-2xs text-slate-500 uppercase font-medium mt-2">Variables disponibles</p>
+              <p className="text-2xs text-slate-600 uppercase font-medium mt-2">Variables disponibles</p>
               <div className="flex flex-wrap gap-1 mt-1">
                 {plantilla.variables_disponibles.map((v) => (
                   <span key={v} className="text-2xs bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-mono">
@@ -273,7 +273,7 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
                 <div className="mt-2 border border-slate-200 rounded overflow-hidden">
                   {previewCargando ? (
                     <div className="py-8 text-center bg-slate-50">
-                      <Loader2 className="h-5 w-5 animate-spin text-slate-400 mx-auto" />
+                      <Loader2 className="h-5 w-5 animate-spin text-slate-500 mx-auto" />
                     </div>
                   ) : previewHtml ? (
                     <iframe
@@ -287,7 +287,7 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
                       style={{ height: '600px', border: 'none' }}
                     />
                   ) : (
-                    <div className="py-8 text-center text-xs text-slate-400 bg-slate-50">
+                    <div className="py-8 text-center text-xs text-slate-500 bg-slate-50">
                       Editá los campos para generar el preview
                     </div>
                   )}

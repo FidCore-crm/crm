@@ -75,7 +75,7 @@ export default function ImportandoPage() {
   if (!estado) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
       </div>
     );
   }
@@ -148,7 +148,7 @@ export default function ImportandoPage() {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600">
               Procesando bloque {jobs.completados} de {totalJobs || 1}
             </p>
           </div>
@@ -209,7 +209,7 @@ export default function ImportandoPage() {
           Volver al dashboard
         </button>
       </div>
-      <p className="text-2xs text-slate-500 text-center mt-3">
+      <p className="text-2xs text-slate-600 text-center mt-3">
         Esta etapa no se puede cancelar — para revertir todo usá &quot;Deshacer&quot;
         en el historial cuando termine (disponible 24h).
       </p>

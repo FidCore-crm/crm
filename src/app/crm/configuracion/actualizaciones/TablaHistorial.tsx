@@ -74,17 +74,17 @@ export function TablaHistorial({ onCerrar }: Props) {
         <button onClick={onCerrar} className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1">
           <ArrowLeft className="h-3 w-3" /> Volver
         </button>
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-slate-600">
           {data?.total ?? 0} actualizaciones en total
         </span>
       </div>
 
       {cargando ? (
-        <div className="flex items-center justify-center py-10 text-slate-400 text-sm gap-2">
+        <div className="flex items-center justify-center py-10 text-slate-500 text-sm gap-2">
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
         </div>
       ) : !data || data.data.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded p-8 text-center text-sm text-slate-500">
+        <div className="bg-white border border-slate-200 rounded p-8 text-center text-sm text-slate-600">
           No hay actualizaciones registradas todavía.
         </div>
       ) : (
@@ -117,8 +117,8 @@ export function TablaHistorial({ onCerrar }: Props) {
                       })}
                     </td>
                     <td className="text-xs">
-                      <span className="font-mono text-slate-500">v{a.version_anterior}</span>
-                      <span className="mx-1 text-slate-400">→</span>
+                      <span className="font-mono text-slate-600">v{a.version_anterior}</span>
+                      <span className="mx-1 text-slate-500">→</span>
                       <span className="font-mono font-semibold text-slate-700">v{a.version_nueva}</span>
                     </td>
                     <td>
@@ -156,7 +156,7 @@ export function TablaHistorial({ onCerrar }: Props) {
       )}
 
       {totalPaginas > 1 && (
-        <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
+        <div className="flex items-center justify-between mt-3 text-xs text-slate-600">
           <span>Página {pagina + 1} de {totalPaginas}</span>
           <div className="flex gap-1">
             <button

@@ -11,6 +11,7 @@ import { gradientDeColorMarca } from '@/lib/color-marca'
 import { PoweredByFidCore } from '@/components/PoweredByFidCore'
 import { tiposDeSiniestroPorRamo, obtenerConfigTipoSiniestro } from '@/lib/siniestros-catalogo'
 import { CamposDinamicos, type ValoresDinamicos } from '@/components/siniestros/CamposDinamicos'
+import { ICONOS_SVG_TIPO_SINIESTRO } from '@/components/IconosSiniestros'
 import { AVISO_PRECARGA_TITULO, AVISO_PRECARGA_TEXTO } from '@/lib/aviso-precarga-siniestro'
 
 // ════════════════════════════════════════════════════════════
@@ -208,6 +209,8 @@ function DenunciarPageContent() {
   const [testigos, setTestigos] = useState<TestigoData[]>([{ nombre: '', telefono: '' }])
 
   // Paso 3 — Daños propios (auto/moto)
+  // v1.0.149: pregunta obligatoria Sí/No antes del textarea. Cero silencio.
+  const [sufrioDanos, setSufrioDanos] = useState<'si' | 'no' | ''>('')
   const [danosPropios, setDanosPropios] = useState('')
 
   // Paso 3 — Hogar
@@ -238,8 +241,7 @@ function DenunciarPageContent() {
 
   // Paso 4
   const [declaracion, setDeclaracion] = useState(false)
-  const [aceptaTerminos, setAceptaTerminos] = useState(false)
-  const [mostrarTerminos, setMostrarTerminos] = useState(false)
+  // v1.0.149: Términos y Condiciones eliminados del form público.
   const [enviando, setEnviando] = useState(false)
   const [exito, setExito] = useState<ExitoData | null>(null)
 
@@ -433,19 +435,14 @@ function DenunciarPageContent() {
       }
 
       // Tercero: obligatorio elegir Sí/No
+      // v1.0.149: sacamos la validación de "motivo_sin_datos_tercero" — el
+      // check de fuga arriba ya cubre el caso donde el asegurado no tiene
+      // datos. Si eligió Sí + categoría pero no cargó nombre y no tildó fuga,
+      // se acepta igual (dato menor, no vale la pena bloquear).
       if (!huboTercero) {
         e.hubo_tercero = 'Indicá si hubo un tercero involucrado'
-      } else if (huboTercero === 'si') {
-        if (!terceroCategoria) {
-          e.tercero_categoria = 'Indicá con qué o con quién'
-        } else if (terceroCategoria !== 'objeto_fijo') {
-          // Si NO se dio a la fuga y no cargó nombre → obligar a elegir el
-          // motivo por el que no completa (o cargar los datos).
-          if (!terceroFuga && !terceroNombre.trim() && !motivoSinDatosTercero) {
-            e.motivo_sin_datos_tercero =
-              'Cargá los datos del tercero o indicá por qué no los cargás'
-          }
-        }
+      } else if (huboTercero === 'si' && !terceroCategoria) {
+        e.tercero_categoria = 'Indicá con qué o con quién'
       }
 
       // Testigos: obligatorio elegir Sí/No
@@ -461,6 +458,15 @@ function DenunciarPageContent() {
         e.hubo_lesionados = 'Indicá si hubo lesionados'
       } else if (huboLesionados === 'si' && !detalleLesiones.trim()) {
         e.detalle_lesiones = 'Describí brevemente las lesiones'
+      }
+
+      // v1.0.149: Sufrió daños el vehículo asegurado — cero silencio.
+      // Sin este check el asegurado avanzaba y en la ficha aparecía
+      // "no describió los daños propios" como si hubiera esquivado.
+      if (!sufrioDanos) {
+        e.sufrio_danos_propios = 'Indicá si el vehículo asegurado sufrió daños'
+      } else if (sufrioDanos === 'si' && !danosPropios.trim()) {
+        e.danos_propios = 'Describí los daños del vehículo'
       }
     }
 
@@ -609,10 +615,7 @@ function DenunciarPageContent() {
       setErrorGeneral('Tenés que aceptar la declaración jurada para continuar.')
       return
     }
-    if (config?.terminos_activos && !aceptaTerminos) {
-      setErrorGeneral('Tenés que aceptar los términos y condiciones para continuar.')
-      return
-    }
+    // v1.0.149: check de términos y condiciones eliminado.
     setErrorGeneral('')
     setEnviando(true)
 
@@ -693,7 +696,8 @@ function DenunciarPageContent() {
           fd.append('detalle_lesiones', detalleLesiones.trim())
         }
 
-        // Daños propios
+        // Daños propios (v1.0.149: pregunta Sí/No explícita)
+        if (sufrioDanos) fd.append('sufrio_danos_propios', sufrioDanos === 'si' ? 'Sí' : 'No')
         if (danosPropios) fd.append('danos_propios', danosPropios.trim())
       }
 
@@ -1003,6 +1007,8 @@ function DenunciarPageContent() {
                 },
                 lista: testigos, setLista: setTestigos,
               }}
+              sufrioDanos={sufrioDanos}
+              setSufrioDanos={(v) => { setSufrioDanos(v); clearError('sufrio_danos_propios') }}
               danosPropios={danosPropios} setDanosPropios={setDanosPropios}
               hogar={{
                 tipoVivienda, setTipoVivienda,
@@ -1049,8 +1055,6 @@ function DenunciarPageContent() {
               docSlots={docSlots} archivosGenerales={archivosGenerales}
               declaracion={declaracion} setDeclaracion={setDeclaracion}
               config={config}
-              aceptaTerminos={aceptaTerminos} setAceptaTerminos={setAceptaTerminos}
-              mostrarTerminos={mostrarTerminos} setMostrarTerminos={setMostrarTerminos}
             />
           )}
 
@@ -1075,7 +1079,7 @@ function DenunciarPageContent() {
               <button
                 className="btn btn-success btn-lg"
                 onClick={enviarDenuncia}
-                disabled={enviando || !declaracion || (config?.terminos_activos && !aceptaTerminos)}
+                disabled={enviando || !declaracion}
               >
                 {enviando ? <><span className="spinner-inline" /> Enviando...</> : <>Enviar denuncia</>}
               </button>
@@ -1298,14 +1302,20 @@ function Paso2({
 
       {errores.tipo_siniestro && <div className="form-error" style={{ marginBottom: 8 }}>{errores.tipo_siniestro}</div>}
       <div className="type-grid">
-        {tiposValidos.map(t => (
-          <div key={t.id}
-            className={`type-card ${tipoSiniestro === t.id ? 'selected' : ''}`}
-            onClick={() => setTipoSiniestro(t.id)}>
-            <span className="type-card-icon">{t.icon}</span>
-            <span className="type-card-label">{t.label}</span>
-          </div>
-        ))}
+        {tiposValidos.map(t => {
+          // Los tipos ROBO_RUEDAS y ROTURA_CRISTALES tienen SVG dedicado
+          // porque el emoji unicode no representa bien el concepto
+          // (rueda de carreta / ventana de casa).
+          const iconoSvg = ICONOS_SVG_TIPO_SINIESTRO[t.id]
+          return (
+            <div key={t.id}
+              className={`type-card ${tipoSiniestro === t.id ? 'selected' : ''}`}
+              onClick={() => setTipoSiniestro(t.id)}>
+              <span className="type-card-icon">{iconoSvg ?? t.icon}</span>
+              <span className="type-card-label">{t.label}</span>
+            </div>
+          )
+        })}
       </div>
 
       {tipoSiniestro === 'OTRO' && (
@@ -1409,7 +1419,8 @@ function Paso3({
   valoresDinamicos, setValoresDinamicos,
   esAutoMoto, esHogar, esRobo,
   conductor, vehiculoEstacionado, setVehiculoEstacionado,
-  tercero, lesionados, testigos, danosPropios, setDanosPropios,
+  tercero, lesionados, testigos,
+  sufrioDanos, setSufrioDanos, danosPropios, setDanosPropios,
   hogar,
   denunciaPolicial, setDenunciaPolicial, actaPolicial, setActaPolicial,
   docSlots, setDocSlots, archivosGenerales, setArchivosGenerales,
@@ -1428,6 +1439,8 @@ function Paso3({
   tercero: TerceroProps
   lesionados: LesionadosProps
   testigos: TestigosProps
+  sufrioDanos: 'si' | 'no' | ''
+  setSufrioDanos: (v: 'si' | 'no' | '') => void
   danosPropios: string; setDanosPropios: (v: string) => void
   hogar: HogarProps
   denunciaPolicial: 'si' | 'no' | ''
@@ -1524,18 +1537,39 @@ function Paso3({
       {/* ═════ DAÑOS PROPIOS (auto/moto — solo ACCIDENTE_TRANSITO) ═════ */}
       {usarBloqueAutoHardcoded && (
         <SectionCard icon="🔧" title="Daños del vehículo asegurado">
-          <div className="form-group">
-            <label className="form-label">Describí los daños</label>
-            <textarea className="form-textarea" rows={3}
-              value={danosPropios} onChange={e => setDanosPropios(e.target.value)}
-              placeholder="Ej: Abolladura en el paragolpes delantero, faro derecho roto, capot deformado..." />
+          {/* v1.0.149: pregunta Sí/No obligatoria antes del textarea.
+              Sin esto el asegurado podía dejar el campo vacío y la ficha
+              mostraba "no describió" como si hubiera esquivado. */}
+          <div className="toggle-pregunta">
+            <div className="toggle-pregunta-label">¿El vehículo asegurado sufrió daños?</div>
+            <div className="toggle-pregunta-opciones">
+              <button type="button"
+                className={`toggle-btn ${sufrioDanos === 'si' ? 'active' : ''}`}
+                onClick={() => setSufrioDanos('si')}>Sí</button>
+              <button type="button"
+                className={`toggle-btn ${sufrioDanos === 'no' ? 'active' : ''}`}
+                onClick={() => { setSufrioDanos('no'); setDanosPropios('') }}>No</button>
+            </div>
+            {errores.sufrio_danos_propios && (
+              <div className="form-error" style={{ marginTop: 8 }}>{errores.sufrio_danos_propios}</div>
+            )}
           </div>
+          {sufrioDanos === 'si' && (
+            <div className="form-group" style={{ marginTop: 12 }}>
+              <label className="form-label">Describí los daños <span className="required">*</span></label>
+              <textarea
+                className={`form-textarea ${errores.danos_propios ? 'error' : ''}`} rows={3}
+                value={danosPropios} onChange={e => setDanosPropios(e.target.value)}
+                placeholder="Ej: Abolladura en el paragolpes delantero, faro derecho roto, capot deformado..." />
+              {errores.danos_propios && <div className="form-error">{errores.danos_propios}</div>}
+            </div>
+          )}
         </SectionCard>
       )}
 
       {/* ═════ OTRA PERSONA O VEHÍCULO INVOLUCRADO (auto/moto — solo ACCIDENTE_TRANSITO) ═════ */}
       {usarBloqueAutoHardcoded && (
-        <SectionCard icon="🚙" title="¿Otra persona o vehículo involucrado?">
+        <SectionCard icon="🚙" title="¿Hay otro vehículo o persona involucrada en el accidente?">
           <p style={{ fontSize: 13, color: '#64748b', marginTop: -4, marginBottom: 12 }}>
             Marcá "Sí" si chocaste con otro vehículo, peatón o algún objeto, o si hay otra persona afectada.
           </p>
@@ -1584,37 +1618,11 @@ function Paso3({
                     </label>
                   </div>
 
-                  {/* Si NO se dio a la fuga y la categoría admite datos (no objeto fijo),
-                      ofrecemos un motivo alternativo por si el asegurado no va a
-                      completar los datos ahora. La validación forzará elegir si deja
-                      los inputs vacíos. */}
-                  {!tercero.fuga && tercero.categoria !== 'objeto_fijo' && (
-                    <div style={{
-                      marginTop: 12, padding: '12px 14px', background: '#f8fafc',
-                      border: '1px solid #e2e8f0', borderRadius: 6,
-                    }}>
-                      <p style={{ fontSize: 13, color: '#475569', marginBottom: 8, fontWeight: 500 }}>
-                        Si no vas a completar los datos del tercero, indicá el motivo:
-                      </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ display: 'flex', gap: 8, cursor: 'pointer', fontSize: 13 }}>
-                          <input type="radio" name="motivo_sin_datos_tercero"
-                            checked={tercero.motivoSinDatos === 'no_brindo'}
-                            onChange={() => tercero.setMotivoSinDatos('no_brindo')} />
-                          <span>No me brindó sus datos</span>
-                        </label>
-                        <label style={{ display: 'flex', gap: 8, cursor: 'pointer', fontSize: 13 }}>
-                          <input type="radio" name="motivo_sin_datos_tercero"
-                            checked={tercero.motivoSinDatos === 'adjunto'}
-                            onChange={() => tercero.setMotivoSinDatos('adjunto')} />
-                          <span>Los cargo en la documentación adjunta</span>
-                        </label>
-                      </div>
-                      {errores.motivo_sin_datos_tercero && (
-                        <div className="form-error" style={{ marginTop: 8 }}>{errores.motivo_sin_datos_tercero}</div>
-                      )}
-                    </div>
-                  )}
+                  {/* v1.0.149: sacamos el bloque "Si no vas a completar los datos
+                      del tercero, indicá el motivo" — el checkbox de fuga arriba
+                      ya cubre el caso. Si el asegurado no completa datos y no
+                      tildó fuga, se acepta igual (dato menor, no vale la pena
+                      exigirlo). */}
 
                   {!tercero.fuga && (
                     <div className="form-grid" style={{ marginTop: 16 }}>
@@ -2020,8 +2028,6 @@ function Paso4(props: {
   docSlots: DocSlots; archivosGenerales: File[]
   declaracion: boolean; setDeclaracion: (v: boolean) => void
   config: FormConfig | null
-  aceptaTerminos: boolean; setAceptaTerminos: (v: boolean) => void
-  mostrarTerminos: boolean; setMostrarTerminos: (v: boolean) => void
 }) {
   const configTipo = obtenerConfigTipoSiniestro(props.tipoRiesgo, props.tipoSiniestro)
   const tipoLabel = configTipo?.label || props.tipoSiniestro
@@ -2210,55 +2216,10 @@ function Paso4(props: {
         <SummaryRow label="Total" value={`${totalArchivos} archivo(s)`} />
       </div>
 
-      {props.config?.terminos_activos && props.config.terminos_contenido && (
-        <>
-          <div className="checkbox-container"
-            style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}
-            onClick={() => props.setAceptaTerminos(!props.aceptaTerminos)}>
-            <div className={`checkbox-box ${props.aceptaTerminos ? 'checked' : ''}`}>
-              {props.aceptaTerminos && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              )}
-            </div>
-            <span className="checkbox-text" style={{ color: '#1e40af' }}>
-              Acepto los{' '}
-              <span style={{ textDecoration: 'underline', cursor: 'pointer' }}
-                onClick={e => { e.stopPropagation(); props.setMostrarTerminos(true) }}>
-                {props.config.terminos_titulo || 'Términos y Condiciones'}
-              </span>
-            </span>
-          </div>
-
-          {props.mostrarTerminos && (
-            <div style={{
-              position: 'fixed', inset: 0, zIndex: 9999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 16,
-            }} onClick={() => props.setMostrarTerminos(false)}>
-              <div style={{
-                background: 'white', borderRadius: 16, maxWidth: 600, width: '100%',
-                maxHeight: '80vh', display: 'flex', flexDirection: 'column',
-                boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
-              }} onClick={e => e.stopPropagation()}>
-                <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-marca, #0A1628)', margin: 0 }}>
-                    {props.config.terminos_titulo || 'Términos y Condiciones'}
-                  </h3>
-                  <button onClick={() => props.setMostrarTerminos(false)}
-                    style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94a3b8', padding: '4px 8px' }}>×</button>
-                </div>
-                <div style={{ padding: 24, overflowY: 'auto', fontSize: 14, color: '#475569', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                  {props.config.terminos_contenido}
-                </div>
-                <div style={{ padding: '12px 24px', borderTop: '1px solid #e2e8f0', textAlign: 'right' }}>
-                  <button className="btn btn-primary" onClick={() => props.setMostrarTerminos(false)}>Cerrar</button>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+      {/* v1.0.149: eliminados los Términos y Condiciones opcionales
+          del formulario público (junto con su configuración en /crm/
+          configuracion/formulario-publico). La declaración jurada abajo
+          y el aviso legal fijo del final ya cubren el aspecto legal. */}
 
       <div className="checkbox-container" onClick={() => props.setDeclaracion(!props.declaracion)}>
         <div className={`checkbox-box ${props.declaracion ? 'checked' : ''}`}>

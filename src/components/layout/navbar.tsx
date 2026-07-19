@@ -103,7 +103,7 @@ function colorPrioridad(prioridad: string): string {
     case 'CRITICA': return 'text-red-500'
     case 'ADVERTENCIA': return 'text-amber-500'
     case 'INFORMATIVA': return 'text-blue-500'
-    default: return 'text-slate-400'
+    default: return 'text-slate-500'
   }
 }
 
@@ -465,7 +465,7 @@ export function Navbar() {
       {/* Buscador global */}
       <div className="flex-1 max-w-sm relative" ref={dropdownRef}>
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
           <input
             ref={inputRef}
             type="text"
@@ -474,7 +474,7 @@ export function Navbar() {
             onFocus={() => { if (resultados && busqueda.trim().length >= 2) setMostrarDropdown(true) }}
             placeholder="Buscar personas, polizas, patentes, siniestros, leads..."
             className="w-full h-7 pl-7 pr-3 text-xs bg-slate-50 border border-slate-200 rounded
-                       placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500
+                       placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500
                        focus:border-blue-500 focus:bg-white transition-all"
           />
         </div>
@@ -483,12 +483,12 @@ export function Navbar() {
         {mostrarDropdown && (
           <div className="absolute top-full left-0 mt-1 w-[420px] bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-[400px] overflow-y-auto">
             {cargando ? (
-              <div className="flex items-center justify-center gap-2 py-6 text-xs text-slate-400">
+              <div className="flex items-center justify-center gap-2 py-6 text-xs text-slate-500">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Buscando...
               </div>
             ) : !hayResultados ? (
-              <div className="py-6 text-center text-xs text-slate-400">
+              <div className="py-6 text-center text-xs text-slate-500">
                 No se encontraron resultados para &ldquo;{busqueda.trim()}&rdquo;
               </div>
             ) : (
@@ -496,9 +496,9 @@ export function Navbar() {
                 {resultados!.personas.length > 0 && (
                   <div>
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border-b border-slate-100">
-                      <Users className="h-3.5 w-3.5 text-slate-500" />
-                      <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Personas</span>
-                      <span className="text-2xs text-slate-400">({resultados!.personas.length})</span>
+                      <Users className="h-3.5 w-3.5 text-slate-600" />
+                      <span className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Personas</span>
+                      <span className="text-2xs text-slate-500">({resultados!.personas.length})</span>
                     </div>
                     {resultados!.personas.map(p => (
                       <button key={p.id} onClick={() => navegar(`/crm/personas/${p.id}`)}
@@ -506,7 +506,7 @@ export function Navbar() {
                         <div>
                           <div className="text-xs font-medium text-slate-700">{p.apellido}{p.nombre ? `, ${p.nombre}` : ''}</div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-2xs text-slate-400 font-mono">{p.dni_cuil}</span>
+                            <span className="text-2xs text-slate-500 font-mono">{p.dni_cuil}</span>
                           </div>
                         </div>
                         <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${getPersonaBadgeColor(p.estado)}`}>
@@ -519,9 +519,9 @@ export function Navbar() {
                 {resultados!.polizas.length > 0 && (
                   <div className={resultados!.personas.length > 0 ? 'border-t border-slate-100' : ''}>
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border-b border-slate-100">
-                      <FileText className="h-3.5 w-3.5 text-slate-500" />
-                      <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Pólizas</span>
-                      <span className="text-2xs text-slate-400">({resultados!.polizas.length})</span>
+                      <FileText className="h-3.5 w-3.5 text-slate-600" />
+                      <span className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Pólizas</span>
+                      <span className="text-2xs text-slate-500">({resultados!.polizas.length})</span>
                     </div>
                     {resultados!.polizas.map(p => (
                       <button key={p.id} onClick={() => navegar(`/crm/polizas/${p.id}`)}
@@ -529,13 +529,13 @@ export function Navbar() {
                         <div>
                           <div className="text-xs font-medium text-slate-700 font-mono">{p.numero_poliza}</div>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-2xs text-slate-400">
+                            <span className="text-2xs text-slate-500">
                               {p.asegurado ? `${p.asegurado.apellido}${p.asegurado.nombre ? `, ${p.asegurado.nombre}` : ''}` : '—'}
                             </span>
                             {p.compania && (
                               <>
                                 <span className="text-slate-300">·</span>
-                                <span className="text-2xs text-slate-400">{p.compania.nombre}</span>
+                                <span className="text-2xs text-slate-500">{p.compania.nombre}</span>
                               </>
                             )}
                           </div>
@@ -550,9 +550,9 @@ export function Navbar() {
                 {resultados!.siniestros.length > 0 && (
                   <div className={(resultados!.personas.length > 0 || resultados!.polizas.length > 0) ? 'border-t border-slate-100' : ''}>
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border-b border-slate-100">
-                      <AlertTriangle className="h-3.5 w-3.5 text-slate-500" />
-                      <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Siniestros</span>
-                      <span className="text-2xs text-slate-400">({resultados!.siniestros.length})</span>
+                      <AlertTriangle className="h-3.5 w-3.5 text-slate-600" />
+                      <span className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Siniestros</span>
+                      <span className="text-2xs text-slate-500">({resultados!.siniestros.length})</span>
                     </div>
                     {resultados!.siniestros.map(s => {
                       const badge = getEstadoBadge(s.estado)
@@ -562,7 +562,7 @@ export function Navbar() {
                           <div>
                             <div className="text-xs font-medium text-slate-700 font-mono">{s.numero_caso}</div>
                             <div className="mt-0.5">
-                              <span className="text-2xs text-slate-400">
+                              <span className="text-2xs text-slate-500">
                                 {s.persona ? `${s.persona.apellido}${s.persona.nombre ? `, ${s.persona.nombre}` : ''}` : '—'}
                               </span>
                             </div>
@@ -578,9 +578,9 @@ export function Navbar() {
                 {resultados!.leads.length > 0 && (
                   <div className="border-t border-slate-100">
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border-b border-slate-100">
-                      <Target className="h-3.5 w-3.5 text-slate-500" />
-                      <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Leads</span>
-                      <span className="text-2xs text-slate-400">({resultados!.leads.length})</span>
+                      <Target className="h-3.5 w-3.5 text-slate-600" />
+                      <span className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Leads</span>
+                      <span className="text-2xs text-slate-500">({resultados!.leads.length})</span>
                     </div>
                     {resultados!.leads.map(l => {
                       const leadBadge: Record<string, string> = {
@@ -594,7 +594,7 @@ export function Navbar() {
                           className="flex items-center justify-between w-full px-3 py-2 text-left hover:bg-slate-50 transition-colors">
                           <div>
                             <div className="text-xs font-medium text-slate-700">{l.apellido}, {l.nombre}</div>
-                            <div className="text-2xs text-slate-400 mt-0.5">{l.fuente.replace(/_/g, ' ')}</div>
+                            <div className="text-2xs text-slate-500 mt-0.5">{l.fuente.replace(/_/g, ' ')}</div>
                           </div>
                           <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${leadBadge[l.estado] ?? ''}`}>
                             {l.estado}
@@ -607,9 +607,9 @@ export function Navbar() {
                 {resultados!.cotizaciones.length > 0 && (
                   <div className="border-t border-slate-100">
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border-b border-slate-100">
-                      <FileText className="h-3.5 w-3.5 text-slate-500" />
-                      <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Cotizaciones</span>
-                      <span className="text-2xs text-slate-400">({resultados!.cotizaciones.length})</span>
+                      <FileText className="h-3.5 w-3.5 text-slate-600" />
+                      <span className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Cotizaciones</span>
+                      <span className="text-2xs text-slate-500">({resultados!.cotizaciones.length})</span>
                     </div>
                     {resultados!.cotizaciones.map(c => {
                       const cotBadge: Record<string, string> = {
@@ -626,7 +626,7 @@ export function Navbar() {
                           className="flex items-center justify-between w-full px-3 py-2 text-left hover:bg-slate-50 transition-colors">
                           <div>
                             <div className="text-xs font-medium text-slate-700 font-mono">{c.numero_cotizacion}</div>
-                            <div className="text-2xs text-slate-400 mt-0.5">{dest}</div>
+                            <div className="text-2xs text-slate-500 mt-0.5">{dest}</div>
                           </div>
                           <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${cotBadge[c.estado] ?? ''}`}>
                             {c.estado}
@@ -660,7 +660,7 @@ export function Navbar() {
           <button
             onClick={togglePanel}
             className="relative flex h-7 w-7 items-center justify-center rounded
-                       text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                       text-slate-600 hover:text-slate-700 hover:bg-slate-100 transition-colors"
           >
             <Bell className="h-4 w-4" />
             {contadores.total_no_leidas > 0 && (
@@ -709,12 +709,12 @@ export function Navbar() {
               {/* Lista */}
               <div className="flex-1 overflow-y-auto">
                 {cargandoNotif ? (
-                  <div className="flex items-center justify-center gap-2 py-8 text-xs text-slate-400">
+                  <div className="flex items-center justify-center gap-2 py-8 text-xs text-slate-500">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Cargando...
                   </div>
                 ) : notificaciones.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-xs text-slate-400">
+                  <div className="flex flex-col items-center justify-center py-8 text-xs text-slate-500">
                     <Bell className="h-5 w-5 mb-1.5 text-slate-300" />
                     No hay notificaciones
                   </div>
@@ -741,10 +741,10 @@ export function Navbar() {
                           <div className={`text-xs text-slate-700 ${!n.leida ? 'font-semibold' : ''} break-words`}>
                             {n.titulo}
                           </div>
-                          <div className="text-2xs text-slate-500 break-words leading-relaxed mt-0.5">
+                          <div className="text-2xs text-slate-600 break-words leading-relaxed mt-0.5">
                             {n.mensaje}
                           </div>
-                          <div className="text-2xs text-slate-400 mt-1">
+                          <div className="text-2xs text-slate-500 mt-1">
                             {tiempoRelativo(n.created_at)}
                           </div>
                         </div>
@@ -787,7 +787,7 @@ export function Navbar() {
                 {usuario.rol}
               </span>
             )}
-            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+            <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
           </button>
 
           {/* Dropdown */}
@@ -798,7 +798,7 @@ export function Navbar() {
               <p className="text-xs font-medium text-slate-700 truncate">
                 {usuario ? `${usuario.nombre} ${usuario.apellido}` : ''}
               </p>
-              <p className="text-2xs text-slate-400 truncate">{usuario?.email}</p>
+              <p className="text-2xs text-slate-500 truncate">{usuario?.email}</p>
             </div>
             <div className="p-1">
               {isAdmin && (

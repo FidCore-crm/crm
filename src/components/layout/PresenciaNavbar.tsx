@@ -60,7 +60,7 @@ export function PresenciaNavbar() {
       <button
         onClick={() => setAbierto((v) => !v)}
         className="relative flex h-7 items-center gap-1 px-2 rounded
-                   text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                   text-slate-600 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         title="Usuarios conectados al CRM"
         aria-expanded={abierto}
       >
@@ -77,7 +77,7 @@ export function PresenciaNavbar() {
             </span>
             <button
               onClick={() => setAbierto(false)}
-              className="text-slate-400 hover:text-slate-600"
+              className="text-slate-500 hover:text-slate-600"
               aria-label="Cerrar"
             >
               <X className="h-3.5 w-3.5" />
@@ -105,7 +105,7 @@ export function PresenciaNavbar() {
                   <div className="flex flex-col min-w-0">
                     <span className="font-medium truncate">
                       {u.nombre} {u.apellido}
-                      {esYo && <span className="text-slate-400 ml-1 font-normal">(vos)</span>}
+                      {esYo && <span className="text-slate-500 ml-1 font-normal">(vos)</span>}
                     </span>
                   </div>
                 </li>

@@ -222,7 +222,7 @@ export default function SelectorImagenBiblioteca({
         {/* Header */}
         <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b">
           <h2 className="text-base font-semibold text-slate-900">{titulo}</h2>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-600 p-1">
+          <button onClick={onCerrar} className="text-slate-500 hover:text-slate-600 p-1">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -263,7 +263,7 @@ export default function SelectorImagenBiblioteca({
                   <span>Raíz</span>
                 </div>
                 {cargandoCarpetas ? (
-                  <div className="flex items-center gap-2 p-3 text-xs text-slate-500">
+                  <div className="flex items-center gap-2 p-3 text-xs text-slate-600">
                     <Loader2 className="h-3 w-3 animate-spin" /> Cargando...
                   </div>
                 ) : (
@@ -271,7 +271,7 @@ export default function SelectorImagenBiblioteca({
                 )}
                 {/* Crear carpeta inline */}
                 <div className="mt-4 border-t pt-3">
-                  <p className="text-xs text-slate-500 mb-1 px-2">Nueva carpeta en {carpetaSeleccionada ? 'esta carpeta' : 'la raíz'}</p>
+                  <p className="text-xs text-slate-600 mb-1 px-2">Nueva carpeta en {carpetaSeleccionada ? 'esta carpeta' : 'la raíz'}</p>
                   <div className="flex gap-1 px-2">
                     <input
                       type="text"
@@ -295,11 +295,11 @@ export default function SelectorImagenBiblioteca({
               {/* Grilla de imágenes */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="shrink-0 p-3 border-b bg-white flex items-center gap-3">
-                  <div className="text-xs text-slate-500 flex-1 truncate">
+                  <div className="text-xs text-slate-600 flex-1 truncate">
                     {breadcrumb}
                   </div>
                   <div className="relative w-64">
-                    <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                    <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-500" />
                     <input
                       type="text"
                       value={busqueda}
@@ -312,13 +312,13 @@ export default function SelectorImagenBiblioteca({
 
                 <div className="flex-1 overflow-y-auto p-3">
                   {cargandoArchivos ? (
-                    <div className="flex items-center gap-2 p-6 text-sm text-slate-500 justify-center">
+                    <div className="flex items-center gap-2 p-6 text-sm text-slate-600 justify-center">
                       <Loader2 className="h-4 w-4 animate-spin" /> Cargando imágenes...
                     </div>
                   ) : archivos.length === 0 ? (
                     <div className="text-center p-12">
                       <ImageIcon className="h-12 w-12 mx-auto text-slate-300 mb-2" />
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-slate-600">
                         {busqueda ? 'Sin resultados para tu búsqueda' : 'Esta carpeta está vacía. Subí una imagen desde la otra pestaña.'}
                       </p>
                     </div>
@@ -339,7 +339,7 @@ export default function SelectorImagenBiblioteca({
                           </div>
                           <div className="p-2">
                             <p className="text-xs font-medium text-slate-700 truncate">{a.nombre_archivo}</p>
-                            <p className="text-2xs text-slate-400 mt-0.5">{formatearTamano(a.tamano_bytes)}</p>
+                            <p className="text-2xs text-slate-500 mt-0.5">{formatearTamano(a.tamano_bytes)}</p>
                           </div>
                         </button>
                       ))}
@@ -397,9 +397,9 @@ export default function SelectorImagenBiblioteca({
                     </div>
                   ) : (
                     <>
-                      <Upload className="h-10 w-10 mx-auto text-slate-400 mb-3" />
+                      <Upload className="h-10 w-10 mx-auto text-slate-500 mb-3" />
                       <p className="text-sm font-medium text-slate-700 mb-1">Arrastrá una imagen o hacé click</p>
-                      <p className="text-xs text-slate-500">JPG, PNG, GIF, WEBP · Máx 10 MB</p>
+                      <p className="text-xs text-slate-600">JPG, PNG, GIF, WEBP · Máx 10 MB</p>
                     </>
                   )}
                 </div>

@@ -114,10 +114,10 @@ export default function ModalArchivosPoliza({ isOpen, onClose, polizaId, numeroP
               <FolderOpen className="h-4 w-4 text-blue-600" />
               <div>
                 <h2 className="text-sm font-semibold text-slate-800">Archivos de la póliza</h2>
-                <p className="text-2xs font-mono text-slate-500">N° {numeroPoliza}</p>
+                <p className="text-2xs font-mono text-slate-600">N° {numeroPoliza}</p>
               </div>
             </div>
-            <button onClick={onClose} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500">
+            <button onClick={onClose} className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-100 text-slate-600">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -125,11 +125,11 @@ export default function ModalArchivosPoliza({ isOpen, onClose, polizaId, numeroP
           {/* Body */}
           <div className="flex-1 overflow-y-auto">
             {cargando ? (
-              <div className="py-12 text-center text-xs text-slate-400">
+              <div className="py-12 text-center text-xs text-slate-500">
                 <Loader2 className="h-5 w-5 animate-spin mx-auto" />
               </div>
             ) : (documentacion.length === 0 && inspeccion.length === 0) ? (
-              <div className="py-12 text-center text-xs text-slate-400">
+              <div className="py-12 text-center text-xs text-slate-500">
                 <FolderOpen className="h-8 w-8 mx-auto mb-2 text-slate-300" />
                 Esta póliza no tiene archivos cargados.
               </div>
@@ -147,7 +147,7 @@ export default function ModalArchivosPoliza({ isOpen, onClose, polizaId, numeroP
 
           {/* Footer */}
           <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between">
-            <span className="text-2xs text-slate-500">
+            <span className="text-2xs text-slate-600">
               {documentacion.length + inspeccion.length} archivo{documentacion.length + inspeccion.length !== 1 ? 's' : ''}
             </span>
             <div className="flex gap-2">
@@ -177,7 +177,7 @@ export default function ModalArchivosPoliza({ isOpen, onClose, polizaId, numeroP
 function Seccion({ titulo, archivos, onVerImagen }: { titulo: string; archivos: Archivo[]; onVerImagen: (url: string) => void }) {
   return (
     <div>
-      <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+      <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
         {titulo} ({archivos.length})
       </h3>
       <div className="border border-slate-200 rounded divide-y divide-slate-100">
@@ -188,7 +188,7 @@ function Seccion({ titulo, archivos, onVerImagen }: { titulo: string; archivos: 
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-slate-700 font-medium truncate">{a.nombre}</p>
-              <p className="text-2xs text-slate-400">
+              <p className="text-2xs text-slate-500">
                 {formatBytes(a.tamano)} · {formatFechaCorta(a.created_at)}
                 {a.categoria === 'documentacion_renovada' && <span className="ml-2 text-amber-600">· Renovación</span>}
               </p>
@@ -213,7 +213,7 @@ function Seccion({ titulo, archivos, onVerImagen }: { titulo: string; archivos: 
 function SeccionInspeccion({ archivos, onVerImagen }: { archivos: Archivo[]; onVerImagen: (url: string) => void }) {
   return (
     <div>
-      <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+      <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
         Inspección ({archivos.length})
       </h3>
       <div className="grid grid-cols-4 gap-2">

@@ -60,7 +60,7 @@ export function PasoBienvenida({ pasoActual, totalPasos, onContinuar, nombreUsua
           </div>
         </div>
 
-        <div className="text-xs text-slate-500 pt-2 border-t border-slate-100">
+        <div className="text-xs text-slate-600 pt-2 border-t border-slate-100">
           Si cerrás el navegador a la mitad, podés volver y retomar desde donde quedaste.
         </div>
       </div>

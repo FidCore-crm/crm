@@ -221,7 +221,7 @@ export default function ComparacionEnRevision({
           {cosmeticos.length > 0 && (
             <button
               onClick={() => setMostrarCosmeticos(v => !v)}
-              className="text-slate-500 hover:text-slate-800 underline"
+              className="text-slate-600 hover:text-slate-800 underline"
             >
               {mostrarCosmeticos ? 'Ocultar' : 'Ver'} {cosmeticos.length} cosmético{cosmeticos.length !== 1 ? 's' : ''}
             </button>
@@ -230,7 +230,7 @@ export default function ComparacionEnRevision({
 
         {/* Lista de cambios agrupados por categoría — SIN badges de severidad */}
         {porCategoria.length === 0 && (
-          <p className="text-xs text-slate-500 italic">Sin cambios que mostrar.</p>
+          <p className="text-xs text-slate-600 italic">Sin cambios que mostrar.</p>
         )}
 
         {porCategoria.map(([categoria, items]) => (
@@ -244,13 +244,13 @@ export default function ComparacionEnRevision({
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-medium text-slate-800">{c.campo}</span>
                     {c.tipo === 'cosmético' && (
-                      <span className="text-2xs text-slate-400 italic">cosmético</span>
+                      <span className="text-2xs text-slate-500 italic">cosmético</span>
                     )}
                   </div>
                   {(c.antes || c.ahora) && (
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="text-slate-500 line-through">{c.antes || '—'}</span>
-                      <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+                      <span className="text-slate-600 line-through">{c.antes || '—'}</span>
+                      <ArrowRight className="h-3 w-3 text-slate-500 shrink-0" />
                       <span className="text-slate-800 font-medium">{c.ahora || '—'}</span>
                     </div>
                   )}
@@ -262,7 +262,7 @@ export default function ComparacionEnRevision({
         ))}
 
         {/* Footer discreto con costo/tiempo */}
-        <div className="text-2xs text-slate-400 pt-1 border-t border-slate-100">
+        <div className="text-2xs text-slate-500 pt-1 border-t border-slate-100">
           Análisis IA
           {comparacion.duracion_ms ? ` · ${Math.round(comparacion.duracion_ms / 1000)}s` : ''}
           {comparacion.costo_usd ? ` · US$${comparacion.costo_usd.toFixed(3)}` : ''}
@@ -298,7 +298,7 @@ function ModalElegirArchivo({
       <div className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col" style={{ height: '80vh' }}>
         <div className="shrink-0 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-800">Elegí el PDF de la póliza anterior</h3>
-          <button onClick={onCancelar} className="text-slate-400 hover:text-slate-800">
+          <button onClick={onCancelar} className="text-slate-500 hover:text-slate-800">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -307,11 +307,11 @@ function ModalElegirArchivo({
             Vamos a recordar tu elección — la próxima renovación se compara sola.
           </p>
           {cargando ? (
-            <div className="flex items-center gap-2 text-sm text-slate-500 py-4">
+            <div className="flex items-center gap-2 text-sm text-slate-600 py-4">
               <Loader2 className="h-4 w-4 animate-spin" /> Cargando archivos…
             </div>
           ) : archivos.length === 0 ? (
-            <div className="border border-slate-200 rounded p-4 text-sm text-slate-500 text-center">
+            <div className="border border-slate-200 rounded p-4 text-sm text-slate-600 text-center">
               La póliza anterior no tiene ningún PDF cargado.
             </div>
           ) : (
@@ -329,10 +329,10 @@ function ModalElegirArchivo({
                       onChange={() => onElegir(a.id)}
                       className="shrink-0"
                     />
-                    <FileText className="h-4 w-4 text-slate-400 shrink-0" />
+                    <FileText className="h-4 w-4 text-slate-500 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-slate-800 truncate">{a.nombre}</p>
-                      <p className="text-2xs text-slate-500 mt-0.5">
+                      <p className="text-2xs text-slate-600 mt-0.5">
                         {a.categoria === 'documentacion_renovada' ? 'Renovación pendiente' : 'Documentación'}
                         {' · '}
                         {formatFechaLocalLarga(a.created_at.slice(0, 10))}

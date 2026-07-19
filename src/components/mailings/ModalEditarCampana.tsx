@@ -122,7 +122,7 @@ export default function ModalEditarCampana({ campana, onCerrar, onGuardada }: Pr
             <Megaphone className="h-4 w-4 text-blue-600" />
             {esNueva ? 'Nueva campaña' : `Editar: ${campana.nombre}`}
           </h3>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onCerrar} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -249,7 +249,7 @@ export default function ModalEditarCampana({ campana, onCerrar, onGuardada }: Pr
                 className="h-3.5 w-3.5"
               />
               <span className="text-xs font-medium text-slate-700 flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                <Calendar className="h-3.5 w-3.5 text-slate-600" />
                 Programar envío para una fecha y hora específica
               </span>
             </label>
@@ -262,7 +262,7 @@ export default function ModalEditarCampana({ campana, onCerrar, onGuardada }: Pr
                 className="form-input w-full text-sm max-w-xs"
               />
             ) : (
-              <p className="text-2xs text-slate-500">
+              <p className="text-2xs text-slate-600">
                 Sin schedule: la campaña queda en <strong>Borrador</strong>. Hay que dispararla manualmente
                 con el botón <strong>Enviar ahora</strong>.
               </p>

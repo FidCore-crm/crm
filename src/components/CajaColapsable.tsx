@@ -35,14 +35,14 @@ export default function CajaColapsable({
           className="flex-1 flex items-center gap-2 px-3 py-2 hover:bg-slate-100 transition-colors text-left"
         >
           {icono}
-          <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
+          <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">
             {titulo}
-            {tieneContador && <span className="ml-1 text-slate-400">({contador})</span>}
+            {tieneContador && <span className="ml-1 text-slate-500">({contador})</span>}
           </h3>
           <span className="ml-auto">
             {abierto
-              ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" />
-              : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
+              ? <ChevronUp className="h-3.5 w-3.5 text-slate-500" />
+              : <ChevronDown className="h-3.5 w-3.5 text-slate-500" />}
           </span>
         </button>
         {accion && (

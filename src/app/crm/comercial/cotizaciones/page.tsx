@@ -274,7 +274,7 @@ export default function CotizacionesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Cotizaciones</h1>
-          <p className="text-xs text-slate-500">{total} cotizaciones en total</p>
+          <p className="text-xs text-slate-600">{total} cotizaciones en total</p>
         </div>
         <button onClick={() => router.push('/crm/comercial/cotizaciones/nueva')} className="btn-primary">
           <Plus className="h-3 w-3"/> Nueva cotización
@@ -284,7 +284,7 @@ export default function CotizacionesPage() {
       {/* KPIs */}
       <div className="grid grid-cols-6 gap-2">
         <div className="kpi-card bg-slate-50 border border-slate-200">
-          <span className="kpi-label flex items-center gap-1"><FileEdit className="h-3 w-3 text-slate-500"/> Borradores</span>
+          <span className="kpi-label flex items-center gap-1"><FileEdit className="h-3 w-3 text-slate-600"/> Borradores</span>
           <span className="kpi-value text-slate-700">{kpis.borradores}</span>
           <span className="kpi-sub">pendientes de envío</span>
         </div>
@@ -318,7 +318,7 @@ export default function CotizacionesPage() {
       {/* Filtros */}
       <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400"/>
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-500"/>
           <input className="search-input w-full pl-6" placeholder="Buscar por número, cliente, lead o DNI..."
             value={busqueda} onChange={e => setBusqueda(e.target.value)}/>
         </div>
@@ -368,14 +368,14 @@ export default function CotizacionesPage() {
           </thead>
           <tbody>
             {cargando ? (
-              <tr><td colSpan={8} className="text-center py-10 text-slate-400 text-xs">
+              <tr><td colSpan={8} className="text-center py-10 text-slate-500 text-xs">
                 <Loader2 className="h-4 w-4 animate-spin inline mr-2"/>Cargando...
               </td></tr>
             ) : cotizaciones.length === 0 ? (
               <tr><td colSpan={8} className="text-center py-12">
                 <div className="flex flex-col items-center gap-2">
                   <FileText className="h-8 w-8 text-slate-300"/>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     {hayFiltros ? 'No hay cotizaciones con esos filtros.' : "No hay cotizaciones. Hacé clic en 'Nueva cotización' para armar tu primera comparativa."}
                   </p>
                 </div>
@@ -417,7 +417,7 @@ export default function CotizacionesPage() {
       </div>
 
       {Math.ceil(total / POR_PAGINA) > 1 && (
-        <div className="flex items-center justify-between text-xs text-slate-500 pb-2">
+        <div className="flex items-center justify-between text-xs text-slate-600 pb-2">
           <span>Mostrando {pagina * POR_PAGINA + 1}–{Math.min((pagina + 1) * POR_PAGINA, total)} de {total}</span>
           <div className="flex gap-1">
             <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0} className="btn-secondary px-3">← Anterior</button>

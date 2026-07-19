@@ -234,7 +234,7 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
           <h2 className="text-sm font-semibold text-slate-800">
             Enviar email a {persona.apellido}{persona.nombre ? `, ${persona.nombre}` : ''}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -272,7 +272,7 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                 <div className="form-input bg-slate-50 text-xs text-slate-700 cursor-default">
                   {persona.apellido}{persona.nombre ? `, ${persona.nombre}` : ''} &lt;{persona.email}&gt;
                   {poliza && (
-                    <span className="ml-2 text-slate-400">· Póliza {poliza.numero_poliza}</span>
+                    <span className="ml-2 text-slate-500">· Póliza {poliza.numero_poliza}</span>
                   )}
                 </div>
               </div>
@@ -296,7 +296,7 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                   )}
                 </div>
                 {cargandoPlantillas ? (
-                  <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 py-2">
                     <Loader2 className="h-3 w-3 animate-spin" /> Cargando plantillas...
                   </div>
                 ) : (
@@ -315,7 +315,7 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                   </select>
                 )}
                 {plantillaActual && (
-                  <p className="text-2xs text-slate-400 mt-1">{plantillaActual.descripcion}</p>
+                  <p className="text-2xs text-slate-500 mt-1">{plantillaActual.descripcion}</p>
                 )}
               </div>
 
@@ -334,7 +334,7 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                       onChange={e => setAsunto(e.target.value)}
                       placeholder="Asunto del email..."
                     />
-                    <p className="text-2xs text-slate-400 mt-1">Las variables como {'{{nombre}}'} se reemplazan automáticamente.</p>
+                    <p className="text-2xs text-slate-500 mt-1">Las variables como {'{{nombre}}'} se reemplazan automáticamente.</p>
                   </div>
 
                   {/* Título — solo si la plantilla lo usa */}
@@ -386,7 +386,7 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
 
                   {/* Mensaje si la plantilla es de contenido fijo */}
                   {!tieneCamposPersonalizables && (
-                    <div className="text-2xs text-slate-500 bg-slate-50 border border-slate-200 rounded p-2.5">
+                    <div className="text-2xs text-slate-600 bg-slate-50 border border-slate-200 rounded p-2.5">
                       Esta plantilla tiene contenido fijo. Solo se completa con los datos del cliente y de la póliza. Si querés escribir un texto propio, elegí <strong>&quot;Mensaje informativo&quot;</strong> o <strong>&quot;Notificación general&quot;</strong>.
                     </div>
                   )}
@@ -394,7 +394,7 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                   {/* Archivos adjuntos */}
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">
-                      Archivos adjuntos <span className="text-slate-400 font-normal">({archivos.length}/{MAX_FILES})</span>
+                      Archivos adjuntos <span className="text-slate-500 font-normal">({archivos.length}/{MAX_FILES})</span>
                     </label>
                     <div
                       className={`border-2 border-dashed rounded p-3 text-center cursor-pointer transition-colors ${
@@ -412,23 +412,23 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                         className="hidden"
                         onChange={e => { if (e.target.files) agregarArchivos(e.target.files); e.target.value = '' }}
                       />
-                      <Paperclip className="h-4 w-4 text-slate-400 mx-auto mb-1" />
-                      <p className="text-xs text-slate-500">
+                      <Paperclip className="h-4 w-4 text-slate-500 mx-auto mb-1" />
+                      <p className="text-xs text-slate-600">
                         Arrastrá archivos o <span className="text-blue-600 font-medium">hacé clic</span>
                       </p>
-                      <p className="text-2xs text-slate-400 mt-0.5">Máx. 10MB por archivo, {MAX_FILES} archivos</p>
+                      <p className="text-2xs text-slate-500 mt-0.5">Máx. 10MB por archivo, {MAX_FILES} archivos</p>
                     </div>
 
                     {archivos.length > 0 && (
                       <div className="mt-2 flex flex-col gap-1">
                         {archivos.map((f, i) => (
                           <div key={i} className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 rounded px-2 py-1.5">
-                            <FileText className="h-3 w-3 text-slate-400 shrink-0" />
+                            <FileText className="h-3 w-3 text-slate-500 shrink-0" />
                             <span className="flex-1 truncate">{f.name}</span>
-                            <span className="text-2xs text-slate-400 shrink-0">
+                            <span className="text-2xs text-slate-500 shrink-0">
                               {(f.size / 1024).toFixed(0)} KB
                             </span>
-                            <button onClick={() => quitarArchivo(i)} className="text-slate-400 hover:text-red-500 shrink-0">
+                            <button onClick={() => quitarArchivo(i)} className="text-slate-500 hover:text-red-500 shrink-0">
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -444,7 +444,7 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                 <div className="border border-slate-200 rounded overflow-hidden">
                   <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-100">
                     <span className="text-xs font-medium text-slate-600">Vista previa</span>
-                    <button onClick={() => setMostrarPreview(false)} className="text-slate-400 hover:text-slate-600">
+                    <button onClick={() => setMostrarPreview(false)} className="text-slate-500 hover:text-slate-600">
                       <X className="h-3 w-3" />
                     </button>
                   </div>

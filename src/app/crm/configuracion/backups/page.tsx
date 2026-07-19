@@ -221,7 +221,7 @@ export default function BackupsPage() {
   if (authLoading || cargando) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
       </div>
     )
   }
@@ -232,15 +232,15 @@ export default function BackupsPage() {
     <div className="flex flex-col gap-4 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => router.push('/crm/configuracion')} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">
+        <button onClick={() => router.push('/crm/configuracion')} className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-700">
           <ArrowLeft className="h-3.5 w-3.5" /> Volver
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-semibold text-slate-800">Sistema de backups</h1>
-          <p className="text-xs text-slate-500">Configurá y gestioná los backups automáticos del CRM</p>
+          <p className="text-xs text-slate-600">Configurá y gestioná los backups automáticos del CRM</p>
         </div>
         <div className="flex items-center gap-1.5 text-2xs">
-          {guardando && <><Loader2 className="h-3 w-3 animate-spin text-slate-400" /><span className="text-slate-400">Guardando...</span></>}
+          {guardando && <><Loader2 className="h-3 w-3 animate-spin text-slate-500" /><span className="text-slate-500">Guardando...</span></>}
           {guardadoOk && <><CheckCircle className="h-3 w-3 text-green-500" /><span className="text-green-600">Guardado</span></>}
         </div>
       </div>
@@ -259,13 +259,13 @@ export default function BackupsPage() {
           <div className="flex items-center gap-3">
             {activo
               ? <CheckCircle className="h-6 w-6 text-green-600" />
-              : <HardDrive className="h-6 w-6 text-slate-400" />
+              : <HardDrive className="h-6 w-6 text-slate-500" />
             }
             <div>
               <p className={`text-sm font-semibold ${activo ? 'text-green-800' : 'text-slate-700'}`}>
                 {activo ? 'Sistema de backups activo' : 'Sistema de backups desactivado'}
               </p>
-              <p className={`text-xs mt-0.5 ${activo ? 'text-green-600' : 'text-slate-500'}`}>
+              <p className={`text-xs mt-0.5 ${activo ? 'text-green-600' : 'text-slate-600'}`}>
                 {activo
                   ? 'Los backups se ejecutan automáticamente todos los días'
                   : 'Activalo para proteger tus datos con backups automáticos diarios'}
@@ -309,7 +309,7 @@ export default function BackupsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-slate-800">Backup manual</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Creá un backup ahora mismo sin esperar al próximo automático</p>
+              <p className="text-xs text-slate-600 mt-0.5">Creá un backup ahora mismo sin esperar al próximo automático</p>
             </div>
             <button
               onClick={ejecutarBackupManual}
@@ -329,15 +329,15 @@ export default function BackupsPage() {
       {activo && (
         <div className="bg-white border border-slate-200 rounded-lg p-5">
           <h2 className="text-sm font-semibold text-slate-800">Sincronización con Google Drive</h2>
-          <p className="text-xs text-slate-500 mt-0.5 mb-4">Mantené una copia de los backups en Google Drive. Recomendamos activar verificación en 2 pasos en la cuenta.</p>
+          <p className="text-xs text-slate-600 mt-0.5 mb-4">Mantené una copia de los backups en Google Drive. Recomendamos activar verificación en 2 pasos en la cuenta.</p>
 
           {!rcloneEstado.instalado || !rcloneConfigurado ? (
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <Cloud className="h-5 w-5 text-slate-400 mt-0.5 shrink-0" />
+                <Cloud className="h-5 w-5 text-slate-500 mt-0.5 shrink-0" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-slate-700">Sincronización con la nube no configurada</p>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                     Tus backups solo viven en este servidor. Para activar la copia automática en Google Drive
                     contactanos y la configuramos por vos, lleva 5 minutos.
                   </p>
@@ -358,10 +358,10 @@ export default function BackupsPage() {
                     </a>
                   </div>
                   <details className="mt-3">
-                    <summary className="text-2xs text-slate-400 cursor-pointer hover:text-slate-600">
+                    <summary className="text-2xs text-slate-500 cursor-pointer hover:text-slate-600">
                       Detalles técnicos (uso interno)
                     </summary>
-                    <div className="mt-2 text-2xs text-slate-500 space-y-1.5">
+                    <div className="mt-2 text-2xs text-slate-600 space-y-1.5">
                       {!rcloneEstado.instalado ? (
                         <>
                           <p>rclone no está instalado en el servidor.</p>
@@ -396,7 +396,7 @@ export default function BackupsPage() {
                   <div>
                     <p className="text-xs font-medium text-slate-700">Sincronizar backups con Google Drive</p>
                     {configuracion?.sync_remoto_activo && (
-                      <p className="text-2xs text-slate-400 mt-0.5">
+                      <p className="text-2xs text-slate-500 mt-0.5">
                         Último sync exitoso: {
                           backups.find(b => b.sync_remoto_exitoso)
                             ? tiempoRelativo(backups.find(b => b.sync_remoto_exitoso)!.fecha_inicio)
@@ -425,10 +425,10 @@ export default function BackupsPage() {
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Carpeta de destino en Drive</label>
                     <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
-                      <FolderOpen className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <FolderOpen className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                       <span className="text-xs font-mono text-slate-700">fidcore-backups</span>
                     </div>
-                    <p className="text-2xs text-slate-400 mt-1">
+                    <p className="text-2xs text-slate-500 mt-1">
                       Los backups se suben siempre a la carpeta <code className="font-mono">fidcore-backups</code> de tu Drive. El nombre está fijado por el sistema para evitar errores de configuración.
                     </p>
                   </div>
@@ -460,8 +460,8 @@ export default function BackupsPage() {
           >
             <h2 className="text-sm font-semibold text-slate-800">Configuración avanzada</h2>
             {avanzadoAbierto
-              ? <ChevronUp className="h-4 w-4 text-slate-400" />
-              : <ChevronDown className="h-4 w-4 text-slate-400" />
+              ? <ChevronUp className="h-4 w-4 text-slate-500" />
+              : <ChevronDown className="h-4 w-4 text-slate-500" />
             }
           </button>
 
@@ -469,12 +469,12 @@ export default function BackupsPage() {
             <div className="px-5 pb-5 border-t border-slate-100 pt-4 flex flex-col gap-5">
               <div>
                 <h3 className="text-xs font-semibold text-slate-700 mb-1">Política de retención</h3>
-                <p className="text-2xs text-slate-400 mb-3">
+                <p className="text-2xs text-slate-500 mb-3">
                   El sistema mantiene los últimos N backups diarios, el primer backup de cada una de las últimas semanas, y el primer backup de cada uno de los últimos meses.
                 </p>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-2xs text-slate-500 mb-1">Backups diarios</label>
+                    <label className="block text-2xs text-slate-600 mb-1">Backups diarios</label>
                     <input
                       type="number"
                       min={1}
@@ -490,7 +490,7 @@ export default function BackupsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-2xs text-slate-500 mb-1">Backups semanales</label>
+                    <label className="block text-2xs text-slate-600 mb-1">Backups semanales</label>
                     <input
                       type="number"
                       min={0}
@@ -506,7 +506,7 @@ export default function BackupsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-2xs text-slate-500 mb-1">Backups mensuales</label>
+                    <label className="block text-2xs text-slate-600 mb-1">Backups mensuales</label>
                     <input
                       type="number"
                       min={0}
@@ -528,7 +528,7 @@ export default function BackupsPage() {
                 <h3 className="text-xs font-semibold text-slate-700 mb-3">
                   Retención de backups pre-actualización
                 </h3>
-                <p className="text-2xs text-slate-500 mb-3">
+                <p className="text-2xs text-slate-600 mb-3">
                   Los backups creados antes de aplicar una actualización del CRM
                   se conservan con política propia, separada de los backups diarios.
                 </p>
@@ -548,7 +548,7 @@ export default function BackupsPage() {
                         debouncedSave({ retener_pre_update_minimos: v })
                       }}
                     />
-                    <p className="text-2xs text-slate-400 mt-1">Últimos N, siempre se mantienen</p>
+                    <p className="text-2xs text-slate-500 mt-1">Últimos N, siempre se mantienen</p>
                   </div>
                   <div>
                     <label className="text-xs text-slate-600 block mb-1">Días de retención</label>
@@ -565,7 +565,7 @@ export default function BackupsPage() {
                         debouncedSave({ retener_pre_update_dias: v })
                       }}
                     />
-                    <p className="text-2xs text-slate-400 mt-1">Cualquiera con menos de N días</p>
+                    <p className="text-2xs text-slate-500 mt-1">Cualquiera con menos de N días</p>
                   </div>
                 </div>
               </div>
@@ -576,7 +576,7 @@ export default function BackupsPage() {
                   <label className="flex items-center justify-between cursor-pointer">
                     <div>
                       <p className="text-xs text-slate-700">Notificar backups fallidos</p>
-                      <p className="text-2xs text-slate-400">Se crea notificación y email cuando un backup falla</p>
+                      <p className="text-2xs text-slate-500">Se crea notificación y email cuando un backup falla</p>
                     </div>
                     <div className="relative inline-flex items-center">
                       <input
@@ -594,7 +594,7 @@ export default function BackupsPage() {
                   <label className="flex items-center justify-between cursor-pointer">
                     <div>
                       <p className="text-xs text-slate-700">Notificar backups exitosos</p>
-                      <p className="text-2xs text-slate-400">También notifica los backups que terminaron bien</p>
+                      <p className="text-2xs text-slate-500">También notifica los backups que terminaron bien</p>
                     </div>
                     <div className="relative inline-flex items-center">
                       <input
@@ -626,7 +626,7 @@ export default function BackupsPage() {
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <div className="p-4 flex items-center justify-between border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-800">
-            Backups disponibles <span className="text-slate-400 font-normal">({totalBackups} backups)</span>
+            Backups disponibles <span className="text-slate-500 font-normal">({totalBackups} backups)</span>
           </h2>
           <div className="flex items-center gap-2">
             <button
@@ -644,9 +644,9 @@ export default function BackupsPage() {
         {backups.length === 0 ? (
           <div className="p-8 text-center">
             <HardDrive className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs text-slate-500">No hay backups todavía.</p>
+            <p className="text-xs text-slate-600">No hay backups todavía.</p>
             {activo && (
-              <p className="text-2xs text-slate-400 mt-1">Hacé clic en &quot;Hacer backup ahora&quot; para crear el primero.</p>
+              <p className="text-2xs text-slate-500 mt-1">Hacé clic en &quot;Hacer backup ahora&quot; para crear el primero.</p>
             )}
           </div>
         ) : (
@@ -654,14 +654,14 @@ export default function BackupsPage() {
             <table className="crm-table w-full">
               <thead>
                 <tr>
-                  <th className="text-left text-2xs font-medium text-slate-500 px-4 py-2">Fecha</th>
-                  <th className="text-left text-2xs font-medium text-slate-500 px-4 py-2">Nombre</th>
-                  <th className="text-left text-2xs font-medium text-slate-500 px-4 py-2">Tipo</th>
-                  <th className="text-left text-2xs font-medium text-slate-500 px-4 py-2">Tamaño</th>
-                  <th className="text-left text-2xs font-medium text-slate-500 px-4 py-2">Duración</th>
-                  <th className="text-left text-2xs font-medium text-slate-500 px-4 py-2">Estado</th>
-                  <th className="text-center text-2xs font-medium text-slate-500 px-4 py-2">Drive</th>
-                  <th className="text-right text-2xs font-medium text-slate-500 px-4 py-2">Acciones</th>
+                  <th className="text-left text-2xs font-medium text-slate-600 px-4 py-2">Fecha</th>
+                  <th className="text-left text-2xs font-medium text-slate-600 px-4 py-2">Nombre</th>
+                  <th className="text-left text-2xs font-medium text-slate-600 px-4 py-2">Tipo</th>
+                  <th className="text-left text-2xs font-medium text-slate-600 px-4 py-2">Tamaño</th>
+                  <th className="text-left text-2xs font-medium text-slate-600 px-4 py-2">Duración</th>
+                  <th className="text-left text-2xs font-medium text-slate-600 px-4 py-2">Estado</th>
+                  <th className="text-center text-2xs font-medium text-slate-600 px-4 py-2">Drive</th>
+                  <th className="text-right text-2xs font-medium text-slate-600 px-4 py-2">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -672,7 +672,7 @@ export default function BackupsPage() {
                         {new Date(backup.fecha_inicio).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}{' '}
                         {new Date(backup.fecha_inicio).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                       </p>
-                      <p className="text-2xs text-slate-400">{tiempoRelativo(backup.fecha_inicio)}</p>
+                      <p className="text-2xs text-slate-500">{tiempoRelativo(backup.fecha_inicio)}</p>
                     </td>
                     <td className="px-4 py-2.5">
                       <span className="text-xs font-mono text-slate-600">{backup.nombre}</span>
@@ -738,7 +738,7 @@ export default function BackupsPage() {
                           <>
                             <button
                               onClick={() => descargarBackup(backup)}
-                              className="p-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors"
+                              className="p-1.5 rounded hover:bg-slate-100 text-slate-600 hover:text-blue-600 transition-colors"
                               title="Descargar"
                             >
                               <Download className="h-3.5 w-3.5" />
@@ -749,7 +749,7 @@ export default function BackupsPage() {
                                 setConfirmacionRestore('')
                                 setModalRestaurar(true)
                               }}
-                              className="p-1.5 rounded hover:bg-red-50 text-slate-500 hover:text-red-600 transition-colors"
+                              className="p-1.5 rounded hover:bg-red-50 text-slate-600 hover:text-red-600 transition-colors"
                               title="Restaurar"
                             >
                               <RotateCcw className="h-3.5 w-3.5" />
@@ -761,7 +761,7 @@ export default function BackupsPage() {
                             setBackupSeleccionado(backup)
                             setModalEliminar(true)
                           }}
-                          className="p-1.5 rounded hover:bg-red-50 text-slate-500 hover:text-red-600 transition-colors"
+                          className="p-1.5 rounded hover:bg-red-50 text-slate-600 hover:text-red-600 transition-colors"
                           title="Eliminar"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -785,7 +785,7 @@ export default function BackupsPage() {
                 <Shield className="h-4 w-4 text-red-500" />
                 Restaurar backup
               </h2>
-              <button onClick={() => setModalRestaurar(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalRestaurar(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -802,9 +802,9 @@ export default function BackupsPage() {
               </div>
 
               <div className="bg-slate-50 border border-slate-200 rounded p-3 mb-4">
-                <p className="text-2xs text-slate-500 mb-1">Backup a restaurar:</p>
+                <p className="text-2xs text-slate-600 mb-1">Backup a restaurar:</p>
                 <p className="text-xs font-mono font-medium text-slate-800">{backupSeleccionado.nombre}</p>
-                <p className="text-2xs text-slate-500 mt-1">
+                <p className="text-2xs text-slate-600 mt-1">
                   {new Date(backupSeleccionado.fecha_inicio).toLocaleString('es-AR')} — {formatearTamano(backupSeleccionado.tamano_total_bytes)}
                 </p>
               </div>
@@ -842,7 +842,7 @@ export default function BackupsPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
               <h2 className="text-sm font-semibold text-slate-800">Eliminar backup</h2>
-              <button onClick={() => setModalEliminar(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalEliminar(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -850,7 +850,7 @@ export default function BackupsPage() {
               <p className="text-xs text-slate-600 mb-3">¿Estás seguro de eliminar este backup? Esta acción no se puede deshacer.</p>
               <div className="bg-slate-50 border border-slate-200 rounded p-3">
                 <p className="text-xs font-mono font-medium text-slate-800">{backupSeleccionado.nombre}</p>
-                <p className="text-2xs text-slate-500 mt-1">
+                <p className="text-2xs text-slate-600 mt-1">
                   {new Date(backupSeleccionado.fecha_inicio).toLocaleString('es-AR')} — {formatearTamano(backupSeleccionado.tamano_total_bytes)}
                 </p>
               </div>

@@ -46,7 +46,7 @@ export default function SelectorCatalogoPDF({
   return (
     <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-2xs text-slate-500 uppercase tracking-wide font-semibold">
+        <span className="text-2xs text-slate-600 uppercase tracking-wide font-semibold">
           {LABELS[tipo]}
         </span>
         <Icono className={`h-3.5 w-3.5 ${resuelto ? 'text-emerald-500' : 'text-amber-500'}`} />
@@ -59,7 +59,7 @@ export default function SelectorCatalogoPDF({
               <p className="text-xs text-blue-700 font-medium">
                 Se va a crear: &ldquo;{pendienteCrearNombre}&rdquo;
               </p>
-              <p className="text-2xs text-slate-400">Al aprobar, el catálogo se agrega automáticamente.</p>
+              <p className="text-2xs text-slate-500">Al aprobar, el catálogo se agrega automáticamente.</p>
               <button
                 onClick={() => onCancelarPendiente?.()}
                 className="text-2xs text-blue-600 hover:underline text-left"
@@ -71,7 +71,7 @@ export default function SelectorCatalogoPDF({
             <>
               <p className="text-xs text-slate-700 font-medium">{nombreMapeado || '—'}</p>
               {valor_pdf && (
-                <p className="text-2xs text-slate-400">
+                <p className="text-2xs text-slate-500">
                   Desde el PDF: &ldquo;{valor_pdf}&rdquo;
                 </p>
               )}

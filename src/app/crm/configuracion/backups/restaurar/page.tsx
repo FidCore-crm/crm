@@ -204,19 +204,19 @@ export default function RestaurarBackupPage() {
   }, [confirmacion, restaurarDb, restaurarStorage, crearPreBackup, fuente, backupSelId, archivoSubido, router])
 
   if (authLoading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>
+    return <div className="flex items-center justify-center h-64"><Loader2 className="h-5 w-5 animate-spin text-slate-500" /></div>
   }
   if (!usuario || !isAdmin) return null
 
   return (
     <div className="flex flex-col gap-4 max-w-3xl">
       <div className="flex items-center gap-3">
-        <button onClick={() => router.push('/crm/configuracion/backups')} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">
+        <button onClick={() => router.push('/crm/configuracion/backups')} className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-700">
           <ArrowLeft className="h-3.5 w-3.5" /> Volver a backups
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-semibold text-slate-800">Restaurar backup</h1>
-          <p className="text-xs text-slate-500">Paso {paso} de 4</p>
+          <p className="text-xs text-slate-600">Paso {paso} de 4</p>
         </div>
       </div>
 
@@ -246,7 +246,7 @@ export default function RestaurarBackupPage() {
           >
             <FolderOpen className="h-6 w-6 text-blue-500 mb-2" />
             <h3 className="text-sm font-semibold text-slate-800">Desde un backup existente</h3>
-            <p className="text-2xs text-slate-500 mt-1">
+            <p className="text-2xs text-slate-600 mt-1">
               Usá uno de los backups que ya están en el servidor.
             </p>
           </button>
@@ -256,7 +256,7 @@ export default function RestaurarBackupPage() {
           >
             <Upload className="h-6 w-6 text-blue-500 mb-2" />
             <h3 className="text-sm font-semibold text-slate-800">Subir archivo .crmbak</h3>
-            <p className="text-2xs text-slate-500 mt-1">
+            <p className="text-2xs text-slate-600 mt-1">
               Subí un archivo desde tu computadora (por ejemplo uno bajado de Google Drive).
             </p>
           </button>
@@ -268,7 +268,7 @@ export default function RestaurarBackupPage() {
         <div className="bg-white border border-slate-200 rounded-lg p-5 flex flex-col gap-3">
           <p className="text-xs text-slate-600">Elegí el backup a restaurar:</p>
           {backups.length === 0 ? (
-            <p className="text-xs text-slate-500 italic">No hay backups disponibles.</p>
+            <p className="text-xs text-slate-600 italic">No hay backups disponibles.</p>
           ) : (
             <div className="flex flex-col gap-2 max-h-96 overflow-y-auto">
               {backups.map((b) => (
@@ -278,10 +278,10 @@ export default function RestaurarBackupPage() {
                     checked={backupSelId === b.id}
                     onChange={() => setBackupSelId(b.id)}
                   />
-                  <FileArchive className="h-4 w-4 text-slate-400" />
+                  <FileArchive className="h-4 w-4 text-slate-500" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-mono text-slate-800 truncate">{b.nombre}.crmbak</p>
-                    <p className="text-2xs text-slate-500">
+                    <p className="text-2xs text-slate-600">
                       {new Date(b.fecha_inicio).toLocaleString('es-AR')} · {fmtTamano(b.archivo_unico_tamano_bytes || b.tamano_total_bytes)}
                     </p>
                   </div>
@@ -307,11 +307,11 @@ export default function RestaurarBackupPage() {
       {paso === 2 && fuente === 'subir' && (
         <div className="bg-white border border-slate-200 rounded-lg p-5 flex flex-col gap-3">
           <label className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:bg-slate-50">
-            <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+            <Upload className="h-8 w-8 text-slate-500 mx-auto mb-2" />
             <p className="text-xs text-slate-600">
               {archivoSubido ? 'Archivo listo' : 'Arrastrá el archivo .crmbak o hacé click para seleccionar'}
             </p>
-            <p className="text-2xs text-slate-400 mt-1">Solo .crmbak · Máx 5 GB</p>
+            <p className="text-2xs text-slate-500 mt-1">Solo .crmbak · Máx 5 GB</p>
             <input
               type="file"
               accept=".crmbak"
@@ -324,19 +324,19 @@ export default function RestaurarBackupPage() {
           </label>
           {archivoSubido && (
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded p-3">
-              <FileArchive className="h-4 w-4 text-slate-500" />
+              <FileArchive className="h-4 w-4 text-slate-600" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-mono text-slate-800 truncate">{archivoSubido.name}</p>
-                <p className="text-2xs text-slate-500">{fmtTamano(archivoSubido.size)}</p>
+                <p className="text-2xs text-slate-600">{fmtTamano(archivoSubido.size)}</p>
               </div>
-              <button onClick={() => setArchivoSubido(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setArchivoSubido(null)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
           {uploadProgress !== null && (
             <div>
-              <p className="text-2xs text-slate-500 mb-1">Subiendo archivo: {uploadProgress}%</p>
+              <p className="text-2xs text-slate-600 mb-1">Subiendo archivo: {uploadProgress}%</p>
               <div className="h-1.5 bg-slate-200 rounded overflow-hidden">
                 <div className="h-full bg-blue-500 transition-all" style={{ width: `${uploadProgress}%` }} />
               </div>
@@ -400,21 +400,21 @@ export default function RestaurarBackupPage() {
 
           <div className="bg-white border border-slate-200 rounded-lg p-5 flex flex-col gap-3">
             <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-              <Settings className="h-4 w-4 text-slate-500" />
+              <Settings className="h-4 w-4 text-slate-600" />
               Opciones de restauración
             </h3>
             <label className="flex items-start gap-2 cursor-pointer">
               <input type="checkbox" checked={restaurarDb} onChange={(e) => setRestaurarDb(e.target.checked)} className="mt-0.5" />
               <div>
                 <p className="text-xs text-slate-700"><Database className="h-3 w-3 inline mr-1" /> Restaurar base de datos <span className="text-green-600">(RECOMENDADO)</span></p>
-                <p className="text-2xs text-slate-400">Reemplaza completamente el contenido de la DB actual.</p>
+                <p className="text-2xs text-slate-500">Reemplaza completamente el contenido de la DB actual.</p>
               </div>
             </label>
             <label className="flex items-start gap-2 cursor-pointer">
               <input type="checkbox" checked={restaurarStorage} onChange={(e) => setRestaurarStorage(e.target.checked)} className="mt-0.5" />
               <div>
                 <p className="text-xs text-slate-700"><HardDrive className="h-3 w-3 inline mr-1" /> Restaurar storage</p>
-                <p className="text-2xs text-slate-400">Archivos de pólizas, fotos, PDFs, etc.</p>
+                <p className="text-2xs text-slate-500">Archivos de pólizas, fotos, PDFs, etc.</p>
               </div>
             </label>
 
@@ -427,7 +427,7 @@ export default function RestaurarBackupPage() {
                 <input type="checkbox" checked={crearPreBackup} onChange={(e) => setCrearPreBackup(e.target.checked)} className="mt-0.5" />
                 <div>
                   <p className="text-xs text-slate-700">Crear backup de seguridad <strong>ANTES</strong> de restaurar <span className="text-green-600">(recomendado)</span></p>
-                  <p className="text-2xs text-slate-400">Te permite volver al estado actual si la restauración sale mal.</p>
+                  <p className="text-2xs text-slate-500">Te permite volver al estado actual si la restauración sale mal.</p>
                 </div>
               </label>
             </div>
@@ -486,7 +486,7 @@ export default function RestaurarBackupPage() {
 
           {uploadProgress !== null && (
             <div>
-              <p className="text-2xs text-slate-500 mb-1">Subiendo archivo: {uploadProgress}%</p>
+              <p className="text-2xs text-slate-600 mb-1">Subiendo archivo: {uploadProgress}%</p>
               <div className="h-1.5 bg-slate-200 rounded overflow-hidden">
                 <div className="h-full bg-blue-500 transition-all" style={{ width: `${uploadProgress}%` }} />
               </div>

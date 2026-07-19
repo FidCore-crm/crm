@@ -71,6 +71,9 @@ export default function PerfilPage() {
   const [colorMarca,   setColorMarca]   = useState(COLOR_MARCA_DEFAULT)
   const [emailHeaderEstilo, setEmailHeaderEstilo] = useState<'banda' | 'compacto' | 'lateral'>('banda')
   const [emailHeaderSubtitulo, setEmailHeaderSubtitulo] = useState('')
+  // v1.0.149: si el PAS activa esto, el renderer no pinta el nombre al lado
+  // del logo. Útil cuando el logo ya lo incluye en su diseño.
+  const [emailHeaderOcultarNombre, setEmailHeaderOcultarNombre] = useState(false)
 
   // Mensaje pre-armado del envío por WhatsApp (el email de cotización se
   // edita como plantilla desde /crm/configuracion/comunicaciones).
@@ -112,6 +115,7 @@ export default function PerfilPage() {
           setEmailHeaderEstilo(estiloGuardado)
         }
         setEmailHeaderSubtitulo((data as any).email_header_subtitulo ?? '')
+        setEmailHeaderOcultarNombre((data as any).email_header_ocultar_nombre === true)
         setCotWspTemplate(data.cotizacion_whatsapp_template ?? '')
         setCotAclaraciones((data as any).cotizacion_aclaraciones ?? '')
         if (data.logo_path) setLogoPreview(`/api/storage/${data.logo_path}`)
@@ -177,6 +181,7 @@ export default function PerfilPage() {
         color_marca:    normalizarColorMarca(colorMarca),
         email_header_estilo: emailHeaderEstilo,
         email_header_subtitulo: emailHeaderSubtitulo.trim().slice(0, 80),
+        email_header_ocultar_nombre: emailHeaderOcultarNombre,
         cotizacion_whatsapp_template:     cotWspTemplate.trim() || null,
         cotizacion_aclaraciones:          cotAclaraciones.trim() || null,
       }
@@ -222,7 +227,7 @@ export default function PerfilPage() {
   }
 
   if (cargando) return (
-    <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+    <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
       <Loader2 className="h-4 w-4 animate-spin" /> Cargando configuración...
     </div>
   )
@@ -238,7 +243,7 @@ export default function PerfilPage() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Perfil</h1>
-            <p className="text-xs text-slate-500">Datos de tu organización</p>
+            <p className="text-xs text-slate-600">Datos de tu organización</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -277,11 +282,11 @@ export default function PerfilPage() {
             <div className={`flex h-8 w-8 items-center justify-center rounded shrink-0 ${
               tipoOperacion === 'INDEPENDIENTE' ? 'bg-blue-100' : 'bg-slate-100'
             }`}>
-              <User className={`h-4 w-4 ${tipoOperacion === 'INDEPENDIENTE' ? 'text-blue-600' : 'text-slate-400'}`} />
+              <User className={`h-4 w-4 ${tipoOperacion === 'INDEPENDIENTE' ? 'text-blue-600' : 'text-slate-500'}`} />
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-700">Productor independiente</p>
-              <p className="text-2xs text-slate-500 mt-0.5">Autónomo o marca personal</p>
+              <p className="text-2xs text-slate-600 mt-0.5">Autónomo o marca personal</p>
             </div>
           </button>
           <button
@@ -295,11 +300,11 @@ export default function PerfilPage() {
             <div className={`flex h-8 w-8 items-center justify-center rounded shrink-0 ${
               tipoOperacion === 'SOCIEDAD' ? 'bg-blue-100' : 'bg-slate-100'
             }`}>
-              <Building2 className={`h-4 w-4 ${tipoOperacion === 'SOCIEDAD' ? 'text-blue-600' : 'text-slate-400'}`} />
+              <Building2 className={`h-4 w-4 ${tipoOperacion === 'SOCIEDAD' ? 'text-blue-600' : 'text-slate-500'}`} />
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-700">Sociedad de productores</p>
-              <p className="text-2xs text-slate-500 mt-0.5">Organización con múltiples socios</p>
+              <p className="text-2xs text-slate-600 mt-0.5">Organización con múltiples socios</p>
             </div>
           </button>
         </div>
@@ -343,7 +348,7 @@ export default function PerfilPage() {
                 </button>
               </div>
               {socios.length === 0 ? (
-                <p className="text-xs text-slate-400 py-2">No hay socios cargados</p>
+                <p className="text-xs text-slate-500 py-2">No hay socios cargados</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {socios.map((s, i) => (
@@ -355,7 +360,7 @@ export default function PerfilPage() {
                         onChange={e => actualizarSocio(i, 'matricula', e.target.value)}
                         placeholder="Matrícula SSN" />
                       <button onClick={() => eliminarSocio(i)}
-                        className="h-7 w-7 flex items-center justify-center rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0">
+                        className="h-7 w-7 flex items-center justify-center rounded text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
@@ -383,7 +388,7 @@ export default function PerfilPage() {
             />
             <div>
               <div className="text-sm text-slate-700">No usar logo</div>
-              <p className="text-2xs text-slate-400">
+              <p className="text-2xs text-slate-500">
                 Si lo marcás, en todo el sistema (sidebar, emails, PDFs, portal del cliente) aparece
                 solo el nombre, sin imagen.
               </p>
@@ -417,7 +422,7 @@ export default function PerfilPage() {
                     </button>
                   )}
                 </div>
-                <p className="text-2xs text-slate-400">PNG, JPG o SVG. Máximo 2MB.</p>
+                <p className="text-2xs text-slate-500">PNG, JPG o SVG. Máximo 2MB.</p>
               </div>
             </div>
           )}
@@ -452,7 +457,7 @@ export default function PerfilPage() {
           </Campo>
           <Campo label="Instagram">
             <div className="flex gap-1">
-              <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">@</span>
+              <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-600 border-r-0">@</span>
               <input className="form-input rounded-l-none flex-1" value={instagram}
                 onChange={e => setInstagram(e.target.value)} placeholder="miorganizacion" />
             </div>
@@ -476,7 +481,7 @@ export default function PerfilPage() {
               placeholder="CASO" maxLength={5} />
           </Campo>
           <div className="flex items-end pb-1">
-            <p className="text-2xs text-slate-400">
+            <p className="text-2xs text-slate-500">
               Ejemplo: <span className="font-mono text-slate-600">{prefijoCasos || 'CASO'}-2026-0001</span>
             </p>
           </div>
@@ -489,7 +494,7 @@ export default function PerfilPage() {
       {/* ── Mensaje pre-armado del envío por WhatsApp ────────── */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">
         <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-          <MessageSquare className="h-3.5 w-3.5 text-slate-500" />
+          <MessageSquare className="h-3.5 w-3.5 text-slate-600" />
           <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Mensaje de WhatsApp para cotizaciones</h3>
         </div>
         <div className="p-4 flex flex-col gap-3">
@@ -530,7 +535,7 @@ export default function PerfilPage() {
       <div className="bg-white border border-slate-200 rounded overflow-hidden">
         <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-3.5 w-3.5 text-slate-500" />
+            <MessageSquare className="h-3.5 w-3.5 text-slate-600" />
             <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Aclaraciones al pie del PDF de cotización</h3>
           </div>
           <button
@@ -567,11 +572,11 @@ export default function PerfilPage() {
       {/* ── Color de marca ──────────────────────────────────── */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">
         <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-          <Palette className="h-3.5 w-3.5 text-slate-500" />
+          <Palette className="h-3.5 w-3.5 text-slate-600" />
           <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Color de marca</h3>
         </div>
         <div className="p-4 flex flex-col gap-4">
-          <p className="text-2xs text-slate-500">
+          <p className="text-2xs text-slate-600">
             Este color se aplica solo a <strong>las superficies que ven tus asegurados</strong>: PDFs de
             cotización, emails, portal del asegurado y formulario público de denuncia. El CRM interno
             mantiene su propia paleta y no se modifica.
@@ -658,7 +663,7 @@ export default function PerfilPage() {
                 className="form-input w-32 font-mono text-xs"
                 title="Pegá un código hex (ej: #0a1628)"
               />
-              <p className="text-2xs text-slate-400">
+              <p className="text-2xs text-slate-500">
                 Pegá el código exacto de tu marca o usá el selector visual.
               </p>
             </div>
@@ -673,7 +678,7 @@ export default function PerfilPage() {
                 <div className="h-6 w-6 rounded border border-slate-300 shrink-0" style={{ backgroundColor: tonos.base }} />
                 <div className="flex-1">
                   <p className="text-xs font-medium text-slate-700">{nombreColor ?? 'Color personalizado'}</p>
-                  <p className="text-2xs text-slate-500 font-mono">{tonos.base}</p>
+                  <p className="text-2xs text-slate-600 font-mono">{tonos.base}</p>
                 </div>
               </div>
             )
@@ -707,7 +712,7 @@ export default function PerfilPage() {
                     >
                       Ver en el portal
                     </button>
-                    <p className="text-2xs text-slate-500 pt-2">Saludos cordiales.</p>
+                    <p className="text-2xs text-slate-600 pt-2">Saludos cordiales.</p>
                   </div>
                 </div>
               </div>
@@ -719,13 +724,13 @@ export default function PerfilPage() {
       {/* ── Estilo de encabezado de emails ──────────────────── */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">
         <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-          <Palette className="h-3.5 w-3.5 text-slate-500" />
+          <Palette className="h-3.5 w-3.5 text-slate-600" />
           <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
             Estilo de encabezado de emails
           </h3>
         </div>
         <div className="p-4 flex flex-col gap-3">
-          <p className="text-2xs text-slate-500">
+          <p className="text-2xs text-slate-600">
             Elegí cómo se ve el encabezado de los emails que enviás a tus clientes.
             El color y el logo son los que ya configuraste arriba — solo cambia el bloque del encabezado.
           </p>
@@ -852,7 +857,7 @@ export default function PerfilPage() {
                           </div>
                           <div className="flex-1">
                             <p className="text-xs font-semibold text-slate-700">{op.titulo}</p>
-                            <p className="text-2xs text-slate-500 mt-0.5 leading-snug">{op.descripcion}</p>
+                            <p className="text-2xs text-slate-600 mt-0.5 leading-snug">{op.descripcion}</p>
                           </div>
                         </div>
                       </button>
@@ -873,10 +878,32 @@ export default function PerfilPage() {
                     maxLength={80}
                     className="form-input w-full text-xs"
                   />
-                  <p className="text-2xs text-slate-500 mt-1">
+                  <p className="text-2xs text-slate-600 mt-1">
                     Aparece debajo del nombre <strong>solo en la variante "Banda con logo"</strong>.
                     Dejá vacío si no querés que se muestre.
                   </p>
+                </div>
+
+                {/* Toggle universal: ocultar el nombre en el header (v1.0.149) */}
+                <div className="pt-2 border-t border-slate-100">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={emailHeaderOcultarNombre}
+                      onChange={e => setEmailHeaderOcultarNombre(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <p className="text-xs font-medium text-slate-800">
+                        Ocultar el nombre en el encabezado
+                      </p>
+                      <p className="text-2xs text-slate-600 mt-0.5 leading-snug">
+                        Activá esto si <strong>tu logo ya incluye el nombre</strong> en su diseño.
+                        El renderer solo mostrará el logo (más grande, centrado) y ocultará el
+                        texto al lado. Aplica a las 3 variantes.
+                      </p>
+                    </div>
+                  </label>
                 </div>
               </>
             )

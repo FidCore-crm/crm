@@ -36,7 +36,7 @@ const ICONOS_RAMO: Record<string, React.ReactNode> = {
   automotor: <Car    className="h-3.5 w-3.5 text-blue-500" />,
   hogar:     <Home   className="h-3.5 w-3.5 text-amber-500" />,
   vida:      <Heart  className="h-3.5 w-3.5 text-rose-500" />,
-  generico:  <Package className="h-3.5 w-3.5 text-slate-400" />,
+  generico:  <Package className="h-3.5 w-3.5 text-slate-500" />,
 }
 
 // Genera un id único y lo inyecta tanto en el `<label htmlFor>` como en el
@@ -83,7 +83,7 @@ function Toggle({ value, onChange, labelSi = 'Sí', labelNo = 'No' }: {
 
 export default function NuevoSiniestroPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando...</div>}>
       <NuevoSiniestroContent />
     </Suspense>
   )
@@ -365,7 +365,7 @@ function NuevoSiniestroContent() {
         <CheckCircle className="h-6 w-6 text-green-600" />
       </div>
       <p className="text-sm font-medium text-slate-700">¡Siniestro registrado!</p>
-      <p className="text-xs text-slate-500">Redirigiendo a la ficha del siniestro...</p>
+      <p className="text-xs text-slate-600">Redirigiendo a la ficha del siniestro...</p>
     </div>
   )
 
@@ -382,7 +382,7 @@ function NuevoSiniestroContent() {
             <ArrowLeft className="h-3.5 w-3.5" /></button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Nuevo Siniestro</h1>
-            <p className="text-xs text-slate-500">Registrá un siniestro vinculado a una póliza</p>
+            <p className="text-xs text-slate-600">Registrá un siniestro vinculado a una póliza</p>
           </div>
         </div>
         <button onClick={guardar} disabled={guardando} className="btn-primary px-5">
@@ -447,7 +447,7 @@ function NuevoSiniestroContent() {
                   ?? [riesgo.detalle_tecnico?.calle, riesgo.detalle_tecnico?.numero].filter(Boolean).join(' ')
                   ?? riesgo.detalle_tecnico?.descripcion ?? '—'}
               </span>
-              <span className="ml-auto text-slate-400">{(polizaInfo.ramo as any)?.nombre}</span>
+              <span className="ml-auto text-slate-500">{(polizaInfo.ramo as any)?.nombre}</span>
             </div>
           )}
         </div>
@@ -503,7 +503,7 @@ function NuevoSiniestroContent() {
           )}
           <Campo label="Monto estimado del daño">
             <div className="flex gap-1">
-              <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-500 border-r-0">$</span>
+              <span className="flex items-center px-2 bg-slate-100 border border-slate-300 rounded-l text-xs text-slate-600 border-r-0">$</span>
               <input className="form-input font-mono rounded-l-none flex-1" value={montoEstimado}
                 onChange={e => setMontoEstimado(e.target.value.replace(/[^\d.]/g, ''))}
                 placeholder="0" inputMode="decimal" />

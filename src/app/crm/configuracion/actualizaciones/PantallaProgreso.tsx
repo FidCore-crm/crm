@@ -208,7 +208,7 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
             página no responde, refrescala manualmente.
           </p>
         ) : (
-          <p className="text-xs text-center text-slate-500 mb-6">
+          <p className="text-xs text-center text-slate-600 mb-6">
             {progreso?.mensaje ?? 'Preparando...'}
             <br />
             <span className="text-2xs">
@@ -230,7 +230,7 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
                     <div className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
                       completado ? 'bg-emerald-100 text-emerald-700' :
                       enCurso ? 'bg-blue-100 text-blue-700' :
-                      'bg-slate-100 text-slate-400'
+                      'bg-slate-100 text-slate-500'
                     }`}>
                       {completado ? <CheckCircle2 className="h-4 w-4" /> :
                        enCurso ? <Loader2 className="h-4 w-4 animate-spin" /> :
@@ -239,7 +239,7 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
                     <span className={`text-sm ${
                       completado ? 'text-slate-600' :
                       enCurso ? 'text-slate-900 font-medium' :
-                      'text-slate-400'
+                      'text-slate-500'
                     }`}>
                       {paso.label}
                     </span>
@@ -255,7 +255,7 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
                     style={{ width: `${Math.max(5, progreso.porcentaje)}%` }}
                   />
                 </div>
-                <p className="text-2xs text-slate-400 text-right mt-1 font-mono">
+                <p className="text-2xs text-slate-500 text-right mt-1 font-mono">
                   {progreso.porcentaje}%
                 </p>
               </div>
@@ -305,7 +305,7 @@ export function PantallaProgreso({ actualizacion: inicial, onTerminada }: Props)
         <div className="text-center">
           <Link
             href="/crm/configuracion/actualizaciones"
-            className="text-2xs text-slate-400 hover:text-slate-600 inline-flex items-center gap-1"
+            className="text-2xs text-slate-500 hover:text-slate-600 inline-flex items-center gap-1"
           >
             <History className="h-3 w-3" /> Ver historial completo
           </Link>

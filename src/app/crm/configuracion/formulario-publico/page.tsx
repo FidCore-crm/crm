@@ -20,7 +20,7 @@ function Campo({ label, required, ayuda, children }: {
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       {children}
-      {ayuda && <p className="text-2xs text-slate-400 mt-1">{ayuda}</p>}
+      {ayuda && <p className="text-2xs text-slate-500 mt-1">{ayuda}</p>}
     </div>
   )
 }
@@ -41,9 +41,7 @@ export default function FormularioPublicoPage() {
   const [subtituloHero, setSubtituloHero] = useState('')
   const [mensajeValidacion, setMensajeValidacion] = useState('')
   const [mensajeFuera, setMensajeFuera] = useState('')
-  const [terminosActivos, setTerminosActivos] = useState(false)
-  const [terminosTitulo, setTerminosTitulo] = useState('Términos y Condiciones')
-  const [terminosContenido, setTerminosContenido] = useState('')
+  // v1.0.149: Términos y Condiciones eliminados de la UI.
   const [urlPublica, setUrlPublica] = useState('')
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -67,9 +65,6 @@ export default function FormularioPublicoPage() {
         setSubtituloHero(c.subtitulo_hero || '')
         setMensajeValidacion(c.mensaje_validacion_fallida || '')
         setMensajeFuera(c.mensaje_fuera_servicio || '')
-        setTerminosActivos(c.terminos_activos ?? false)
-        setTerminosTitulo(c.terminos_titulo || 'Términos y Condiciones')
-        setTerminosContenido(c.terminos_contenido || '')
         setUrlPublica(c.url_publica || '')
       } else if (!r.ok) {
         setErrorGral(r.error?.mensaje ?? 'Error al cargar la configuración')
@@ -134,7 +129,7 @@ export default function FormularioPublicoPage() {
   if (authLoading || cargando) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
       </div>
     )
   }
@@ -145,16 +140,16 @@ export default function FormularioPublicoPage() {
     <div className="flex flex-col gap-4 max-w-6xl">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => router.push('/crm/configuracion')} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">
+        <button onClick={() => router.push('/crm/configuracion')} className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-700">
           <ArrowLeft className="h-3.5 w-3.5" /> Volver
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-semibold text-slate-800">Formulario público de siniestros</h1>
-          <p className="text-xs text-slate-500">Configurá el formulario de denuncia de siniestros que usan tus clientes.</p>
+          <p className="text-xs text-slate-600">Configurá el formulario de denuncia de siniestros que usan tus clientes.</p>
         </div>
         {/* Save indicator */}
         <div className="flex items-center gap-1.5 text-2xs">
-          {guardando && <><Loader2 className="h-3 w-3 animate-spin text-slate-400" /><span className="text-slate-400">Guardando...</span></>}
+          {guardando && <><Loader2 className="h-3 w-3 animate-spin text-slate-500" /><span className="text-slate-500">Guardando...</span></>}
           {guardadoOk && <><CheckCircle className="h-3 w-3 text-green-500" /><span className="text-green-600">Guardado</span></>}
         </div>
       </div>
@@ -206,7 +201,7 @@ export default function FormularioPublicoPage() {
           <Link2 className="h-4 w-4 text-blue-600" />
           <h2 className="text-sm font-semibold text-slate-800">URL del subdominio del formulario</h2>
         </div>
-        <p className="text-2xs text-slate-500 mb-3">
+        <p className="text-2xs text-slate-600 mb-3">
           Pegá el subdominio público que apunta a este servidor (ej: <code className="bg-slate-100 px-1 rounded">https://siniestros.suempresa.com.ar</code>).
           El sistema le agrega <code className="bg-slate-100 px-1 rounded">/denuncia</code> automáticamente al armar el link que vas a compartir.
         </p>
@@ -220,7 +215,7 @@ export default function FormularioPublicoPage() {
         />
         {urlPublica && urlCompleta && (
           <div className="mt-3">
-            <p className="text-2xs text-slate-500 mb-1">Link completo para compartir con clientes:</p>
+            <p className="text-2xs text-slate-600 mb-1">Link completo para compartir con clientes:</p>
             <div className="flex gap-2">
               <div
                 onClick={copiarUrl}
@@ -251,7 +246,7 @@ export default function FormularioPublicoPage() {
           <FileText className="h-4 w-4 text-blue-600" />
           <h2 className="text-sm font-semibold text-slate-800">Textos del formulario</h2>
         </div>
-        <p className="text-2xs text-slate-500 mb-4">Personalizá los textos que ve el cliente al entrar al formulario.</p>
+        <p className="text-2xs text-slate-600 mb-4">Personalizá los textos que ve el cliente al entrar al formulario.</p>
 
         <div className="flex flex-col gap-4">
           <Campo label="Título principal" required ayuda="Aparece como título grande en el hero banner del formulario. Máx. 100 caracteres.">
@@ -312,67 +307,17 @@ export default function FormularioPublicoPage() {
         </div>
       </div>
 
-      {/* SECCIÓN 4 — Términos */}
-      <div className="bg-white border border-slate-200 rounded-lg p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-800">Términos y Condiciones</h2>
-            <p className="text-2xs text-slate-500 mt-0.5">Si está activo, el cliente debe leer y aceptar los términos antes de enviar.</p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={terminosActivos}
-              onChange={e => {
-                setTerminosActivos(e.target.checked)
-                immediateSave({ terminos_activos: e.target.checked })
-              }}
-              className="sr-only peer"
-            />
-            <div className="w-10 h-5 bg-slate-300 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5" />
-          </label>
-        </div>
-
-        {terminosActivos && (
-          <div className="flex flex-col gap-4 border-t border-slate-100 pt-4">
-            <Campo label="Título de los términos" ayuda="Máx. 100 caracteres.">
-              <input
-                type="text"
-                className="form-input w-full text-xs"
-                maxLength={100}
-                placeholder="Términos y Condiciones"
-                value={terminosTitulo}
-                onChange={e => {
-                  setTerminosTitulo(e.target.value)
-                  debouncedSave({ terminos_titulo: e.target.value })
-                }}
-              />
-            </Campo>
-
-            <Campo label="Contenido de los términos" required ayuda="Texto plano. Líneas en blanco para separar párrafos. Máx. 5000 caracteres.">
-              <textarea
-                className="form-input w-full text-xs"
-                rows={8}
-                maxLength={5000}
-                placeholder="Escribí acá el texto completo de los términos y condiciones..."
-                value={terminosContenido}
-                onChange={e => {
-                  setTerminosContenido(e.target.value)
-                  debouncedSave({ terminos_contenido: e.target.value })
-                }}
-              />
-              <p className="text-2xs text-slate-400 mt-1 text-right">{terminosContenido.length}/5000</p>
-            </Campo>
-          </div>
-        )}
-      </div>
+      {/* SECCIÓN 4 — Términos y Condiciones eliminada en v1.0.149.
+          El formulario ya tiene la declaración jurada obligatoria + aviso
+          legal fijo del final. Las columnas terminos_activos/titulo/contenido
+          quedan en DB nullable para retrocompat con backups viejos. */}
 
       {/* SECCIÓN 5 — Vista previa */}
       <div className="bg-white border border-slate-200 rounded-lg p-5">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-slate-800">Vista previa</h2>
-            <p className="text-2xs text-slate-500 mt-0.5">Abrí el formulario público para ver cómo queda.</p>
+            <p className="text-2xs text-slate-600 mt-0.5">Abrí el formulario público para ver cómo queda.</p>
           </div>
           <button
             onClick={() => window.open('/denuncia', '_blank')}

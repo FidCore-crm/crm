@@ -117,7 +117,7 @@ export default function RehabilitarPolizaModal({ abierto, onCerrar, poliza, onRe
           <button
             onClick={() => !ejecutando && onCerrar()}
             disabled={ejecutando}
-            className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/60 text-slate-400 hover:text-slate-700 disabled:opacity-40"
+            className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/60 text-slate-500 hover:text-slate-700 disabled:opacity-40"
           >
             <X className="h-4 w-4" />
           </button>
@@ -126,30 +126,30 @@ export default function RehabilitarPolizaModal({ abierto, onCerrar, poliza, onRe
         <div className="p-5 flex flex-col gap-4">
           {/* Sección 1 — Info de la baja */}
           <div className="border border-slate-200 rounded p-3">
-            <p className="text-2xs text-slate-500 uppercase font-semibold mb-2">
+            <p className="text-2xs text-slate-600 uppercase font-semibold mb-2">
               Esta póliza fue {tipoBaja.toLowerCase()}
             </p>
             <div className="text-xs text-slate-700 space-y-1">
               <p>
-                <span className="text-slate-500">Número: </span>
+                <span className="text-slate-600">Número: </span>
                 <span className="font-mono">{poliza.numero_poliza}</span>
               </p>
               <p>
-                <span className="text-slate-500">Asegurado: </span>
+                <span className="text-slate-600">Asegurado: </span>
                 {poliza.asegurado_nombre}
               </p>
               <p>
-                <span className="text-slate-500">Fecha de baja: </span>
+                <span className="text-slate-600">Fecha de baja: </span>
                 {poliza.fecha_baja ? formatFechaLocal(poliza.fecha_baja) : '—'}
               </p>
               {poliza.motivo_baja && (
                 <p>
-                  <span className="text-slate-500">Motivo: </span>
+                  <span className="text-slate-600">Motivo: </span>
                   {poliza.motivo_baja}
                 </p>
               )}
               {poliza.observaciones_baja && (
-                <p className="text-2xs text-slate-500 italic">
+                <p className="text-2xs text-slate-600 italic">
                   {poliza.observaciones_baja}
                 </p>
               )}
@@ -158,7 +158,7 @@ export default function RehabilitarPolizaModal({ abierto, onCerrar, poliza, onRe
 
           {/* Sección 2 — Preview del resultado */}
           {cargandoPreview ? (
-            <div className="text-center py-6 text-xs text-slate-400">
+            <div className="text-center py-6 text-xs text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin mx-auto mb-1" />
               Calculando qué va a pasar...
             </div>
@@ -198,7 +198,7 @@ export default function RehabilitarPolizaModal({ abierto, onCerrar, poliza, onRe
 
           {/* Sección 4 — Motivo */}
           <div className="flex flex-col gap-1">
-            <label className="text-2xs text-slate-500 uppercase font-semibold">
+            <label className="text-2xs text-slate-600 uppercase font-semibold">
               Motivo de la rehabilitación (opcional)
             </label>
             <input
@@ -212,7 +212,7 @@ export default function RehabilitarPolizaModal({ abierto, onCerrar, poliza, onRe
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-2xs text-slate-500 uppercase font-semibold">
+            <label className="text-2xs text-slate-600 uppercase font-semibold">
               Observaciones (opcional)
             </label>
             <textarea

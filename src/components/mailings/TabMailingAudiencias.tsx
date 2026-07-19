@@ -62,7 +62,7 @@ export default function TabMailingAudiencias() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-600">
           Segmentos de tu cartera guardados (clientes por compañía, vencimiento, etc.) para reutilizar en envíos.
         </p>
         <button
@@ -75,14 +75,14 @@ export default function TabMailingAudiencias() {
       </div>
 
       {cargando ? (
-        <div className="py-10 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
+        <div className="py-10 text-center text-slate-500 text-sm flex items-center justify-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando audiencias...
         </div>
       ) : audiencias.length === 0 ? (
         <div className="bg-slate-50 border border-slate-200 rounded p-10 text-center">
           <Users className="h-10 w-10 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-slate-700">Sin audiencias todavía</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+          <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto leading-relaxed">
             Una audiencia es un grupo de clientes para enviar campañas (ej: "Clientes de La Caja con vencimiento
             en 30 días", "Clientes nuevos del último mes"). Las definís una vez y las reutilizás.
           </p>
@@ -112,7 +112,7 @@ export default function TabMailingAudiencias() {
                   <td>
                     <div className="text-sm text-slate-800 font-medium">{a.nombre}</div>
                     {a.descripcion && (
-                      <div className="text-2xs text-slate-500 mt-0.5 truncate max-w-md">{a.descripcion}</div>
+                      <div className="text-2xs text-slate-600 mt-0.5 truncate max-w-md">{a.descripcion}</div>
                     )}
                   </td>
                   <td>
@@ -129,16 +129,16 @@ export default function TabMailingAudiencias() {
                       <>
                         <strong className="font-mono">{a.ultima_cantidad}</strong>
                         {a.ultimo_preview_en && (
-                          <span className="text-2xs text-slate-400 ml-1" title={`Última verificación: ${new Date(a.ultimo_preview_en).toLocaleString('es-AR')}`}>
+                          <span className="text-2xs text-slate-500 ml-1" title={`Última verificación: ${new Date(a.ultimo_preview_en).toLocaleString('es-AR')}`}>
                             (cacheado)
                           </span>
                         )}
                       </>
                     ) : (
-                      <span className="text-slate-400 italic">—</span>
+                      <span className="text-slate-500 italic">—</span>
                     )}
                   </td>
-                  <td className="text-xs text-slate-500">
+                  <td className="text-xs text-slate-600">
                     {new Date(a.updated_at).toLocaleDateString('es-AR', { dateStyle: 'short' })}
                   </td>
                   <td className="text-right">

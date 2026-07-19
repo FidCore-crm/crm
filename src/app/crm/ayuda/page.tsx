@@ -47,7 +47,7 @@ export default function CentroAyudaPage() {
         <BookOpen className="h-5 w-5 text-slate-700" />
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Centro de Ayuda</h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Guías cortas para entender cada módulo del CRM.
           </p>
         </div>
@@ -55,7 +55,7 @@ export default function CentroAyudaPage() {
 
       {/* Búsqueda */}
       <div className="relative max-w-md">
-        <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+        <Search className="h-3.5 w-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           value={busqueda}
@@ -68,7 +68,7 @@ export default function CentroAyudaPage() {
       {/* Grid de artículos */}
       {articulosFiltrados.length === 0 ? (
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-10 text-center">
-          <p className="text-sm text-slate-500">No encontramos artículos para esa búsqueda.</p>
+          <p className="text-sm text-slate-600">No encontramos artículos para esa búsqueda.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -88,7 +88,7 @@ export default function CentroAyudaPage() {
                     <h2 className="text-sm font-semibold text-slate-800 group-hover:text-blue-700">
                       {a.titulo}
                     </h2>
-                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                       {a.descripcion}
                     </p>
                   </div>
@@ -106,7 +106,7 @@ export default function CentroAyudaPage() {
         <div className="flex-1">
           <p className="text-xs text-blue-900">
             Además de estos artículos, vas a ver íconos{' '}
-            <span className="inline-flex items-center justify-center bg-white text-slate-400 rounded-full h-4 w-4 border border-slate-300 text-2xs">?</span>{' '}
+            <span className="inline-flex items-center justify-center bg-white text-slate-500 rounded-full h-4 w-4 border border-slate-300 text-2xs">?</span>{' '}
             al lado de campos y botones específicos dentro del CRM. Hacé clic ahí para una explicación corta sin salir del flujo.
           </p>
           <p className="text-2xs text-blue-700 mt-1.5">

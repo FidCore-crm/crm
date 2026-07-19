@@ -313,7 +313,7 @@ export function SelectorRueda({ value, onChange, error, disabled }: Props) {
             <strong className="text-red-600">{labelSeleccion}</strong>
           </>
         ) : (
-          <span className="text-slate-400 italic">Tocá una o varias ruedas robadas</span>
+          <span className="text-slate-500 italic">Tocá una o varias ruedas robadas</span>
         )}
       </div>
     </div>

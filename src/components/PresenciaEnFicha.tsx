@@ -64,7 +64,7 @@ export function PresenciaEnFicha({ tipoEntidad, entidadId, modo = 'viendo' }: Pr
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-slate-500">
+      <span className="text-xs text-slate-600">
         {hayEditando
           ? editando.length === 1
             ? '1 editando:'

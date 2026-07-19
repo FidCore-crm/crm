@@ -37,6 +37,7 @@ export type BloqueId =
   | 'lesionados'
   | 'danos_propios'
   | 'selector_rueda'
+  | 'selector_cristal'
 
 export interface CampoEspecifico {
   key: string
@@ -211,12 +212,23 @@ export const CAMPOS_POR_BLOQUE: Record<BloqueId, CampoEspecifico[]> = {
   ],
 
   danos_propios: [
+    // Pregunta obligatoria (v1.0.149): el asegurado debe indicar Sí o No
+    // antes de describir. Si dice No, el textarea no se muestra pero la
+    // respuesta queda registrada — sino la ficha muestra "no describió"
+    // como si hubiese esquivado la pregunta.
+    {
+      key: 'sufrio_danos_propios',
+      label: '¿El vehículo asegurado sufrió daños?',
+      tipo: 'radio',
+      requerido: true,
+      opciones: ['No', 'Sí'],
+    },
     {
       key: 'danos_propios',
-      label: 'Daños del vehículo asegurado',
+      label: 'Describí los daños',
       tipo: 'textarea',
       requerido: false,
-      placeholder: 'Describí los daños visibles del vehículo asegurado...',
+      placeholder: 'Ej: Abolladura en el paragolpes delantero, faro derecho roto, capot deformado...',
       ancho: 'completo',
     },
   ],
@@ -261,6 +273,29 @@ export const CAMPOS_POR_BLOQUE: Record<BloqueId, CampoEspecifico[]> = {
       requerido: true,
       opciones: ['Chapa', 'Aleación'],
       ancho: 'mitad',
+    },
+  ],
+
+  selector_cristal: [
+    // El componente <SelectorCristal> renderea un SVG del auto con
+    // 7 cristales clickeables. Multi-select — el asegurado marca todos los
+    // cristales que se rompieron. La UI detecta el key 'cristales_rotos'
+    // y reemplaza el input por el selector visual.
+    {
+      key: 'cristales_rotos',
+      label: '¿Qué cristales se rompieron?',
+      tipo: 'radio',
+      requerido: true,
+      opciones: [
+        'Parabrisas',
+        'Luneta trasera',
+        'Cristal lateral delantero izquierdo',
+        'Cristal lateral delantero derecho',
+        'Cristal lateral trasero izquierdo',
+        'Cristal lateral trasero derecho',
+        'Techo solar corredizo',
+      ],
+      ayuda: 'Tocá cada cristal roto en el dibujo del auto.',
     },
   ],
 }
@@ -312,19 +347,16 @@ export const TIPOS_POR_TIPO_RIESGO: Record<string, TipoSiniestroConfig[]> = {
       icono: '🔓',
       bloques: [],
       campos: [
+        // v1.0.149: robos parciales son SIEMPRE de partes del vehículo
+        // (espejo, óptica, batería, rueda de auxilio). No preguntamos "cómo
+        // ingresaron" ni sugerimos elementos personales que no tienen
+        // cobertura (radio, GPS, herramientas).
         {
-          key: 'objetos_robados',
-          label: 'Detallar objetos robados',
+          key: 'elemento_robado',
+          label: 'Detalle del elemento robado',
           tipo: 'textarea',
           requerido: true,
-          placeholder: 'Radio, GPS, herramientas...',
-        },
-        {
-          key: 'como_ingresaron',
-          label: '¿Cómo ingresaron al vehículo?',
-          tipo: 'text',
-          requerido: false,
-          placeholder: 'Rompieron vidrio, forzaron cerradura...',
+          placeholder: 'Ej: espejo retrovisor, óptica, rueda de auxilio, batería...',
         },
       ],
     },
@@ -353,26 +385,13 @@ export const TIPOS_POR_TIPO_RIESGO: Record<string, TipoSiniestroConfig[]> = {
     {
       value: 'ROTURA_CRISTALES',
       label: 'Rotura de cristales',
-      icono: '🪟',
-      bloques: [],
-      campos: [
-        {
-          key: 'cristal_afectado',
-          label: '¿Qué cristal se rompió?',
-          tipo: 'select',
-          requerido: true,
-          opciones: ['Parabrisas', 'Luneta trasera', 'Cristal lateral', 'Espejo', 'Otro'],
-          ancho: 'mitad',
-        },
-        {
-          key: 'tipo_intervencion',
-          label: '¿Reemplazo o reparación?',
-          tipo: 'select',
-          requerido: false,
-          opciones: ['Reemplazo', 'Reparación', 'A definir'],
-          ancho: 'mitad',
-        },
-      ],
+      icono: '🪟', // emoji fallback (el form público muestra SVG via ICONOS_SVG_TIPO_SINIESTRO)
+      bloques: ['selector_cristal'],
+      // v1.0.149: sacamos "cristal_afectado" (select con 5 opciones) y
+      // "tipo_intervencion" (¿reemplazo o reparación?). Si un cristal se
+      // rompió no hay reparación posible. El bloque selector_cristal usa
+      // el dibujo del auto para que el asegurado tilde múltiples cristales.
+      campos: [],
     },
     {
       value: 'INCENDIO',

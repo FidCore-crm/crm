@@ -149,7 +149,7 @@ export default function CompararPage() {
       <div className="flex items-start justify-between mb-8">
         <div>
           <button
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 mb-2"
+            className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-700 mb-2"
             onClick={() => router.push('/crm/importar')}
           >
             <ArrowLeft className="w-3 h-3" /> Volver
@@ -179,7 +179,7 @@ export default function CompararPage() {
 
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">
               Clientes
             </h3>
             <ul className="space-y-2 text-sm">
@@ -201,7 +201,7 @@ export default function CompararPage() {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">
               Pólizas
             </h3>
             <ul className="space-y-2 text-sm">
@@ -260,7 +260,7 @@ export default function CompararPage() {
                 </tbody>
               </table>
               {personas.con_cambios > personas.muestra_con_cambios.length && (
-                <p className="text-2xs text-slate-500 p-3 text-center">
+                <p className="text-2xs text-slate-600 p-3 text-center">
                   Mostrando los primeros {personas.muestra_con_cambios.length} de{' '}
                   {personas.con_cambios}
                 </p>
@@ -300,7 +300,7 @@ export default function CompararPage() {
                         <td className="px-4 py-2 text-slate-600">
                           {entries.map(([k, v]) => formatCambio(k, v)).join(' · ')}
                           {Object.keys(p.cambios).length > 2 && (
-                            <span className="text-slate-400"> (+{Object.keys(p.cambios).length - 2})</span>
+                            <span className="text-slate-500"> (+{Object.keys(p.cambios).length - 2})</span>
                           )}
                         </td>
                       </tr>
@@ -330,7 +330,7 @@ export default function CompararPage() {
                 Revisar cambios sospechosos primero{' '}
                 <span className="text-2xs text-violet-600">(recomendado)</span>
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 Aplica automáticamente los cambios simples y te pide confirmación en los dudosos.
               </p>
             </div>
@@ -345,7 +345,7 @@ export default function CompararPage() {
             />
             <div>
               <p className="text-sm font-medium text-slate-800">Aplicar todos los cambios automáticamente</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 Actualiza todo sin revisión intermedia. Más rápido, menos seguro.
               </p>
             </div>
@@ -360,7 +360,7 @@ export default function CompararPage() {
             />
             <div>
               <p className="text-sm font-medium text-slate-800">Solo importar los nuevos</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 Ignora los cambios en clientes/pólizas existentes, importa únicamente lo nuevo.
               </p>
             </div>
@@ -433,7 +433,7 @@ export default function CompararPage() {
                   {polizas.no_encontradas_detalle.map((p, i) => (
                     <tr key={i}>
                       <td className="px-3 py-1.5 font-mono text-slate-700">{p.numero_poliza}</td>
-                      <td className="px-3 py-1.5 font-mono text-2xs text-slate-500">{p.cliente}</td>
+                      <td className="px-3 py-1.5 font-mono text-2xs text-slate-600">{p.cliente}</td>
                     </tr>
                   ))}
                 </tbody>

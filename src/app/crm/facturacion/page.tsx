@@ -307,7 +307,7 @@ export default function FacturacionPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Facturación</h1>
-          <p className="text-xs text-slate-500">Control de facturación mensual por compañía</p>
+          <p className="text-xs text-slate-600">Control de facturación mensual por compañía</p>
         </div>
       </div>
 
@@ -360,7 +360,7 @@ export default function FacturacionPage() {
       {/* Gráfico */}
       <div className="bg-white border border-slate-200 rounded p-4">
         <h2 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-1.5">
-          <BarChart3 className="h-3.5 w-3.5 text-slate-500"/> Facturación mensual {filtroAnio}
+          <BarChart3 className="h-3.5 w-3.5 text-slate-600"/> Facturación mensual {filtroAnio}
         </h2>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={datosGrafico} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
@@ -405,7 +405,7 @@ export default function FacturacionPage() {
                 <td className="text-xs text-slate-700 font-medium">{MESES[r.mes - 1]}</td>
                 <td className="text-xs text-slate-600">{r.compania_nombre}</td>
                 <td className="text-right font-mono text-xs text-slate-700 font-semibold">{formatMoneda(r.monto)}</td>
-                <td className="text-xs text-slate-500 max-w-48 truncate" title={r.notas ?? ''}>{r.notas ?? '—'}</td>
+                <td className="text-xs text-slate-600 max-w-48 truncate" title={r.notas ?? ''}>{r.notas ?? '—'}</td>
                 <td>
                   <div className="flex items-center gap-0.5">
                     <button onClick={() => abrirModalEdicion(r)}
@@ -435,7 +435,7 @@ export default function FacturacionPage() {
               <h3 className="text-sm font-semibold text-slate-800">
                 {editandoId ? 'Editar facturación' : 'Cargar facturación'}
               </h3>
-              <button onClick={() => setModalAbierto(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalAbierto(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4"/>
               </button>
             </div>

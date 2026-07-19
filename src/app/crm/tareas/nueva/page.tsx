@@ -43,7 +43,7 @@ function Campo({ label, required, error, col = 1, children }: {
 
 export default function NuevaTareaPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando...</div>}>
       <NuevaTareaContent />
     </Suspense>
   )
@@ -169,7 +169,7 @@ function NuevaTareaContent() {
         <CheckCircle className="h-6 w-6 text-green-600" />
       </div>
       <p className="text-sm font-medium text-slate-700">Tarea creada</p>
-      <p className="text-xs text-slate-500">Redirigiendo al listado...</p>
+      <p className="text-xs text-slate-600">Redirigiendo al listado...</p>
     </div>
   )
 
@@ -186,7 +186,7 @@ function NuevaTareaContent() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Nueva Tarea</h1>
-            <p className="text-xs text-slate-500">Creá una tarea o recordatorio</p>
+            <p className="text-xs text-slate-600">Creá una tarea o recordatorio</p>
           </div>
         </div>
         <button onClick={guardar} disabled={guardando} className="btn-primary px-5">
@@ -310,7 +310,7 @@ function NuevaTareaContent() {
             </select>
           </Campo>
           {recurrencia !== 'NINGUNA' && (
-            <div className="col-span-2 text-2xs text-slate-500 bg-blue-50 border border-blue-100 rounded px-2.5 py-1.5">
+            <div className="col-span-2 text-2xs text-slate-600 bg-blue-50 border border-blue-100 rounded px-2.5 py-1.5">
               Cada vez que completes esta tarea, se creará automáticamente la siguiente
               instancia con la misma frecuencia. Borrala manualmente cuando ya no la necesites.
             </div>

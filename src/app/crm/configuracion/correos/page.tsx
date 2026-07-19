@@ -19,7 +19,7 @@ function Campo({ label, required, ayuda, children }: {
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       {children}
-      {ayuda && <p className="text-2xs text-slate-400 mt-1">{ayuda}</p>}
+      {ayuda && <p className="text-2xs text-slate-500 mt-1">{ayuda}</p>}
     </div>
   )
 }
@@ -176,7 +176,7 @@ export default function CorreosPage() {
   if (authLoading || cargando) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
       </div>
     )
   }
@@ -187,12 +187,12 @@ export default function CorreosPage() {
     <div className="flex flex-col gap-4 max-w-6xl">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => router.push('/crm/configuracion')} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">
+        <button onClick={() => router.push('/crm/configuracion')} className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-700">
           <ArrowLeft className="h-3.5 w-3.5" /> Volver
         </button>
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Configuración de correos</h1>
-          <p className="text-xs text-slate-500">Servidor SMTP, remitente y destinatarios del sistema</p>
+          <p className="text-xs text-slate-600">Servidor SMTP, remitente y destinatarios del sistema</p>
         </div>
       </div>
 
@@ -251,7 +251,7 @@ export default function CorreosPage() {
           {/* SECCIÓN 2 — SMTP */}
           <div className="bg-white border border-slate-200 rounded-lg p-5">
             <h2 className="text-sm font-semibold text-slate-800 mb-1">Servidor SMTP</h2>
-            <p className="text-2xs text-slate-500 mb-4">Datos del servidor de correo. Te los proporciona tu proveedor de email (Gmail, Outlook, tu hosting, etc.).</p>
+            <p className="text-2xs text-slate-600 mb-4">Datos del servidor de correo. Te los proporciona tu proveedor de email (Gmail, Outlook, tu hosting, etc.).</p>
 
             <div className="grid grid-cols-2 gap-4">
               <Campo label="Servidor SMTP" required ayuda="Ej: smtp.gmail.com">
@@ -267,7 +267,7 @@ export default function CorreosPage() {
                 <input type="checkbox" checked={smtpSecure} onChange={e => setSmtpSecure(e.target.checked)} className="rounded border-slate-300" />
                 <span className="text-xs text-slate-700">Conexión segura SSL/TLS</span>
               </label>
-              <p className="text-2xs text-slate-400 mt-1 ml-6">Activar solo si usás puerto 465. Para puerto 587 dejar desactivado.</p>
+              <p className="text-2xs text-slate-500 mt-1 ml-6">Activar solo si usás puerto 465. Para puerto 587 dejar desactivado.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-4">
@@ -286,7 +286,7 @@ export default function CorreosPage() {
                   <div className="flex items-center gap-2">
                     <input type="password" className="form-input flex-1 text-xs" placeholder={tienePassword ? 'Nueva contraseña...' : 'Contraseña SMTP'} value={smtpPassword} onChange={e => setSmtpPassword(e.target.value)} />
                     {editandoPassword && (
-                      <button onClick={() => { setEditandoPassword(false); setSmtpPassword('') }} className="text-2xs text-slate-500 hover:text-slate-700">
+                      <button onClick={() => { setEditandoPassword(false); setSmtpPassword('') }} className="text-2xs text-slate-600 hover:text-slate-700">
                         Cancelar
                       </button>
                     )}
@@ -299,7 +299,7 @@ export default function CorreosPage() {
           {/* SECCIÓN 3 — Remitente */}
           <div className="bg-white border border-slate-200 rounded-lg p-5">
             <h2 className="text-sm font-semibold text-slate-800 mb-1">Datos del remitente</h2>
-            <p className="text-2xs text-slate-500 mb-4">Cómo aparecen los emails enviados en la bandeja de entrada del destinatario.</p>
+            <p className="text-2xs text-slate-600 mb-4">Cómo aparecen los emails enviados en la bandeja de entrada del destinatario.</p>
 
             <div className="grid grid-cols-2 gap-4">
               <Campo label="Nombre del remitente" required ayuda="Aparece como nombre del remitente (ej: 'Lobo Seguros')">
@@ -358,18 +358,18 @@ export default function CorreosPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
               <h2 className="text-sm font-semibold text-slate-800">Enviar email de prueba</h2>
-              <button onClick={() => setMostrarModalTest(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setMostrarModalTest(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="px-5 py-4">
-              <p className="text-xs text-slate-500 mb-4">Vamos a intentar enviar un email de prueba para verificar que la configuración funciona.</p>
+              <p className="text-xs text-slate-600 mb-4">Vamos a intentar enviar un email de prueba para verificar que la configuración funciona.</p>
               <Campo label="Enviar a" required>
                 <input type="email" className="form-input w-full text-xs" value={testDestinatario} onChange={e => setTestDestinatario(e.target.value)} placeholder="destinatario@ejemplo.com" />
               </Campo>
 
               {testeando && (
-                <div className="flex items-center gap-2 mt-4 text-xs text-slate-500">
+                <div className="flex items-center gap-2 mt-4 text-xs text-slate-600">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   Conectando con el servidor SMTP...
                 </div>

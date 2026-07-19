@@ -171,7 +171,7 @@ export default function EditarTareaPage() {
   }
 
   if (cargando) return (
-    <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+    <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
       <Loader2 className="h-4 w-4 animate-spin" /> Cargando tarea...
     </div>
   )
@@ -182,7 +182,7 @@ export default function EditarTareaPage() {
         <CheckCircle className="h-6 w-6 text-green-600" />
       </div>
       <p className="text-sm font-medium text-slate-700">Tarea actualizada</p>
-      <p className="text-xs text-slate-500">Redirigiendo al listado...</p>
+      <p className="text-xs text-slate-600">Redirigiendo al listado...</p>
     </div>
   )
 
@@ -199,7 +199,7 @@ export default function EditarTareaPage() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Editar Tarea</h1>
-            <p className="text-xs text-slate-500">Modificá los datos de la tarea</p>
+            <p className="text-xs text-slate-600">Modificá los datos de la tarea</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

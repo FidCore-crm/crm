@@ -25,7 +25,7 @@ const POR_PAGINA = 25
 
 export default function PersonasPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando cartera...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando cartera...</div>}>
       <PersonasContent />
     </Suspense>
   )
@@ -393,7 +393,7 @@ function PersonasContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Cartera</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-600 mt-0.5">
             Asegurados e inactivos de tu cartera
           </p>
         </div>
@@ -497,9 +497,9 @@ function PersonasContent() {
           className={`kpi-card text-left bg-slate-50 border border-slate-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'inactivo' ? 'ring-2 ring-slate-400' : ''}`}
         >
           <span className="kpi-label flex items-center gap-1">
-            <UserX className="h-3.5 w-3.5 text-slate-400" /> Inactivos
+            <UserX className="h-3.5 w-3.5 text-slate-500" /> Inactivos
           </span>
-          <span className="kpi-value text-slate-500">{(contadores['INACTIVO'] ?? 0).toLocaleString('es-AR')}</span>
+          <span className="kpi-value text-slate-600">{(contadores['INACTIVO'] ?? 0).toLocaleString('es-AR')}</span>
           <span className="kpi-sub">sin pólizas activas</span>
         </button>
       </div>
@@ -507,7 +507,7 @@ function PersonasContent() {
       {/* Barra de filtros */}
       <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
           <input
             type="text"
             value={busquedaInput}
@@ -562,7 +562,7 @@ function PersonasContent() {
 
         {/* Info de resultados */}
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 bg-slate-50">
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-600">
             {cargando ? (
               <span className="flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" /> Cargando...
@@ -575,7 +575,7 @@ function PersonasContent() {
               </>
             )}
           </span>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-600">
             Pág. {pagina} de {totalPaginas || 1}
           </span>
         </div>
@@ -633,7 +633,7 @@ function PersonasContent() {
         {/* Paginación */}
         {totalPaginas > 1 && (
           <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 bg-slate-50">
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-600">
               Mostrando {((pagina - 1) * POR_PAGINA) + 1}–
               {Math.min(pagina * POR_PAGINA, total)} de {total.toLocaleString('es-AR')}
             </span>
@@ -725,7 +725,7 @@ function PersonaFila({
         <div className="flex flex-col">
           <span className="font-medium text-sm text-blue-600 hover:underline">{nombre}</span>
           {persona.tipo_persona === 'JURIDICA' && (
-            <span className="text-2xs text-slate-500">Persona Jurídica</span>
+            <span className="text-2xs text-slate-600">Persona Jurídica</span>
           )}
         </div>
       </td>
@@ -742,7 +742,7 @@ function PersonaFila({
         <div className="flex flex-col gap-0.5">
           {persona.telefono && (
             <span className="flex items-center gap-1 text-xs text-slate-600">
-              <Phone className="h-2.5 w-2.5 text-slate-400" />
+              <Phone className="h-2.5 w-2.5 text-slate-500" />
               {persona.telefono}
             </span>
           )}
@@ -756,7 +756,7 @@ function PersonaFila({
       <td>
         {persona.email ? (
           <span className="flex items-center gap-1 text-xs text-slate-600">
-            <Mail className="h-2.5 w-2.5 text-slate-400 shrink-0" />
+            <Mail className="h-2.5 w-2.5 text-slate-500 shrink-0" />
             <span className="truncate max-w-44">{persona.email}</span>
           </span>
         ) : (
@@ -796,7 +796,7 @@ function PersonaFila({
 
       {/* Fecha alta */}
       <td>
-        <span className="text-xs text-slate-500 font-mono">
+        <span className="text-xs text-slate-600 font-mono">
           {formatFecha(persona.fecha_alta)}
         </span>
       </td>

@@ -79,7 +79,7 @@ export default function WhatsappPlantillasSection() {
 
   if (cargando) {
     return (
-      <div className="flex items-center justify-center py-10 text-slate-400 text-xs gap-2">
+      <div className="flex items-center justify-center py-10 text-slate-500 text-xs gap-2">
         <Loader2 className="h-4 w-4 animate-spin" /> Cargando plantillas WhatsApp...
       </div>
     )
@@ -92,7 +92,7 @@ export default function WhatsappPlantillasSection() {
           <MessageCircle className="h-4 w-4 text-green-600" />
           <h2 className="text-sm font-semibold text-slate-800">Plantillas de WhatsApp</h2>
         </div>
-        <p className="text-2xs text-slate-500 mb-4">
+        <p className="text-2xs text-slate-600 mb-4">
           Mensajes pre-armados que se cargan al abrir WhatsApp desde el CRM. Las variables
           (<span className="font-mono">{'{{nombre}}'}</span>, <span className="font-mono">{'{{numero_poliza}}'}</span>, etc.)
           se reemplazan con datos reales antes de abrir wa.me.
@@ -110,7 +110,7 @@ export default function WhatsappPlantillasSection() {
                     </span>
                   </div>
                   {p.descripcion && (
-                    <p className="text-2xs text-slate-500 mt-0.5">{p.descripcion}</p>
+                    <p className="text-2xs text-slate-600 mt-0.5">{p.descripcion}</p>
                   )}
                   <div className="flex flex-wrap gap-1 mt-2">
                     {(p.variables_disponibles ?? []).map(v => (
@@ -228,14 +228,14 @@ function EditorWhatsappModal({
             <MessageCircle className="h-4 w-4 text-green-600" />
             <h3 className="text-sm font-semibold text-slate-800">{plantilla.nombre}</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
           {plantilla.descripcion && (
-            <p className="text-xs text-slate-500">{plantilla.descripcion}</p>
+            <p className="text-xs text-slate-600">{plantilla.descripcion}</p>
           )}
 
           {/* Variables disponibles */}
@@ -264,7 +264,7 @@ function EditorWhatsappModal({
               <label className="block text-2xs font-semibold uppercase tracking-wider text-slate-600">
                 Mensaje
               </label>
-              <span className={`text-2xs ${charsRestantes < 100 ? 'text-orange-600 font-medium' : 'text-slate-400'}`}>
+              <span className={`text-2xs ${charsRestantes < 100 ? 'text-orange-600 font-medium' : 'text-slate-500'}`}>
                 {mensaje.length} / 3000
               </span>
             </div>

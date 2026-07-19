@@ -96,7 +96,7 @@ export function ConfirmacionTipeada({
             type="button"
             onClick={onCancelar}
             disabled={cargando}
-            className="text-slate-400 hover:text-slate-600 disabled:opacity-50"
+            className="text-slate-500 hover:text-slate-600 disabled:opacity-50"
           >
             <X className="h-4 w-4" />
           </button>

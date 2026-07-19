@@ -198,7 +198,7 @@ export default function CompletadaPage() {
   if (cargando || !imp) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
       </div>
     );
   }
@@ -331,7 +331,7 @@ export default function CompletadaPage() {
             <p className="text-sm font-semibold text-slate-900">
               Ver clientes importados
             </p>
-            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+            <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
               Ir al listado <ArrowRight className="w-3 h-3" />
             </p>
           </button>
@@ -343,7 +343,7 @@ export default function CompletadaPage() {
             <p className="text-sm font-semibold text-slate-900">
               Ver pólizas importadas
             </p>
-            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+            <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
               Ir al listado <ArrowRight className="w-3 h-3" />
             </p>
           </button>
@@ -355,7 +355,7 @@ export default function CompletadaPage() {
             <p className="text-sm font-semibold text-slate-900">
               Ver renovaciones próximas
             </p>
-            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+            <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
               Ir al listado <ArrowRight className="w-3 h-3" />
             </p>
           </button>
@@ -369,34 +369,34 @@ export default function CompletadaPage() {
         </h2>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-xs">
           <div>
-            <dt className="text-slate-500">ID</dt>
+            <dt className="text-slate-600">ID</dt>
             <dd className="font-mono text-slate-900">{imp.id}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Modo</dt>
+            <dt className="text-slate-600">Modo</dt>
             <dd className="text-slate-900">{imp.tipo || 'INICIAL'}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Inicio</dt>
+            <dt className="text-slate-600">Inicio</dt>
             <dd className="text-slate-900">{formatFecha(imp.fecha_inicio)}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Fin</dt>
+            <dt className="text-slate-600">Fin</dt>
             <dd className="text-slate-900">{formatFecha(imp.fecha_fin)}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Total filas procesadas</dt>
+            <dt className="text-slate-600">Total filas procesadas</dt>
             <dd className="text-slate-900">{imp.total_filas ?? '—'}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Clientes existentes</dt>
+            <dt className="text-slate-600">Clientes existentes</dt>
             <dd className="text-slate-900">{imp.clientes_existentes ?? 0}</dd>
           </div>
         </dl>
 
         {archivos.length > 0 && (
           <div className="mt-4 pt-3 border-t border-slate-100">
-            <p className="text-xs text-slate-500 mb-1">Archivos</p>
+            <p className="text-xs text-slate-600 mb-1">Archivos</p>
             <ul className="text-xs text-slate-900 space-y-0.5">
               {archivos.map((a, i: number) => (
                 <li key={i} className="font-mono">

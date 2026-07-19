@@ -106,7 +106,7 @@ export function ModalProgramar({ release, onCerrar, onProgramada }: Props) {
             <Calendar className="h-4 w-4 text-blue-600" />
             Programar actualización a v{release.version}
           </h3>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onCerrar} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>

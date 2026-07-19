@@ -275,7 +275,7 @@ export default function PortalClientePage() {
   if (authLoading || cargando) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
       </div>
     )
   }
@@ -288,21 +288,21 @@ export default function PortalClientePage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push('/crm/configuracion')}
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700"
+          className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-700"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Volver
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-semibold text-slate-800">Portal del Asegurado</h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Configurá el portal público donde tus asegurados acceden a su información
           </p>
         </div>
         <div className="flex items-center gap-1.5 text-2xs">
           {guardando && (
             <>
-              <Loader2 className="h-3 w-3 animate-spin text-slate-400" />
-              <span className="text-slate-400">Guardando...</span>
+              <Loader2 className="h-3 w-3 animate-spin text-slate-500" />
+              <span className="text-slate-500">Guardando...</span>
             </>
           )}
           {guardadoOk && (
@@ -325,12 +325,12 @@ export default function PortalClientePage() {
       <div className={`border rounded-lg p-4 ${activo ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {activo ? <Power className="h-5 w-5 text-green-600" /> : <PowerOff className="h-5 w-5 text-slate-500" />}
+            {activo ? <Power className="h-5 w-5 text-green-600" /> : <PowerOff className="h-5 w-5 text-slate-600" />}
             <div>
               <p className={`text-sm font-medium ${activo ? 'text-green-800' : 'text-slate-700'}`}>
                 {activo ? 'Portal del Asegurado activo' : 'Portal del Asegurado desactivado'}
               </p>
-              <p className={`text-2xs mt-0.5 ${activo ? 'text-green-600' : 'text-slate-500'}`}>
+              <p className={`text-2xs mt-0.5 ${activo ? 'text-green-600' : 'text-slate-600'}`}>
                 {activo
                   ? 'Los asegurados pueden acceder a sus portales con los links generados.'
                   : 'Los links existentes no funcionan mientras el sistema esté desactivado.'}
@@ -356,7 +356,7 @@ export default function PortalClientePage() {
       {/* SECCIÓN 2 — Textos */}
       <div className="bg-white border border-slate-200 rounded-lg p-5">
         <h2 className="text-sm font-semibold text-slate-800 mb-1">Textos del portal</h2>
-        <p className="text-2xs text-slate-500 mb-4">
+        <p className="text-2xs text-slate-600 mb-4">
           Personalizá los textos que ven los clientes en su portal.
         </p>
         <div className="flex flex-col gap-4">
@@ -399,13 +399,13 @@ export default function PortalClientePage() {
           <Phone className="h-4 w-4 text-blue-600" />
           <h2 className="text-sm font-semibold text-slate-800">Teléfonos de asistencia por compañía</h2>
         </div>
-        <p className="text-2xs text-slate-500 mb-4">
+        <p className="text-2xs text-slate-600 mb-4">
           Configurá el teléfono de asistencia/grúa de cada compañía con la que trabajás. El botón aparece en
           el portal del asegurado según las pólizas que tenga.
         </p>
 
         {companias.length === 0 ? (
-          <p className="text-xs text-slate-400 py-4 text-center">No hay compañías cargadas en el catálogo.</p>
+          <p className="text-xs text-slate-500 py-4 text-center">No hay compañías cargadas en el catálogo.</p>
         ) : (
           <div className="flex flex-col divide-y divide-slate-100">
             {companias.map(c => (
@@ -430,7 +430,7 @@ export default function PortalClientePage() {
                     {c.tiene_config && (
                       <button
                         onClick={() => eliminarTelefono(c.compania_id)}
-                        className="p-1 text-slate-400 hover:text-red-500"
+                        className="p-1 text-slate-500 hover:text-red-500"
                         title="Eliminar todos los teléfonos"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -496,13 +496,13 @@ export default function PortalClientePage() {
           <Users className="h-4 w-4 text-blue-600" />
           <h2 className="text-sm font-semibold text-slate-800">Accesos de clientes</h2>
         </div>
-        <p className="text-2xs text-slate-500 mb-4">
+        <p className="text-2xs text-slate-600 mb-4">
           Gestión global de todos los tokens generados. Los accesos individuales también se gestionan desde cada ficha de persona.
         </p>
 
         <div className="flex gap-2 mb-3">
           <div className="flex-1 relative">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
             <input
               type="text"
               placeholder="Buscar por nombre o DNI..."
@@ -525,14 +525,14 @@ export default function PortalClientePage() {
         </div>
 
         {accesosFiltrados.length === 0 ? (
-          <p className="text-xs text-slate-400 py-6 text-center">
+          <p className="text-xs text-slate-500 py-6 text-center">
             {accesos.length === 0 ? 'No hay accesos generados todavía.' : 'No hay resultados con los filtros aplicados.'}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
+                <tr className="border-b border-slate-200 text-slate-600">
                   <th className="text-left py-2 px-2 font-medium">Cliente</th>
                   <th className="text-left py-2 px-2 font-medium">Generado</th>
                   <th className="text-left py-2 px-2 font-medium">Última visita</th>
@@ -551,13 +551,13 @@ export default function PortalClientePage() {
                   <tr key={a.id} className="border-b border-slate-100">
                     <td className="py-2 px-2">
                       <div className="text-slate-800">{a.persona_nombre}</div>
-                      <div className="text-2xs text-slate-400 font-mono">{a.persona_dni}</div>
+                      <div className="text-2xs text-slate-500 font-mono">{a.persona_dni}</div>
                     </td>
                     <td className="py-2 px-2 text-slate-600">{formatoFecha(a.fecha_creacion)}</td>
                     <td className="py-2 px-2 text-slate-600">
                       <div>{formatoFechaRelativa(a.ultimo_acceso)}</div>
                       {a.ultimo_acceso && (
-                        <div className="text-2xs text-slate-400">{formatoFechaHora(a.ultimo_acceso)}</div>
+                        <div className="text-2xs text-slate-500">{formatoFechaHora(a.ultimo_acceso)}</div>
                       )}
                     </td>
                     <td

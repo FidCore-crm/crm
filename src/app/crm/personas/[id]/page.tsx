@@ -414,7 +414,7 @@ export default function FichaPersonaPage() {
   // ── Estados de carga / error ───────────────────────────────
   if (cargando) {
     return (
-      <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+      <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
         <Loader2 className="h-4 w-4 animate-spin" /> Cargando ficha del cliente...
       </div>
     )
@@ -423,7 +423,7 @@ export default function FichaPersonaPage() {
   if (!persona) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <span className="text-slate-400 text-sm">Cliente no encontrado</span>
+        <span className="text-slate-500 text-sm">Cliente no encontrado</span>
         <button onClick={() => router.push('/crm/personas')} className="btn-secondary">
           <ArrowLeft className="h-3 w-3" /> Volver al listado
         </button>
@@ -526,13 +526,13 @@ export default function FichaPersonaPage() {
                 {getLabelEstado(persona.estado)}
               </span>
             </div>
-            <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 flex-wrap">
+            <p className="text-xs text-slate-600 flex items-center gap-2 mt-0.5 flex-wrap">
               {persona.tipo_persona === 'JURIDICA'
                 ? <><Building2 className="h-3 w-3" /> Persona Jurídica</>
                 : <><User className="h-3 w-3" /> Persona Física</>}
               {persona.dni_cuil && (
                 <> · <span>
-                  <span className="text-slate-400 mr-1">
+                  <span className="text-slate-500 mr-1">
                     {persona.tipo_persona === 'JURIDICA'
                       ? 'CUIT'
                       : (persona.dni_cuil.replace(/\D/g, '').length === 11 ? 'CUIL' : 'DNI')}
@@ -541,7 +541,7 @@ export default function FichaPersonaPage() {
                 </span></>
               )}
               {persona.tipo_persona === 'FISICA' && (persona as any).fecha_nacimiento && (
-                <> · <span className="text-slate-400">Nacimiento:</span> <span className="font-mono">{new Date((persona as any).fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR')}</span></>
+                <> · <span className="text-slate-500">Nacimiento:</span> <span className="font-mono">{new Date((persona as any).fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR')}</span></>
               )}
             </p>
           </div>
@@ -665,7 +665,7 @@ export default function FichaPersonaPage() {
           <span className="kpi-sub">pendiente{tareas.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="kpi-card bg-slate-50 border-slate-200">
-          <span className="kpi-label flex items-center gap-1"><Calendar className="h-3 w-3 text-slate-500" /> Cliente desde</span>
+          <span className="kpi-label flex items-center gap-1"><Calendar className="h-3 w-3 text-slate-600" /> Cliente desde</span>
           <span className="kpi-value text-slate-700 text-base">{formatFecha(persona.fecha_alta)}</span>
           <span className="kpi-sub">{persona.origen ?? '—'}</span>
         </div>
@@ -679,11 +679,11 @@ export default function FichaPersonaPage() {
 
           {/* Contacto */}
           <div className="bg-white border border-slate-200 rounded p-3">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Contacto</h2>
+            <h2 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Contacto</h2>
             <div className="flex flex-col gap-2 text-sm">
               {persona.telefono && (
                 <div className="flex items-center gap-2 text-slate-700">
-                  <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  <Phone className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                   <span>{persona.telefono}</span>
                 </div>
               )}
@@ -694,68 +694,68 @@ export default function FichaPersonaPage() {
                 </div>
               )}
               {persona.telefono_secundario && (
-                <div className="flex items-center gap-2 text-slate-500">
+                <div className="flex items-center gap-2 text-slate-600">
                   <Phone className="h-3.5 w-3.5 text-slate-300 shrink-0" />
                   <span>{persona.telefono_secundario}</span>
                 </div>
               )}
               {persona.email && (
                 <div className="flex items-center gap-2 text-slate-700">
-                  <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  <Mail className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                   <span className="truncate">{persona.email}</span>
                 </div>
               )}
               {persona.email_secundario && (
-                <div className="flex items-center gap-2 text-slate-500">
+                <div className="flex items-center gap-2 text-slate-600">
                   <Mail className="h-3.5 w-3.5 text-slate-300 shrink-0" />
                   <span className="truncate">{persona.email_secundario}</span>
                 </div>
               )}
               {!persona.telefono && !persona.whatsapp && !persona.email && (
-                <span className="text-xs text-slate-500">Sin datos de contacto</span>
+                <span className="text-xs text-slate-600">Sin datos de contacto</span>
               )}
             </div>
           </div>
 
           {/* Domicilio */}
           <div className="bg-white border border-slate-200 rounded p-3">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Domicilio</h2>
+            <h2 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Domicilio</h2>
             {persona.calle ? (
               <div className="flex items-start gap-2 text-sm text-slate-700">
-                <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
+                <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0 mt-0.5" />
                 <div>
                   <p>{persona.calle} {persona.numero}{persona.piso_depto ? `, ${persona.piso_depto}` : ''}</p>
-                  {persona.barrio && <p className="text-slate-500">{persona.barrio}</p>}
-                  <p className="text-slate-500">
+                  {persona.barrio && <p className="text-slate-600">{persona.barrio}</p>}
+                  <p className="text-slate-600">
                     {[persona.localidad, persona.provincia].filter(Boolean).join(', ')}
                     {persona.codigo_postal ? ` (${persona.codigo_postal})` : ''}
                   </p>
                 </div>
               </div>
             ) : (
-              <span className="text-xs text-slate-500">Sin domicilio cargado</span>
+              <span className="text-xs text-slate-600">Sin domicilio cargado</span>
             )}
           </div>
 
           {/* Datos adicionales */}
           <div className="bg-white border border-slate-200 rounded p-3">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Información</h2>
+            <h2 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Información</h2>
             <div className="flex flex-col gap-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-500">Segmento</span>
+                <span className="text-slate-600">Segmento</span>
                 <span className="text-slate-700 font-medium">{persona.segmento ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Canal preferido</span>
+                <span className="text-slate-600">Canal preferido</span>
                 <span className="text-slate-700 font-medium">{persona.canal_preferido ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Marketing</span>
+                <span className="text-slate-600">Marketing</span>
                 <span className="text-slate-700 font-medium">{persona.acepta_marketing ? 'Acepta' : 'No acepta'}</span>
               </div>
               {persona.fecha_baja && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Fecha baja</span>
+                  <span className="text-slate-600">Fecha baja</span>
                   <span className="text-red-600 font-medium">{formatFecha(persona.fecha_baja)}</span>
                 </div>
               )}
@@ -767,7 +767,7 @@ export default function FichaPersonaPage() {
           {isAdmin && usuariosLista.length > 1 && (
             <div className="bg-white border border-slate-200 rounded p-3">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Asignación</h2>
+                <h2 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Asignación</h2>
                 <button
                   onClick={() => {
                     setUsuarioElegidoAsignar((persona as any).usuario_id ?? '')
@@ -792,11 +792,11 @@ export default function FichaPersonaPage() {
 
           {persona.datos_extra && Object.keys(persona.datos_extra).length > 0 && (
             <div className="bg-white border border-slate-200 rounded p-3">
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Datos extra</h2>
+              <h2 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Datos extra</h2>
               <div className="flex flex-col gap-1">
                 {Object.entries(persona.datos_extra).map(([k, v]) => (
                   <div key={k} className="flex justify-between text-xs">
-                    <span className="text-slate-500">{k}</span>
+                    <span className="text-slate-600">{k}</span>
                     <span className="text-slate-700 font-medium">{String(v)}</span>
                   </div>
                 ))}
@@ -815,13 +815,13 @@ export default function FichaPersonaPage() {
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-all ${
                   tabActivo === t.key
                     ? 'bg-white shadow-sm font-medium text-slate-700'
-                    : 'text-slate-500 hover:text-slate-700'
+                    : 'text-slate-600 hover:text-slate-700'
                 }`}>
                 {t.icon} {t.label}
                 {t.check ? (
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 ml-0.5" aria-label="Acceso activo" />
                 ) : (
-                  <span className="font-mono text-slate-500 ml-0.5">{t.count}</span>
+                  <span className="font-mono text-slate-600 ml-0.5">{t.count}</span>
                 )}
               </button>
             ))}
@@ -849,14 +849,14 @@ export default function FichaPersonaPage() {
             <div className="bg-white border border-slate-200 rounded overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-slate-600">
                     {polizasVisibles.length} póliza{polizasVisibles.length !== 1 ? 's' : ''}
                     {cantHistoricas > 0 && !mostrarPolizasHistoricas && (
-                      <span className="text-2xs text-slate-400 ml-1">({cantHistoricas} histórica{cantHistoricas !== 1 ? 's' : ''} oculta{cantHistoricas !== 1 ? 's' : ''})</span>
+                      <span className="text-2xs text-slate-500 ml-1">({cantHistoricas} histórica{cantHistoricas !== 1 ? 's' : ''} oculta{cantHistoricas !== 1 ? 's' : ''})</span>
                     )}
                   </span>
                   {cantHistoricas > 0 && (
-                    <label className="inline-flex items-center gap-1 text-2xs text-slate-500 cursor-pointer select-none">
+                    <label className="inline-flex items-center gap-1 text-2xs text-slate-600 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={mostrarPolizasHistoricas}
@@ -879,7 +879,7 @@ export default function FichaPersonaPage() {
                 </div>
               </div>
               {polizasVisibles.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-500">
+                <div className="text-center py-8 text-xs text-slate-600">
                   {polizas.length === 0
                     ? 'No tiene pólizas asociadas'
                     : 'No tiene pólizas activas — tildá "Mostrar históricas" para ver las anteriores'}
@@ -938,14 +938,14 @@ export default function FichaPersonaPage() {
             <div className="bg-white border border-slate-200 rounded overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-slate-600">
                     {siniestrosVisibles.length} siniestro{siniestrosVisibles.length !== 1 ? 's' : ''}
                     {cantHistoricosSin > 0 && !mostrarSiniestrosHistoricos && (
-                      <span className="text-2xs text-slate-400 ml-1">({cantHistoricosSin} histórico{cantHistoricosSin !== 1 ? 's' : ''} oculto{cantHistoricosSin !== 1 ? 's' : ''})</span>
+                      <span className="text-2xs text-slate-500 ml-1">({cantHistoricosSin} histórico{cantHistoricosSin !== 1 ? 's' : ''} oculto{cantHistoricosSin !== 1 ? 's' : ''})</span>
                     )}
                   </span>
                   {cantHistoricosSin > 0 && (
-                    <label className="inline-flex items-center gap-1 text-2xs text-slate-500 cursor-pointer select-none">
+                    <label className="inline-flex items-center gap-1 text-2xs text-slate-600 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={mostrarSiniestrosHistoricos}
@@ -960,7 +960,7 @@ export default function FichaPersonaPage() {
                   className="text-xs text-blue-600 hover:underline">+ Nuevo siniestro</button>
               </div>
               {siniestrosVisibles.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-500">
+                <div className="text-center py-8 text-xs text-slate-600">
                   {siniestros.length === 0
                     ? 'No tiene siniestros registrados'
                     : 'No tiene siniestros en curso — tildá "Mostrar históricos" para ver los finalizados/rechazados'}
@@ -1007,12 +1007,12 @@ export default function FichaPersonaPage() {
           {tabActivo === 'tareas' && (
             <div className="bg-white border border-slate-200 rounded overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
-                <span className="text-xs text-slate-500">{tareas.length} tarea{tareas.length !== 1 ? 's' : ''}</span>
+                <span className="text-xs text-slate-600">{tareas.length} tarea{tareas.length !== 1 ? 's' : ''}</span>
                 <button onClick={() => router.push(`/crm/tareas/nueva?persona_id=${id}`)}
                   className="text-xs text-blue-600 hover:underline">+ Nueva tarea</button>
               </div>
               {tareas.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-500">No tiene tareas asociadas</div>
+                <div className="text-center py-8 text-xs text-slate-600">No tiene tareas asociadas</div>
               ) : (
                 <table className="crm-table">
                   <thead>
@@ -1073,20 +1073,20 @@ export default function FichaPersonaPage() {
                   </div>
                   <div className="p-3 flex flex-col gap-1.5 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Fuente original</span>
+                      <span className="text-slate-600">Fuente original</span>
                       <span className="text-slate-700 font-medium">{leadOrigen.fuente.replace(/_/g, ' ')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Nivel de interes</span>
+                      <span className="text-slate-600">Nivel de interes</span>
                       <span className="text-slate-700 font-medium">{leadOrigen.nivel_interes}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Primer contacto</span>
+                      <span className="text-slate-600">Primer contacto</span>
                       <span className="text-slate-700">{formatFecha(leadOrigen.created_at)}</span>
                     </div>
                     {leadOrigen.fecha_conversion && (
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Fecha conversion</span>
+                        <span className="text-slate-600">Fecha conversion</span>
                         <span className="text-slate-700">{formatFecha(leadOrigen.fecha_conversion)}</span>
                       </div>
                     )}
@@ -1101,12 +1101,12 @@ export default function FichaPersonaPage() {
               {/* Oportunidades */}
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
-                  <span className="text-xs text-slate-500">{oportunidades.length} oportunidad{oportunidades.length !== 1 ? 'es' : ''}</span>
+                  <span className="text-xs text-slate-600">{oportunidades.length} oportunidad{oportunidades.length !== 1 ? 'es' : ''}</span>
                   <button onClick={() => router.push(`/crm/comercial/oportunidades/nueva?persona_id=${id}`)}
                     className="text-xs text-blue-600 hover:underline">+ Nueva oportunidad</button>
                 </div>
                 {oportunidades.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-slate-500">No tiene oportunidades comerciales</div>
+                  <div className="text-center py-6 text-xs text-slate-600">No tiene oportunidades comerciales</div>
                 ) : (
                   <table className="crm-table">
                     <thead>
@@ -1158,12 +1158,12 @@ export default function FichaPersonaPage() {
               {/* Cotizaciones */}
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
-                  <span className="text-xs text-slate-500">{cotizacionesCom.length} cotizacion{cotizacionesCom.length !== 1 ? 'es' : ''}</span>
+                  <span className="text-xs text-slate-600">{cotizacionesCom.length} cotizacion{cotizacionesCom.length !== 1 ? 'es' : ''}</span>
                   <button onClick={() => router.push(`/crm/comercial/cotizaciones/nueva?persona_id=${id}`)}
                     className="text-xs text-blue-600 hover:underline">+ Nueva cotizacion</button>
                 </div>
                 {cotizacionesCom.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-slate-500">No tiene cotizaciones</div>
+                  <div className="text-center py-6 text-xs text-slate-600">No tiene cotizaciones</div>
                 ) : (
                   <table className="crm-table">
                     <thead>
@@ -1218,11 +1218,11 @@ export default function FichaPersonaPage() {
               {interaccionesCom.length > 0 && (
                 <div className="bg-white border border-slate-200 rounded overflow-hidden">
                   <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-600">
                       {interaccionesCom.length} interaccion{interaccionesCom.length !== 1 ? 'es' : ''}
                     </span>
                     {leadOrigen && (
-                      <span className="text-2xs text-slate-400">Migradas desde el lead original</span>
+                      <span className="text-2xs text-slate-500">Migradas desde el lead original</span>
                     )}
                   </div>
                   <div className="divide-y divide-slate-100">
@@ -1232,15 +1232,15 @@ export default function FichaPersonaPage() {
                         EMAIL:    'text-amber-600',
                         WHATSAPP: 'text-emerald-600',
                         REUNION:  'text-violet-600',
-                        NOTA:     'text-slate-500',
+                        NOTA:     'text-slate-600',
                       }
                       return (
                         <div key={i.id} className="px-3 py-2">
                           <div className="flex items-center justify-between">
-                            <span className={`text-xs font-medium ${tipoColor[i.tipo] ?? 'text-slate-500'}`}>
+                            <span className={`text-xs font-medium ${tipoColor[i.tipo] ?? 'text-slate-600'}`}>
                               {i.tipo}
                             </span>
-                            <span className="text-2xs text-slate-400">{formatFecha(i.fecha)}</span>
+                            <span className="text-2xs text-slate-500">{formatFecha(i.fecha)}</span>
                           </div>
                           <p className="text-xs text-slate-700 mt-0.5 whitespace-pre-wrap break-words">
                             {i.descripcion}
@@ -1253,7 +1253,7 @@ export default function FichaPersonaPage() {
               )}
 
               {!leadOrigen && oportunidades.length === 0 && cotizacionesCom.length === 0 && interaccionesCom.length === 0 && (
-                <div className="text-center py-10 text-xs text-slate-500">
+                <div className="text-center py-10 text-xs text-slate-600">
                   Este cliente no tiene historial comercial aun
                 </div>
               )}
@@ -1272,11 +1272,11 @@ export default function FichaPersonaPage() {
               {!portalAcceso?.tiene_acceso && !portalAcceso?.ultimo_revocado && (
                 <div className="bg-white border border-slate-200 rounded-lg p-6 flex flex-col items-center gap-3">
                   <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
-                    <Globe className="h-5 w-5 text-slate-400" />
+                    <Globe className="h-5 w-5 text-slate-500" />
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-medium text-slate-700">Este asegurado no tiene acceso al portal</p>
-                    <p className="text-2xs text-slate-500 mt-1">
+                    <p className="text-2xs text-slate-600 mt-1">
                       Generá un link permanente para que el asegurado pueda ver sus pólizas, siniestros y teléfonos de asistencia.
                     </p>
                   </div>
@@ -1408,7 +1408,7 @@ export default function FichaPersonaPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <div className="px-4 py-3 border-b border-slate-200">
               <h3 className="text-sm font-semibold text-slate-800">Reasignar cliente</h3>
-              <p className="text-2xs text-slate-500 mt-0.5">Elegí a qué usuario asignás este cliente. Sus pólizas heredan automáticamente la asignación.</p>
+              <p className="text-2xs text-slate-600 mt-0.5">Elegí a qué usuario asignás este cliente. Sus pólizas heredan automáticamente la asignación.</p>
             </div>
             <div className="px-4 py-3 flex flex-col gap-2">
               <label className="text-xs text-slate-600">Asignado a</label>
@@ -1470,7 +1470,7 @@ export default function FichaPersonaPage() {
                 <Trash2 className="h-4 w-4 text-red-600" />
                 <h3 className="text-sm font-semibold text-red-800">Eliminar cliente</h3>
               </div>
-              <button onClick={() => setModalEliminar(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalEliminar(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -1490,52 +1490,52 @@ export default function FichaPersonaPage() {
                   </p>
                   {(eliminarResumen.polizas > 0 || eliminarResumen.siniestros > 0 || eliminarResumen.tareas > 0 || eliminarResumen.oportunidades > 0 || eliminarResumen.cotizaciones > 0 || (eliminarResumen.archivos_polizas + eliminarResumen.archivos_siniestros) > 0) ? (
                     <div className="bg-slate-50 border border-slate-200 rounded p-3 flex flex-col gap-1.5">
-                      <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Se eliminará al purgar:</p>
+                      <p className="text-2xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Se eliminará al purgar:</p>
                       {eliminarResumen.polizas > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <FileText className="h-3 w-3 text-slate-400" /> {eliminarResumen.polizas} póliza(s)
+                          <FileText className="h-3 w-3 text-slate-500" /> {eliminarResumen.polizas} póliza(s)
                         </div>
                       )}
                       {eliminarResumen.siniestros > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <AlertTriangle className="h-3 w-3 text-slate-400" /> {eliminarResumen.siniestros} siniestro(s)
+                          <AlertTriangle className="h-3 w-3 text-slate-500" /> {eliminarResumen.siniestros} siniestro(s)
                         </div>
                       )}
                       {eliminarResumen.tareas > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <ClipboardList className="h-3 w-3 text-slate-400" /> {eliminarResumen.tareas} tarea(s)
+                          <ClipboardList className="h-3 w-3 text-slate-500" /> {eliminarResumen.tareas} tarea(s)
                         </div>
                       )}
                       {eliminarResumen.oportunidades > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <Target className="h-3 w-3 text-slate-400" /> {eliminarResumen.oportunidades} oportunidad(es)
+                          <Target className="h-3 w-3 text-slate-500" /> {eliminarResumen.oportunidades} oportunidad(es)
                         </div>
                       )}
                       {eliminarResumen.cotizaciones > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <FileText className="h-3 w-3 text-slate-400" /> {eliminarResumen.cotizaciones} cotización(es)
+                          <FileText className="h-3 w-3 text-slate-500" /> {eliminarResumen.cotizaciones} cotización(es)
                         </div>
                       )}
                       {(eliminarResumen.archivos_polizas + eliminarResumen.archivos_siniestros) > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <FolderOpen className="h-3 w-3 text-slate-400" /> {eliminarResumen.archivos_polizas + eliminarResumen.archivos_siniestros} archivo(s) físico(s)
+                          <FolderOpen className="h-3 w-3 text-slate-500" /> {eliminarResumen.archivos_polizas + eliminarResumen.archivos_siniestros} archivo(s) físico(s)
                         </div>
                       )}
                       {/* Detalle de pólizas y siniestros que se purgarán */}
                       {eliminarDetalle && eliminarDetalle.polizas.length > 0 && (
                         <details className="mt-2">
-                          <summary className="text-2xs text-slate-500 cursor-pointer hover:text-slate-700">
+                          <summary className="text-2xs text-slate-600 cursor-pointer hover:text-slate-700">
                             Ver pólizas ({eliminarDetalle.polizas.length}{eliminarResumen.polizas > eliminarDetalle.polizas.length ? `/${eliminarResumen.polizas}` : ''})
                           </summary>
                           <ul className="mt-1.5 ml-1 flex flex-col gap-0.5 max-h-32 overflow-y-auto">
                             {eliminarDetalle.polizas.map((p, i) => (
                               <li key={i} className="text-2xs text-slate-600 flex items-center justify-between gap-2">
                                 <span className="font-mono">{p.numero_poliza}</span>
-                                <span className="text-slate-400">{getLabelEstado(p.estado)} · {formatFecha(p.fecha_fin)}</span>
+                                <span className="text-slate-500">{getLabelEstado(p.estado)} · {formatFecha(p.fecha_fin)}</span>
                               </li>
                             ))}
                             {eliminarResumen.polizas > eliminarDetalle.polizas.length && (
-                              <li className="text-2xs text-slate-400 italic">
+                              <li className="text-2xs text-slate-500 italic">
                                 +{eliminarResumen.polizas - eliminarDetalle.polizas.length} más…
                               </li>
                             )}
@@ -1544,14 +1544,14 @@ export default function FichaPersonaPage() {
                       )}
                       {eliminarDetalle && eliminarDetalle.siniestros.length > 0 && (
                         <details className="mt-1">
-                          <summary className="text-2xs text-slate-500 cursor-pointer hover:text-slate-700">
+                          <summary className="text-2xs text-slate-600 cursor-pointer hover:text-slate-700">
                             Ver siniestros directos ({eliminarDetalle.siniestros.length})
                           </summary>
                           <ul className="mt-1.5 ml-1 flex flex-col gap-0.5 max-h-32 overflow-y-auto">
                             {eliminarDetalle.siniestros.map((s, i) => (
                               <li key={i} className="text-2xs text-slate-600 flex items-center justify-between gap-2">
                                 <span className="font-mono">{s.numero_caso}</span>
-                                <span className="text-slate-400">{getLabelEstado(s.estado)} · {formatFecha(s.fecha_denuncia)}</span>
+                                <span className="text-slate-500">{getLabelEstado(s.estado)} · {formatFecha(s.fecha_denuncia)}</span>
                               </li>
                             ))}
                           </ul>
@@ -1559,7 +1559,7 @@ export default function FichaPersonaPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-500">Este cliente no tiene registros asociados.</p>
+                    <p className="text-xs text-slate-600">Este cliente no tiene registros asociados.</p>
                   )}
                   <div>
                     <label className="text-xs text-slate-600 mb-1 block">
@@ -1576,7 +1576,7 @@ export default function FichaPersonaPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-center py-4 text-slate-400 text-xs gap-2">
+                <div className="flex items-center justify-center py-4 text-slate-500 text-xs gap-2">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Verificando...
                 </div>
               )}

@@ -21,7 +21,7 @@ export default function RestauracionFallidaPage() {
   }, [id])
 
   if (!restauracion) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>
+    return <div className="flex items-center justify-center h-64"><Loader2 className="h-5 w-5 animate-spin text-slate-500" /></div>
   }
 
   return (
@@ -36,11 +36,11 @@ export default function RestauracionFallidaPage() {
         <h2 className="text-sm font-semibold text-slate-800 mb-3">Detalle</h2>
         <dl className="text-xs space-y-2">
           <div className="flex justify-between border-b border-slate-100 pb-2">
-            <dt className="text-slate-500">Último estado alcanzado</dt>
+            <dt className="text-slate-600">Último estado alcanzado</dt>
             <dd className="text-slate-800 font-mono">{restauracion.estado}</dd>
           </div>
           <div className="border-b border-slate-100 pb-2">
-            <dt className="text-slate-500 mb-1">Error</dt>
+            <dt className="text-slate-600 mb-1">Error</dt>
             <dd className="text-red-700 font-mono text-2xs bg-red-50 border border-red-200 rounded p-2">
               {restauracion.error_mensaje || 'Sin mensaje'}
             </dd>

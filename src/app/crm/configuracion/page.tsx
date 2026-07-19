@@ -156,7 +156,7 @@ export default function ConfiguracionPage() {
       {/* Header */}
       <div>
         <h1 className="text-lg font-semibold text-slate-800">Configuración</h1>
-        <p className="text-xs text-slate-500">Ajustes generales del sistema</p>
+        <p className="text-xs text-slate-600">Ajustes generales del sistema</p>
       </div>
 
       {/* Cards */}
@@ -174,18 +174,18 @@ export default function ConfiguracionPage() {
             <div className={`flex h-8 w-8 items-center justify-center rounded shrink-0 ${
               s.activo ? 'bg-blue-50' : 'bg-slate-50'
             }`}>
-              <s.icon className={`h-4 w-4 ${s.activo ? 'text-blue-600' : 'text-slate-400'}`} />
+              <s.icon className={`h-4 w-4 ${s.activo ? 'text-blue-600' : 'text-slate-500'}`} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-medium text-slate-800">{s.titulo}</h3>
                 {!s.activo && (
-                  <span className="text-2xs font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                  <span className="text-2xs font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
                     Próximamente
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">{s.descripcion}</p>
+              <p className="text-xs text-slate-600 mt-0.5">{s.descripcion}</p>
             </div>
             {s.activo && <ChevronRight className="h-4 w-4 text-slate-300 shrink-0 mt-1" />}
           </div>

@@ -363,7 +363,7 @@ export default function EditarPersonaPage() {
   // ── Estados de carga ─────────────────────────────────────
   if (cargando) {
     return (
-      <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+      <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
         <Loader2 className="h-4 w-4 animate-spin" /> Cargando datos del cliente...
       </div>
     )
@@ -372,7 +372,7 @@ export default function EditarPersonaPage() {
   if (!form) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <span className="text-slate-400 text-sm">Cliente no encontrado</span>
+        <span className="text-slate-500 text-sm">Cliente no encontrado</span>
         <button onClick={() => router.push('/crm/personas')} className="btn-secondary">
           <ArrowLeft className="h-3 w-3" /> Volver al listado
         </button>
@@ -387,7 +387,7 @@ export default function EditarPersonaPage() {
           <CheckCircle className="h-6 w-6 text-green-600" />
         </div>
         <p className="text-sm font-medium text-slate-700">¡Cliente actualizado correctamente!</p>
-        <p className="text-xs text-slate-500">Redirigiendo a la ficha...</p>
+        <p className="text-xs text-slate-600">Redirigiendo a la ficha...</p>
       </div>
     )
   }
@@ -405,7 +405,7 @@ export default function EditarPersonaPage() {
             <ArrowLeft className="h-3 w-3" /></button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Editar Cliente</h1>
-            <p className="text-xs text-slate-500">{nombre}</p>
+            <p className="text-xs text-slate-600">{nombre}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -556,7 +556,7 @@ export default function EditarPersonaPage() {
                     ? 'Bloqueado'
                     : 'Inactivo'}
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-600">
                 {form.estado === 'BLOQUEADO'
                   ? 'Bloqueado manualmente'
                   : 'Se calcula automáticamente según las pólizas'}

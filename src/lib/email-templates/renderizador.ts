@@ -33,6 +33,9 @@ export interface OrganizacionInfo {
   nombre: string
   telefono?: string
   email?: string
+  // v1.0.149: URL del sitio web del PAS. Si está configurada en
+  // /crm/configuracion/perfil aparece en la tarjeta de contacto del email.
+  sitio_web?: string
   logo_url?: string
   // Color hex de marca elegido por el PAS ('#RRGGBB'). Si no viene,
   // se usa el navy por defecto. Aplica al header, saludo y nombre.
@@ -46,6 +49,11 @@ export interface OrganizacionInfo {
   // Subtítulo editable que aparece debajo del nombre solo en variante 'banda'
   // (migración 098). Si está vacío, no se muestra el <p> del subtítulo.
   email_header_subtitulo?: string | null
+  // v1.0.149: cuando es true, el renderer no pinta el nombre en ninguna
+  // de las 3 variantes. Útil cuando el logo del PAS ya incluye el nombre
+  // en su diseño y no queremos duplicarlo al lado. El logo pasa a ocupar
+  // el espacio central del header (más grande, sin celda de nombre).
+  email_header_ocultar_nombre?: boolean | null
 }
 
 export interface RenderOptions {
@@ -206,6 +214,9 @@ function generarHeaderHtml(
   const stack = `-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif`
   // Subtítulo solo se muestra en variante 'banda' y solo si tiene texto.
   const subtituloBanda = (organizacion.email_header_subtitulo ?? '').trim()
+  // v1.0.149: cuando el PAS activa "ocultar nombre en header", el renderer
+  // no dibuja el bloque con el nombre. Útil para logos que ya lo incluyen.
+  const ocultarNombre = organizacion.email_header_ocultar_nombre === true
 
   // Gradient del header (banda y compacto): de color base a oscuro.
   // Outlook ignora gradient y cae al background-color plano (fallback).
@@ -213,26 +224,29 @@ function generarHeaderHtml(
 
   if (estilo === 'compacto') {
     // Compacto: header bajo, nombre a la izquierda, cuadrito logo a la derecha.
-    // Tamaños subidos ~40% (v1.0.53) — antes el logo era apenas perceptible.
+    // v1.0.149: logo agrandado 34→48 y cuadro 42→54 (+29%). Si `ocultarNombre`
+    // está activo, el logo se centra en el header (sin celda de nombre).
     const cuadroLogo = organizacion.logo_url
-      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="34" style="max-width:34px;max-height:34px;display:block;" />`
-      : `<span style="color:${tonos.base};font-weight:bold;font-size:18px;font-family:${stack};">${inicial}</span>`
-    return `
-<!-- HEADER: compacto -->
-<tr><td class="fc-header-compacto" style="${gradient}padding:18px 24px;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-    <tr>
-      <td valign="middle">
-        <span class="fc-header-nombre" style="font-size:16px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
-      </td>
-      <td width="42" align="right" valign="middle" style="width:42px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:9px;width:42px;height:42px;">
-          <tr><td align="center" valign="middle" style="width:42px;height:42px;padding:4px;">
+      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="48" style="max-width:48px;max-height:48px;display:block;" />`
+      : `<span style="color:${tonos.base};font-weight:bold;font-size:22px;font-family:${stack};">${inicial}</span>`
+    const cuadroContenedor = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:10px;width:54px;height:54px;">
+          <tr><td align="center" valign="middle" style="width:54px;height:54px;padding:5px;">
             ${cuadroLogo}
           </td></tr>
-        </table>
+        </table>`
+    const filaCompacto = ocultarNombre
+      ? `<tr><td align="center" valign="middle">${cuadroContenedor}</td></tr>`
+      : `<tr>
+      <td valign="middle">
+        <span class="fc-header-nombre" style="font-size:18px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
       </td>
-    </tr>
+      <td width="54" align="right" valign="middle" style="width:54px;">${cuadroContenedor}</td>
+    </tr>`
+    return `
+<!-- HEADER: compacto -->
+<tr><td class="fc-header-compacto" style="${gradient}padding:22px 26px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    ${filaCompacto}
   </table>
 </td></tr>
 
@@ -244,53 +258,59 @@ function generarHeaderHtml(
     // Lateral: sin bloque de color (fondo blanco). El border-top de 5px en
     // marca lo aplica el contenedor de 600px (no acá). Logo en cuadro con
     // color de marca. No lleva barra de acento.
+    // v1.0.149: logo 48→66 y cuadro 56→74 (+32%).
     const cuadroLogo = organizacion.logo_url
-      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="48" style="max-width:48px;max-height:48px;display:block;" />`
-      : `<span style="color:#ffffff;font-weight:bold;font-size:22px;font-family:${stack};">${inicial}</span>`
-    return `
-<!-- HEADER: lateral (fondo blanco; el border-top de marca va en el contenedor de 600px) -->
-<tr><td class="fc-header-lateral" style="background-color:#ffffff;padding:22px 24px 0;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-    <tr>
-      <td width="56" valign="middle" style="width:56px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:${tonos.base};border-radius:11px;width:56px;height:56px;">
-          <tr><td align="center" valign="middle" style="width:56px;height:56px;padding:4px;">
+      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="66" style="max-width:66px;max-height:66px;display:block;" />`
+      : `<span style="color:#ffffff;font-weight:bold;font-size:30px;font-family:${stack};">${inicial}</span>`
+    const cuadroContenedor = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:${tonos.base};border-radius:13px;width:74px;height:74px;">
+          <tr><td align="center" valign="middle" style="width:74px;height:74px;padding:5px;">
             ${cuadroLogo}
           </td></tr>
-        </table>
-      </td>
-      <td width="14" style="width:14px;font-size:0;line-height:0;">&nbsp;</td>
+        </table>`
+    const filaLateral = ocultarNombre
+      ? `<tr><td valign="middle">${cuadroContenedor}</td></tr>`
+      : `<tr>
+      <td width="74" valign="middle" style="width:74px;">${cuadroContenedor}</td>
+      <td width="16" style="width:16px;font-size:0;line-height:0;">&nbsp;</td>
       <td valign="middle">
-        <span class="fc-header-nombre" style="font-size:17px;font-weight:bold;color:${tonos.base};font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
+        <span class="fc-header-nombre" style="font-size:19px;font-weight:bold;color:${tonos.base};font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
       </td>
-    </tr>
+    </tr>`
+    return `
+<!-- HEADER: lateral (fondo blanco; el border-top de marca va en el contenedor de 600px) -->
+<tr><td class="fc-header-lateral" style="background-color:#ffffff;padding:24px 24px 0;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+    ${filaLateral}
   </table>
 </td></tr>`
   }
 
   // Default — banda (predeterminado): banda con gradient, logo a la izquierda
   // en cuadro blanco, nombre + subtítulo a la derecha, barra de acento debajo.
+  // v1.0.149: logo 56→80 y cuadro 64→84 (+31%).
   const cuadroLogo = organizacion.logo_url
-    ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="56" style="max-width:56px;max-height:56px;display:block;" />`
-    : `<span style="color:${tonos.base};font-weight:bold;font-size:26px;font-family:${stack};">${inicial}</span>`
-  return `
-<!-- HEADER: banda horizontal -->
-<tr><td class="fc-header-banda" style="${gradient}padding:26px 26px;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-    <tr>
-      <td width="64" valign="middle" style="width:64px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:12px;width:64px;height:64px;">
-          <tr><td align="center" valign="middle" style="width:64px;height:64px;padding:5px;">
+    ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="80" style="max-width:80px;max-height:80px;display:block;" />`
+    : `<span style="color:${tonos.base};font-weight:bold;font-size:34px;font-family:${stack};">${inicial}</span>`
+  const cuadroContenedorBanda = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:14px;width:84px;height:84px;">
+          <tr><td align="center" valign="middle" style="width:84px;height:84px;padding:6px;">
             ${cuadroLogo}
           </td></tr>
-        </table>
-      </td>
-      <td width="16" style="width:16px;font-size:0;line-height:0;">&nbsp;</td>
+        </table>`
+  const filaBanda = ocultarNombre
+    ? `<tr><td align="center" valign="middle">${cuadroContenedorBanda}</td></tr>`
+    : `<tr>
+      <td width="84" valign="middle" style="width:84px;">${cuadroContenedorBanda}</td>
+      <td width="18" style="width:18px;font-size:0;line-height:0;">&nbsp;</td>
       <td valign="middle">
-        <p class="fc-header-nombre" style="margin:0;font-size:20px;font-weight:bold;color:#ffffff;line-height:1.15;font-family:${stack};word-break:break-word;">${nombreEscapado}</p>
-        ${subtituloBanda ? `<p class="fc-header-subtitulo" style="margin:4px 0 0;font-size:11px;color:#cbd5e1;letter-spacing:1px;text-transform:uppercase;font-family:${stack};word-break:break-word;">${escapeHtml(subtituloBanda)}</p>` : ''}
+        <p class="fc-header-nombre" style="margin:0;font-size:22px;font-weight:bold;color:#ffffff;line-height:1.15;font-family:${stack};word-break:break-word;">${nombreEscapado}</p>
+        ${subtituloBanda ? `<p class="fc-header-subtitulo" style="margin:4px 0 0;font-size:12px;color:#cbd5e1;letter-spacing:1px;text-transform:uppercase;font-family:${stack};word-break:break-word;">${escapeHtml(subtituloBanda)}</p>` : ''}
       </td>
-    </tr>
+    </tr>`
+  return `
+<!-- HEADER: banda horizontal -->
+<tr><td class="fc-header-banda" style="${gradient}padding:30px 30px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    ${filaBanda}
   </table>
 </td></tr>
 
@@ -357,13 +377,24 @@ function armarHtml(params: {
   // Bloque de contacto destacado dentro del cierre — con fondo crema y barra
   // lateral del color de marca, para que se sienta como una "tarjeta de
   // negocio" inserta en el email.
-  const tieneDatosContacto = organizacion.telefono || organizacion.email
+  const tieneDatosContacto = organizacion.telefono || organizacion.email || organizacion.sitio_web
+  // v1.0.149: si el sitio web no tiene protocolo, lo prefijamos con https://
+  // para que el <a href> abra el sitio en vez de tratarlo como URL relativa.
+  const sitioWebRaw = (organizacion.sitio_web ?? '').trim()
+  const sitioWebHref = sitioWebRaw
+    ? (/^https?:\/\//i.test(sitioWebRaw) ? sitioWebRaw : `https://${sitioWebRaw}`)
+    : ''
+  // Para mostrar limpio en el email, saco protocolo y trailing slash del label.
+  const sitioWebLabel = sitioWebRaw
+    ? sitioWebRaw.replace(/^https?:\/\//i, '').replace(/\/+$/, '')
+    : ''
   const contactoHtml = tieneDatosContacto
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:24px;background-color:#fafaf7;border-left:3px solid ${tonos.base};border-radius:4px;">
          <tr><td class="fc-contacto-td" style="padding:14px 18px;">
            <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1px;color:${tonos.base};text-transform:uppercase;">Contacto</p>
            ${organizacion.telefono ? `<p class="fc-contacto-line" style="margin:2px 0;font-size:13px;color:#475569;line-height:1.6;word-break:break-word;">📞 <a href="tel:${escapeHtml(organizacion.telefono.replace(/\s+/g, ''))}" style="color:#334155;text-decoration:none;font-weight:600;word-break:break-word;">${escapeHtml(organizacion.telefono)}</a></p>` : ''}
            ${organizacion.email ? `<p class="fc-contacto-line" style="margin:2px 0;font-size:13px;color:#475569;line-height:1.6;word-break:break-word;">✉️ <a href="mailto:${escapeHtml(organizacion.email)}" style="color:#334155;text-decoration:none;font-weight:600;word-break:break-word;">${escapeHtml(organizacion.email)}</a></p>` : ''}
+           ${sitioWebHref ? `<p class="fc-contacto-line" style="margin:2px 0;font-size:13px;color:#475569;line-height:1.6;word-break:break-word;">🌐 <a href="${escapeHtml(sitioWebHref)}" target="_blank" rel="noopener" style="color:#334155;text-decoration:none;font-weight:600;word-break:break-word;">${escapeHtml(sitioWebLabel)}</a></p>` : ''}
          </td></tr>
        </table>`
     : ''

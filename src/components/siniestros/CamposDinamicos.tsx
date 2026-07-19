@@ -31,6 +31,7 @@
 import { useMemo } from 'react'
 import { camposDeSiniestro, CAMPOS_POR_BLOQUE, CampoEspecifico, BloqueId } from '@/lib/siniestros-catalogo'
 import { SelectorRueda } from '@/components/SelectorRueda'
+import { SelectorCristal } from '@/components/SelectorCristal'
 
 // ────────────────────────────────────────────────────────────
 // Tipos del componente
@@ -89,6 +90,10 @@ export interface ValoresDinamicos {
   marca_ruedas?: string
   medida_ruedas?: string
   tipo_llanta?: string
+  /** Radio Sí/No — el asegurado indica si el vehículo sufrió daños (v1.0.149). */
+  sufrio_danos_propios?: string
+  /** Array de cristales rotos (multi-select del SelectorCristal, v1.0.149). */
+  cristales_rotos?: string[] | string
   /** Campos específicos del tipo elegido (keys planas). */
   [k: string]: unknown
 }
@@ -195,6 +200,9 @@ function BloqueRender({ bloqueId, valores, onChange, errores, disabled }: Bloque
   if (bloqueId === 'selector_rueda') {
     return <BloqueSelectorRueda valores={valores} onChange={onChange} errores={errores} disabled={disabled} />
   }
+  if (bloqueId === 'selector_cristal') {
+    return <BloqueSelectorCristal valores={valores} onChange={onChange} errores={errores} disabled={disabled} />
+  }
   if (bloqueId === 'testigos') {
     return <BloqueTestigos valores={valores} onChange={onChange} errores={errores} disabled={disabled} />
   }
@@ -217,20 +225,34 @@ function BloqueRender({ bloqueId, valores, onChange, errores, disabled }: Bloque
     )
   }
   if (bloqueId === 'danos_propios') {
-    const campos = CAMPOS_POR_BLOQUE.danos_propios
+    // v1.0.149: primero el radio Sí/No obligatorio. Si es "Sí", aparece el
+    // textarea. Si es "No", el textarea no se pinta — la respuesta explícita
+    // queda registrada y la ficha muestra "NO sufrió daños" en vez de tratar
+    // el campo como bypaseado.
+    const [preguntaSufrio, textareaDanos] = CAMPOS_POR_BLOQUE.danos_propios
+    const respuesta = valores.sufrio_danos_propios as string | undefined
+    const activo = respuesta === 'Sí' || respuesta === 'si'
     return (
       <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/50">
         <div className="text-sm font-semibold text-slate-700 mb-3">Daños del vehículo asegurado</div>
-        {campos.map(c => (
-          <CampoInput
-            key={c.key}
-            campo={c}
-            valor={valores[c.key]}
-            onChange={v => onChange(setNivel1(valores, c.key, v))}
-            error={errores?.[c.key]}
-            disabled={disabled}
-          />
-        ))}
+        <CampoInput
+          campo={preguntaSufrio}
+          valor={valores.sufrio_danos_propios}
+          onChange={v => onChange(setNivel1(valores, 'sufrio_danos_propios', v))}
+          error={errores?.sufrio_danos_propios}
+          disabled={disabled}
+        />
+        {activo && (
+          <div className="mt-3">
+            <CampoInput
+              campo={textareaDanos}
+              valor={valores.danos_propios}
+              onChange={v => onChange(setNivel1(valores, 'danos_propios', v))}
+              error={errores?.danos_propios}
+              disabled={disabled}
+            />
+          </div>
+        )}
       </div>
     )
   }
@@ -264,6 +286,7 @@ function BloqueRender({ bloqueId, valores, onChange, errores, disabled }: Bloque
     vehiculo_estacionado: '',
     danos_propios: '',
     selector_rueda: '',
+    selector_cristal: '',
   }
 
   return (
@@ -366,7 +389,7 @@ function BloqueSelectorRueda({ valores, onChange, errores, disabled }: Omit<Bloq
       <div className="text-sm font-semibold text-slate-700 mb-3">
         {rueda.label} {rueda.requerido && <span className="text-red-600">*</span>}
       </div>
-      {rueda.ayuda && <p className="text-xs text-slate-500 mb-3">{rueda.ayuda}</p>}
+      {rueda.ayuda && <p className="text-xs text-slate-600 mb-3">{rueda.ayuda}</p>}
 
       <SelectorRueda
         value={(valores.rueda_robada as string[] | string | null) ?? null}
@@ -391,6 +414,34 @@ function BloqueSelectorRueda({ valores, onChange, errores, disabled }: Omit<Bloq
           />
         ))}
       </div>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────
+// Bloque especial: selector visual de cristales rotos
+// ────────────────────────────────────────────────────────────
+
+function BloqueSelectorCristal({ valores, onChange, errores, disabled }: Omit<BloqueProps, 'bloqueId'>) {
+  const [cristales] = CAMPOS_POR_BLOQUE.selector_cristal
+
+  return (
+    <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/50">
+      <div className="text-sm font-semibold text-slate-700 mb-3">
+        {cristales.label} {cristales.requerido && <span className="text-red-600">*</span>}
+      </div>
+      {cristales.ayuda && <p className="text-xs text-slate-600 mb-3">{cristales.ayuda}</p>}
+
+      <SelectorCristal
+        value={(valores.cristales_rotos as string[] | string | null) ?? null}
+        onChange={v => onChange(setNivel1(valores, 'cristales_rotos', v))}
+        error={Boolean(errores?.cristales_rotos)}
+        disabled={disabled}
+      />
+
+      {errores?.cristales_rotos && (
+        <p className="text-xs text-red-600 text-center mt-2">{errores.cristales_rotos}</p>
+      )}
     </div>
   )
 }
@@ -520,7 +571,7 @@ function CampoInput({ campo, valor, onChange, error, disabled }: CampoInputProps
         />
         <div className="flex flex-col">
           <span className="text-sm text-slate-700">{campo.label}</span>
-          {campo.ayuda && <span className="text-xs text-slate-500">{campo.ayuda}</span>}
+          {campo.ayuda && <span className="text-xs text-slate-600">{campo.ayuda}</span>}
         </div>
       </label>
     )
@@ -532,7 +583,7 @@ function CampoInput({ campo, valor, onChange, error, disabled }: CampoInputProps
     </label>
   )
 
-  const ayuda = campo.ayuda && <p className="text-2xs text-slate-500 mt-1">{campo.ayuda}</p>
+  const ayuda = campo.ayuda && <p className="text-2xs text-slate-600 mt-1">{campo.ayuda}</p>
   const errorMsg = error && <p className="text-2xs text-red-600 mt-1">{error}</p>
 
   if (campo.tipo === 'textarea') {

@@ -206,14 +206,14 @@ export default function BuscadorPersona({
           <span className="flex-1 truncate text-slate-700">
             {nombreDe(seleccionada)}
             {seleccionada.dni_cuil && (
-              <span className="text-2xs text-slate-400 ml-2 font-mono">{seleccionada.dni_cuil}</span>
+              <span className="text-2xs text-slate-500 ml-2 font-mono">{seleccionada.dni_cuil}</span>
             )}
           </span>
           {!disabled && (
             <button
               type="button"
               onClick={limpiar}
-              className="text-slate-400 hover:text-slate-600 shrink-0"
+              className="text-slate-500 hover:text-slate-600 shrink-0"
               aria-label="Limpiar selección"
             >
               <X className="h-3.5 w-3.5" />
@@ -222,7 +222,7 @@ export default function BuscadorPersona({
         </div>
       ) : (
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
           <input
             ref={inputRef}
             type="text"
@@ -244,7 +244,7 @@ export default function BuscadorPersona({
             onKeyDown={onKey}
           />
           {cargando && (
-            <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 animate-spin" />
+            <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 animate-spin" />
           )}
         </div>
       )}
@@ -257,7 +257,7 @@ export default function BuscadorPersona({
           className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto bg-white border border-slate-200 rounded shadow-lg"
         >
           {resultados.length === 0 && !cargando && (
-            <div className="p-3 text-xs text-slate-400 text-center">
+            <div className="p-3 text-xs text-slate-500 text-center">
               {query.trim() ? 'Sin resultados' : 'Empezá a tipear para buscar'}
             </div>
           )}
@@ -274,12 +274,12 @@ export default function BuscadorPersona({
             >
               <span className="truncate text-slate-700">{nombreDe(p)}</span>
               {p.dni_cuil && (
-                <span className="text-2xs text-slate-400 font-mono shrink-0">{p.dni_cuil}</span>
+                <span className="text-2xs text-slate-500 font-mono shrink-0">{p.dni_cuil}</span>
               )}
             </button>
           ))}
           {resultados.length === LIMITE_RESULTADOS && (
-            <div className="px-3 py-1.5 text-2xs text-slate-400 text-center bg-slate-50 border-t border-slate-100">
+            <div className="px-3 py-1.5 text-2xs text-slate-500 text-center bg-slate-50 border-t border-slate-100">
               Mostrando primeros {LIMITE_RESULTADOS} — refiná la búsqueda para más
             </div>
           )}

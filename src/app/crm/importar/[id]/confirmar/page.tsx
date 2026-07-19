@@ -178,7 +178,7 @@ export default function ConfirmarPage() {
   if (cargando || !estado) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
       </div>
     );
   }
@@ -238,7 +238,7 @@ export default function ConfirmarPage() {
             <p className="text-sm text-slate-600">Total a importar</p>
             <p className="text-4xl font-bold text-slate-900">
               {totalImportar}{' '}
-              <span className="text-base font-normal text-slate-500">
+              <span className="text-base font-normal text-slate-600">
                 registros
               </span>
             </p>
@@ -256,7 +256,7 @@ export default function ConfirmarPage() {
 
         <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-100">
           <div>
-            <p className="text-2xs text-slate-500 uppercase tracking-wide">
+            <p className="text-2xs text-slate-600 uppercase tracking-wide">
               Listos
             </p>
             <p className="text-xl font-semibold text-green-700">
@@ -264,7 +264,7 @@ export default function ConfirmarPage() {
             </p>
           </div>
           <div>
-            <p className="text-2xs text-slate-500 uppercase tracking-wide">
+            <p className="text-2xs text-slate-600 uppercase tracking-wide">
               Resueltos
             </p>
             <p className="text-xl font-semibold text-violet-700">
@@ -272,7 +272,7 @@ export default function ConfirmarPage() {
             </p>
           </div>
           <div>
-            <p className="text-2xs text-slate-500 uppercase tracking-wide">
+            <p className="text-2xs text-slate-600 uppercase tracking-wide">
               Dudosos
             </p>
             <p className="text-xl font-semibold text-amber-700">
@@ -302,21 +302,21 @@ export default function ConfirmarPage() {
             </div>
           </div>
           {previewAbierto ? (
-            <ChevronDown className="w-5 h-5 text-slate-500 flex-shrink-0" />
+            <ChevronDown className="w-5 h-5 text-slate-600 flex-shrink-0" />
           ) : (
-            <ChevronRight className="w-5 h-5 text-slate-500 flex-shrink-0" />
+            <ChevronRight className="w-5 h-5 text-slate-600 flex-shrink-0" />
           )}
         </button>
 
         {previewAbierto && (
           <div className="border-t border-slate-200 p-5 bg-slate-50">
             {previewRegistros === null ? (
-              <div className="flex items-center justify-center py-8 text-slate-500">
+              <div className="flex items-center justify-center py-8 text-slate-600">
                 <Loader2 className="w-5 h-5 animate-spin mr-2" />
                 <span className="text-sm">Cargando muestra…</span>
               </div>
             ) : previewRegistros.length === 0 ? (
-              <p className="text-sm text-slate-500 text-center py-6">
+              <p className="text-sm text-slate-600 text-center py-6">
                 No hay registros procesados para mostrar.
               </p>
             ) : (
@@ -371,7 +371,7 @@ export default function ConfirmarPage() {
                   </table>
                 </div>
                 <ResumenAvisoCampos registros={previewRegistros} />
-                <p className="text-2xs text-slate-500 mt-3">
+                <p className="text-2xs text-slate-600 mt-3">
                   Mostrando {previewRegistros.length} de {totalImportar} registros. Hacé
                   clic en cada fila para ver todos los campos.
                 </p>
@@ -428,7 +428,7 @@ export default function ConfirmarPage() {
               <li key={i} className="flex items-center gap-2">
                 <span className="font-mono">{a?.nombre || a?.filename || `archivo-${i + 1}`}</span>
                 {a?.filas && (
-                  <span className="text-slate-500">({a.filas} filas)</span>
+                  <span className="text-slate-600">({a.filas} filas)</span>
                 )}
               </li>
             ))}
@@ -534,7 +534,7 @@ function FilaPreview({
         }`}
         onClick={onToggle}
       >
-        <td className="py-2 px-2 font-mono text-slate-500">{fila}</td>
+        <td className="py-2 px-2 font-mono text-slate-600">{fila}</td>
         <td className="py-2 px-2 font-medium text-slate-900">
           <div className="flex items-center gap-1">
             {apSospechoso && (
@@ -547,7 +547,7 @@ function FilaPreview({
           </div>
         </td>
         <td className="py-2 px-2 text-slate-700">
-          {nom || <span className="text-slate-400 italic">vacío</span>}
+          {nom || <span className="text-slate-500 italic">vacío</span>}
         </td>
         <td className="py-2 px-2 font-mono text-slate-700">{dni || '—'}</td>
         <td className="py-2 px-2 text-slate-700 truncate max-w-[160px]">
@@ -555,7 +555,7 @@ function FilaPreview({
         </td>
         <td className="py-2 px-2 text-slate-700">{tel || '—'}</td>
         <td className="py-2 px-2 font-mono text-slate-700">{numPoliza || '—'}</td>
-        <td className="py-2 px-2 text-slate-400">
+        <td className="py-2 px-2 text-slate-500">
           {expandida ? (
             <ChevronDown className="w-3.5 h-3.5" />
           ) : (
@@ -591,7 +591,7 @@ function CampoDump({
         <div className="font-semibold text-slate-600 mb-1 uppercase tracking-wide">
           {titulo}
         </div>
-        <p className="text-slate-400 italic">sin datos</p>
+        <p className="text-slate-500 italic">sin datos</p>
       </div>
     );
   }
@@ -604,7 +604,7 @@ function CampoDump({
         {titulo}
       </div>
       {entries.length === 0 ? (
-        <p className="text-slate-400 italic">sin datos</p>
+        <p className="text-slate-500 italic">sin datos</p>
       ) : (
         <dl className="space-y-0.5">
           {entries.map(([k, v]) => {
@@ -619,7 +619,7 @@ function CampoDump({
                   : String(v);
             return (
               <div key={k} className="flex gap-1">
-                <dt className="text-slate-500 min-w-[90px] flex-shrink-0">{k}</dt>
+                <dt className="text-slate-600 min-w-[90px] flex-shrink-0">{k}</dt>
                 <dd className="font-mono text-slate-800 break-all">{display}</dd>
               </div>
             );

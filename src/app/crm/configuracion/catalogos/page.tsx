@@ -102,7 +102,7 @@ function EditorCampos({ campos, onChange }: {
 
       {/* Lista de campos */}
       {campos.length === 0 ? (
-        <p className="text-xs text-slate-400 italic py-2">Sin campos configurados — el formulario usará descripción genérica.</p>
+        <p className="text-xs text-slate-500 italic py-2">Sin campos configurados — el formulario usará descripción genérica.</p>
       ) : (
         <div className="flex flex-col gap-1">
           {campos.map((c, i) => (
@@ -111,14 +111,14 @@ function EditorCampos({ campos, onChange }: {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-slate-700 truncate">{c.label}</span>
-                  <span className="text-2xs text-slate-400 bg-slate-100 px-1 rounded">
+                  <span className="text-2xs text-slate-500 bg-slate-100 px-1 rounded">
                     {TIPOS_CAMPO.find(t => t.value === c.tipo)?.label ?? c.tipo}
                   </span>
                   {c.requerido && (
                     <span className="text-2xs text-red-500 bg-red-50 border border-red-200 px-1 rounded">obligatorio</span>
                   )}
                 </div>
-                {c.placeholder && <p className="text-2xs text-slate-400 truncate mt-0.5">{c.placeholder}</p>}
+                {c.placeholder && <p className="text-2xs text-slate-500 truncate mt-0.5">{c.placeholder}</p>}
               </div>
               <div className="flex items-center gap-0.5 shrink-0">
                 <button onClick={() => toggleRequerido(i)}
@@ -171,7 +171,7 @@ function EditorCampos({ campos, onChange }: {
           {formCampo.tipo === 'select' && (
             <div>
               <label className="text-xs text-slate-600 mb-0.5 block">
-                Opciones <span className="text-slate-400">(separadas por coma)</span>
+                Opciones <span className="text-slate-500">(separadas por coma)</span>
               </label>
               <input className="form-input w-full" value={formCampo.opciones ?? ''}
                 onChange={e => setFormCampo(f => ({ ...f, opciones: e.target.value }))}
@@ -527,13 +527,13 @@ export default function CatalogosPage() {
     <div className="flex flex-col gap-3">
       <button
         onClick={() => router.push('/crm/configuracion')}
-        className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 w-fit"
+        className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-700 w-fit"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Volver
       </button>
       <div>
         <h1 className="text-lg font-semibold text-slate-800">Catálogos del Sistema</h1>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <p className="text-xs text-slate-600 mt-0.5">
           Administrá compañías, ramos y coberturas. Los cambios impactan en todos los formularios al instante.
         </p>
       </div>
@@ -541,7 +541,7 @@ export default function CatalogosPage() {
       <div className="flex gap-3">
         {/* Tipos */}
         <div className="w-48 shrink-0 flex flex-col gap-1">
-          <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wide px-1 mb-1">Tipo</p>
+          <p className="text-2xs font-semibold text-slate-600 uppercase tracking-wide px-1 mb-1">Tipo</p>
           {tipos.map(tipo => (
             <button key={tipo.id} onClick={() => { setTipoActivo(tipo); resetForm() }}
               className={`flex items-center justify-between px-3 py-2 rounded text-xs transition-all ${
@@ -583,7 +583,7 @@ export default function CatalogosPage() {
           <div className="flex items-center justify-between bg-white border border-slate-200 rounded px-3 py-2">
             <div>
               <span className="text-sm font-medium text-slate-700">{tipoActivo?.descripcion ?? tipoActivo?.codigo}</span>
-              <span className="ml-2 text-xs text-slate-400">{catalogos.length} elementos</span>
+              <span className="ml-2 text-xs text-slate-500">{catalogos.length} elementos</span>
             </div>
             <div className="flex items-center gap-2">
               {exito && <span className="flex items-center gap-1 text-xs text-green-600"><CheckCircle className="h-3 w-3" />{exito}</span>}
@@ -611,10 +611,10 @@ export default function CatalogosPage() {
                 <div>
                   <label className="text-xs text-slate-600 mb-1 block">
                     Ramos asociados
-                    <span className="ml-1 text-slate-400">(esta cobertura aparecerá solo en los ramos seleccionados)</span>
+                    <span className="ml-1 text-slate-500">(esta cobertura aparecerá solo en los ramos seleccionados)</span>
                   </label>
                   {ramosDisponibles.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic">No hay ramos cargados — agregalos primero.</p>
+                    <p className="text-xs text-slate-500 italic">No hay ramos cargados — agregalos primero.</p>
                   ) : (
                     <div className="flex flex-wrap gap-2 bg-white border border-slate-200 rounded p-2">
                       {ramosDisponibles.map(r => (
@@ -643,7 +643,7 @@ export default function CatalogosPage() {
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs text-slate-600">
                       Nombres por compañía
-                      <span className="ml-1 text-slate-400">(nombre comercial que usa cada aseguradora)</span>
+                      <span className="ml-1 text-slate-500">(nombre comercial que usa cada aseguradora)</span>
                     </label>
                     <button onClick={() => setFormEquivalencias(eq => [...eq, { compania_id: '', nombre_comercial: '' }])}
                       className="btn-secondary text-2xs px-2 py-1">
@@ -651,7 +651,7 @@ export default function CatalogosPage() {
                     </button>
                   </div>
                   {formEquivalencias.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic py-1">Sin equivalencias — se usará el nombre genérico en todas las compañías.</p>
+                    <p className="text-xs text-slate-500 italic py-1">Sin equivalencias — se usará el nombre genérico en todas las compañías.</p>
                   ) : (
                     <div className="flex flex-col gap-1.5">
                       {formEquivalencias.map((eq, i) => (
@@ -665,7 +665,7 @@ export default function CatalogosPage() {
                             onChange={e => setFormEquivalencias(eqs => eqs.map((x, idx) => idx === i ? { ...x, nombre_comercial: e.target.value } : x))}
                             placeholder="Nombre comercial (ej: CF, C-Clima)" />
                           <button onClick={() => setFormEquivalencias(eqs => eqs.filter((_, idx) => idx !== i))}
-                            className="h-7 w-7 flex items-center justify-center rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0">
+                            className="h-7 w-7 flex items-center justify-center rounded text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0">
                             <Trash2 className="h-3 w-3" />
                           </button>
                         </div>
@@ -680,7 +680,7 @@ export default function CatalogosPage() {
                 <div className="border-t border-blue-200 pt-3">
                   <label className="text-xs text-slate-600 mb-1 block">
                     Descripción breve
-                    <span className="ml-1 text-slate-400">(aparece en el PDF de cotización debajo del nombre)</span>
+                    <span className="ml-1 text-slate-500">(aparece en el PDF de cotización debajo del nombre)</span>
                   </label>
                   <textarea
                     className="form-input w-full"
@@ -688,7 +688,7 @@ export default function CatalogosPage() {
                     value={formDescripcion}
                     onChange={e => setFormDescripcion(e.target.value)}
                     placeholder="Ej: Cobertura intermedia con responsabilidad civil ampliada y daño total." />
-                  <p className="text-2xs text-slate-400 mt-1">
+                  <p className="text-2xs text-slate-500 mt-1">
                     Una o dos líneas que resuman el alcance general. Si la dejás vacía, esta cobertura no aparece en la sección "Detalle de coberturas" del PDF.
                   </p>
 
@@ -696,7 +696,7 @@ export default function CatalogosPage() {
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-xs text-slate-600">
                         Qué cubre
-                        <span className="ml-1 text-slate-400">(bullets que se listan en el PDF)</span>
+                        <span className="ml-1 text-slate-500">(bullets que se listan en el PDF)</span>
                       </label>
                       <button onClick={() => setFormCubre(c => [...c, ''])}
                         className="btn-secondary text-2xs px-2 py-1">
@@ -704,17 +704,17 @@ export default function CatalogosPage() {
                       </button>
                     </div>
                     {formCubre.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic py-1">Sin bullets cargados — cargá al menos uno para que aparezca en el PDF.</p>
+                      <p className="text-xs text-slate-500 italic py-1">Sin bullets cargados — cargá al menos uno para que aparezca en el PDF.</p>
                     ) : (
                       <div className="flex flex-col gap-1.5">
                         {formCubre.map((item, i) => (
                           <div key={i} className="flex items-center gap-2">
-                            <span className="text-slate-400 text-sm">•</span>
+                            <span className="text-slate-500 text-sm">•</span>
                             <input className="form-input flex-1" value={item}
                               onChange={e => setFormCubre(arr => arr.map((x, idx) => idx === i ? e.target.value : x))}
                               placeholder="Ej: Robo total y parcial" />
                             <button onClick={() => setFormCubre(arr => arr.filter((_, idx) => idx !== i))}
-                              className="h-7 w-7 flex items-center justify-center rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0">
+                              className="h-7 w-7 flex items-center justify-center rounded text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0">
                               <Trash2 className="h-3 w-3" />
                             </button>
                           </div>
@@ -731,7 +731,7 @@ export default function CatalogosPage() {
                   <div>
                     <label className="text-xs text-slate-600 mb-0.5 block font-medium">
                       Tipo de bien
-                      <span className="ml-1 text-slate-400 font-normal">(qué le pide el formulario al cargar una póliza de este ramo)</span>
+                      <span className="ml-1 text-slate-500 font-normal">(qué le pide el formulario al cargar una póliza de este ramo)</span>
                     </label>
                     <select className="form-input w-full" value={formTipoRiesgo}
                       onChange={e => handleTipoRiesgoChange(e.target.value)}>
@@ -755,7 +755,7 @@ export default function CatalogosPage() {
                             ))}
                           </ul>
                           {def.ejemplos.length > 0 && def.key !== 'generico' && (
-                            <p className="text-2xs text-slate-500 mt-2 italic">
+                            <p className="text-2xs text-slate-600 mt-2 italic">
                               Ramos que suelen ir acá: {def.ejemplos.join(', ')}
                             </p>
                           )}
@@ -767,7 +767,7 @@ export default function CatalogosPage() {
                   {/* Editor de campos del siniestro */}
                   <div className="border-t border-blue-200 pt-3">
                     <p className="text-xs font-medium text-slate-700 mb-0.5">Datos a pedir al cargar un siniestro de este ramo</p>
-                    <p className="text-2xs text-slate-500 mb-2">Editá los campos que aparecen abajo. Estos campos solo aplican al formulario de siniestros, no al de pólizas.</p>
+                    <p className="text-2xs text-slate-600 mb-2">Editá los campos que aparecen abajo. Estos campos solo aplican al formulario de siniestros, no al de pólizas.</p>
                     <EditorCampos campos={formCampos} onChange={setFormCampos} />
                   </div>
                 </>
@@ -795,10 +795,10 @@ export default function CatalogosPage() {
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             {cargandoItems ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
               </div>
             ) : catalogos.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-2 text-slate-400">
+              <div className="flex flex-col items-center justify-center py-10 gap-2 text-slate-500">
                 <Settings className="h-8 w-8 text-slate-300" />
                 <span className="text-xs">No hay elementos cargados</span>
                 <button onClick={iniciarAgregado} className="btn-primary mt-1">
@@ -824,7 +824,7 @@ export default function CatalogosPage() {
                     <tr key={c.id} className={!c.activo ? 'opacity-50' : ''}>
                       <td className="font-medium text-slate-700">{c.nombre}</td>
                       {esRamo && (
-                        <td className="text-xs text-slate-500">
+                        <td className="text-xs text-slate-600">
                           {c.metadata?.tipo_riesgo
                             ? (() => {
                                 const d = obtenerTipoRiesgo(c.metadata.tipo_riesgo)
@@ -834,7 +834,7 @@ export default function CatalogosPage() {
                         </td>
                       )}
                       {esRamo && (
-                        <td className="text-xs text-slate-500">
+                        <td className="text-xs text-slate-600">
                           {(c.metadata?.campos_siniestro?.length ?? 0) > 0
                             ? <span className="text-emerald-600 font-medium">{c.metadata?.campos_siniestro?.length} campos</span>
                             : <span className="text-slate-300">Sin configurar</span>
@@ -842,7 +842,7 @@ export default function CatalogosPage() {
                         </td>
                       )}
                       {esCobertura && (
-                        <td className="text-xs text-slate-500">
+                        <td className="text-xs text-slate-600">
                           {(c.metadata?.ramo_ids?.length ?? 0) > 0
                             ? <span className="text-slate-600">
                                 {(c.metadata?.ramo_ids as string[]).map(rid => ramosDisponibles.find(r => r.id === rid)?.nombre).filter(Boolean).join(', ') || '—'}
@@ -852,7 +852,7 @@ export default function CatalogosPage() {
                         </td>
                       )}
                       {esCobertura && (
-                        <td className="text-xs text-slate-500">
+                        <td className="text-xs text-slate-600">
                           {(c.metadata?.equivalencias?.length ?? 0) > 0
                             ? <span className="text-slate-600">
                                 {(c.metadata?.equivalencias as { compania_id: string; nombre_comercial: string }[])
@@ -866,7 +866,7 @@ export default function CatalogosPage() {
                         </td>
                       )}
                       {esCobertura && (
-                        <td className="text-xs text-slate-500">
+                        <td className="text-xs text-slate-600">
                           {(() => {
                             const tieneDesc = !!(c.metadata?.descripcion && String(c.metadata.descripcion).trim())
                             const cantBullets = Array.isArray(c.metadata?.cubre)
@@ -885,7 +885,7 @@ export default function CatalogosPage() {
                       )}
                       <td>
                         <button onClick={() => toggleActivo(c.id, c.activo, c.nombre)}
-                          className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${c.activo ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                          className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${c.activo ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
                           {c.activo ? 'Activo' : 'Inactivo'}
                         </button>
                       </td>

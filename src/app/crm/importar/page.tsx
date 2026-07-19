@@ -46,7 +46,7 @@ function iconoArchivo(nombre: string) {
   if (ext === 'pdf') {
     return <FileText className="w-5 h-5 text-red-600" />;
   }
-  return <FileText className="w-5 h-5 text-slate-500" />;
+  return <FileText className="w-5 h-5 text-slate-600" />;
 }
 
 export default function ImportarPage() {
@@ -196,7 +196,7 @@ export default function ImportarPage() {
   if (authLoading || (usuario && !isAdmin) || loadingConfig) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
       </div>
     );
   }
@@ -238,7 +238,7 @@ export default function ImportarPage() {
           >
             Configurar API key
           </button>
-          <p className="text-2xs text-slate-500 mt-4">
+          <p className="text-2xs text-slate-600 mt-4">
             ¿No sabés qué es Anthropic? Es la empresa creadora de Claude. Necesitás una
             cuenta en console.anthropic.com
           </p>
@@ -258,7 +258,7 @@ export default function ImportarPage() {
             <p className="text-sm text-slate-700 font-medium">
               Subiendo archivos e iniciando análisis...
             </p>
-            <p className="text-2xs text-slate-500">Esto puede tardar unos segundos</p>
+            <p className="text-2xs text-slate-600">Esto puede tardar unos segundos</p>
           </div>
         </div>
       )}
@@ -368,11 +368,11 @@ export default function ImportarPage() {
           hidden
           onChange={onInputChange}
         />
-        <Upload className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+        <Upload className="w-10 h-10 text-slate-500 mx-auto mb-3" />
         <p className="text-base font-medium text-slate-700">
           Arrastrá tus archivos acá o hacé clic para seleccionar
         </p>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-slate-600 mt-1">
           Formatos: XLSX, XLS, CSV, PDF · Máx. 10 archivos · 50 MB c/u
         </p>
       </div>
@@ -451,7 +451,7 @@ export default function ImportarPage() {
             <h2 className="text-sm font-semibold text-slate-700">
               Archivos seleccionados ({archivos.length})
             </h2>
-            <span className="text-2xs text-slate-500">{formatearTamano(totalBytes)} total</span>
+            <span className="text-2xs text-slate-600">{formatearTamano(totalBytes)} total</span>
           </div>
           <ul className="space-y-2">
             {archivos.map((f, idx) => (
@@ -462,11 +462,11 @@ export default function ImportarPage() {
                 {iconoArchivo(f.name)}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-slate-800 truncate">{f.name}</p>
-                  <p className="text-2xs text-slate-500">{formatearTamano(f.size)}</p>
+                  <p className="text-2xs text-slate-600">{formatearTamano(f.size)}</p>
                 </div>
                 <button
                   onClick={() => quitarArchivo(idx)}
-                  className="p-1 text-slate-400 hover:text-red-600 rounded"
+                  className="p-1 text-slate-500 hover:text-red-600 rounded"
                   aria-label="Quitar"
                 >
                   <X className="w-4 h-4" />
@@ -520,7 +520,7 @@ export default function ImportarPage() {
                 <span className="text-sm text-slate-700">
                   Esta importación actualiza una cartera existente (incremental)
                 </span>
-                <p className="text-2xs text-slate-500">
+                <p className="text-2xs text-slate-600">
                   El sistema intentará vincular por DNI y actualizar registros existentes
                 </p>
               </div>
@@ -538,7 +538,7 @@ export default function ImportarPage() {
           <Sparkles className="w-5 h-5 inline-block mr-2" />
           Iniciar análisis
         </button>
-        <p className="text-2xs text-slate-500 text-center mt-2">
+        <p className="text-2xs text-slate-600 text-center mt-2">
           El sistema analizará la estructura de tus archivos con IA y te mostrará un plan de
           importación para que lo revises antes de procesar
         </p>
@@ -583,7 +583,7 @@ function ModalInstrucciones({ onCerrar }: { onCerrar: () => void }) {
           </div>
           <button
             onClick={onCerrar}
-            className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg"
+            className="p-1.5 text-slate-600 hover:text-slate-700 hover:bg-slate-100 rounded-lg"
             aria-label="Cerrar"
           >
             <X className="w-5 h-5" />
@@ -592,7 +592,7 @@ function ModalInstrucciones({ onCerrar }: { onCerrar: () => void }) {
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">
               Cómo usar este modelo
             </h3>
             <ol className="space-y-2 text-sm text-slate-700 list-decimal list-inside">
@@ -624,7 +624,7 @@ function ModalInstrucciones({ onCerrar }: { onCerrar: () => void }) {
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">
               Reglas de formato
             </h3>
             <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
@@ -647,7 +647,7 @@ function ModalInstrucciones({ onCerrar }: { onCerrar: () => void }) {
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">
               Campos obligatorios
             </h3>
             <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
@@ -669,7 +669,7 @@ function ModalInstrucciones({ onCerrar }: { onCerrar: () => void }) {
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">
               Campos recomendados
             </h3>
             <p className="text-sm text-slate-700 mb-2">
@@ -686,7 +686,7 @@ function ModalInstrucciones({ onCerrar }: { onCerrar: () => void }) {
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">
               Valores fijos del sistema
             </h3>
             <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
@@ -711,7 +711,7 @@ function ModalInstrucciones({ onCerrar }: { onCerrar: () => void }) {
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">
               Campos de riesgo por tipo
             </h3>
             <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">

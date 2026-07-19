@@ -70,6 +70,8 @@ export default function ComunicacionesPage() {
   // PAS por otros medios (ícono sirena en navbar, notif in-app crítica, tab
   // "denuncias pendientes") y el PDF queda en la ficha del siniestro.
   const [denunciaEmailCliente, setDenunciaEmailCliente] = useState(false)
+  // v1.0.149: aviso al PAS al recibirse una denuncia desde el portal.
+  const [denunciaEmailPas, setDenunciaEmailPas] = useState(true)
   const [smtpConfigurado, setSmtpConfigurado] = useState(false)
   const [editandoPlantilla, setEditandoPlantilla] = useState<string | null>(null)
 
@@ -130,6 +132,7 @@ export default function ComunicacionesPage() {
         setNotifEmailFallido(c.notificar_admin_email_automatico_fallido ?? false)
         setNotifLeadWeb(c.notificar_admin_lead_web ?? true)
         setDenunciaEmailCliente(c.envio_automatico_denuncia_publica_cliente ?? false)
+        setDenunciaEmailPas(c.envio_automatico_denuncia_publica_pas ?? true)
       } else if (!configRes.ok) {
         setErrorGral(configRes.error?.mensaje ?? 'Error al cargar la configuración')
       }
@@ -243,7 +246,7 @@ export default function ComunicacionesPage() {
   if (authLoading || cargando) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
       </div>
     )
   }
@@ -256,15 +259,15 @@ export default function ComunicacionesPage() {
     <div className="flex flex-col gap-4 max-w-6xl">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => router.push('/crm/configuracion')} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">
+        <button onClick={() => router.push('/crm/configuracion')} className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-700">
           <ArrowLeft className="h-3.5 w-3.5" /> Volver
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-semibold text-slate-800">Sistema de comunicaciones</h1>
-          <p className="text-xs text-slate-500">Plantillas de email y WhatsApp, envíos automáticos y gestión de bajas</p>
+          <p className="text-xs text-slate-600">Plantillas de email y WhatsApp, envíos automáticos y gestión de bajas</p>
         </div>
         <div className="flex items-center gap-1.5 text-2xs">
-          {guardando && <><Loader2 className="h-3 w-3 animate-spin text-slate-400" /><span className="text-slate-400">Guardando...</span></>}
+          {guardando && <><Loader2 className="h-3 w-3 animate-spin text-slate-500" /><span className="text-slate-500">Guardando...</span></>}
           {guardadoOk && <><CheckCircle className="h-3 w-3 text-green-500" /><span className="text-green-600">Guardado</span></>}
         </div>
       </div>
@@ -283,7 +286,7 @@ export default function ComunicacionesPage() {
           className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
             tabActiva === 'email'
               ? 'border-blue-500 text-blue-700'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+              : 'border-transparent text-slate-600 hover:text-slate-700'
           }`}
         >
           <Mail className="h-3.5 w-3.5" /> Email
@@ -293,7 +296,7 @@ export default function ComunicacionesPage() {
           className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
             tabActiva === 'whatsapp'
               ? 'border-green-500 text-green-700'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+              : 'border-transparent text-slate-600 hover:text-slate-700'
           }`}
         >
           <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
@@ -355,7 +358,7 @@ export default function ComunicacionesPage() {
           <Send className="h-4 w-4 text-blue-600" />
           <h2 className="text-sm font-semibold text-slate-800">Emails automáticos</h2>
         </div>
-        <p className="text-2xs text-slate-500 mb-4">Activá cada tipo de email automático de forma independiente. Todos se envían a través de la cola de envíos.</p>
+        <p className="text-2xs text-slate-600 mb-4">Activá cada tipo de email automático de forma independiente. Todos se envían a través de la cola de envíos.</p>
 
         {smtpConfigurado && !activo && (
           <div className="mb-4 flex items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-2.5">
@@ -371,7 +374,7 @@ export default function ComunicacionesPage() {
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <p className="text-xs text-slate-700">Bienvenida del cliente a la organización</p>
-              <p className="text-2xs text-slate-400 mt-0.5">Se envía UNA SOLA VEZ por cliente, al emitirse su primera póliza vigente. Es un saludo formal de incorporación, sin adjuntos. No se manda a clientes importados ni a los que ya estaban en el sistema antes de activar esta función.</p>
+              <p className="text-2xs text-slate-500 mt-0.5">Se envía UNA SOLA VEZ por cliente, al emitirse su primera póliza vigente. Es un saludo formal de incorporación, sin adjuntos. No se manda a clientes importados ni a los que ya estaban en el sistema antes de activar esta función.</p>
             </div>
             <label className={`relative inline-flex items-center ${!smtpConfigurado ? 'opacity-50' : 'cursor-pointer'}`}>
               <input
@@ -392,7 +395,7 @@ export default function ComunicacionesPage() {
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <p className="text-xs text-slate-700">Emisión de póliza</p>
-              <p className="text-2xs text-slate-400 mt-0.5">Se envía cada vez que una póliza pasa a VIGENTE (nace vigente o transiciona desde PROGRAMADA). Adjunta toda la documentación disponible.</p>
+              <p className="text-2xs text-slate-500 mt-0.5">Se envía cada vez que una póliza pasa a VIGENTE (nace vigente o transiciona desde PROGRAMADA). Adjunta toda la documentación disponible.</p>
             </div>
             <label className={`relative inline-flex items-center ${!smtpConfigurado ? 'opacity-50' : 'cursor-pointer'}`}>
               <input
@@ -413,7 +416,7 @@ export default function ComunicacionesPage() {
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <p className="text-xs text-slate-700">Acceso al Portal del Asegurado</p>
-              <p className="text-2xs text-slate-400 mt-0.5">Se envía cuando se habilita el acceso al portal desde la ficha de persona.</p>
+              <p className="text-2xs text-slate-500 mt-0.5">Se envía cuando se habilita el acceso al portal desde la ficha de persona.</p>
             </div>
             <label className={`relative inline-flex items-center ${!smtpConfigurado ? 'opacity-50' : 'cursor-pointer'}`}>
               <input
@@ -434,7 +437,7 @@ export default function ComunicacionesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-700">Renovación de póliza</p>
-              <p className="text-2xs text-slate-400 mt-0.5">Se envía cuando una renovación se activa y pasa a VIGENTE.</p>
+              <p className="text-2xs text-slate-500 mt-0.5">Se envía cuando una renovación se activa y pasa a VIGENTE.</p>
             </div>
             <label className={`relative inline-flex items-center ${!smtpConfigurado ? 'opacity-50' : 'cursor-pointer'}`}>
               <input
@@ -455,7 +458,7 @@ export default function ComunicacionesPage() {
             <div className="flex items-center justify-between border-t border-slate-100 pt-3">
               <div>
                 <p className="text-xs text-slate-700">Adjuntar documentación de la renovación</p>
-                <p className="text-2xs text-slate-400 mt-0.5">Incluye los archivos de la categoría "documentación" como adjuntos.</p>
+                <p className="text-2xs text-slate-500 mt-0.5">Incluye los archivos de la categoría "documentación" como adjuntos.</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -476,7 +479,7 @@ export default function ComunicacionesPage() {
           <div className="flex items-center justify-between border-t border-slate-100 pt-3">
             <div>
               <p className="text-xs text-slate-700">Confirmación al cliente cuando carga una denuncia</p>
-              <p className="text-2xs text-slate-400 mt-0.5">Cuando un asegurado completa el formulario público de denuncia, recibe un email con el PDF de la denuncia como comprobante.</p>
+              <p className="text-2xs text-slate-500 mt-0.5">Cuando un asegurado completa el formulario público de denuncia, recibe un email con el PDF de la denuncia como comprobante.</p>
             </div>
             <label className={`relative inline-flex items-center ${!smtpConfigurado ? 'opacity-50' : 'cursor-pointer'}`}>
               <input
@@ -492,6 +495,27 @@ export default function ComunicacionesPage() {
               <div className="w-10 h-5 bg-slate-300 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5" />
             </label>
           </div>
+
+          {/* Toggle: Aviso al PAS al recibirse una denuncia (v1.0.149) */}
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+            <div>
+              <p className="text-xs text-slate-700">Avisarme por email cuando se cargue una denuncia desde el portal</p>
+              <p className="text-2xs text-slate-500 mt-0.5">Recibís un email con datos del asegurado, la póliza, el PDF de la denuncia adjunto y un link directo al siniestro en el CRM. Se envía al email operativo del perfil (no al SMTP).</p>
+            </div>
+            <label className={`relative inline-flex items-center ${!smtpConfigurado ? 'opacity-50' : 'cursor-pointer'}`}>
+              <input
+                type="checkbox"
+                checked={denunciaEmailPas}
+                disabled={!smtpConfigurado}
+                onChange={e => {
+                  setDenunciaEmailPas(e.target.checked)
+                  immediateSave({ envio_automatico_denuncia_publica_pas: e.target.checked })
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-slate-300 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5" />
+            </label>
+          </div>
         </div>
       </div>
 
@@ -501,7 +525,7 @@ export default function ComunicacionesPage() {
           <FileText className="h-4 w-4 text-blue-600" />
           <h2 className="text-sm font-semibold text-slate-800">Plantillas disponibles</h2>
         </div>
-        <p className="text-2xs text-slate-500 mb-4">Las plantillas definen el diseño de cada tipo de email. Las variables se reemplazan automáticamente con datos reales.</p>
+        <p className="text-2xs text-slate-600 mb-4">Las plantillas definen el diseño de cada tipo de email. Las variables se reemplazan automáticamente con datos reales.</p>
 
         {plantillas.length > 0 ? (() => {
           const cliente = plantillas.filter(p => !p.codigo.startsWith('sistema_'))
@@ -512,7 +536,7 @@ export default function ComunicacionesPage() {
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-slate-800">{p.nombre}</p>
-                  <p className="text-2xs text-slate-500 mt-0.5">{p.descripcion}</p>
+                  <p className="text-2xs text-slate-600 mt-0.5">{p.descripcion}</p>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {(p.variables_disponibles ?? []).map(v => (
                       <span key={v} className="text-2xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
@@ -544,7 +568,7 @@ export default function ComunicacionesPage() {
               {cliente.length > 0 && (
                 <div>
                   <p className="text-2xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-                    Comunicaciones al cliente <span className="text-slate-400 font-normal">({cliente.length})</span>
+                    Comunicaciones al cliente <span className="text-slate-500 font-normal">({cliente.length})</span>
                   </p>
                   <div className="flex flex-col gap-2">
                     {cliente.map(renderPlantilla)}
@@ -555,7 +579,7 @@ export default function ComunicacionesPage() {
               {admin.length > 0 && (
                 <div>
                   <p className="text-2xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-                    Notificaciones al admin <span className="text-slate-400 font-normal">({admin.length})</span>
+                    Notificaciones al admin <span className="text-slate-500 font-normal">({admin.length})</span>
                   </p>
                   <div className="flex flex-col gap-2">
                     {admin.map(renderPlantilla)}
@@ -578,10 +602,10 @@ export default function ComunicacionesPage() {
           className="w-full flex items-center justify-between p-5 text-left"
         >
           <div className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4 text-slate-400" />
+            <Settings2 className="h-4 w-4 text-slate-500" />
             <h2 className="text-sm font-semibold text-slate-800">Configuración avanzada</h2>
           </div>
-          {avanzadoAbierto ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+          {avanzadoAbierto ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
         </button>
 
         {avanzadoAbierto && (
@@ -600,7 +624,7 @@ export default function ComunicacionesPage() {
                   debouncedSave({ limite_diario: v })
                 }}
               />
-              <p className="text-2xs text-slate-400 mt-1">Cantidad máxima de emails que se pueden enviar por día. Protege contra envíos masivos accidentales.</p>
+              <p className="text-2xs text-slate-500 mt-1">Cantidad máxima de emails que se pueden enviar por día. Protege contra envíos masivos accidentales.</p>
             </div>
 
             <div>
@@ -618,7 +642,7 @@ export default function ComunicacionesPage() {
                   debouncedSave({ delay_entre_envios_ms: v })
                 }}
               />
-              <p className="text-2xs text-slate-400 mt-1">Tiempo de espera entre cada email en envíos masivos. Evita sobrecargar el servidor SMTP.</p>
+              <p className="text-2xs text-slate-500 mt-1">Tiempo de espera entre cada email en envíos masivos. Evita sobrecargar el servidor SMTP.</p>
             </div>
 
             <div className="border-t border-slate-100 pt-4">
@@ -640,7 +664,7 @@ export default function ComunicacionesPage() {
                     }}
                     title="Pausa entre cada email automático para no saturar el servidor SMTP"
                   />
-                  <p className="text-2xs text-slate-400 mt-1">Pausa entre cada email automático para no saturar el servidor SMTP.</p>
+                  <p className="text-2xs text-slate-500 mt-1">Pausa entre cada email automático para no saturar el servidor SMTP.</p>
                 </div>
 
                 <div>
@@ -659,7 +683,7 @@ export default function ComunicacionesPage() {
                     }}
                     title="Si los adjuntos superan este tamaño, se envía link al portal del asegurado"
                   />
-                  <p className="text-2xs text-slate-400 mt-1">Si los adjuntos superan este tamaño, se envía link al portal del asegurado.</p>
+                  <p className="text-2xs text-slate-500 mt-1">Si los adjuntos superan este tamaño, se envía link al portal del asegurado.</p>
                 </div>
               </div>
             </div>
@@ -690,7 +714,7 @@ export default function ComunicacionesPage() {
                     }}
                     title="Los emails más nuevos que este período se conservan con todos sus detalles"
                   />
-                  <p className="text-2xs text-slate-400 mt-1">Los emails más nuevos que este período se conservan con todos sus detalles.</p>
+                  <p className="text-2xs text-slate-500 mt-1">Los emails más nuevos que este período se conservan con todos sus detalles.</p>
                 </div>
 
                 <div>
@@ -708,7 +732,7 @@ export default function ComunicacionesPage() {
                     }}
                     title="Pasado este tiempo se elimina el contenido pero se conserva el registro del envío"
                   />
-                  <p className="text-2xs text-slate-400 mt-1">Pasado este tiempo se elimina el contenido pero se conserva el registro del envío.</p>
+                  <p className="text-2xs text-slate-500 mt-1">Pasado este tiempo se elimina el contenido pero se conserva el registro del envío.</p>
                 </div>
 
                 <div>
@@ -726,14 +750,14 @@ export default function ComunicacionesPage() {
                     }}
                     title="Pasado este tiempo el registro se elimina definitivamente"
                   />
-                  <p className="text-2xs text-slate-400 mt-1">Pasado este tiempo el registro se elimina definitivamente.</p>
+                  <p className="text-2xs text-slate-500 mt-1">Pasado este tiempo el registro se elimina definitivamente.</p>
                 </div>
               </div>
             </div>
 
             <div className="border-t border-slate-100 pt-4">
               <h3 className="text-2xs font-semibold text-slate-700 uppercase tracking-wider mb-1">🔔 Notificaciones al admin por email</h3>
-              <p className="text-2xs text-slate-500 mb-3 leading-relaxed">
+              <p className="text-2xs text-slate-600 mb-3 leading-relaxed">
                 Los <strong>eventos críticos</strong> (backup fallido, sync Google Drive fallido, restauración fallida, errores graves del sistema, denuncia pública al PAS y licencias) <strong>siempre</strong> se envían — no se pueden apagar por seguridad.
                 Acá podés elegir individualmente qué <strong>eventos informativos</strong> querés recibir.
               </p>
@@ -801,7 +825,7 @@ export default function ComunicacionesPage() {
                 <div className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-100">
                   <div>
                     <p className="text-xs text-slate-700">Backup completado correctamente</p>
-                    <p className="text-2xs text-slate-400">Email cada vez que termina un backup exitoso.</p>
+                    <p className="text-2xs text-slate-500">Email cada vez que termina un backup exitoso.</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
@@ -821,7 +845,7 @@ export default function ComunicacionesPage() {
                 <div className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-100">
                   <div>
                     <p className="text-xs text-slate-700">Restauración iniciada</p>
-                    <p className="text-2xs text-slate-400">Email al iniciar una restauración desde backup.</p>
+                    <p className="text-2xs text-slate-500">Email al iniciar una restauración desde backup.</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
@@ -841,7 +865,7 @@ export default function ComunicacionesPage() {
                 <div className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-100">
                   <div>
                     <p className="text-xs text-slate-700">Restauración completada</p>
-                    <p className="text-2xs text-slate-400">Email al terminar una restauración exitosa.</p>
+                    <p className="text-2xs text-slate-500">Email al terminar una restauración exitosa.</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
@@ -861,7 +885,7 @@ export default function ComunicacionesPage() {
                 <div className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-100">
                   <div>
                     <p className="text-xs text-slate-700">Agente IA: PDF procesado y listo para revisar</p>
-                    <p className="text-2xs text-slate-400">Email cuando la IA termina de extraer datos de un PDF de póliza.</p>
+                    <p className="text-2xs text-slate-500">Email cuando la IA termina de extraer datos de un PDF de póliza.</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
@@ -881,7 +905,7 @@ export default function ComunicacionesPage() {
                 <div className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-100">
                   <div>
                     <p className="text-xs text-slate-700">Agente IA: PDF que falló al procesar</p>
-                    <p className="text-2xs text-slate-400">Email cuando la IA no pudo extraer datos de un PDF. Recomendado activado.</p>
+                    <p className="text-2xs text-slate-500">Email cuando la IA no pudo extraer datos de un PDF. Recomendado activado.</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
@@ -901,7 +925,7 @@ export default function ComunicacionesPage() {
                 <div className="flex items-center justify-between gap-4 py-1.5">
                   <div>
                     <p className="text-xs text-slate-700">Email automático a cliente que falló</p>
-                    <p className="text-2xs text-slate-400">Email cuando rebota o falla un email que el sistema mandó a un cliente. Recomendado activado.</p>
+                    <p className="text-2xs text-slate-500">Email cuando rebota o falla un email que el sistema mandó a un cliente. Recomendado activado.</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
@@ -921,7 +945,7 @@ export default function ComunicacionesPage() {
                 <div className="flex items-center justify-between gap-4 py-1.5">
                   <div>
                     <p className="text-xs text-slate-700">Nuevo lead desde el formulario web público</p>
-                    <p className="text-2xs text-slate-400">Email al admin cada vez que llega un lead nuevo por el endpoint público (<code className="font-mono text-2xs">/api/publico/leads</code>). El ícono Inbox del navbar y las notificaciones in-app siguen apareciendo aunque este toggle esté apagado. Recomendado activado si el sitio web del PAS recibe leads con frecuencia.</p>
+                    <p className="text-2xs text-slate-500">Email al admin cada vez que llega un lead nuevo por el endpoint público (<code className="font-mono text-2xs">/api/publico/leads</code>). El ícono Inbox del navbar y las notificaciones in-app siguen apareciendo aunque este toggle esté apagado. Recomendado activado si el sitio web del PAS recibe leads con frecuencia.</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
@@ -949,34 +973,34 @@ export default function ComunicacionesPage() {
           <UserX className="h-4 w-4 text-red-500" />
           <h2 className="text-sm font-semibold text-slate-800">Lista de bajas</h2>
         </div>
-        <p className="text-2xs text-slate-500 mb-4">
+        <p className="text-2xs text-slate-600 mb-4">
           Personas que se dieron de baja de las comunicaciones. No recibirán más emails del CRM.
           {totalBajas > 0 && <span className="ml-1 font-medium">({totalBajas} en total)</span>}
         </p>
 
         {cargandoBajas ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
           </div>
         ) : bajas.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-6">No hay bajas registradas.</p>
+          <p className="text-xs text-slate-500 text-center py-6">No hay bajas registradas.</p>
         ) : (
           <>
             <table className="crm-table text-xs w-full">
               <thead>
                 <tr>
-                  <th className="text-left py-2 px-3 text-2xs font-medium text-slate-500 bg-slate-50">Email</th>
-                  <th className="text-left py-2 px-3 text-2xs font-medium text-slate-500 bg-slate-50">Fecha de baja</th>
-                  <th className="text-left py-2 px-3 text-2xs font-medium text-slate-500 bg-slate-50">Origen</th>
-                  <th className="text-right py-2 px-3 text-2xs font-medium text-slate-500 bg-slate-50">Acción</th>
+                  <th className="text-left py-2 px-3 text-2xs font-medium text-slate-600 bg-slate-50">Email</th>
+                  <th className="text-left py-2 px-3 text-2xs font-medium text-slate-600 bg-slate-50">Fecha de baja</th>
+                  <th className="text-left py-2 px-3 text-2xs font-medium text-slate-600 bg-slate-50">Origen</th>
+                  <th className="text-right py-2 px-3 text-2xs font-medium text-slate-600 bg-slate-50">Acción</th>
                 </tr>
               </thead>
               <tbody>
                 {bajas.map(b => (
                   <tr key={b.id} className="border-t border-slate-100">
                     <td className="py-2 px-3 font-mono">{b.email}</td>
-                    <td className="py-2 px-3 text-slate-500">{new Date(b.fecha_baja).toLocaleDateString('es-AR')}</td>
-                    <td className="py-2 px-3 text-slate-500">{b.origen === 'unsubscribe_link' ? 'Link de baja' : b.origen}</td>
+                    <td className="py-2 px-3 text-slate-600">{new Date(b.fecha_baja).toLocaleDateString('es-AR')}</td>
+                    <td className="py-2 px-3 text-slate-600">{b.origen === 'unsubscribe_link' ? 'Link de baja' : b.origen}</td>
                     <td className="py-2 px-3 text-right">
                       <button
                         onClick={() => resuscribir(b.id)}
@@ -992,7 +1016,7 @@ export default function ComunicacionesPage() {
 
             {totalPaginasBajas > 1 && (
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                <p className="text-2xs text-slate-400">Página {paginaBajas} de {totalPaginasBajas}</p>
+                <p className="text-2xs text-slate-500">Página {paginaBajas} de {totalPaginasBajas}</p>
                 <div className="flex gap-1">
                   <button
                     onClick={() => cargarBajas(paginaBajas - 1)}
@@ -1078,7 +1102,7 @@ function PlantillasHardcoded({ onPreview }: { onPreview: (c: string) => void; pr
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-slate-800">{p.nombre}</p>
-              <p className="text-2xs text-slate-500 mt-0.5">{p.descripcion}</p>
+              <p className="text-2xs text-slate-600 mt-0.5">{p.descripcion}</p>
               <div className="flex flex-wrap gap-1 mt-2">
                 {(p.variables ?? []).map(v => (
                   <span key={v} className="text-2xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
@@ -1123,14 +1147,14 @@ function PreviewModal({ codigo, onClose }: { codigo: string; onClose: () => void
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 shrink-0">
           <h2 className="text-sm font-semibold text-slate-800">Vista previa de plantilla</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
         <div className="flex-1 overflow-auto p-1 bg-slate-100">
           {cargando ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+              <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
             </div>
           ) : (
             <iframe

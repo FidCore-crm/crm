@@ -87,7 +87,7 @@ export default function ProcesandoPDFPage() {
       <div className="flex items-center justify-between">
         <button
           onClick={() => router.push('/crm/dashboard')}
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
+          className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-800"
         >
           <ArrowLeft className="h-4 w-4" /> Volver al dashboard
         </button>
@@ -107,7 +107,7 @@ export default function ProcesandoPDFPage() {
           <Sparkles className="h-5 w-5 text-blue-600" />
           {tipo ? TITULOS[tipo] : 'Analizando PDF'}
         </h1>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-600">
           El asistente está extrayendo los datos del PDF con inteligencia artificial.
         </p>
       </div>
@@ -120,7 +120,7 @@ export default function ProcesandoPDFPage() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-slate-800 truncate">{estado.nombre_archivo}</p>
-            <p className="text-2xs text-slate-500">
+            <p className="text-2xs text-slate-600">
               {formatBytes(estado.tamano_archivo)} ·{' '}
               {tipo === 'POLIZA_NUEVA' ? 'Póliza nueva' : tipo === 'RENOVACION' ? 'Renovación' : 'Endoso'}
             </p>
@@ -155,7 +155,7 @@ export default function ProcesandoPDFPage() {
       {esCancelado && (
         <div className="bg-white border border-slate-200 rounded p-5 flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-slate-500" />
+            <AlertCircle className="h-5 w-5 text-slate-600" />
             <h2 className="text-sm font-semibold text-slate-700">Análisis cancelado</h2>
           </div>
           <button onClick={() => router.push('/crm/dashboard')} className="btn-secondary w-fit">
@@ -182,10 +182,10 @@ export default function ProcesandoPDFPage() {
                 <span
                   className={`text-xs ${
                     completado
-                      ? 'text-slate-400 line-through'
+                      ? 'text-slate-500 line-through'
                       : actual
                       ? 'text-slate-800 font-medium'
-                      : 'text-slate-400'
+                      : 'text-slate-500'
                   }`}
                 >
                   {paso}

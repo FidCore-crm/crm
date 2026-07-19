@@ -78,7 +78,7 @@ export default function ProgresoPage() {
   if (!estado) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
       </div>
     );
   }
@@ -194,10 +194,10 @@ export default function ProgresoPage() {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600">
               Lote {lotes.completados} de {lotes.total}
             </p>
-            <p className="text-2xs text-slate-400 mt-0.5">
+            <p className="text-2xs text-slate-500 mt-0.5">
               {lotes.procesando > 0 && `${lotes.procesando} en curso · `}
               {lotes.pendientes} pendientes
             </p>
@@ -209,7 +209,7 @@ export default function ProgresoPage() {
             style={{ width: `${Math.min(100, Math.max(0, progreso.porcentaje))}%` }}
           />
         </div>
-        <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
+        <div className="flex items-center justify-between mt-3 text-xs text-slate-600">
           <span>Transcurrido: {tiempoTranscurrido}</span>
           <span>Restante estimado: {tiempoRestante}</span>
         </div>

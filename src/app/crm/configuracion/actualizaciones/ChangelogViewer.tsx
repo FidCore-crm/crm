@@ -51,7 +51,7 @@ function aplicarInline(s: string): string {
 export function ChangelogViewer({ texto, className = '' }: Props) {
   if (!texto || !texto.trim()) {
     return (
-      <p className={`text-xs text-slate-400 italic ${className}`}>
+      <p className={`text-xs text-slate-500 italic ${className}`}>
         Sin descripción de cambios.
       </p>
     )

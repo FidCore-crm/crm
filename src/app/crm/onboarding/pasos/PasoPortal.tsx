@@ -61,7 +61,7 @@ export function PasoPortal({ pasoActual, totalPasos, onAtras, onContinuar, onSki
   if (cargando) {
     return (
       <WizardLayout pasoActual={pasoActual} totalPasos={totalPasos} titulo="Portal del Asegurado">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex items-center gap-2 text-sm text-slate-600">
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
         </div>
       </WizardLayout>
@@ -128,7 +128,7 @@ export function PasoPortal({ pasoActual, totalPasos, onAtras, onContinuar, onSki
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Mensaje de bienvenida (opcional)
             </label>
-            <p className="text-xs text-slate-500 mb-3">
+            <p className="text-xs text-slate-600 mb-3">
               Aparece arriba de las pólizas cuando el cliente entra al portal.
             </p>
             <textarea

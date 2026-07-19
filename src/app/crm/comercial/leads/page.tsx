@@ -178,7 +178,7 @@ export default function LeadsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Leads</h1>
-          <p className="text-xs text-slate-500">{total.toLocaleString('es-AR')} leads en total</p>
+          <p className="text-xs text-slate-600">{total.toLocaleString('es-AR')} leads en total</p>
         </div>
         <button onClick={() => router.push('/crm/comercial/leads/nuevo')} className="btn-primary">
           <Plus className="h-3 w-3"/> Nuevo lead
@@ -220,7 +220,7 @@ export default function LeadsPage() {
       {/* Filtros */}
       <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400"/>
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-500"/>
           <input className="search-input w-full pl-6" placeholder="Buscar por nombre, apellido, DNI, teléfono o email..."
             value={busqueda} onChange={e => setBusqueda(e.target.value)}/>
         </div>
@@ -286,7 +286,7 @@ export default function LeadsPage() {
                       {l.apellido}, {l.nombre}
                     </span>
                     {(l.empresa || l.cargo) && (
-                      <p className="text-2xs text-slate-500 mt-0.5">
+                      <p className="text-2xs text-slate-600 mt-0.5">
                         {[l.cargo, l.empresa].filter(Boolean).join(' en ')}
                       </p>
                     )}
@@ -299,8 +299,8 @@ export default function LeadsPage() {
                           <MessageCircle className="h-2.5 w-2.5 text-green-500"/>
                         </span>
                       )}
-                      {l.email && <span className="text-2xs text-slate-400 truncate max-w-32">{l.email}</span>}
-                      {!l.telefono && !l.email && <span className="text-2xs text-slate-400">Sin contacto</span>}
+                      {l.email && <span className="text-2xs text-slate-500 truncate max-w-32">{l.email}</span>}
+                      {!l.telefono && !l.email && <span className="text-2xs text-slate-500">Sin contacto</span>}
                     </div>
                   </td>
                   <td>
@@ -320,7 +320,7 @@ export default function LeadsPage() {
                   </td>
                   <td>
                     <span className="text-xs text-slate-600">{formatFechaLocalLarga(l.created_at)}</span>
-                    <p className="text-2xs text-slate-500">{diasDesde(l.created_at)}</p>
+                    <p className="text-2xs text-slate-600">{diasDesde(l.created_at)}</p>
                   </td>
                   <td>
                     <div className="flex items-center gap-0.5">
@@ -346,7 +346,7 @@ export default function LeadsPage() {
 
       {/* Paginación */}
       {Math.ceil(total / POR_PAGINA) > 1 && (
-        <div className="flex items-center justify-between text-xs text-slate-500 pb-2">
+        <div className="flex items-center justify-between text-xs text-slate-600 pb-2">
           <span>Mostrando {pagina * POR_PAGINA + 1}–{Math.min((pagina + 1) * POR_PAGINA, total)} de {total.toLocaleString('es-AR')}</span>
           <div className="flex gap-1">
             <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0} className="btn-secondary px-3">← Anterior</button>

@@ -136,7 +136,7 @@ export function CombinarColumnaModal({
           <button
             type="button"
             onClick={onCancelar}
-            className="text-slate-400 hover:text-slate-600 p-1"
+            className="text-slate-500 hover:text-slate-600 p-1"
           >
             <X className="w-4 h-4" />
           </button>
@@ -167,7 +167,7 @@ export function CombinarColumnaModal({
                     <div className="text-xs font-semibold text-slate-800 truncate">
                       {col.nombre}
                     </div>
-                    <div className="text-2xs text-slate-500 font-mono truncate">
+                    <div className="text-2xs text-slate-600 font-mono truncate">
                       {col.ejemplos.slice(0, 2).join(' | ') || '(vacío)'}
                     </div>
                   </div>
@@ -230,11 +230,11 @@ export function CombinarColumnaModal({
 
         {/* Preview */}
         <div className="mb-3 bg-slate-50 border border-slate-200 rounded p-2">
-          <div className="text-2xs uppercase font-semibold text-slate-500 mb-1">
+          <div className="text-2xs uppercase font-semibold text-slate-600 mb-1">
             Preview
           </div>
           <div className="font-mono text-xs text-green-700 break-all">
-            {preview || <span className="italic text-slate-400">(vacío)</span>}
+            {preview || <span className="italic text-slate-500">(vacío)</span>}
           </div>
         </div>
 

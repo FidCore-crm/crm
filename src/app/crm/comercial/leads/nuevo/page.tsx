@@ -149,7 +149,7 @@ export default function NuevoLeadPage() {
           <CheckCircle className="h-6 w-6 text-green-600"/>
         </div>
         <p className="text-sm font-medium text-slate-700">Lead guardado correctamente</p>
-        <p className="text-xs text-slate-500">Redirigiendo a la ficha...</p>
+        <p className="text-xs text-slate-600">Redirigiendo a la ficha...</p>
       </div>
     )
   }
@@ -168,7 +168,7 @@ export default function NuevoLeadPage() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Nuevo lead</h1>
-            <p className="text-xs text-slate-500">Alta de contacto potencial</p>
+            <p className="text-xs text-slate-600">Alta de contacto potencial</p>
           </div>
         </div>
         <button onClick={guardar} disabled={guardando} className="btn-primary">

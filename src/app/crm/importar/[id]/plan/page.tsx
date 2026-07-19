@@ -316,7 +316,7 @@ export default function PlanPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-slate-500 animate-spin" />
       </div>
     );
   }
@@ -483,46 +483,46 @@ export default function PlanPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <p className="text-xs font-medium text-slate-500 mb-2">Archivos analizados</p>
+            <p className="text-xs font-medium text-slate-600 mb-2">Archivos analizados</p>
             <ul className="space-y-1 text-sm">
               {archivosAnalizados.map((a) => (
                 <li key={a.nombre} className="text-slate-700">
                   <span className="font-medium">{a.nombre}</span>{' '}
-                  <span className="text-slate-500">
+                  <span className="text-slate-600">
                     → {a.tipo_contenido}
                   </span>
                 </li>
               ))}
             </ul>
             {(plan.total_registros_estimado ?? 0) > 0 && (
-              <p className="text-xs text-slate-500 mt-2">
+              <p className="text-xs text-slate-600 mt-2">
                 Total estimado: {plan.total_registros_estimado} registros
               </p>
             )}
           </div>
 
           <div>
-            <p className="text-xs font-medium text-slate-500 mb-2">Vinculación detectada</p>
+            <p className="text-xs font-medium text-slate-600 mb-2">Vinculación detectada</p>
             {vinculacion && vinculacion.tipo !== 'NINGUNA' ? (
               <div className="text-sm text-slate-700">
                 <p>
                   <span className="font-medium">Tipo:</span> {vinculacion.tipo}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-600 mt-1">
                   {vinculacion.archivo_maestro} ⟷ {vinculacion.archivo_hijo}
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-600">
                 Sin vinculación entre archivos (archivo único)
               </p>
             )}
 
-            <p className="text-xs font-medium text-slate-500 mt-4 mb-2">
+            <p className="text-xs font-medium text-slate-600 mt-4 mb-2">
               Compañías detectadas
             </p>
             {companiasDetectadas.length === 0 ? (
-              <p className="text-xs text-slate-500">Ninguna</p>
+              <p className="text-xs text-slate-600">Ninguna</p>
             ) : (
               <ul className="space-y-1 text-sm">
                 {companiasDetectadas.map((c) => (
@@ -581,20 +581,20 @@ export default function PlanPage() {
                 >
                   <div>
                     <p className="text-sm font-semibold text-slate-800">{nombre}</p>
-                    <p className="text-2xs text-slate-500">
+                    <p className="text-2xs text-slate-600">
                       {archivo.tipo_contenido} · {columnas.length} columnas
                     </p>
                   </div>
                   {expandido ? (
-                    <ChevronUp className="w-5 h-5 text-slate-400" />
+                    <ChevronUp className="w-5 h-5 text-slate-500" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-slate-400" />
+                    <ChevronDown className="w-5 h-5 text-slate-500" />
                   )}
                 </button>
                 {expandido && (
                   <div className="border-t border-slate-100">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-50 text-2xs uppercase text-slate-500">
+                      <thead className="bg-slate-50 text-2xs uppercase text-slate-600">
                         <tr>
                           <th className="text-left p-3">Columna archivo</th>
                           <th className="text-left p-3">Ejemplos</th>
@@ -619,13 +619,13 @@ export default function PlanPage() {
                                 <p className="text-sm text-slate-800 font-medium">
                                   {col.header}
                                 </p>
-                                <p className="text-2xs text-slate-500">
+                                <p className="text-2xs text-slate-600">
                                   Índice {col.indice}
                                 </p>
                               </td>
                               <td className="p-3 text-xs text-slate-600">
                                 {ejemplos.length === 0 ? (
-                                  <span className="text-slate-400">—</span>
+                                  <span className="text-slate-500">—</span>
                                 ) : (
                                   <ul className="space-y-0.5">
                                     {ejemplos.map((e, i) => (
@@ -642,7 +642,7 @@ export default function PlanPage() {
                                 </span>
                                 {typeof col.confianza === 'number' &&
                                   col.confianza > 0 && (
-                                    <p className="text-2xs text-slate-500 mt-1 flex items-center gap-1">
+                                    <p className="text-2xs text-slate-600 mt-1 flex items-center gap-1">
                                       <Sparkles className="w-3 h-3" /> IA:{' '}
                                       {Math.round(col.confianza * 100)}%
                                     </p>
@@ -735,7 +735,7 @@ export default function PlanPage() {
           Compañías y catálogos
         </h2>
         {companiasDetectadas.length === 0 ? (
-          <p className="text-xs text-slate-500">No se detectaron compañías específicas.</p>
+          <p className="text-xs text-slate-600">No se detectaron compañías específicas.</p>
         ) : (
           <ul className="space-y-2">
             {companiasDetectadas.map((c) => (
@@ -749,7 +749,7 @@ export default function PlanPage() {
                     <span className="text-2xs text-amber-700 ml-1">(nueva)</span>
                   )}
                 </span>
-                <span className="text-2xs text-slate-500 flex items-center gap-1">
+                <span className="text-2xs text-slate-600 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3 text-amber-500" />
                   Verificar en catálogos del CRM
                 </span>
@@ -791,7 +791,7 @@ export default function PlanPage() {
             />
             <div className="flex-1">
               <div className="text-sm font-medium text-slate-800">
-                Normal <span className="text-2xs font-normal text-slate-500">(recomendado)</span>
+                Normal <span className="text-2xs font-normal text-slate-600">(recomendado)</span>
               </div>
               <div className="text-xs text-slate-600 mt-0.5">
                 La IA interviene solo cuando detecta datos claramente desordenados
@@ -834,7 +834,7 @@ export default function PlanPage() {
         <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide mb-3">
           Preview
         </h2>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-600">
           El preview completo estará disponible después de procesar el primer lote.
         </p>
       </section>
@@ -904,7 +904,7 @@ export default function PlanPage() {
             Cancelar importación
           </button>
           <div className="flex-1 text-right">
-            <p className="text-2xs text-slate-500 mb-1">
+            <p className="text-2xs text-slate-600 mb-1">
               {hayCatalogosFaltantes
                 ? 'Configurá los catálogos faltantes antes de continuar'
                 : 'Al confirmar, el sistema dividirá los registros en lotes y los procesará en segundo plano'}

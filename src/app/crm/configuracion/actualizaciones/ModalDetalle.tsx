@@ -86,7 +86,7 @@ export function ModalDetalle({ id, onCerrar, onCambioEstado }: Props) {
   if (cargando || !data) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-white rounded-lg shadow-xl p-10 flex items-center gap-3 text-sm text-slate-500">
+        <div className="bg-white rounded-lg shadow-xl p-10 flex items-center gap-3 text-sm text-slate-600">
           <Loader2 className="h-5 w-5 animate-spin" /> Cargando detalle...
         </div>
       </div>
@@ -106,7 +106,7 @@ export function ModalDetalle({ id, onCerrar, onCambioEstado }: Props) {
             <FileText className="h-4 w-4 text-blue-600" />
             Detalle de actualización
           </h3>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onCerrar} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -116,8 +116,8 @@ export function ModalDetalle({ id, onCerrar, onCambioEstado }: Props) {
           {/* Versión + estado */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="text-sm">
-              <span className="font-mono text-slate-500">v{data.version_anterior}</span>
-              <span className="mx-2 text-slate-400">→</span>
+              <span className="font-mono text-slate-600">v{data.version_anterior}</span>
+              <span className="mx-2 text-slate-500">→</span>
               <span className="font-mono font-semibold text-slate-800">v{data.version_nueva}</span>
             </div>
             <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded border ${meta.color}`}>
@@ -129,27 +129,27 @@ export function ModalDetalle({ id, onCerrar, onCambioEstado }: Props) {
           {/* Grid de fechas/duración */}
           <div className="grid grid-cols-2 gap-3 bg-slate-50 border border-slate-200 rounded p-3 text-xs">
             <div>
-              <p className="text-slate-500 mb-0.5 flex items-center gap-1">
+              <p className="text-slate-600 mb-0.5 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Solicitada
               </p>
               <p className="text-slate-800 font-mono">{formatFecha(data.fecha_solicitud)}</p>
             </div>
             {data.programada_para && (
               <div>
-                <p className="text-slate-500 mb-0.5">Programada para</p>
+                <p className="text-slate-600 mb-0.5">Programada para</p>
                 <p className="text-slate-800 font-mono">{formatFecha(data.programada_para)}</p>
               </div>
             )}
             <div>
-              <p className="text-slate-500 mb-0.5">Inicio ejecución</p>
+              <p className="text-slate-600 mb-0.5">Inicio ejecución</p>
               <p className="text-slate-800 font-mono">{formatFecha(data.fecha_inicio_ejecucion)}</p>
             </div>
             <div>
-              <p className="text-slate-500 mb-0.5">Fin ejecución</p>
+              <p className="text-slate-600 mb-0.5">Fin ejecución</p>
               <p className="text-slate-800 font-mono">{formatFecha(data.fecha_fin_ejecucion)}</p>
             </div>
             <div>
-              <p className="text-slate-500 mb-0.5 flex items-center gap-1">
+              <p className="text-slate-600 mb-0.5 flex items-center gap-1">
                 <Activity className="h-3 w-3" /> Duración
               </p>
               <p className="text-slate-800 font-mono">
@@ -199,7 +199,7 @@ export function ModalDetalle({ id, onCerrar, onCambioEstado }: Props) {
                     document.body.removeChild(a)
                     URL.revokeObjectURL(url)
                   }}
-                  className="text-2xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                  className="text-2xs text-slate-600 hover:text-slate-700 flex items-center gap-1"
                   title="Descargar log completo (.log)"
                 >
                   <Download className="h-3 w-3" />

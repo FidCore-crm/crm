@@ -273,7 +273,7 @@ export default function NuevaPersonaPage() {
           <CheckCircle className="h-6 w-6 text-green-600" />
         </div>
         <p className="text-sm font-medium text-slate-700">¡Cliente guardado correctamente!</p>
-        <p className="text-xs text-slate-500">Redirigiendo a la ficha...</p>
+        <p className="text-xs text-slate-600">Redirigiendo a la ficha...</p>
       </div>
     )
   }
@@ -291,7 +291,7 @@ export default function NuevaPersonaPage() {
             <ArrowLeft className="h-3.5 w-3.5" /></button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Nuevo Cliente</h1>
-            <p className="text-xs text-slate-500">Alta de cliente en cartera</p>
+            <p className="text-xs text-slate-600">Alta de cliente en cartera</p>
           </div>
         </div>
         <button

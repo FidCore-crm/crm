@@ -161,7 +161,7 @@ function DlItem({ k, v }: { k: string; v: unknown }) {
       : String(v)
   return (
     <div className="flex gap-2 text-xs">
-      <dt className="text-slate-500 min-w-[120px]">{k}</dt>
+      <dt className="text-slate-600 min-w-[120px]">{k}</dt>
       <dd className="font-mono text-slate-800 break-all">{display}</dd>
     </div>
   )
@@ -173,7 +173,7 @@ function DlEntidad({ titulo, obj }: { titulo: string; obj: Record<string, unknow
   if (keys.length === 0) return null
   return (
     <div className="border border-slate-200 rounded-md p-3 bg-slate-50">
-      <div className="text-2xs uppercase tracking-wide text-slate-500 mb-2 font-semibold">{titulo}</div>
+      <div className="text-2xs uppercase tracking-wide text-slate-600 mb-2 font-semibold">{titulo}</div>
       <dl className="space-y-1">
         {keys.map((k) => (
           <DlItem key={k} k={k} v={obj[k]} />
@@ -579,7 +579,7 @@ export default function RevisarDudososPage() {
               </button>
             )}
             {!filtroTipo && !hayPropuestasIA && (
-              <p className="text-xs text-slate-500 italic">
+              <p className="text-xs text-slate-600 italic">
                 Seleccioná un filtro para ver acciones masivas específicas.
               </p>
             )}
@@ -589,11 +589,11 @@ export default function RevisarDudososPage() {
 
       {/* Lista */}
       {loading ? (
-        <div className="flex items-center justify-center py-12 text-slate-500">
+        <div className="flex items-center justify-center py-12 text-slate-600">
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> Cargando…
         </div>
       ) : dudosos.length === 0 ? (
-        <div className="text-center py-12 text-slate-500 text-sm">
+        <div className="text-center py-12 text-slate-600 text-sm">
           No hay registros pendientes con este filtro.
         </div>
       ) : (
@@ -707,9 +707,9 @@ function CardDudoso({
       >
         <div className="mt-0.5">
           {expandido ? (
-            <ChevronDown className="w-4 h-4 text-slate-500" />
+            <ChevronDown className="w-4 h-4 text-slate-600" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-slate-500" />
+            <ChevronRight className="w-4 h-4 text-slate-600" />
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -721,7 +721,7 @@ function CardDudoso({
             >
               {LABEL_TIPO_PROBLEMA[dudoso.tipo_problema]}
             </span>
-            <span className="text-2xs text-slate-500">
+            <span className="text-2xs text-slate-600">
               Fila {dudoso.numero_fila_archivo}
               {dudoso.archivo_origen ? ` · ${dudoso.archivo_origen}` : ''}
             </span>
@@ -729,7 +729,7 @@ function CardDudoso({
           <div className="text-sm font-medium text-slate-900">{tituloEntidad(dudoso)}</div>
           <div className="text-xs text-slate-600 mt-0.5">{dudoso.descripcion_problema}</div>
           {dudoso.sugerencia_ia && (
-            <div className="text-xs text-slate-500 italic mt-1 flex items-center gap-1">
+            <div className="text-xs text-slate-600 italic mt-1 flex items-center gap-1">
               <Sparkles className="w-3 h-3" /> {dudoso.sugerencia_ia}
             </div>
           )}
@@ -894,7 +894,7 @@ function RadioOption({
       />
       <div className="flex-1">
         <div className="text-xs font-medium text-slate-800">{label}</div>
-        {hint && <div className="text-2xs text-slate-500">{hint}</div>}
+        {hint && <div className="text-2xs text-slate-600">{hint}</div>}
         {checked && children && <div className="mt-2">{children}</div>}
       </div>
     </label>
@@ -1123,7 +1123,7 @@ function ResolutorDuplicadoCRM({ dudoso, onResolver, onCancelar, resolving }: Re
         {existente ? (
           <DlEntidad titulo="Existente en CRM" obj={existente} />
         ) : (
-          <div className="border border-slate-200 rounded-md p-3 bg-white text-xs text-slate-500 italic">
+          <div className="border border-slate-200 rounded-md p-3 bg-white text-xs text-slate-600 italic">
             Datos del existente no disponibles
           </div>
         )}
@@ -1200,7 +1200,7 @@ function ResolutorDatosFaltantes({ dudoso, onResolver, onCancelar, resolving }: 
       <RadioOption checked={opt === 'completar'} onChange={() => setOpt('completar')} label="Completar manualmente">
         <div className="space-y-2">
           {campos.length === 0 && (
-            <p className="text-2xs text-slate-500 italic">
+            <p className="text-2xs text-slate-600 italic">
               No se pudieron inferir los campos faltantes. Usá "Ignorar registro".
             </p>
           )}
@@ -1314,7 +1314,7 @@ function ResolutorCatalogo({
             </div>
           )}
           {tipo === 'ramo' && (
-            <p className="text-2xs text-slate-500">
+            <p className="text-2xs text-slate-600">
               El tipo de bien define qué campos pide el formulario de pólizas/siniestros para este ramo.
             </p>
           )}
@@ -1364,7 +1364,7 @@ function ResolutorRiesgo({ dudoso, onResolver, onCancelar, resolving }: Resoluto
     <div className="space-y-2">
       <RadioOption checked={opt === 'completar'} onChange={() => setOpt('completar')} label="Completar manualmente">
         {campos.length === 0 && (
-          <p className="text-2xs text-slate-500 italic">Campos faltantes no detectados.</p>
+          <p className="text-2xs text-slate-600 italic">Campos faltantes no detectados.</p>
         )}
         <div className="space-y-2">
           {campos.map((c) => (

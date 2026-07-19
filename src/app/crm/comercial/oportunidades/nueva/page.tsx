@@ -41,7 +41,7 @@ function Campo({ label, required, error, children }: {
 
 export default function NuevaOportunidadPageWrapper() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin"/> Cargando...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin"/> Cargando...</div>}>
       <NuevaOportunidadPage/>
     </Suspense>
   )
@@ -225,7 +225,7 @@ function NuevaOportunidadPage() {
           <CheckCircle className="h-6 w-6 text-green-600"/>
         </div>
         <p className="text-sm font-medium text-slate-700">Oportunidad creada</p>
-        <p className="text-xs text-slate-500">Redirigiendo a la ficha...</p>
+        <p className="text-xs text-slate-600">Redirigiendo a la ficha...</p>
       </div>
     )
   }
@@ -241,7 +241,7 @@ function NuevaOportunidadPage() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Nueva oportunidad</h1>
-            <p className="text-xs text-slate-500">Registrar oportunidad de venta manual</p>
+            <p className="text-xs text-slate-600">Registrar oportunidad de venta manual</p>
           </div>
         </div>
         <button onClick={guardar} disabled={guardando} className="btn-primary">
@@ -264,20 +264,20 @@ function NuevaOportunidadPage() {
         <div className="p-4">
           <Campo label="Cliente" required error={errores.persona}>
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400"/>
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-500"/>
               <input className={`form-input w-full pl-7 ${errores.persona ? 'border-red-300' : ''}`}
                 value={busquedaPersona}
                 onChange={e => { setBusquedaPersona(e.target.value); if (personaId) { setPersonaId(''); setResumen(null) } }}
                 placeholder="Buscar por nombre, apellido o DNI..."
               />
-              {buscando && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-slate-400"/>}
+              {buscando && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-slate-500"/>}
               {mostrarDropdown && resultadosPersona.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded shadow-lg max-h-48 overflow-y-auto">
                   {resultadosPersona.map(p => (
                     <button key={p.id} onClick={() => seleccionarPersona(p)}
                       className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 border-b border-slate-50 last:border-0">
                       <span className="font-medium text-slate-700">{p.apellido}, {p.nombre ?? ''}</span>
-                      <span className="text-slate-400 ml-2 font-mono">{p.dni_cuil}</span>
+                      <span className="text-slate-500 ml-2 font-mono">{p.dni_cuil}</span>
                     </button>
                   ))}
                 </div>
@@ -337,14 +337,14 @@ function NuevaOportunidadPage() {
         <div className="p-4 grid grid-cols-2 gap-3">
           <Campo label="Monto estimado" error={errores.monto_estimado}>
             <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">$</span>
               <input type="number" min={0} step="0.01"
                 className={`form-input w-full pl-5 ${errores.monto_estimado ? 'border-red-300' : ''}`}
                 value={montoEstimado}
                 onChange={e => { setMontoEstimado(e.target.value); setErrores(er => ({ ...er, monto_estimado: '' })) }}
                 placeholder="0.00"/>
             </div>
-            <span className="text-2xs text-slate-500 mt-0.5">Valor anual estimado de la prima si se cierra la venta</span>
+            <span className="text-2xs text-slate-600 mt-0.5">Valor anual estimado de la prima si se cierra la venta</span>
           </Campo>
           <Campo label="Probabilidad de cierre" error={errores.probabilidad_cierre}>
             <div className="relative">
@@ -353,9 +353,9 @@ function NuevaOportunidadPage() {
                 value={probabilidadCierre}
                 onChange={e => { setProbabilidadCierre(e.target.value); setErrores(er => ({ ...er, probabilidad_cierre: '' })) }}
                 placeholder="50"/>
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
             </div>
-            <span className="text-2xs text-slate-500 mt-0.5">¿Qué tan probable es que esta oportunidad se cierre?</span>
+            <span className="text-2xs text-slate-600 mt-0.5">¿Qué tan probable es que esta oportunidad se cierre?</span>
           </Campo>
           <Campo label="Fecha estimada de cierre">
             <input type="date" className="form-input" value={fechaEstimadaCierre}

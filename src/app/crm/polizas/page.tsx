@@ -58,7 +58,7 @@ function nombreAsegurado(p: Poliza) {
 
 export default function PolizasPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando pólizas...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando pólizas...</div>}>
       <PolizasContent />
     </Suspense>
   )
@@ -494,7 +494,7 @@ function PolizasContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Pólizas</h1>
-          <p className="text-xs text-slate-500">{total.toLocaleString('es-AR')} pólizas en total</p>
+          <p className="text-xs text-slate-600">{total.toLocaleString('es-AR')} pólizas en total</p>
         </div>
         {!soloLectura && (
           <button onClick={() => router.push('/crm/polizas/nueva')} className="btn-primary">
@@ -578,7 +578,7 @@ function PolizasContent() {
       {/* Filtros */}
       <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"/>
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500"/>
           <input className="search-input w-full pl-6" placeholder="Buscar por nro. póliza, apellido o DNI..."
             value={busqueda} onChange={e => setBusqueda(e.target.value)}/>
         </div>
@@ -789,7 +789,7 @@ function PolizasContent() {
 
       {/* Paginación */}
       {Math.ceil(total / POR_PAGINA) > 1 && (
-        <div className="flex items-center justify-between text-xs text-slate-500 pb-2">
+        <div className="flex items-center justify-between text-xs text-slate-600 pb-2">
           <span>Mostrando {pagina * POR_PAGINA + 1}–{Math.min((pagina + 1) * POR_PAGINA, total)} de {total.toLocaleString('es-AR')}</span>
           <div className="flex gap-1">
             <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0} className="btn-secondary px-3">← Anterior</button>

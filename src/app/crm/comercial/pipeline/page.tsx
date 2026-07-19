@@ -319,10 +319,10 @@ export default function PipelinePage() {
           {dest.nombre}
           {dest.esLead && <span className="ml-1 text-2xs bg-cyan-50 text-cyan-700 border border-cyan-200 px-1 rounded">Lead</span>}
         </p>
-        {c.ramo && <p className="text-2xs text-slate-500 mt-0.5">{c.ramo.nombre}</p>}
+        {c.ramo && <p className="text-2xs text-slate-600 mt-0.5">{c.ramo.nombre}</p>}
         <div className="flex items-center justify-between mt-2">
-          <span className="text-2xs text-slate-500">{c.opciones_count} {c.opciones_count === 1 ? 'opcion' : 'opciones'}</span>
-          <span className="text-2xs text-slate-500">
+          <span className="text-2xs text-slate-600">{c.opciones_count} {c.opciones_count === 1 ? 'opcion' : 'opciones'}</span>
+          <span className="text-2xs text-slate-600">
             {c.estado === 'BORRADOR' && formatFechaLocalLarga(c.created_at)}
             {c.estado === 'ENVIADA' && (c.fecha_envio ? formatFechaLocalLarga(c.fecha_envio) : formatFechaLocalLarga(c.created_at))}
             {c.estado === 'EN_PROCESO' && formatFechaLocalLarga(c.updated_at)}
@@ -418,9 +418,9 @@ export default function PipelinePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Pipeline de ventas</h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Mostrando {totalActivas} cotizaciones activas. Cerradas del mes: {ganadas} ganadas, {perdidas} perdidas.
-            <span className="text-slate-500 ml-1">Arrastra las tarjetas entre columnas para cambiar el estado.</span>
+            <span className="text-slate-600 ml-1">Arrastra las tarjetas entre columnas para cambiar el estado.</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -455,10 +455,10 @@ export default function PipelinePage() {
               {COLUMNAS.map(col => (
                 <button key={col.key} onClick={() => setTabMobile(col.key)}
                   className={`px-3 py-1.5 text-xs rounded transition-all whitespace-nowrap flex items-center gap-1 ${
-                    tabMobile === col.key ? 'bg-white shadow-sm font-medium text-slate-700' : 'text-slate-500'
+                    tabMobile === col.key ? 'bg-white shadow-sm font-medium text-slate-700' : 'text-slate-600'
                   }`}>
                   {col.label}
-                  <span className="font-mono text-2xs text-slate-500">{(columnas[col.key] ?? []).length}</span>
+                  <span className="font-mono text-2xs text-slate-600">{(columnas[col.key] ?? []).length}</span>
                 </button>
               ))}
             </div>
@@ -485,12 +485,12 @@ export default function PipelinePage() {
                 {modalTransicion.nuevoEstado === 'GANADA' && 'Marcar como ganada'}
                 {modalTransicion.nuevoEstado === 'PERDIDA' && 'Marcar como perdida'}
               </h3>
-              <button onClick={() => setModalTransicion(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalTransicion(null)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4"/>
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 mb-3">
+            <p className="text-xs text-slate-600 mb-3">
               Cotizacion <span className="font-mono font-semibold">{modalTransicion.cotizacion.numero_cotizacion}</span>
             </p>
 

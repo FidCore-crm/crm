@@ -347,7 +347,7 @@ export default function RenovacionesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Renovaciones</h1>
-          <p className="text-xs text-slate-500">{total.toLocaleString('es-AR')} pólizas en gestión</p>
+          <p className="text-xs text-slate-600">{total.toLocaleString('es-AR')} pólizas en gestión</p>
         </div>
       </div>
 
@@ -380,7 +380,7 @@ export default function RenovacionesPage() {
         <div className={`kpi-card bg-slate-50 border border-slate-200 cursor-pointer hover:opacity-80 transition-all ${kpiActivo === 'vencidas' ? 'ring-2 ring-slate-400' : ''}`}
           onClick={() => toggleKpi('vencidas')}>
           <span className="kpi-label flex items-center gap-1">
-            <Timer className="h-3.5 w-3.5 text-slate-500" /> Vencidas
+            <Timer className="h-3.5 w-3.5 text-slate-600" /> Vencidas
           </span>
           <span className="kpi-value text-slate-700">{kpis.vencidas.toLocaleString('es-AR')}</span>
           <span className="kpi-sub">sin renovar</span>
@@ -398,7 +398,7 @@ export default function RenovacionesPage() {
       {/* Filtros */}
       <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"/>
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500"/>
           <input className="search-input w-full pl-6" placeholder="Buscar por nro. póliza, apellido o DNI..."
             value={busqueda} onChange={e => setBusqueda(e.target.value)}/>
         </div>
@@ -508,7 +508,7 @@ export default function RenovacionesPage() {
                       <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${getPolizaBadgeColor('RENOVADA')}`}>Renovada</span>
                     ) : esVencida ? (
                       // Póliza ya vencida — los días son irrelevantes, mostramos "—"
-                      <span className="text-slate-400">—</span>
+                      <span className="text-slate-500">—</span>
                     ) : (
                       // Póliza VIGENTE con fecha futura — mostramos días positivos
                       `${dias}d`
@@ -557,7 +557,7 @@ export default function RenovacionesPage() {
 
       {/* Paginación */}
       {Math.ceil(total / POR_PAGINA) > 1 && (
-        <div className="flex items-center justify-between text-xs text-slate-500 pb-2">
+        <div className="flex items-center justify-between text-xs text-slate-600 pb-2">
           <span>Mostrando {pagina * POR_PAGINA + 1}–{Math.min((pagina + 1) * POR_PAGINA, total)} de {total.toLocaleString('es-AR')}</span>
           <div className="flex gap-1">
             <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0} className="btn-secondary px-3">← Anterior</button>

@@ -169,7 +169,7 @@ export default function SelectorDestinatariosModal({
             <Mail className="h-4 w-4 text-blue-600" />
             <h2 className="text-sm font-semibold text-slate-800">Nuevo envío de email</h2>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -181,7 +181,7 @@ export default function SelectorDestinatariosModal({
             className={`flex-1 px-4 py-2 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
               tab === 'individual'
                 ? 'bg-white text-blue-700 border-b-2 border-blue-500'
-                : 'text-slate-500 hover:text-slate-700'
+                : 'text-slate-600 hover:text-slate-700'
             }`}
           >
             <User className="h-3.5 w-3.5" /> A un cliente puntual
@@ -191,7 +191,7 @@ export default function SelectorDestinatariosModal({
             className={`flex-1 px-4 py-2 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
               tab === 'masivo'
                 ? 'bg-white text-blue-700 border-b-2 border-blue-500'
-                : 'text-slate-500 hover:text-slate-700'
+                : 'text-slate-600 hover:text-slate-700'
             }`}
           >
             <Users className="h-3.5 w-3.5" /> A varios clientes
@@ -201,7 +201,7 @@ export default function SelectorDestinatariosModal({
         {/* Filtros */}
         <div className="px-4 py-3 border-b border-slate-100 bg-white flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
             <input
               className="search-input w-full pl-7"
               placeholder={tab === 'individual' ? 'Buscar cliente por nombre, DNI o email…' : 'Filtrar lista por nombre o email…'}
@@ -228,11 +228,11 @@ export default function SelectorDestinatariosModal({
         {/* Listado */}
         <div className="flex-1 overflow-y-auto px-2 py-2 min-h-[280px]">
           {cargando ? (
-            <div className="flex items-center justify-center py-12 text-xs text-slate-400 gap-2">
+            <div className="flex items-center justify-center py-12 text-xs text-slate-500 gap-2">
               <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
             </div>
           ) : personas.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-xs text-slate-400 gap-2">
+            <div className="flex flex-col items-center justify-center py-12 text-xs text-slate-500 gap-2">
               <Filter className="h-5 w-5" />
               <span>No hay personas con esos filtros.</span>
             </div>
@@ -253,12 +253,12 @@ export default function SelectorDestinatariosModal({
                     >
                       <div>
                         <div className="font-medium text-slate-700">{nombre(p)}</div>
-                        <div className="text-2xs text-slate-500">
+                        <div className="text-2xs text-slate-600">
                           {p.email || <span className="italic text-amber-600">Sin email cargado</span>}
                         </div>
                       </div>
                       {tieneEmail && p.acepta_marketing === false && (
-                        <span className="text-2xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                        <span className="text-2xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
                           Opt-out
                         </span>
                       )}
@@ -269,7 +269,7 @@ export default function SelectorDestinatariosModal({
             </ul>
           ) : (
             <div>
-              <div className="flex items-center justify-between px-2 py-1 text-2xs text-slate-500 border-b border-slate-100 mb-1">
+              <div className="flex items-center justify-between px-2 py-1 text-2xs text-slate-600 border-b border-slate-100 mb-1">
                 <button onClick={toggleAll} className="hover:text-slate-700">
                   {seleccionados.size === personas.length ? 'Desmarcar todos' : 'Seleccionar todos'}
                 </button>
@@ -293,12 +293,12 @@ export default function SelectorDestinatariosModal({
                         />
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-slate-700 truncate">{nombre(p)}</div>
-                          <div className="text-2xs text-slate-500 truncate">
+                          <div className="text-2xs text-slate-600 truncate">
                             {p.email || <span className="italic text-amber-600">Sin email</span>}
                           </div>
                         </div>
                         {p.acepta_marketing === false && (
-                          <span className="text-2xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                          <span className="text-2xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
                             Opt-out
                           </span>
                         )}

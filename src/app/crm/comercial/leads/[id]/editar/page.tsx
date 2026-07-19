@@ -88,7 +88,7 @@ export default function EditarLeadPage() {
   }, [supabase, id])
 
   if (cargando) return (
-    <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+    <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
       <Loader2 className="h-4 w-4 animate-spin"/> Cargando datos del lead...
     </div>
   )
@@ -96,7 +96,7 @@ export default function EditarLeadPage() {
   if (!form) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
       <AlertCircle className="h-8 w-8 text-slate-300"/>
-      <span className="text-sm text-slate-400">Lead no encontrado</span>
+      <span className="text-sm text-slate-500">Lead no encontrado</span>
       <button onClick={() => router.push('/crm/comercial/leads')} className="btn-secondary">
         <ArrowLeft className="h-3 w-3"/> Volver al listado
       </button>
@@ -196,7 +196,7 @@ export default function EditarLeadPage() {
           <CheckCircle className="h-6 w-6 text-green-600"/>
         </div>
         <p className="text-sm font-medium text-slate-700">Cambios guardados</p>
-        <p className="text-xs text-slate-500">Redirigiendo a la ficha...</p>
+        <p className="text-xs text-slate-600">Redirigiendo a la ficha...</p>
       </div>
     )
   }
@@ -215,7 +215,7 @@ export default function EditarLeadPage() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Editar lead — {form.nombre} {form.apellido}</h1>
-            <p className="text-xs text-slate-500">Modificar datos del lead</p>
+            <p className="text-xs text-slate-600">Modificar datos del lead</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

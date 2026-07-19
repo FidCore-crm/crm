@@ -223,7 +223,7 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
             <Send className="h-4 w-4 text-blue-600" />
             Nuevo envío
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -246,11 +246,11 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-2xs font-semibold ${
                         pasado ? 'bg-emerald-500 text-white' :
                         actual ? 'bg-blue-600 text-white' :
-                        'bg-slate-200 text-slate-500'
+                        'bg-slate-200 text-slate-600'
                       }`}>
                         {pasado ? <CheckCircle2 className="h-3.5 w-3.5" /> : idx + 1}
                       </div>
-                      <span className={`text-xs ${actual ? 'font-semibold text-slate-800' : 'text-slate-500'}`}>
+                      <span className={`text-xs ${actual ? 'font-semibold text-slate-800' : 'text-slate-600'}`}>
                         {s.label}
                       </span>
                       {idx < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-slate-300 mx-1" />}
@@ -443,9 +443,9 @@ function PasoMensaje(props: any) {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-slate-800">{p.nombre}</div>
-                      <div className="text-2xs text-slate-500 truncate">Asunto: {p.asunto}</div>
+                      <div className="text-2xs text-slate-600 truncate">Asunto: {p.asunto}</div>
                       {p.descripcion && (
-                        <div className="text-2xs text-slate-400 mt-0.5 truncate">{p.descripcion}</div>
+                        <div className="text-2xs text-slate-500 mt-0.5 truncate">{p.descripcion}</div>
                       )}
                     </div>
                     {plantillaId === p.id && <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />}
@@ -474,7 +474,7 @@ function PasoMensaje(props: any) {
             <div className="flex items-center justify-between mb-1">
               <label className="block text-2xs font-medium text-slate-600">
                 Cuerpo *
-                <span className="text-2xs text-slate-400 font-normal ml-2">
+                <span className="text-2xs text-slate-500 font-normal ml-2">
                   Variables: <code>{`{{nombre}} {{apellido}} {{organizacion_nombre}}`}</code>
                 </span>
               </label>
@@ -538,7 +538,7 @@ function PasoConfig({ mensajeTipo, plantillas, plantillaId, asuntoOverride, setA
             className="form-input w-full text-sm"
             maxLength={300}
           />
-          <p className="text-2xs text-slate-500 mt-1">
+          <p className="text-2xs text-slate-600 mt-1">
             Si lo dejás vacío, se usa el asunto de la plantilla: <code className="text-2xs">{plantilla.asunto}</code>
           </p>
         </div>
@@ -560,13 +560,13 @@ function PasoConfig({ mensajeTipo, plantillas, plantillaId, asuntoOverride, setA
             {adjuntos.map((f: File, i: number) => (
               <li key={i} className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs">
                 <span className="flex items-center gap-1.5 truncate">
-                  <Paperclip className="h-3 w-3 text-slate-500" />
+                  <Paperclip className="h-3 w-3 text-slate-600" />
                   <span className="truncate">{f.name}</span>
-                  <span className="text-2xs text-slate-400 ml-1">({(f.size / 1024).toFixed(0)} KB)</span>
+                  <span className="text-2xs text-slate-500 ml-1">({(f.size / 1024).toFixed(0)} KB)</span>
                 </span>
                 <button
                   onClick={() => setAdjuntos(adjuntos.filter((_: any, j: number) => j !== i))}
-                  className="text-slate-400 hover:text-red-600"
+                  className="text-slate-500 hover:text-red-600"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -627,7 +627,7 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
 
   if (previewCargando || !preview) {
     return (
-      <div className="flex items-center justify-center py-10 text-slate-400 text-sm gap-2">
+      <div className="flex items-center justify-center py-10 text-slate-500 text-sm gap-2">
         <Loader2 className="h-4 w-4 animate-spin" /> Calculando destinatarios...
       </div>
     )
@@ -664,17 +664,17 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
         <p className="text-xs font-semibold text-slate-700 mb-2">Mensaje</p>
         <dl className="text-xs space-y-1">
           <div className="flex gap-2">
-            <dt className="text-slate-500 w-24 shrink-0">Tipo:</dt>
+            <dt className="text-slate-600 w-24 shrink-0">Tipo:</dt>
             <dd className="text-slate-800">
               {mensajeTipo === 'mailing_plantilla' ? `Plantilla guardada — ${plantilla?.nombre}` : 'Mensaje libre'}
             </dd>
           </div>
           <div className="flex gap-2">
-            <dt className="text-slate-500 w-24 shrink-0">Asunto:</dt>
+            <dt className="text-slate-600 w-24 shrink-0">Asunto:</dt>
             <dd className="text-slate-800 font-medium truncate">{asuntoFinal}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="text-slate-500 w-24 shrink-0">Adjuntos:</dt>
+            <dt className="text-slate-600 w-24 shrink-0">Adjuntos:</dt>
             <dd className="text-slate-800">{adjuntos.length === 0 ? 'Sin adjuntos' : `${adjuntos.length} archivo(s)`}</dd>
           </div>
         </dl>
@@ -684,7 +684,7 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
       <div className="border border-slate-200 rounded overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
           <div className="flex items-center gap-2">
-            <Eye className="h-4 w-4 text-slate-500" />
+            <Eye className="h-4 w-4 text-slate-600" />
             <span className="text-xs font-semibold text-slate-700">Vista previa del email</span>
           </div>
           <button
@@ -699,7 +699,7 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
         </div>
         <div className="bg-white">
           {emailPreviewCargando ? (
-            <div className="py-10 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+            <div className="py-10 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" /> Generando preview...
             </div>
           ) : emailPreviewError ? (
@@ -715,12 +715,12 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
               sandbox="allow-same-origin allow-popups"
             />
           ) : (
-            <div className="py-6 text-center text-xs text-slate-400">
+            <div className="py-6 text-center text-xs text-slate-500">
               Sin preview disponible
             </div>
           )}
         </div>
-        <p className="text-2xs text-slate-400 bg-slate-50 border-t border-slate-100 px-3 py-1.5">
+        <p className="text-2xs text-slate-500 bg-slate-50 border-t border-slate-100 px-3 py-1.5">
           Datos de ejemplo: nombre &quot;Juan Pérez&quot;. Al enviar, se reemplazan por los datos reales de cada destinatario.
         </p>
       </div>
@@ -746,7 +746,7 @@ function ResultadoEnvio({ resultado, onCerrar }: { resultado: any; onCerrar: () 
         <CheckCircle2 className="h-7 w-7 text-emerald-700" />
       </div>
       <h3 className="text-base font-semibold text-slate-800">Envío completado</h3>
-      <p className="text-xs text-slate-500 mt-1">
+      <p className="text-xs text-slate-600 mt-1">
         Tu mailing se procesó correctamente.
       </p>
 
@@ -775,10 +775,10 @@ function OpcionCard({ activo, onClick, icon: Icon, titulo, descripcion, disabled
       }`}
     >
       <div className="flex items-start gap-2">
-        <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${activo ? 'text-blue-600' : 'text-slate-400'}`} />
+        <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${activo ? 'text-blue-600' : 'text-slate-500'}`} />
         <div className="flex-1 min-w-0">
           <div className={`text-xs font-medium ${activo ? 'text-blue-900' : 'text-slate-700'}`}>{titulo}</div>
-          <div className="text-2xs text-slate-500 mt-0.5">{descripcion}</div>
+          <div className="text-2xs text-slate-600 mt-0.5">{descripcion}</div>
         </div>
         {activo && <CheckCircle2 className="h-3.5 w-3.5 text-blue-600 shrink-0" />}
       </div>
@@ -797,7 +797,7 @@ function Stat({ label, valor, color }: { label: string; valor: number; color: 'b
   return (
     <div className="text-center">
       <div className={`text-lg font-bold font-mono rounded py-1 ${bg}`}>{valor}</div>
-      <div className="text-2xs text-slate-500 mt-1">{label}</div>
+      <div className="text-2xs text-slate-600 mt-1">{label}</div>
     </div>
   )
 }
@@ -835,7 +835,7 @@ function SelectorPersonaIndividual({ supabase, personaIndividual, setPersonaIndi
   return (
     <div className="space-y-2 bg-slate-50 border border-slate-200 rounded p-3">
       <div className="relative">
-        <Search className="h-3.5 w-3.5 absolute left-2 top-2.5 text-slate-400" />
+        <Search className="h-3.5 w-3.5 absolute left-2 top-2.5 text-slate-500" />
         <input
           type="text"
           value={busqueda}
@@ -845,7 +845,7 @@ function SelectorPersonaIndividual({ supabase, personaIndividual, setPersonaIndi
         />
       </div>
       {cargando ? (
-        <div className="text-xs text-slate-400 italic flex items-center gap-1">
+        <div className="text-xs text-slate-500 italic flex items-center gap-1">
           <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
         </div>
       ) : resultados.length > 0 && (
@@ -860,7 +860,7 @@ function SelectorPersonaIndividual({ supabase, personaIndividual, setPersonaIndi
               <div className="font-medium">
                 {[p.apellido, p.nombre].filter(Boolean).join(', ') || p.razon_social || '—'}
               </div>
-              <div className="text-2xs text-slate-500">{p.email ?? 'sin email'}</div>
+              <div className="text-2xs text-slate-600">{p.email ?? 'sin email'}</div>
             </button>
           ))}
         </div>
@@ -868,7 +868,7 @@ function SelectorPersonaIndividual({ supabase, personaIndividual, setPersonaIndi
       {personaIndividual && (
         <div className="bg-blue-50 border border-blue-200 rounded p-2 text-xs">
           <strong>Seleccionado:</strong> {[personaIndividual.apellido, personaIndividual.nombre].filter(Boolean).join(', ') || personaIndividual.razon_social}
-          <span className="text-2xs text-slate-500 ml-2">{personaIndividual.email ?? 'sin email'}</span>
+          <span className="text-2xs text-slate-600 ml-2">{personaIndividual.email ?? 'sin email'}</span>
         </div>
       )}
     </div>
@@ -906,7 +906,7 @@ function SelectorPersonasMultiples({ supabase, personasLista, setPersonasLista }
   return (
     <div className="space-y-2 bg-slate-50 border border-slate-200 rounded p-3">
       <div className="relative">
-        <Search className="h-3.5 w-3.5 absolute left-2 top-2.5 text-slate-400" />
+        <Search className="h-3.5 w-3.5 absolute left-2 top-2.5 text-slate-500" />
         <input
           type="text"
           value={busqueda}
@@ -916,7 +916,7 @@ function SelectorPersonasMultiples({ supabase, personasLista, setPersonasLista }
         />
       </div>
       {cargando ? (
-        <div className="text-xs text-slate-400 italic flex items-center gap-1">
+        <div className="text-xs text-slate-500 italic flex items-center gap-1">
           <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
         </div>
       ) : resultados.length > 0 && (
@@ -934,7 +934,7 @@ function SelectorPersonasMultiples({ supabase, personasLista, setPersonasLista }
                 <div className="font-medium">
                   {[p.apellido, p.nombre].filter(Boolean).join(', ') || p.razon_social || '—'}
                 </div>
-                <div className="text-2xs text-slate-500">{p.email ?? 'sin email'}</div>
+                <div className="text-2xs text-slate-600">{p.email ?? 'sin email'}</div>
               </button>
             )
           })}
@@ -945,7 +945,7 @@ function SelectorPersonasMultiples({ supabase, personasLista, setPersonasLista }
           Seleccionados ({personasLista.length})
         </p>
         {personasLista.length === 0 ? (
-          <p className="text-2xs text-slate-500 italic">Buscá personas para agregarlas.</p>
+          <p className="text-2xs text-slate-600 italic">Buscá personas para agregarlas.</p>
         ) : (
           <div className="flex flex-wrap gap-1">
             {personasLista.map((p: PersonaItem) => (
@@ -988,7 +988,7 @@ function SelectorAudienciaGuardada({ audiencias, audienciaId, setAudienciaId }: 
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-slate-800">{a.nombre}</div>
-                  <div className="text-2xs text-slate-500">
+                  <div className="text-2xs text-slate-600">
                     {a.tipo === 'FILTRO' ? 'Filtro dinámico' : 'Lista manual'}
                     {a.ultima_cantidad != null && ` · ${a.ultima_cantidad} personas (cacheado)`}
                   </div>

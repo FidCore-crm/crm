@@ -112,7 +112,7 @@ function iconoRamo(tipo: string) {
   if (tipo === 'automotor' || tipo === 'AUTOMOTOR') return <Car className="h-4 w-4 text-blue-500" />
   if (tipo === 'hogar' || tipo === 'HOGAR')         return <Home className="h-4 w-4 text-amber-500" />
   if (tipo === 'vida' || tipo === 'VIDA')           return <Heart className="h-4 w-4 text-rose-500" />
-  return <Package className="h-4 w-4 text-slate-400" />
+  return <Package className="h-4 w-4 text-slate-500" />
 }
 
 function diasRestantes(fechaFin: string) {
@@ -361,14 +361,14 @@ export default function FichaPolizaPage() {
 
   // ── Loading / error ────────────────────────────────────────
   if (cargando) return (
-    <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+    <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
       <Loader2 className="h-4 w-4 animate-spin" /> Cargando ficha de póliza...
     </div>
   )
 
   if (!poliza) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
-      <span className="text-slate-400 text-sm">Póliza no encontrada</span>
+      <span className="text-slate-500 text-sm">Póliza no encontrada</span>
       <button onClick={() => router.push('/crm/polizas')} className="btn-secondary">
         <ArrowLeft className="h-3 w-3" /> Volver al listado
       </button>
@@ -397,7 +397,7 @@ export default function FichaPolizaPage() {
         valor: poliza.fecha_baja ? formatFecha(poliza.fecha_baja) : 'Sin fecha',
         sub: poliza.motivo_baja ? `Motivo: ${poliza.motivo_baja}` : 'Dada de baja',
         bg: 'bg-slate-50', border: 'border-slate-200',
-        icon: 'text-slate-500', valorColor: 'text-slate-700',
+        icon: 'text-slate-600', valorColor: 'text-slate-700',
       }
     }
     if (poliza.estado === 'NO_VIGENTE' && tieneRenovacionActiva) {
@@ -499,7 +499,7 @@ export default function FichaPolizaPage() {
                 {badge.label}
               </span>
             </div>
-            <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+            <p className="text-xs text-slate-600 flex items-center gap-2 mt-0.5">
               {iconoRamo(tipoRiesgo)}
               {poliza.ramo?.nombre ?? '—'}{poliza.cobertura ? ` · ${poliza.cobertura.nombre}` : ''} · {poliza.compania?.nombre ?? '—'}
             </p>
@@ -690,20 +690,20 @@ export default function FichaPolizaPage() {
                 <User className="h-3 w-3" /> {nombre}
               </button>
               {asegurado.dni_cuil && (
-                <p className="text-xs text-slate-500 font-mono">{asegurado.dni_cuil}</p>
+                <p className="text-xs text-slate-600 font-mono">{asegurado.dni_cuil}</p>
               )}
               {asegurado.email && (
-                <p className="text-xs text-slate-500 truncate">{asegurado.email}</p>
+                <p className="text-xs text-slate-600 truncate">{asegurado.email}</p>
               )}
               {asegurado.telefono && (
-                <p className="text-xs text-slate-500 font-mono">{asegurado.telefono}</p>
+                <p className="text-xs text-slate-600 font-mono">{asegurado.telefono}</p>
               )}
               {/* Asignado a — admin only, derivado del asegurado. La
                   reasignación se hace desde la ficha del cliente, no de cada
                   póliza, porque al reasignar el cliente todas sus pólizas
                   heredan al mismo usuario. */}
               {isAdmin && usuariosLista.length > 1 && (
-                <p className="text-2xs text-slate-400 pt-1.5 border-t border-slate-100 mt-1">
+                <p className="text-2xs text-slate-500 pt-1.5 border-t border-slate-100 mt-1">
                   Asignado a:{' '}
                   {asegurado.usuario_id ? (
                     <span className="text-slate-600 font-medium">
@@ -726,41 +726,41 @@ export default function FichaPolizaPage() {
           <CajaColapsable titulo="Datos de la Póliza">
             <div className="p-3 flex flex-col gap-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-500">Compañía</span>
+                <span className="text-slate-600">Compañía</span>
                 <span className="text-slate-700 font-medium">{poliza.compania?.nombre ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Ramo</span>
+                <span className="text-slate-600">Ramo</span>
                 <span className="text-slate-700 font-medium">{poliza.ramo?.nombre ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Cobertura</span>
+                <span className="text-slate-600">Cobertura</span>
                 <span className="text-slate-700 font-medium">
                   {poliza.cobertura?.nombre ?? '—'}
                   {(() => {
                     const eq = (poliza.cobertura?.metadata?.equivalencias as { compania_id: string; nombre_comercial: string }[] | undefined)
                       ?.find(e => e.compania_id === poliza.compania?.id)
-                    return eq ? <span className="text-slate-400 font-normal"> ({eq.nombre_comercial})</span> : null
+                    return eq ? <span className="text-slate-500 font-normal"> ({eq.nombre_comercial})</span> : null
                   })()}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Vigencia</span>
+                <span className="text-slate-600">Vigencia</span>
                 <span className="text-slate-700 font-medium">{formatFecha(poliza.fecha_inicio)} → {formatFecha(poliza.fecha_fin)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Refacturación</span>
+                <span className="text-slate-600">Refacturación</span>
                 <span className="text-slate-700 font-medium">{formatearRefacturacion(poliza.refacturacion)}</span>
               </div>
               {poliza.medio_pago && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Medio de pago</span>
+                  <span className="text-slate-600">Medio de pago</span>
                   <span className="text-slate-700 font-medium">{formatearMedioPago(poliza.medio_pago)}</span>
                 </div>
               )}
               {poliza.suma_asegurada != null && poliza.suma_asegurada > 0 && (
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Suma asegurada</span>
+                  <span className="text-slate-600">Suma asegurada</span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-slate-700 font-medium font-mono">{formatMoneda(poliza.suma_asegurada, poliza.moneda)}</span>
                     {/* Toggle inline: el PAS decide si se muestra en el portal del asegurado.
@@ -792,7 +792,7 @@ export default function FichaPolizaPage() {
                       className={`flex items-center justify-center h-5 w-5 rounded transition-colors ${
                         poliza.mostrar_suma_asegurada_portal
                           ? 'text-emerald-600 hover:bg-emerald-50'
-                          : 'text-slate-400 hover:bg-slate-100'
+                          : 'text-slate-500 hover:bg-slate-100'
                       }`}
                     >
                       {poliza.mostrar_suma_asegurada_portal
@@ -803,17 +803,17 @@ export default function FichaPolizaPage() {
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-slate-500">Duración</span>
+                <span className="text-slate-600">Duración</span>
                 <span className="text-slate-700 font-medium">{vigenciaTextoDesdeFechas(poliza.fecha_inicio, poliza.fecha_fin)}</span>
               </div>
               {poliza.numero_certificado && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Certificado</span>
+                  <span className="text-slate-600">Certificado</span>
                   <span className="text-slate-700 font-medium font-mono">{poliza.numero_certificado}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-slate-500">Creada</span>
+                <span className="text-slate-600">Creada</span>
                 <span className="text-slate-700 font-medium">{formatFecha(poliza.created_at)}</span>
               </div>
             </div>
@@ -848,7 +848,7 @@ export default function FichaPolizaPage() {
                   return (
                     <div key={r.id} className="p-3 flex flex-col gap-2 text-xs">
                       {riesgosVisibles.length > 1 && (
-                        <div className="text-2xs font-semibold text-slate-500 uppercase tracking-wide font-mono">
+                        <div className="text-2xs font-semibold text-slate-600 uppercase tracking-wide font-mono">
                           {titulo}
                         </div>
                       )}
@@ -872,7 +872,7 @@ export default function FichaPolizaPage() {
                           <>
                             {cortos.map(([k, v]) => (
                               <div key={k} className="flex justify-between gap-2">
-                                <span className="text-slate-500 shrink-0">
+                                <span className="text-slate-600 shrink-0">
                                   {mapaLabels[k] ?? (k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '))}
                                 </span>
                                 <span className="text-slate-700 font-medium text-right font-mono break-words min-w-0">
@@ -882,7 +882,7 @@ export default function FichaPolizaPage() {
                             ))}
                             {largos.map(([k, v]) => (
                               <div key={k} className="flex flex-col gap-1 pt-1 border-t border-slate-100 first:border-t-0 first:pt-0">
-                                <span className="text-2xs text-slate-500 font-semibold uppercase tracking-wide">
+                                <span className="text-2xs text-slate-600 font-semibold uppercase tracking-wide">
                                   {mapaLabels[k] ?? (k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '))}
                                 </span>
                                 <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
@@ -926,7 +926,7 @@ export default function FichaPolizaPage() {
             <CajaColapsable
               titulo="Notas internas"
               accion={
-                <span className="text-2xs text-slate-500 font-medium" title="Solo visible para vos y tu equipo">
+                <span className="text-2xs text-slate-600 font-medium" title="Solo visible para vos y tu equipo">
                   Uso interno · no se comparte con el asegurado
                 </span>
               }
@@ -952,7 +952,7 @@ export default function FichaPolizaPage() {
                           className={`font-mono text-xs font-semibold ${esCurrent ? 'text-slate-700' : 'text-blue-600 hover:underline cursor-pointer'}`}>
                           {r.numero_poliza}
                         </button>
-                        <span className="text-2xs text-slate-500">
+                        <span className="text-2xs text-slate-600">
                           {formatFechaLocal(r.fecha_inicio)} → {formatFechaLocal(r.fecha_fin)}
                         </span>
                       </div>
@@ -976,7 +976,7 @@ export default function FichaPolizaPage() {
               <Sparkles className="h-3 w-3" />
               Ver análisis de cambios vs. póliza anterior
               {poliza.comparacion_ia.cambios && poliza.comparacion_ia.cambios.filter(c => c.tipo === 'material').length > 0 && (
-                <span className="text-slate-400">
+                <span className="text-slate-500">
                   · {poliza.comparacion_ia.cambios.filter(c => c.tipo === 'material').length} cambio{poliza.comparacion_ia.cambios.filter(c => c.tipo === 'material').length !== 1 ? 's' : ''} material{poliza.comparacion_ia.cambios.filter(c => c.tipo === 'material').length !== 1 ? 'es' : ''}
                 </span>
               )}
@@ -1037,7 +1037,7 @@ export default function FichaPolizaPage() {
             }
           >
             {siniestros.length === 0 ? (
-              <div className="text-center py-8 text-xs text-slate-500">
+              <div className="text-center py-8 text-xs text-slate-600">
                 No tiene siniestros registrados
               </div>
             ) : (
@@ -1161,7 +1161,7 @@ export default function FichaPolizaPage() {
                 <Trash2 className="h-4 w-4 text-red-600" />
                 <h3 className="text-sm font-semibold text-red-800">Eliminar póliza</h3>
               </div>
-              <button onClick={() => setModalEliminar(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalEliminar(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -1178,35 +1178,35 @@ export default function FichaPolizaPage() {
                   </p>
                   {(eliminarResumen.siniestros > 0 || eliminarResumen.riesgos > 0 || eliminarResumen.endosos > 0 || eliminarResumen.polizas_hijas > 0 || (eliminarResumen.archivos_polizas + eliminarResumen.archivos_siniestros) > 0) ? (
                     <div className="bg-slate-50 border border-slate-200 rounded p-3 flex flex-col gap-1.5">
-                      <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Se eliminará:</p>
+                      <p className="text-2xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Se eliminará:</p>
                       {eliminarResumen.siniestros > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <AlertTriangle className="h-3 w-3 text-slate-400" /> {eliminarResumen.siniestros} siniestro(s) cerrado(s)
+                          <AlertTriangle className="h-3 w-3 text-slate-500" /> {eliminarResumen.siniestros} siniestro(s) cerrado(s)
                         </div>
                       )}
                       {eliminarResumen.riesgos > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <Package className="h-3 w-3 text-slate-400" /> {eliminarResumen.riesgos} riesgo(s)
+                          <Package className="h-3 w-3 text-slate-500" /> {eliminarResumen.riesgos} riesgo(s)
                         </div>
                       )}
                       {eliminarResumen.endosos > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <Edit className="h-3 w-3 text-slate-400" /> {eliminarResumen.endosos} endoso(s)
+                          <Edit className="h-3 w-3 text-slate-500" /> {eliminarResumen.endosos} endoso(s)
                         </div>
                       )}
                       {eliminarResumen.polizas_hijas > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <RefreshCw className="h-3 w-3 text-slate-400" /> {eliminarResumen.polizas_hijas} póliza(s) renovada(s)
+                          <RefreshCw className="h-3 w-3 text-slate-500" /> {eliminarResumen.polizas_hijas} póliza(s) renovada(s)
                         </div>
                       )}
                       {(eliminarResumen.archivos_polizas + eliminarResumen.archivos_siniestros) > 0 && (
                         <div className="flex items-center gap-2 text-xs text-slate-700">
-                          <FolderOpen className="h-3 w-3 text-slate-400" /> {eliminarResumen.archivos_polizas + eliminarResumen.archivos_siniestros} archivo(s) físico(s)
+                          <FolderOpen className="h-3 w-3 text-slate-500" /> {eliminarResumen.archivos_polizas + eliminarResumen.archivos_siniestros} archivo(s) físico(s)
                         </div>
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-500">Esta póliza no tiene registros asociados.</p>
+                    <p className="text-xs text-slate-600">Esta póliza no tiene registros asociados.</p>
                   )}
                   <div>
                     <label className="text-xs text-slate-600 mb-1 block">
@@ -1223,7 +1223,7 @@ export default function FichaPolizaPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-center py-4 text-slate-400 text-xs gap-2">
+                <div className="flex items-center justify-center py-4 text-slate-500 text-xs gap-2">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Verificando...
                 </div>
               )}
@@ -1272,7 +1272,7 @@ export default function FichaPolizaPage() {
                   {modalTipo === 'cancelar' ? 'Cancelar póliza' : 'Anular póliza'}
                 </h3>
               </div>
-              <button onClick={() => setModalTipo(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalTipo(null)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>

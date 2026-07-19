@@ -40,7 +40,7 @@ export default function CampoEditable({
 
   return (
     <div className="flex flex-col gap-0.5">
-      <label className="text-2xs text-slate-500 uppercase tracking-wide font-semibold">
+      <label className="text-2xs text-slate-600 uppercase tracking-wide font-semibold">
         {label}
       </label>
       <div className="relative">

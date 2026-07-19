@@ -169,7 +169,7 @@ export default function ActualizacionesPage() {
 
   if (cargando) {
     return (
-      <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+      <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
         <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
       </div>
     )
@@ -197,7 +197,7 @@ export default function ActualizacionesPage() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Actualizaciones</h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Versión actual: <span className="font-mono text-slate-700">v{estado?.version_actual}</span>
           </p>
         </div>
@@ -310,10 +310,10 @@ export default function ActualizacionesPage() {
           {disponible?.error && (
             <div className="bg-slate-50 border border-slate-200 rounded p-4 mb-4">
               <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-slate-500 mt-0.5" />
+                <AlertCircle className="h-4 w-4 text-slate-600 mt-0.5" />
                 <div>
                   <p className="text-sm text-slate-700">No se pudo verificar actualizaciones</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{disponible.error}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">{disponible.error}</p>
                 </div>
               </div>
             </div>
@@ -421,7 +421,7 @@ function BannerUpdateDisponible({
 
 function InfoActualizaciones() {
   return (
-    <details className="mt-6 text-xs text-slate-500">
+    <details className="mt-6 text-xs text-slate-600">
       <summary className="cursor-pointer hover:text-slate-700">
         ¿Cómo funcionan las actualizaciones?
       </summary>

@@ -44,8 +44,8 @@ const PLAN_LABEL: Record<string, string> = {
 const ESTADO_BADGE: Record<string, { bg: string; texto: string; label: string }> = {
   ACTIVA: { bg: 'bg-emerald-50 border-emerald-200', texto: 'text-emerald-700', label: 'Activa' },
   ENCOLADA: { bg: 'bg-blue-50 border-blue-200', texto: 'text-blue-700', label: 'Encolada' },
-  EXPIRADA: { bg: 'bg-slate-50 border-slate-200', texto: 'text-slate-500', label: 'Expirada' },
-  REEMPLAZADA: { bg: 'bg-slate-50 border-slate-200', texto: 'text-slate-500', label: 'Reemplazada' },
+  EXPIRADA: { bg: 'bg-slate-50 border-slate-200', texto: 'text-slate-600', label: 'Expirada' },
+  REEMPLAZADA: { bg: 'bg-slate-50 border-slate-200', texto: 'text-slate-600', label: 'Reemplazada' },
 }
 
 function formatearFecha(iso: string): string {
@@ -149,7 +149,7 @@ export default function LicenciaPage() {
   }
 
   if (loadingAuth || loadingEstado || !estado) {
-    return <div className="text-sm text-slate-500">Cargando...</div>
+    return <div className="text-sm text-slate-600">Cargando...</div>
   }
 
   const activa = estado.licencia_activa
@@ -172,7 +172,7 @@ export default function LicenciaPage() {
   return (
     <div className="flex flex-col gap-4 max-w-4xl">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1 text-xs text-slate-500">
+      <div className="flex items-center gap-1 text-xs text-slate-600">
         <button onClick={() => router.push('/crm/configuracion')} className="hover:text-blue-600">
           Configuración
         </button>
@@ -185,7 +185,7 @@ export default function LicenciaPage() {
         <Shield className="h-5 w-5 text-slate-700" />
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Licencia</h1>
-          <p className="text-xs text-slate-500">Estado de tu suscripción a FidCore</p>
+          <p className="text-xs text-slate-600">Estado de tu suscripción a FidCore</p>
         </div>
       </div>
 
@@ -258,19 +258,19 @@ export default function LicenciaPage() {
         {activa && (
           <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-600 pt-4 border-t border-slate-200/60">
             <div>
-              <div className="text-slate-400 mb-0.5">Cliente</div>
+              <div className="text-slate-500 mb-0.5">Cliente</div>
               <div className="font-medium text-slate-700">{activa.cliente}</div>
             </div>
             <div>
-              <div className="text-slate-400 mb-0.5">Fecha de inicio</div>
+              <div className="text-slate-500 mb-0.5">Fecha de inicio</div>
               <div className="font-medium text-slate-700">{formatearFecha(activa.fecha_inicio)}</div>
             </div>
             <div>
-              <div className="text-slate-400 mb-0.5">Emitida el</div>
+              <div className="text-slate-500 mb-0.5">Emitida el</div>
               <div className="font-medium text-slate-700">{formatearFecha(activa.fecha_emision)}</div>
             </div>
             <div>
-              <div className="text-slate-400 mb-0.5">Plan</div>
+              <div className="text-slate-500 mb-0.5">Plan</div>
               <div className="font-medium text-slate-700">{PLAN_LABEL[activa.plan]}</div>
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function LicenciaPage() {
       {/* ID de instalación */}
       <div className="bg-white border border-slate-200 rounded-lg p-4">
         <h3 className="text-sm font-semibold text-slate-800 mb-1">ID de instalación</h3>
-        <p className="text-xs text-slate-500 mb-2">
+        <p className="text-xs text-slate-600 mb-2">
           Cuando pidas o renueves tu licencia, mandale este ID a FidCore — sirve para emitir un archivo
           .lic que solo funcione en este server.
         </p>
@@ -302,7 +302,7 @@ export default function LicenciaPage() {
       {/* Upload de nueva licencia */}
       <div className="bg-white border border-slate-200 rounded-lg p-4">
         <h3 className="text-sm font-semibold text-slate-800 mb-1">Cargar licencia</h3>
-        <p className="text-xs text-slate-500 mb-3">
+        <p className="text-xs text-slate-600 mb-3">
           Subí el archivo .lic que te mandó FidCore. Si la fecha de inicio es hoy o anterior, se activa
           enseguida. Si es futura, queda encolada y se activa sola cuando llegue ese día.
         </p>
@@ -312,7 +312,7 @@ export default function LicenciaPage() {
           onDragOver={onDragOver}
           className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors"
         >
-          <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+          <Upload className="h-8 w-8 text-slate-500 mx-auto mb-2" />
           <p className="text-sm text-slate-700 mb-1">
             Arrastrá el archivo .lic acá o
           </p>
@@ -340,7 +340,7 @@ export default function LicenciaPage() {
             <Clock className="h-4 w-4 text-blue-600" />
             Licencias encoladas ({estado.licencias_encoladas.length})
           </h3>
-          <p className="text-xs text-slate-500 mb-3">
+          <p className="text-xs text-slate-600 mb-3">
             Estas licencias se van a activar automáticamente cuando llegue su fecha de inicio. No
             tenés que hacer nada el día de la transición.
           </p>
@@ -356,7 +356,7 @@ export default function LicenciaPage() {
                     <div className="text-sm font-medium text-slate-700">
                       Plan {PLAN_LABEL[lic.plan]}
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-slate-600">
                       Se activa el {formatearFecha(lic.fecha_inicio)} (en {lic.dias_hasta_inicio} días)
                       {' — '}vence el {formatearFecha(lic.fecha_vencimiento)}
                     </div>
@@ -383,13 +383,13 @@ export default function LicenciaPage() {
       {/* Histórico */}
       <div className="bg-white border border-slate-200 rounded-lg p-4">
         <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-slate-500" />
+          <FileText className="h-4 w-4 text-slate-600" />
           Histórico de licencias
         </h3>
         {loadingHistorial ? (
-          <p className="text-xs text-slate-500">Cargando...</p>
+          <p className="text-xs text-slate-600">Cargando...</p>
         ) : historial.length === 0 ? (
-          <p className="text-xs text-slate-500">No hay licencias cargadas todavía.</p>
+          <p className="text-xs text-slate-600">No hay licencias cargadas todavía.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="crm-table">

@@ -42,7 +42,7 @@ function iconoRamo(metadata: Record<string, any> | null) {
   if (tipo === 'automotor') return <Car   className="h-3 w-3 text-blue-500" />
   if (tipo === 'hogar')     return <Home  className="h-3 w-3 text-amber-500" />
   if (tipo === 'vida')      return <Heart className="h-3 w-3 text-rose-500" />
-  return <Package className="h-3 w-3 text-slate-400" />
+  return <Package className="h-3 w-3 text-slate-500" />
 }
 
 function nombrePersona(s: Siniestro) {
@@ -281,7 +281,7 @@ export default function SiniestrosPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Siniestros</h1>
-          <p className="text-xs text-slate-500">{total.toLocaleString('es-AR')} siniestros en total</p>
+          <p className="text-xs text-slate-600">{total.toLocaleString('es-AR')} siniestros en total</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -361,7 +361,7 @@ export default function SiniestrosPage() {
       {/* Filtros */}
       <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
           <input className="search-input w-full pl-6" placeholder="Buscar por nro. siniestro, apellido o DNI..."
             value={busqueda} onChange={e => setBusqueda(e.target.value)} />
         </div>
@@ -457,7 +457,7 @@ export default function SiniestrosPage() {
                       )}
                     </div>
                   </td>
-                  <td className="font-mono text-xs text-slate-500">{s.numero_siniestro ?? '—'}</td>
+                  <td className="font-mono text-xs text-slate-600">{s.numero_siniestro ?? '—'}</td>
                   <td className="text-xs text-slate-600 whitespace-nowrap">{formatFechaLocal(s.fecha_denuncia)}</td>
                   <td onClick={e => e.stopPropagation()}>
                     <button onClick={() => router.push(`/crm/personas/${s.asegurado?.id}`)}
@@ -472,9 +472,9 @@ export default function SiniestrosPage() {
                     </div>
                   </td>
                   <td className="text-xs text-slate-600">{s.tipo_siniestro?.replace(/_/g, ' ') ?? '—'}</td>
-                  <td className="font-mono text-xs text-slate-500">{bienAfect}</td>
+                  <td className="font-mono text-xs text-slate-600">{bienAfect}</td>
                   <td>
-                    <span className="font-mono text-xs text-slate-500">{s.poliza?.numero_poliza ?? '—'}</span>
+                    <span className="font-mono text-xs text-slate-600">{s.poliza?.numero_poliza ?? '—'}</span>
                   </td>
                   <td className="text-xs text-right font-mono text-slate-700">
                     {s.monto_estimado ? formatPeso(s.monto_estimado) : '—'}
@@ -517,7 +517,7 @@ export default function SiniestrosPage() {
 
       {/* Paginación */}
       {Math.ceil(total / POR_PAGINA) > 1 && (
-        <div className="flex items-center justify-between text-xs text-slate-500 pb-2">
+        <div className="flex items-center justify-between text-xs text-slate-600 pb-2">
           <span>Mostrando {pagina * POR_PAGINA + 1}–{Math.min((pagina + 1) * POR_PAGINA, total)} de {total.toLocaleString('es-AR')}</span>
           <div className="flex gap-1">
             <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0} className="btn-secondary px-3">← Anterior</button>

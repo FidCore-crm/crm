@@ -115,7 +115,7 @@ export default function ProgresoRestauracionPage() {
   if (authLoading || !restauracion) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
       </div>
     )
   }
@@ -129,7 +129,7 @@ export default function ProgresoRestauracionPage() {
           <Shield className="h-5 w-5 text-blue-500" />
           Restauración en progreso
         </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <p className="text-xs text-slate-600 mt-0.5">
           {restauracion.mensaje_progreso || 'Iniciando...'}
         </p>
       </div>
@@ -159,9 +159,9 @@ export default function ProgresoRestauracionPage() {
 
       {restauracion.metadata_backup && (
         <div className="bg-white border border-slate-200 rounded-lg p-4">
-          <p className="text-2xs text-slate-500 uppercase font-medium mb-1">Backup siendo restaurado</p>
+          <p className="text-2xs text-slate-600 uppercase font-medium mb-1">Backup siendo restaurado</p>
           <p className="text-xs font-mono text-slate-800">{restauracion.metadata_backup.nombre || '-'}</p>
-          <p className="text-2xs text-slate-500 mt-0.5">
+          <p className="text-2xs text-slate-600 mt-0.5">
             {restauracion.metadata_backup.fecha ? new Date(restauracion.metadata_backup.fecha).toLocaleString('es-AR') : ''}
           </p>
         </div>

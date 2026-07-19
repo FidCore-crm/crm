@@ -54,7 +54,7 @@ export function ConfiguradorBotonCTA({ ctaTexto, ctaUrl, onCambio, className = '
           onChange={e => onCambio(ctaTexto, e.target.value)}
         />
       </div>
-      <p className="text-2xs text-slate-500 mt-1.5">
+      <p className="text-2xs text-slate-600 mt-1.5">
         Completá los 2 campos para que aparezca el botón. Se ubica al final del cuerpo con el color de tu productora.
       </p>
     </div>

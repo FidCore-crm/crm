@@ -139,7 +139,7 @@ export default function PapeleraSiniestrosPage() {
             <h1 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
               <Trash2 className="h-4 w-4 text-amber-600" /> Papelera de siniestros
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-600 mt-0.5">
               Los siniestros eliminados se conservan {DIAS_RETENCION} días antes de borrarse definitivamente
             </p>
           </div>
@@ -162,7 +162,7 @@ export default function PapeleraSiniestrosPage() {
       {/* Buscador */}
       <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
           <input
             type="text"
             value={busqueda}
@@ -181,7 +181,7 @@ export default function PapeleraSiniestrosPage() {
       {/* Tabla */}
       <div className="bg-white border border-slate-200 rounded overflow-hidden">
         <div className="px-3 py-1.5 border-b border-slate-100 bg-slate-50">
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-600">
             <span className="font-medium text-slate-700">{siniestrosFiltrados.length}</span>{' '}
             siniestro{siniestrosFiltrados.length !== 1 ? 's' : ''} en papelera
           </span>
@@ -216,7 +216,7 @@ export default function PapeleraSiniestrosPage() {
                   return (
                     <tr key={s.id}>
                       <td className="font-mono text-xs font-semibold text-slate-700">{s.numero_caso}</td>
-                      <td className="font-mono text-xs text-slate-500">{s.numero_siniestro ?? '—'}</td>
+                      <td className="font-mono text-xs text-slate-600">{s.numero_siniestro ?? '—'}</td>
                       <td className="text-xs text-slate-700">{nombrePersona(s)}</td>
                       <td>
                         <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${badge.color}`}>

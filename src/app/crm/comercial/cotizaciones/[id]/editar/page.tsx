@@ -525,7 +525,7 @@ export default function EditarCotizacionPage() {
   // ── Loading ──
   if (cargando) {
     return (
-      <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+      <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
         <Loader2 className="h-4 w-4 animate-spin" /> Cargando cotizacion...
       </div>
     )
@@ -534,7 +534,7 @@ export default function EditarCotizacionPage() {
   // ── Not found ──
   if (notFound) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+      <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
         <AlertCircle className="h-8 w-8" />
         <p className="text-sm">Cotizacion no encontrada</p>
         <button onClick={() => router.push('/crm/comercial/cotizaciones')} className="btn-secondary text-xs">
@@ -559,7 +559,7 @@ export default function EditarCotizacionPage() {
             <h1 className="text-lg font-semibold text-slate-800">
               Editar cotizacion {numeroCotizacion && <span className="font-mono">{numeroCotizacion}</span>}
             </h1>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600">
               {estadoCotizacion === 'BORRADOR'
                 ? 'Modificar datos de la cotización en borrador'
                 : `Editando cotización en estado ${estadoCotizacion}`}
@@ -597,7 +597,7 @@ export default function EditarCotizacionPage() {
       <div className="bg-white border border-slate-200 rounded-lg">
         <div className="px-5 py-3 bg-slate-50 border-b border-slate-200 rounded-t-lg">
           <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            <Users className="h-4 w-4 text-slate-400" /> Destinatario
+            <Users className="h-4 w-4 text-slate-500" /> Destinatario
           </h2>
         </div>
         <div className="p-5 space-y-4">
@@ -611,7 +611,7 @@ export default function EditarCotizacionPage() {
                 onChange={() => { setTipoDestinatario('persona'); limpiarDestinatario() }}
                 className="text-blue-600"
               />
-              <User className="h-4 w-4 text-slate-400" />
+              <User className="h-4 w-4 text-slate-500" />
               <span className="text-sm text-slate-700">Cliente existente</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
@@ -622,7 +622,7 @@ export default function EditarCotizacionPage() {
                 onChange={() => { setTipoDestinatario('lead'); limpiarDestinatario() }}
                 className="text-blue-600"
               />
-              <Users className="h-4 w-4 text-slate-400" />
+              <Users className="h-4 w-4 text-slate-500" />
               <span className="text-sm text-slate-700">Lead</span>
             </label>
           </div>
@@ -640,7 +640,7 @@ export default function EditarCotizacionPage() {
             ) : (
               <>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                   <input
                     type="text"
                     className="form-input pl-9 w-full"
@@ -650,7 +650,7 @@ export default function EditarCotizacionPage() {
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                   />
-                  {buscando && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400" />}
+                  {buscando && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-500" />}
                 </div>
 
                 {showDropdown && searchResults.length > 0 && (
@@ -668,7 +668,7 @@ export default function EditarCotizacionPage() {
                   </div>
                 )}
                 {showDropdown && searchResults.length === 0 && searchTerm.length >= 2 && !buscando && (
-                  <div className="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-sm text-slate-500 text-center">
+                  <div className="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-sm text-slate-600 text-center">
                     No se encontraron resultados
                   </div>
                 )}
@@ -687,7 +687,7 @@ export default function EditarCotizacionPage() {
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
           <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            {ICONOS[tipoRiesgo] || <Package className="h-4 w-4 text-slate-400" />} Datos del Bien Asegurado
+            {ICONOS[tipoRiesgo] || <Package className="h-4 w-4 text-slate-500" />} Datos del Bien Asegurado
           </h2>
         </div>
         <div className="p-5 space-y-4">
@@ -813,14 +813,14 @@ export default function EditarCotizacionPage() {
               <div key={row.key} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                 {/* Header: número de opción + botón eliminar */}
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
                     Opción {idx + 1}
                   </span>
                   {rows.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeRow(row.key)}
-                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                      className="p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                       title="Eliminar opción"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -832,7 +832,7 @@ export default function EditarCotizacionPage() {
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_160px] gap-3 items-start mb-3">
                   {/* Compañía */}
                   <div>
-                    <label className="text-xs font-medium text-slate-500 mb-1 block">Compañía *</label>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">Compañía *</label>
                     <select
                       className={`form-input w-full text-sm ${errores[`row_${row.key}_compania_id`] ? 'border-red-300' : ''}`}
                       value={row.compania_id}
@@ -850,7 +850,7 @@ export default function EditarCotizacionPage() {
 
                   {/* Cobertura */}
                   <div>
-                    <label className="text-xs font-medium text-slate-500 mb-1 block">Cobertura *</label>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">Cobertura *</label>
                     <select
                       className={`form-input w-full text-sm ${errores[`row_${row.key}_cobertura_id`] ? 'border-red-300' : ''}`}
                       value={row.cobertura_id}
@@ -869,7 +869,7 @@ export default function EditarCotizacionPage() {
 
                   {/* Precio */}
                   <div>
-                    <label className="text-xs font-medium text-slate-500 mb-1 block">Precio *</label>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">Precio *</label>
                     <input
                       type="number"
                       min="0"
@@ -887,7 +887,7 @@ export default function EditarCotizacionPage() {
 
                 {/* Fila 2: detalle (textarea ancho completo) */}
                 <div>
-                  <label className="text-xs font-medium text-slate-500 mb-1 block">
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">
                     Detalle / Sublímites
                   </label>
                   <textarea
@@ -897,8 +897,8 @@ export default function EditarCotizacionPage() {
                     value={row.detalle}
                     onChange={e => updateRow(row.key, 'detalle', e.target.value)}
                   />
-                  <p className="text-2xs text-slate-400 mt-1">
-                    Cada línea con formato <span className="font-mono text-slate-500">Concepto: monto</span> se muestra como ítem prolijo en el PDF. Las líneas sueltas quedan como notas.
+                  <p className="text-2xs text-slate-500 mt-1">
+                    Cada línea con formato <span className="font-mono text-slate-600">Concepto: monto</span> se muestra como ítem prolijo en el PDF. Las líneas sueltas quedan como notas.
                   </p>
                 </div>
               </div>
@@ -908,7 +908,7 @@ export default function EditarCotizacionPage() {
           {/* Total summary */}
           {rows.some(r => r.precio) && (
             <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-sm">
-              <span className="text-slate-500">{rows.filter(r => r.precio).length} opcion(es) cargadas</span>
+              <span className="text-slate-600">{rows.filter(r => r.precio).length} opcion(es) cargadas</span>
               <span className="text-slate-600">
                 Rango: <span className="font-mono font-medium">
                   {formatMoneda(Math.min(...rows.filter(r => r.precio).map(r => parseFloat(r.precio))))}
@@ -940,7 +940,7 @@ export default function EditarCotizacionPage() {
               value={fechaVencimiento}
               onChange={e => setFechaVencimiento(e.target.value)}
             />
-            <p className="text-2xs text-slate-500 mt-1">
+            <p className="text-2xs text-slate-600 mt-1">
               Fecha hasta la cual los precios de esta cotizacion son validos. Despues de esta fecha, la cotizacion se marca como vencida.
             </p>
           </Campo>

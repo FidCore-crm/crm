@@ -511,7 +511,7 @@ export default function OportunidadesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Oportunidades de venta</h1>
-          <p className="text-xs text-slate-500">Detectá y gestioná oportunidades en tu cartera</p>
+          <p className="text-xs text-slate-600">Detectá y gestioná oportunidades en tu cartera</p>
         </div>
         <button onClick={() => router.push('/crm/comercial/oportunidades/nueva')} className="btn-primary">
           <Plus className="h-3.5 w-3.5"/> Nueva oportunidad
@@ -557,11 +557,11 @@ export default function OportunidadesPage() {
       {/* Tabs */}
       <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded w-fit">
         <button onClick={() => setTab('mis')}
-          className={`px-3 py-1.5 text-xs rounded transition-all ${tab === 'mis' ? 'bg-white shadow-sm font-medium text-slate-700' : 'text-slate-500 hover:text-slate-700'}`}>
+          className={`px-3 py-1.5 text-xs rounded transition-all ${tab === 'mis' ? 'bg-white shadow-sm font-medium text-slate-700' : 'text-slate-600 hover:text-slate-700'}`}>
           Mis oportunidades
         </button>
         <button onClick={() => setTab('detectadas')}
-          className={`px-3 py-1.5 text-xs rounded transition-all flex items-center gap-1.5 ${tab === 'detectadas' ? 'bg-white shadow-sm font-medium text-slate-700' : 'text-slate-500 hover:text-slate-700'}`}>
+          className={`px-3 py-1.5 text-xs rounded transition-all flex items-center gap-1.5 ${tab === 'detectadas' ? 'bg-white shadow-sm font-medium text-slate-700' : 'text-slate-600 hover:text-slate-700'}`}>
           Oportunidades detectadas
           {kpis.detectadas > 0 && (
             <span className="flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-violet-500 text-white text-2xs font-bold leading-none">
@@ -577,7 +577,7 @@ export default function OportunidadesPage() {
           {/* Filtros */}
           <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
             <div className="relative flex-1 min-w-48">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400"/>
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-500"/>
               <input className="search-input w-full pl-6" placeholder="Buscar por nombre del cliente..."
                 value={busqueda} onChange={e => setBusqueda(e.target.value)}/>
             </div>
@@ -644,7 +644,7 @@ export default function OportunidadesPage() {
                       onClick={() => router.push(`/crm/comercial/oportunidades/${op.id}`)}>
                       <td>
                         <span className="text-xs font-medium text-slate-700">{nombrePersona(op.persona)}</span>
-                        <p className="text-2xs text-slate-500 font-mono">{op.persona.dni_cuil}</p>
+                        <p className="text-2xs text-slate-600 font-mono">{op.persona.dni_cuil}</p>
                       </td>
                       <td><span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${tb.color}`}>{tb.label}</span></td>
                       <td><span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${fb.color}`}>{fb.label}</span></td>
@@ -654,7 +654,7 @@ export default function OportunidadesPage() {
                       </td>
                       <td><span className={`text-xs ${pc.color}`}>{pc.text}</span></td>
                       <td>
-                        <span className="text-xs text-slate-500">{diasDesdeLabel(op.created_at)}</span>
+                        <span className="text-xs text-slate-600">{diasDesdeLabel(op.created_at)}</span>
                         {estancada && (
                           <span className="ml-1 text-2xs font-semibold px-1.5 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Estancada</span>
                         )}
@@ -677,7 +677,7 @@ export default function OportunidadesPage() {
 
           {/* Paginación */}
           {Math.ceil(total / POR_PAGINA) > 1 && (
-            <div className="flex items-center justify-between text-xs text-slate-500 pb-2">
+            <div className="flex items-center justify-between text-xs text-slate-600 pb-2">
               <span>Mostrando {pagina * POR_PAGINA + 1}–{Math.min((pagina + 1) * POR_PAGINA, total)} de {total}</span>
               <div className="flex gap-1">
                 <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0} className="btn-secondary px-3">← Anterior</button>
@@ -692,7 +692,7 @@ export default function OportunidadesPage() {
       {tab === 'detectadas' && (
         <div className="flex flex-col gap-3">
           {cargandoDet ? (
-            <div className="flex items-center justify-center py-16 text-slate-400 text-xs gap-2">
+            <div className="flex items-center justify-center py-16 text-slate-500 text-xs gap-2">
               <Loader2 className="h-4 w-4 animate-spin"/> Analizando cartera...
             </div>
           ) : (
@@ -711,7 +711,7 @@ export default function OportunidadesPage() {
                       <button onClick={() => router.push(`/crm/personas/${item.id}`)}
                         className="text-xs font-medium text-blue-600 hover:underline">{nombrePersona(item)}</button>
                       {item.ultima_poliza && (
-                        <p className="text-2xs text-slate-500">
+                        <p className="text-2xs text-slate-600">
                           <span className="font-mono">{item.ultima_poliza.numero_poliza}</span>
                           {' · '}{item.ultima_poliza.compania?.nombre} · {item.ultima_poliza.ramo?.nombre}
                           {' · '}Venció {diasDesdeLabel(item.ultima_poliza.fecha_fin)}
@@ -742,7 +742,7 @@ export default function OportunidadesPage() {
                     <div className="flex-1 min-w-0">
                       <button onClick={() => router.push(`/crm/personas/${item.persona.id}`)}
                         className="text-xs font-medium text-blue-600 hover:underline">{nombrePersona(item.persona)}</button>
-                      <p className="text-2xs text-slate-500">
+                      <p className="text-2xs text-slate-600">
                         <span className="font-mono">{item.numero_poliza}</span>
                         {' · '}{item.compania?.nombre} · {item.ramo?.nombre}
                         {item.motivo_baja && ` · ${item.motivo_baja}`}
@@ -773,7 +773,7 @@ export default function OportunidadesPage() {
                     <div className="flex-1 min-w-0">
                       <button onClick={() => router.push(`/crm/personas/${item.persona.id}`)}
                         className="text-xs font-medium text-blue-600 hover:underline">{nombrePersona(item.persona)}</button>
-                      <p className="text-2xs text-slate-500">
+                      <p className="text-2xs text-slate-600">
                         <span className="font-mono">{item.numero_poliza}</span>
                         {' · '}{item.compania?.nombre} · {item.ramo?.nombre}
                       </p>
@@ -791,7 +791,7 @@ export default function OportunidadesPage() {
               />
 
               {sinPoliza.length === 0 && cancelaciones.length === 0 && crossSell.length === 0 && (
-                <div className="flex flex-col items-center py-16 gap-2 text-slate-400">
+                <div className="flex flex-col items-center py-16 gap-2 text-slate-500">
                   <CheckCircle className="h-8 w-8 text-emerald-300"/>
                   <p className="text-xs">No se detectaron oportunidades nuevas. Tu cartera está bien cubierta.</p>
                 </div>
@@ -824,10 +824,10 @@ function DeteccionCard<T>({ icon, titulo, subtitulo, items, verTodos, onToggleVe
           {icon}
           <div>
             <h3 className="text-xs font-semibold text-slate-700">{titulo}</h3>
-            <p className="text-2xs text-slate-500">{subtitulo}</p>
+            <p className="text-2xs text-slate-600">{subtitulo}</p>
           </div>
         </div>
-        <span className="text-2xs text-slate-500 font-mono">{items.length} encontrados</span>
+        <span className="text-2xs text-slate-600 font-mono">{items.length} encontrados</span>
       </div>
       <div>
         {visibles.map((item, i) => <div key={i}>{renderItem(item)}</div>)}

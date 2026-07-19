@@ -208,7 +208,7 @@ export function MensajesWebNavbar() {
         type="button"
         onClick={togglePanel}
         aria-label="Mensajes recibidos desde la web"
-        className="relative flex h-7 w-7 items-center justify-center rounded text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+        className="relative flex h-7 w-7 items-center justify-center rounded text-slate-600 hover:text-slate-700 hover:bg-slate-100 transition-colors"
       >
         <Inbox className="h-4 w-4" />
         {contadores.total_no_leidas > 0 && (
@@ -222,10 +222,10 @@ export function MensajesWebNavbar() {
         <div className="absolute right-0 top-full mt-1 w-[400px] bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 bg-slate-50">
             <div className="flex items-center gap-2">
-              <Inbox className="h-4 w-4 text-slate-500" />
+              <Inbox className="h-4 w-4 text-slate-600" />
               <span className="text-sm font-semibold text-slate-700">Mensajes web</span>
               {contadores.total_no_leidas > 0 && (
-                <span className="text-xs text-slate-500">({contadores.total_no_leidas} nuevos)</span>
+                <span className="text-xs text-slate-600">({contadores.total_no_leidas} nuevos)</span>
               )}
             </div>
             {contadores.total_no_leidas > 0 && (
@@ -241,14 +241,14 @@ export function MensajesWebNavbar() {
 
           <div className="max-h-[420px] overflow-y-auto">
             {cargando && (
-              <div className="flex items-center justify-center py-8 text-slate-400">
+              <div className="flex items-center justify-center py-8 text-slate-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
             )}
             {!cargando && mensajes.length === 0 && (
-              <div className="px-4 py-8 text-center text-sm text-slate-500">
+              <div className="px-4 py-8 text-center text-sm text-slate-600">
                 Todavía no llegaron mensajes desde la web.
-                <div className="mt-1 text-xs text-slate-400">
+                <div className="mt-1 text-xs text-slate-500">
                   Configurá el formulario en{' '}
                   <button
                     type="button"
@@ -268,13 +268,13 @@ export function MensajesWebNavbar() {
                 className={`w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors ${!m.leida ? 'bg-emerald-50/40' : ''}`}
               >
                 <div className="flex items-start gap-2">
-                  <Inbox className={`h-4 w-4 mt-0.5 flex-shrink-0 ${!m.leida ? 'text-emerald-600' : 'text-slate-400'}`} />
+                  <Inbox className={`h-4 w-4 mt-0.5 flex-shrink-0 ${!m.leida ? 'text-emerald-600' : 'text-slate-500'}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className={`text-sm truncate ${!m.leida ? 'font-semibold text-slate-800' : 'text-slate-700'}`}>
                         {m.titulo}
                       </div>
-                      <div className="text-2xs text-slate-400 flex-shrink-0">{tiempoRelativo(m.created_at)}</div>
+                      <div className="text-2xs text-slate-500 flex-shrink-0">{tiempoRelativo(m.created_at)}</div>
                     </div>
                     {m.mensaje && (
                       <div className="text-xs text-slate-600 mt-0.5 line-clamp-2">{m.mensaje}</div>

@@ -123,7 +123,7 @@ export default function ExitoPDFPage() {
 
   if (cargando || !procesamiento) {
     return (
-      <div className="max-w-2xl mx-auto p-8 text-center text-sm text-slate-500">
+      <div className="max-w-2xl mx-auto p-8 text-center text-sm text-slate-600">
         <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
         Cargando resultado...
       </div>
@@ -162,7 +162,7 @@ export default function ExitoPDFPage() {
               )}
             </p>
             {polizaOrigenInfo && (
-              <p className="text-2xs text-slate-500 max-w-md">
+              <p className="text-2xs text-slate-600 max-w-md">
                 La póliza actual sigue vigente hasta {polizaOrigenInfo.fecha_fin}. La nueva va a activarse automáticamente el {resumenPoliza.fecha_inicio}.
               </p>
             )}
@@ -181,7 +181,7 @@ export default function ExitoPDFPage() {
 
       {/* Resumen */}
       <div className="bg-white border border-slate-200 rounded p-4">
-        <p className="text-2xs font-semibold text-slate-500 uppercase mb-2">Resumen</p>
+        <p className="text-2xs font-semibold text-slate-600 uppercase mb-2">Resumen</p>
         <ul className="space-y-1 text-xs text-slate-700">
           {resumenPoliza && (
             <>
@@ -233,16 +233,16 @@ export default function ExitoPDFPage() {
       {/* Costo */}
       {(procesamiento.tokens_usados || procesamiento.costo_estimado) && (
         <div className="bg-white border border-slate-200 rounded p-4">
-          <p className="text-2xs font-semibold text-slate-500 uppercase mb-2 flex items-center gap-1">
+          <p className="text-2xs font-semibold text-slate-600 uppercase mb-2 flex items-center gap-1">
             <Sparkles className="h-3 w-3" /> Costo del procesamiento
           </p>
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <p className="text-2xs text-slate-500">Tokens usados</p>
+              <p className="text-2xs text-slate-600">Tokens usados</p>
               <p className="font-mono text-slate-800">{(procesamiento.tokens_usados || 0).toLocaleString('es-AR')}</p>
             </div>
             <div>
-              <p className="text-2xs text-slate-500">Costo</p>
+              <p className="text-2xs text-slate-600">Costo</p>
               <p className="font-mono text-slate-800">
                 ${(procesamiento.costo_estimado || 0).toFixed(4)} USD
               </p>

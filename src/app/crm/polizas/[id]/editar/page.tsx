@@ -459,14 +459,14 @@ export default function EditarPolizaPage() {
   }
 
   if (cargando) return (
-    <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+    <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
       <Loader2 className="h-4 w-4 animate-spin" /> Cargando póliza...
     </div>
   )
 
   if (!poliza || !datosRiesgo) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
-      <span className="text-slate-400 text-sm">Póliza no encontrada</span>
+      <span className="text-slate-500 text-sm">Póliza no encontrada</span>
       <button onClick={() => router.push('/crm/polizas')} className="btn-secondary">
         <ArrowLeft className="h-3 w-3" /> Volver al listado
       </button>
@@ -479,7 +479,7 @@ export default function EditarPolizaPage() {
         <CheckCircle className="h-6 w-6 text-green-600" />
       </div>
       <p className="text-sm font-medium text-slate-700">Póliza actualizada</p>
-      <p className="text-xs text-slate-500">Redirigiendo a la ficha...</p>
+      <p className="text-xs text-slate-600">Redirigiendo a la ficha...</p>
     </div>
   )
 
@@ -494,7 +494,7 @@ export default function EditarPolizaPage() {
           </button>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Editar Póliza</h1>
-            <p className="text-xs text-slate-500 font-mono">{poliza.numero_poliza}</p>
+            <p className="text-xs text-slate-600 font-mono">{poliza.numero_poliza}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -579,7 +579,7 @@ export default function EditarPolizaPage() {
             <div className="form-input bg-slate-50 text-slate-600 flex items-center">
               {poliza.fecha_inicio && poliza.fecha_fin
                 ? vigenciaTextoDesdeFechas(poliza.fecha_inicio, poliza.fecha_fin)
-                : <span className="text-slate-400">Se calcula con las fechas</span>}
+                : <span className="text-slate-500">Se calcula con las fechas</span>}
             </div>
           </Campo>
           <Campo label="Suma asegurada">
@@ -602,7 +602,7 @@ export default function EditarPolizaPage() {
                 className="mt-0.5"/>
               <span className="text-xs text-slate-600 leading-tight">
                 Permitir que el asegurado vea la suma asegurada en el portal.
-                <span className="block text-slate-400 mt-0.5">
+                <span className="block text-slate-500 mt-0.5">
                   Recomendado para sumas fijas (hogar, robo de bien no registrable, etc.).
                   Dejar destildado si la suma varía mes a mes (típico en auto).
                 </span>
@@ -657,7 +657,7 @@ export default function EditarPolizaPage() {
                     <button
                       type="button"
                       onClick={() => eliminarRiesgo(i)}
-                      className="px-1.5 py-1 text-slate-400 hover:text-red-600"
+                      className="px-1.5 py-1 text-slate-500 hover:text-red-600"
                       title="Eliminar este bien"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -801,7 +801,7 @@ export default function EditarPolizaPage() {
                   <div className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1.5">
                     <Sparkles className="h-3.5 w-3.5 text-blue-500" />
                     Datos adicionales
-                    <span className="text-2xs text-slate-400 font-normal">
+                    <span className="text-2xs text-slate-500 font-normal">
                       · cargados por el agente IA o importados
                     </span>
                   </div>
@@ -865,7 +865,7 @@ export default function EditarPolizaPage() {
           <div>
             <div className="flex items-baseline justify-between mb-1">
               <label className="text-xs text-slate-700 font-medium">Notas internas</label>
-              <span className="text-2xs text-slate-500 font-medium">Uso interno · no se comparte con el asegurado</span>
+              <span className="text-2xs text-slate-600 font-medium">Uso interno · no se comparte con el asegurado</span>
             </div>
             <textarea
               className="form-input w-full resize-none"

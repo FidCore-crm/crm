@@ -43,7 +43,7 @@ const TIPOS_TAREA: Record<string, { label: string; icon: React.ReactNode }> = {
   ENVIO_DOCUMENTACION:    { label: 'Envío de documentación',  icon: <Send className="h-4 w-4 text-cyan-500" /> },
   REUNION_CLIENTE:        { label: 'Reunión con cliente',     icon: <Users className="h-4 w-4 text-indigo-500" /> },
   ALERTA_VENCIMIENTO:     { label: 'Alerta de vencimiento',   icon: <Clock className="h-4 w-4 text-orange-500" /> },
-  TAREA_GENERAL:          { label: 'Tarea general',           icon: <ClipboardList className="h-4 w-4 text-slate-400" /> },
+  TAREA_GENERAL:          { label: 'Tarea general',           icon: <ClipboardList className="h-4 w-4 text-slate-500" /> },
 }
 
 function prioridadBadge(p: string) {
@@ -166,7 +166,7 @@ export default function FichaTareaPage() {
   }
 
   if (cargando) return (
-    <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+    <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
       <Loader2 className="h-4 w-4 animate-spin" /> Cargando tarea...
     </div>
   )
@@ -174,7 +174,7 @@ export default function FichaTareaPage() {
   if (!tarea) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
       <AlertCircle className="h-8 w-8 text-slate-300" />
-      <span className="text-slate-400 text-sm">Tarea no encontrada</span>
+      <span className="text-slate-500 text-sm">Tarea no encontrada</span>
       <button onClick={() => router.push('/crm/tareas')} className="btn-secondary">
         <ArrowLeft className="h-3 w-3" /> Volver al listado
       </button>
@@ -209,11 +209,11 @@ export default function FichaTareaPage() {
                 {eBadge.label}
               </span>
             </div>
-            <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+            <p className="text-xs text-slate-600 flex items-center gap-2 mt-0.5">
               {tipo.icon}
               {tipo.label}
               {tarea.recurrencia !== 'NINGUNA' && (
-                <span className="flex items-center gap-1 text-slate-400">
+                <span className="flex items-center gap-1 text-slate-500">
                   · <Repeat className="h-3 w-3" /> {recurrenciaLabel(tarea.recurrencia)}
                 </span>
               )}
@@ -272,37 +272,37 @@ export default function FichaTareaPage() {
           {/* Tipo y fecha */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Detalle</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Detalle</h3>
             </div>
             <div className="p-3 flex flex-col gap-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-500">Tipo</span>
+                <span className="text-slate-600">Tipo</span>
                 <span className="text-slate-700 font-medium flex items-center gap-1">{tipo.icon} {tipo.label}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Prioridad</span>
+                <span className="text-slate-600">Prioridad</span>
                 <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${pBadge.color}`}>{pBadge.label}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Vencimiento</span>
+                <span className="text-slate-600">Vencimiento</span>
                 <span className={`font-medium ${vencida ? 'text-red-600' : 'text-slate-700'}`}>
                   {formatFechaLocalLarga(tarea.fecha_vencimiento)}
-                  {tarea.hora_vencimiento && <span className="text-slate-400 ml-1">{tarea.hora_vencimiento.substring(0, 5)}</span>}
+                  {tarea.hora_vencimiento && <span className="text-slate-500 ml-1">{tarea.hora_vencimiento.substring(0, 5)}</span>}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Recurrencia</span>
+                <span className="text-slate-600">Recurrencia</span>
                 <span className="text-slate-700 font-medium flex items-center gap-1">
-                  {tarea.recurrencia !== 'NINGUNA' && <Repeat className="h-3 w-3 text-slate-400" />}
+                  {tarea.recurrencia !== 'NINGUNA' && <Repeat className="h-3 w-3 text-slate-500" />}
                   {recurrenciaLabel(tarea.recurrencia)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Estado</span>
+                <span className="text-slate-600">Estado</span>
                 <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${eBadge.color}`}>{eBadge.label}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Creada</span>
+                <span className="text-slate-600">Creada</span>
                 <span className="text-slate-700 font-medium">{formatFechaLocalLarga(tarea.created_at)}</span>
               </div>
             </div>
@@ -311,13 +311,13 @@ export default function FichaTareaPage() {
           {/* Descripción */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Descripcion</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Descripcion</h3>
             </div>
             <div className="p-3">
               {tarea.descripcion ? (
                 <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{tarea.descripcion}</p>
               ) : (
-                <span className="text-xs text-slate-400">Sin descripcion</span>
+                <span className="text-xs text-slate-500">Sin descripcion</span>
               )}
             </div>
           </div>
@@ -329,7 +329,7 @@ export default function FichaTareaPage() {
           {/* Cliente */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Cliente vinculado</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Cliente vinculado</h3>
             </div>
             <div className="p-3 flex flex-col gap-1.5">
               <button onClick={() => router.push(`/crm/personas/${tarea.persona?.id}`)}
@@ -338,8 +338,8 @@ export default function FichaTareaPage() {
                 {nombrePersona(tarea.persona)}
               </button>
               {tarea.persona?.telefono && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                  <Phone className="h-3 w-3 text-slate-400" />
+                <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <Phone className="h-3 w-3 text-slate-500" />
                   <span className="font-mono">{tarea.persona.telefono}</span>
                 </div>
               )}
@@ -350,8 +350,8 @@ export default function FichaTareaPage() {
                 </div>
               )}
               {tarea.persona?.email && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 truncate">
-                  <span className="text-slate-400">@</span>
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 truncate">
+                  <span className="text-slate-500">@</span>
                   <span>{tarea.persona.email}</span>
                 </div>
               )}
@@ -361,7 +361,7 @@ export default function FichaTareaPage() {
           {/* Poliza */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Poliza vinculada</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Poliza vinculada</h3>
             </div>
             <div className="p-3">
               {tarea.poliza ? (
@@ -371,13 +371,13 @@ export default function FichaTareaPage() {
                     <FileText className="h-3 w-3" />
                     <span className="font-mono">{tarea.poliza.numero_poliza}</span>
                   </button>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
                     {tarea.poliza.compania && <span>{(tarea.poliza.compania as any).nombre}</span>}
                     {tarea.poliza.ramo && <span>· {(tarea.poliza.ramo as any).nombre}</span>}
                   </div>
                 </div>
               ) : (
-                <span className="text-xs text-slate-400">Sin poliza vinculada</span>
+                <span className="text-xs text-slate-500">Sin poliza vinculada</span>
               )}
             </div>
           </div>
@@ -385,7 +385,7 @@ export default function FichaTareaPage() {
           {/* Siniestro */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Siniestro vinculado</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Siniestro vinculado</h3>
             </div>
             <div className="p-3">
               {tarea.siniestro ? (
@@ -395,10 +395,10 @@ export default function FichaTareaPage() {
                     <AlertTriangle className="h-3 w-3" />
                     <span className="font-mono">{tarea.siniestro.numero_caso}</span>
                   </button>
-                  <span className="text-xs text-slate-500">Estado: {tarea.siniestro.estado?.replace(/_/g, ' ') ?? '—'}</span>
+                  <span className="text-xs text-slate-600">Estado: {tarea.siniestro.estado?.replace(/_/g, ' ') ?? '—'}</span>
                 </div>
               ) : (
-                <span className="text-xs text-slate-400">Sin siniestro vinculado</span>
+                <span className="text-xs text-slate-500">Sin siniestro vinculado</span>
               )}
             </div>
           </div>
@@ -414,7 +414,7 @@ export default function FichaTareaPage() {
                 <CheckCircle className="h-4 w-4 text-emerald-600" />
                 <h3 className="text-sm font-semibold text-emerald-800">Completar tarea</h3>
               </div>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>

@@ -125,7 +125,7 @@ export default function ConfigDashboardGraficosPage() {
   if (cargando) {
     return (
       <div className="py-16 text-center">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400 mx-auto" />
+        <Loader2 className="h-6 w-6 animate-spin text-slate-500 mx-auto" />
       </div>
     )
   }
@@ -135,7 +135,7 @@ export default function ConfigDashboardGraficosPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <div className="flex items-center gap-2 text-xs text-slate-600 mb-1">
             <Link href="/crm/configuracion" className="hover:text-slate-700 flex items-center gap-1">
               <ArrowLeft className="h-3 w-3" />
               Volver a Configuración
@@ -145,7 +145,7 @@ export default function ConfigDashboardGraficosPage() {
             <BarChart3 className="h-4 w-4 text-blue-600" />
             Gráficos del panel de Análisis
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-600 mt-1">
             Elegí qué gráficos querés ver en el dashboard de análisis de cartera.
             Los apagados no se cargan ni se muestran.
           </p>
@@ -195,7 +195,7 @@ export default function ConfigDashboardGraficosPage() {
                   {g.label}
                 </h3>
                 <div className="flex items-center gap-3">
-                  <span className="text-2xs text-slate-500">
+                  <span className="text-2xs text-slate-600">
                     {tildadosGrupo} / {idsGrupo.length}
                   </span>
                   <button
@@ -221,10 +221,10 @@ export default function ConfigDashboardGraficosPage() {
                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${tildado ? 'text-slate-800' : 'text-slate-400'}`}>
+                        <p className={`text-sm font-medium ${tildado ? 'text-slate-800' : 'text-slate-500'}`}>
                           {graf.nombre}
                         </p>
-                        <p className={`text-xs ${tildado ? 'text-slate-500' : 'text-slate-400'}`}>
+                        <p className={`text-xs ${tildado ? 'text-slate-600' : 'text-slate-500'}`}>
                           {graf.descripcion}
                         </p>
                       </div>

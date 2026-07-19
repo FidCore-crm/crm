@@ -164,7 +164,7 @@ export default function EventoModal({ evento, fechaInicial, onCerrar, onGuardado
               {esEdicion ? 'Editar evento' : 'Nuevo evento'}
             </h3>
           </div>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onCerrar} className="text-slate-500 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -253,7 +253,7 @@ export default function EventoModal({ evento, fechaInicial, onCerrar, onGuardado
                   className={`text-2xs px-2 py-0.5 rounded border transition-colors ${
                     categoria === sug
                       ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
-                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
                   {sug}
@@ -286,7 +286,7 @@ export default function EventoModal({ evento, fechaInicial, onCerrar, onGuardado
                 className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded border text-xs transition-colors ${
                   !compartido
                     ? 'bg-slate-100 text-slate-800 border-slate-400 font-medium'
-                    : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <User className="h-3.5 w-3.5" /> Privado
@@ -297,13 +297,13 @@ export default function EventoModal({ evento, fechaInicial, onCerrar, onGuardado
                 className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded border text-xs transition-colors ${
                   compartido
                     ? 'bg-emerald-100 text-emerald-800 border-emerald-400 font-medium'
-                    : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <Users className="h-3.5 w-3.5" /> Equipo
               </button>
             </div>
-            <p className="text-2xs text-slate-500 mt-1">
+            <p className="text-2xs text-slate-600 mt-1">
               {compartido
                 ? 'Todos los usuarios de la productora verán este evento.'
                 : 'Solo vos vas a ver este evento.'}

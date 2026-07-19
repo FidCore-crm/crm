@@ -293,7 +293,7 @@ export default function ComercialPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Gestión comercial</h1>
-          <p className="text-xs text-slate-500">Centro de comando del área de ventas</p>
+          <p className="text-xs text-slate-600">Centro de comando del área de ventas</p>
         </div>
       </div>
 
@@ -304,7 +304,7 @@ export default function ComercialPage() {
           className={`flex items-center gap-1 px-3 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors ${
             tabActiva === 'gestion'
               ? 'border-slate-800 text-slate-800'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+              : 'border-transparent text-slate-600 hover:text-slate-700'
           }`}
         >
           <Briefcase className="h-3 w-3" /> Gestión
@@ -314,7 +314,7 @@ export default function ComercialPage() {
           className={`flex items-center gap-1 px-3 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors ${
             tabActiva === 'embudo'
               ? 'border-slate-800 text-slate-800'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+              : 'border-transparent text-slate-600 hover:text-slate-700'
           }`}
         >
           <BarChart3 className="h-3 w-3" /> Embudo
@@ -365,7 +365,7 @@ export default function ComercialPage() {
       {/* Filtros */}
       <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400"/>
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-500"/>
           <input className="search-input w-full pl-6" placeholder="Buscar por nombre..."
             value={busqueda} onChange={e => setBusqueda(e.target.value)}/>
         </div>
@@ -501,7 +501,7 @@ export default function ComercialPage() {
                     )}
                   </td>
                   <td>
-                    <span className="text-xs text-slate-500">{diasDesdeLabel(item.created_at)}</span>
+                    <span className="text-xs text-slate-600">{diasDesdeLabel(item.created_at)}</span>
                     {sinContactar && (
                       <span className="block text-2xs font-semibold px-1.5 py-0.5 rounded border bg-red-50 text-red-700 border-red-200 w-fit mt-0.5">Sin contactar</span>
                     )}
@@ -527,7 +527,7 @@ export default function ComercialPage() {
 
       {/* Paginación */}
       {Math.ceil(total / POR_PAGINA) > 1 && (
-        <div className="flex items-center justify-between text-xs text-slate-500 pb-2">
+        <div className="flex items-center justify-between text-xs text-slate-600 pb-2">
           <span>Mostrando {pagina * POR_PAGINA + 1}–{Math.min((pagina + 1) * POR_PAGINA, total)} de {total}</span>
           <div className="flex gap-1">
             <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0} className="btn-secondary px-3">← Anterior</button>
@@ -551,8 +551,8 @@ export default function ComercialPage() {
               <span className="font-mono text-xs font-semibold text-slate-700">{card.count}</span>
             </div>
             <p className="text-xs font-semibold text-slate-700">{card.label}</p>
-            <p className="text-2xs text-slate-500">{card.sub}</p>
-            <ChevronRight className="h-3 w-3 text-slate-300 group-hover:text-slate-500 mt-1 transition-colors"/>
+            <p className="text-2xs text-slate-600">{card.sub}</p>
+            <ChevronRight className="h-3 w-3 text-slate-300 group-hover:text-slate-600 mt-1 transition-colors"/>
           </button>
         ))}
       </div>

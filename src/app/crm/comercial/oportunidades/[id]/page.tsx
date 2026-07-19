@@ -76,7 +76,7 @@ const TIPO_INT_ICON: Record<string, React.ReactNode> = {
   EMAIL:    <Mail className="h-3.5 w-3.5 text-amber-500"/>,
   WHATSAPP: <MessageCircle className="h-3.5 w-3.5 text-green-500"/>,
   REUNION:  <Users className="h-3.5 w-3.5 text-violet-500"/>,
-  NOTA:     <StickyNote className="h-3.5 w-3.5 text-slate-400"/>,
+  NOTA:     <StickyNote className="h-3.5 w-3.5 text-slate-500"/>,
 }
 const TIPO_INT_LABEL: Record<string, string> = {
   LLAMADA: 'Llamada', EMAIL: 'Email', WHATSAPP: 'WhatsApp', REUNION: 'Reunión', NOTA: 'Nota',
@@ -256,7 +256,7 @@ export default function FichaOportunidadPage() {
   }
 
   if (cargando) return (
-    <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
+    <div className="flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
       <Loader2 className="h-4 w-4 animate-spin"/> Cargando oportunidad...
     </div>
   )
@@ -264,7 +264,7 @@ export default function FichaOportunidadPage() {
   if (!op) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
       <AlertCircle className="h-8 w-8 text-slate-300"/>
-      <span className="text-sm text-slate-400">Oportunidad no encontrada</span>
+      <span className="text-sm text-slate-500">Oportunidad no encontrada</span>
       <button onClick={() => router.push('/crm/comercial/oportunidades')} className="btn-secondary">
         <ArrowLeft className="h-3 w-3"/> Volver al listado
       </button>
@@ -295,7 +295,7 @@ export default function FichaOportunidadPage() {
               <span className={`text-2xs font-semibold px-2 py-0.5 rounded border ${eb.color}`}>{eb.label}</span>
               <span className={`text-2xs font-semibold px-2 py-0.5 rounded border ${fb.color}`}>{fb.label}</span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600">
               Cliente: {op.persona.apellido}, {op.persona.nombre ?? ''} · Creada {diasDesde(op.created_at).toLowerCase()}
             </p>
           </div>
@@ -341,14 +341,14 @@ export default function FichaOportunidadPage() {
           {/* Cliente */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Cliente</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Cliente</h3>
             </div>
             <div className="p-3 flex flex-col gap-2 text-xs">
               <button onClick={() => router.push(`/crm/personas/${op.persona.id}`)}
                 className="text-blue-600 hover:underline font-medium text-left">
                 {op.persona.apellido}, {op.persona.nombre ?? ''}
               </button>
-              <p className="text-slate-500 font-mono">{op.persona.dni_cuil}</p>
+              <p className="text-slate-600 font-mono">{op.persona.dni_cuil}</p>
               {op.persona.telefono && (
                 <a href={`tel:${op.persona.telefono}`} className="text-blue-600 hover:underline font-mono">{op.persona.telefono}</a>
               )}
@@ -359,14 +359,14 @@ export default function FichaOportunidadPage() {
               {polizas.length > 0 && (
                 <>
                   <div className="border-t border-slate-100 pt-2 mt-1"/>
-                  <p className="text-2xs text-slate-400 font-semibold uppercase">Pólizas vigentes</p>
+                  <p className="text-2xs text-slate-500 font-semibold uppercase">Pólizas vigentes</p>
                   {polizas.map(p => (
                     <button key={p.id} onClick={() => router.push(`/crm/polizas/${p.id}`)}
                       className="flex items-center gap-1.5 text-left hover:bg-slate-50 rounded px-1 py-0.5 -mx-1 transition-colors">
                       <Shield className="h-3 w-3 text-emerald-500 shrink-0"/>
                       <div>
                         <span className="font-mono text-2xs font-semibold text-slate-700">{p.numero_poliza}</span>
-                        <p className="text-2xs text-slate-500">{p.compania?.nombre} · {p.ramo?.nombre}</p>
+                        <p className="text-2xs text-slate-600">{p.compania?.nombre} · {p.ramo?.nombre}</p>
                       </div>
                     </button>
                   ))}
@@ -378,36 +378,36 @@ export default function FichaOportunidadPage() {
           {/* Detalle de la oportunidad */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Detalle de la oportunidad</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Detalle de la oportunidad</h3>
             </div>
             <div className="p-3 flex flex-col gap-2 text-xs">
               <div>
-                <p className="text-2xs text-slate-500 mb-1">Tipo</p>
+                <p className="text-2xs text-slate-600 mb-1">Tipo</p>
                 <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${tb.color}`}>{tb.label}</span>
               </div>
               <div>
-                <p className="text-2xs text-slate-500 mb-1">Fuente</p>
+                <p className="text-2xs text-slate-600 mb-1">Fuente</p>
                 <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${fb.color}`}>{fb.label}</span>
               </div>
               {op.descripcion && (
                 <div>
-                  <p className="text-2xs text-slate-500">Descripción</p>
+                  <p className="text-2xs text-slate-600">Descripción</p>
                   <p className="text-slate-700">{op.descripcion}</p>
                 </div>
               )}
               <div>
-                <p className="text-2xs text-slate-500">Próximo contacto</p>
+                <p className="text-2xs text-slate-600">Próximo contacto</p>
                 <p className={`${pc.color || 'text-slate-700'}`}>{pc.text}</p>
               </div>
               {op.notas && (
                 <div>
-                  <p className="text-2xs text-slate-500">Notas</p>
+                  <p className="text-2xs text-slate-600">Notas</p>
                   <p className="text-slate-700">{op.notas}</p>
                 </div>
               )}
               <div className="border-t border-slate-100 pt-2 mt-1"/>
               <div>
-                <p className="text-2xs text-slate-500">Creada</p>
+                <p className="text-2xs text-slate-600">Creada</p>
                 <p className="text-slate-700">{formatFechaLocalLarga(op.created_at)} · {diasDesde(op.created_at)}</p>
               </div>
               {op.motivo_perdida && (
@@ -438,21 +438,21 @@ export default function FichaOportunidadPage() {
             return (
               <div className="bg-white border border-slate-200 rounded overflow-hidden">
                 <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-                  <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Estimación</h3>
+                  <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Estimación</h3>
                 </div>
                 <div className="p-3 flex flex-col gap-2 text-xs">
                   {!tieneDatos ? (
-                    <p className="text-2xs text-slate-500 italic text-center py-2">Sin datos de estimación</p>
+                    <p className="text-2xs text-slate-600 italic text-center py-2">Sin datos de estimación</p>
                   ) : (
                     <>
                       <div>
-                        <p className="text-2xs text-slate-500">Monto estimado</p>
+                        <p className="text-2xs text-slate-600">Monto estimado</p>
                         <p className="text-sm font-semibold text-slate-800">
                           {op.monto_estimado != null ? formatMoneda(op.monto_estimado) : '—'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-2xs text-slate-500 mb-1">Probabilidad</p>
+                        <p className="text-2xs text-slate-600 mb-1">Probabilidad</p>
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-1.5 bg-slate-100 rounded overflow-hidden">
                             <div className="h-full bg-blue-500 transition-all" style={{ width: `${prob}%` }}/>
@@ -461,7 +461,7 @@ export default function FichaOportunidadPage() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-2xs text-slate-500">Fecha estimada de cierre</p>
+                        <p className="text-2xs text-slate-600">Fecha estimada de cierre</p>
                         <p className="text-slate-700">
                           {op.fecha_estimada_cierre ? formatFechaLocalLarga(op.fecha_estimada_cierre) : '—'}
                           {op.fecha_estimada_cierre && <span className={`ml-1.5 ${diasRestantesLabel.color}`}>· {diasRestantesLabel.text}</span>}
@@ -469,7 +469,7 @@ export default function FichaOportunidadPage() {
                       </div>
                       {valorEsperado != null && (
                         <div className="border-t border-slate-100 pt-2 mt-1">
-                          <p className="text-2xs text-slate-500">Valor esperado</p>
+                          <p className="text-2xs text-slate-600">Valor esperado</p>
                           <p className="text-sm font-semibold text-emerald-700">{formatMoneda(valorEsperado)}</p>
                         </div>
                       )}
@@ -483,12 +483,12 @@ export default function FichaOportunidadPage() {
           {/* Cotizaciones */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Cotizaciones</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Cotizaciones</h3>
             </div>
             <div className="p-3">
               {cotizaciones.length === 0 ? (
                 <div className="text-center py-3">
-                  <p className="text-xs text-slate-500 mb-2">Sin cotizaciones</p>
+                  <p className="text-xs text-slate-600 mb-2">Sin cotizaciones</p>
                   <button onClick={() => router.push(`/crm/comercial/cotizaciones/nueva?oportunidad_id=${id}&persona_id=${op.persona_id}`)}
                     className="text-xs text-blue-600 hover:underline">Crear cotización</button>
                 </div>
@@ -501,7 +501,7 @@ export default function FichaOportunidadPage() {
                         className="flex items-center justify-between px-2 py-1.5 rounded border border-slate-100 hover:bg-slate-50 transition-colors text-left w-full">
                         <div>
                           <span className="font-mono text-xs font-semibold text-slate-700">{c.numero_cotizacion}</span>
-                          <p className="text-2xs text-slate-500">{formatTimestamp(c.created_at)}</p>
+                          <p className="text-2xs text-slate-600">{formatTimestamp(c.created_at)}</p>
                         </div>
                         <div className="flex items-center gap-1">
                           <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded border ${cb.color}`}>{cb.label}</span>
@@ -517,12 +517,12 @@ export default function FichaOportunidadPage() {
           {/* Tareas */}
           <div className="bg-white border border-slate-200 rounded overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">Tareas</h3>
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">Tareas</h3>
             </div>
             <div className="p-3">
               {tareasAsociadas.length === 0 ? (
                 <div className="text-center py-3">
-                  <p className="text-xs text-slate-500 mb-2">Sin tareas</p>
+                  <p className="text-xs text-slate-600 mb-2">Sin tareas</p>
                   <button onClick={() => router.push(`/crm/tareas/nueva?persona_id=${op.persona_id}&oportunidad_id=${id}`)}
                     className="text-xs text-blue-600 hover:underline">+ Nueva tarea</button>
                 </div>
@@ -556,7 +556,7 @@ export default function FichaOportunidadPage() {
 
           <div className="bg-white border border-slate-200 rounded overflow-hidden flex flex-col">
             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <h3 className="text-2xs font-semibold text-slate-500 uppercase tracking-wide">
+              <h3 className="text-2xs font-semibold text-slate-600 uppercase tracking-wide">
                 Historial de interacciones
               </h3>
               {!mostrarFormInt && (
@@ -571,7 +571,7 @@ export default function FichaOportunidadPage() {
               <div className="p-3 border-b border-slate-100 bg-blue-50/30">
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div>
-                    <label className="text-2xs text-slate-500 mb-1 block">Tipo *</label>
+                    <label className="text-2xs text-slate-600 mb-1 block">Tipo *</label>
                     <select className="form-input w-full" value={intTipo} onChange={e => setIntTipo(e.target.value)}>
                       <option value="LLAMADA">Llamada</option>
                       <option value="EMAIL">Email</option>
@@ -581,7 +581,7 @@ export default function FichaOportunidadPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-2xs text-slate-500 mb-1 block">Fecha y hora *</label>
+                    <label className="text-2xs text-slate-600 mb-1 block">Fecha y hora *</label>
                     <input
                       type="datetime-local"
                       className="form-input w-full"
@@ -592,7 +592,7 @@ export default function FichaOportunidadPage() {
                   </div>
                 </div>
                 <div className="mb-2">
-                  <label className="text-2xs text-slate-500 mb-1 block">Descripción *</label>
+                  <label className="text-2xs text-slate-600 mb-1 block">Descripción *</label>
                   <textarea className="form-input w-full resize-none text-xs" rows={3} value={intDescripcion}
                     onChange={e => setIntDescripcion(e.target.value)}
                     placeholder="Qué se habló, qué se acordó..."/>
@@ -611,14 +611,14 @@ export default function FichaOportunidadPage() {
             {/* Lista de interacciones */}
             <div className="p-3 flex flex-col gap-0 overflow-y-auto max-h-[600px]">
               {interacciones.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-8">
+                <p className="text-xs text-slate-600 text-center py-8">
                   No hay interacciones. Registrá el primer contacto con este cliente.
                 </p>
               ) : interacciones.map(int => (
                 <div key={int.id} className="flex gap-3">
                   <div className="flex flex-col items-center">
                     <div className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 border bg-slate-50 border-slate-200">
-                      {TIPO_INT_ICON[int.tipo] ?? <StickyNote className="h-3.5 w-3.5 text-slate-400"/>}
+                      {TIPO_INT_ICON[int.tipo] ?? <StickyNote className="h-3.5 w-3.5 text-slate-500"/>}
                     </div>
                     <div className="w-px flex-1 bg-slate-100 mt-1"/>
                   </div>
@@ -628,7 +628,7 @@ export default function FichaOportunidadPage() {
                         <span className="text-xs font-semibold text-slate-700">
                           {TIPO_INT_LABEL[int.tipo] ?? int.tipo}
                         </span>
-                        <span className="text-2xs text-slate-500">
+                        <span className="text-2xs text-slate-600">
                           {formatTimestamp(int.fecha)} · {formatHora(int.fecha)}
                         </span>
                       </div>
@@ -654,13 +654,13 @@ export default function FichaOportunidadPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
               <h3 className="text-sm font-semibold text-slate-800">Actualizar estado</h3>
-              <button onClick={() => setModalEstado(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalEstado(false)} className="text-slate-500 hover:text-slate-600">
                 <X className="h-4 w-4"/>
               </button>
             </div>
             <div className="p-4 flex flex-col gap-3">
               <div>
-                <p className="text-xs text-slate-500 mb-1">Estado actual</p>
+                <p className="text-xs text-slate-600 mb-1">Estado actual</p>
                 <span className={`text-2xs font-semibold px-2 py-0.5 rounded border ${eb.color}`}>{eb.label}</span>
               </div>
               <div>
