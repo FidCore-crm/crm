@@ -360,9 +360,12 @@ function armarHtml(params: {
 
   // Estilo de header: default 'banda' si no viene seteado (preserva look
   // de instalaciones previas a la migración 097).
+  // v1.0.152: fix crítico — antes esta lógica NO manejaba blanco_solo_logo,
+  // caía al else y usaba banda. Todo lo nuevo se rompía silenciosamente.
   const estiloHeader: EstiloHeader =
     organizacion.email_header_estilo === 'compacto' ? 'compacto'
     : organizacion.email_header_estilo === 'lateral' ? 'lateral'
+    : organizacion.email_header_estilo === 'blanco_solo_logo' ? 'blanco_solo_logo'
     : 'banda'
 
   const headerHtml = generarHeaderHtml(estiloHeader, tonos, organizacion)
@@ -436,6 +439,7 @@ function armarHtml(params: {
       .fc-header-banda { padding:18px 18px !important; }
       .fc-header-compacto { padding:14px 16px !important; }
       .fc-header-lateral { padding:18px 18px 0 !important; }
+      .fc-header-blanco-solo { padding:20px 16px !important; }
       .fc-header-nombre { font-size:16px !important; line-height:1.25 !important; }
       .fc-header-subtitulo { font-size:10px !important; letter-spacing:0.5px !important; }
       .fc-pad-lg { padding-left:20px !important; padding-right:20px !important; }
