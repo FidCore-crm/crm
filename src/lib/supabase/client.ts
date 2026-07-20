@@ -153,17 +153,49 @@ let client: ReturnType<typeof createClient> | null = null
  *  HttpOnly. Con esto la cookie fidcore_jwt nunca llega a expirar (dura 1h)
  *  y las queries siempre viajan con Authorization válido.
  *
+ *  Además de un setInterval, escuchamos 3 eventos del browser que indican
+ *  que "algo pasó mientras no estábamos mirando" y el WS de Realtime puede
+ *  haber quedado con el JWT viejo:
+ *
+ *   - `visibilitychange`: cuando la pestaña vuelve visible después de un
+ *     sleep del laptop o cambio prolongado. Los setInterval se pausan
+ *     durante el sleep del OS, así que el intervalo de 50 min puede tardar
+ *     mucho en volver a dispararse.
+ *   - `online`: cuando el wifi/red vuelve después de estar offline. Si
+ *     estuvimos suficiente tiempo desconectados como para que el JWT
+ *     expire, la reconexión automática del WS de Supabase usa el token
+ *     viejo y las policies RLS con `auth.uid()` filtran todo.
+ *   - `pageshow` con `event.persisted=true`: cuando la página se restaura
+ *     desde el bfcache del browser (botón atrás/adelante). El WS puede
+ *     quedar en estado inconsistente.
+ *
+ *  Todos disparan el mismo pipeline: refrescar JWT → si cambió, resync al WS.
+ *
  *  Solo arranca en el browser (no SSR) y se dispara una única vez por
- *  singleton del cliente. */
+ *  singleton del cliente. Los listeners no se limpian nunca — el cliente
+ *  es singleton global y vive lo mismo que la app. */
 let intervaloRefreshPreventivo: ReturnType<typeof setInterval> | null = null
 function iniciarRefreshPreventivo(cliente: any): void {
   if (typeof window === 'undefined') return
   if (intervaloRefreshPreventivo) return
-  const INTERVALO_MS = 50 * 60 * 1000 // 50 min (JWT dura 60 min)
-  intervaloRefreshPreventivo = setInterval(async () => {
+
+  const refrescarYSincronizar = async () => {
     const ok = await refrescarJwt()
     if (ok) sincronizarJwtRealtime(cliente)
-  }, INTERVALO_MS)
+  }
+
+  const INTERVALO_MS = 50 * 60 * 1000 // 50 min (JWT dura 60 min)
+  intervaloRefreshPreventivo = setInterval(refrescarYSincronizar, INTERVALO_MS)
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refrescarYSincronizar()
+  })
+
+  window.addEventListener('online', refrescarYSincronizar)
+
+  window.addEventListener('pageshow', (e: PageTransitionEvent) => {
+    if (e.persisted) refrescarYSincronizar()
+  })
 }
 
 export function getSupabaseClient() {
