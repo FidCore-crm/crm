@@ -525,10 +525,20 @@ export default function DashboardPage() {
       // — no en los rangos de vigencia (que daban una curva poco intuitiva).
       // Excluye RENOVADA (estado sombra) para no duplicar con la VIGENTE de
       // la cadena.
+      // Evolución de cartera VIGENTE por mes:
+      // Para cada mes del último año, cuántas pólizas estaban efectivamente
+      // vigentes al último día del mes. "Vigente en ese momento" =
+      //   fecha_inicio ≤ ultimo_del_mes
+      //   AND fecha_fin  > ultimo_del_mes  (no había vencido)
+      //   AND fecha_baja IS NULL OR fecha_baja > ultimo_del_mes  (no dada de baja)
+      // Con esto, las pólizas que después vencieron/cancelaron aparecen en los
+      // meses donde SÍ estaban vigentes y desaparecen cuando dejaron de estarlo.
+      // El mes actual (parcial) matchea el KPI "Vigentes" del dashboard.
+      // Excluye estado 'RENOVADA' porque es sombra latente hasta que se activa.
       const evolucion: { mes: string; cantidad: number }[] = []
       let qTodas = supabase
         .from('polizas')
-        .select('created_at, fecha_baja, estado')
+        .select('fecha_inicio, fecha_fin, fecha_baja, estado')
         .neq('estado', 'RENOVADA')
       qTodas = filtrarPorPersonas(qTodas, idsPersonas, 'asegurado_id')
       const { data: todasPolizas, error: errPolizas } = await qTodas
@@ -543,7 +553,8 @@ export default function DashboardPage() {
       }
 
       const polizas = (todasPolizas ?? []) as Array<{
-        created_at: string
+        fecha_inicio: string | null
+        fecha_fin: string | null
         fecha_baja: string | null
         estado: string
       }>
@@ -552,20 +563,21 @@ export default function DashboardPage() {
         const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1)
         const ultimo = ultimoDiaMes(d) // 'YYYY-MM-DD' inclusive
 
-        let altas = 0
-        let bajas = 0
+        let vigentesEnEseMomento = 0
         for (const p of polizas) {
-          const createdDia = (p.created_at || '').slice(0, 10)
-          if (createdDia && createdDia <= ultimo) altas++
-
-          const esBaja = p.estado === 'CANCELADA' || p.estado === 'ANULADA'
-          const fbDia = (p.fecha_baja || '').slice(0, 10)
-          if (esBaja && fbDia && fbDia <= ultimo) bajas++
+          const fi = (p.fecha_inicio || '').slice(0, 10)
+          const ff = (p.fecha_fin || '').slice(0, 10)
+          if (!fi || !ff) continue
+          if (fi > ultimo) continue           // todavía no empezó
+          if (ff <= ultimo) continue          // ya venció
+          const fb = (p.fecha_baja || '').slice(0, 10)
+          if (fb && fb <= ultimo) continue    // ya dada de baja
+          vigentesEnEseMomento++
         }
 
         evolucion.push({
           mes: nombreMesCorto(d.getMonth()),
-          cantidad: Math.max(0, altas - bajas),
+          cantidad: vigentesEnEseMomento,
         })
       }
       setChartEvolucion(evolucion)
