@@ -258,20 +258,29 @@ export default function DashboardPage() {
 
   // ── PESTAÑA ANÁLISIS: Gráficos ──
   const [chartEvolucion, setChartEvolucion] = useState<{ mes: string; cantidad: number }[]>([])
-  // Fila por mes del año calendario en curso con desglose real/agendado/proyectado.
-  // "conocidas" = ya en DB (real o agendada); "proyectadas" = relleno con
-  // promedio de últimos 3 meses cerrados para meses futuros.
+  // Fila por mes del año calendario en curso. `tipo` marca el origen del dato:
+  // - 'real'      = mes cerrado, cifras efectivas.
+  // - 'actual'    = mes en curso, cifras efectivas hasta hoy.
+  // - 'proyectado'= mes futuro, cifras estimadas por run rate (promedio de los
+  //                últimos 3 meses cerrados).
   const [chartProyeccion, setChartProyeccion] = useState<Array<{
     mes: string
     numMes: number
-    altas_conocidas: number
-    altas_proyectadas: number
-    bajas_conocidas: number
-    bajas_proyectadas: number
+    altas: number
+    bajas: number
     saldo_acumulado: number
-    esFuturo: boolean
-    esActual: boolean
+    tipo: 'real' | 'actual' | 'proyectado'
   }>>([])
+  // KPIs derivados del chart Proyección.
+  const [proyeccionKpis, setProyeccionKpis] = useState<{
+    inicio: number
+    hoy: number
+    fin: number
+    crecimiento: number
+    promAltas: number
+    promBajas: number
+    mesesPromedio: string[]      // ej: ['Abr','May','Jun'] — para el subtítulo
+  } | null>(null)
   const [chartCompanias, setChartCompanias] = useState<{ name: string; value: number }[]>([])
   const [chartRamos, setChartRamos] = useState<{ name: string; value: number }[]>([])
   const [chartSiniestralidad, setChartSiniestralidad] = useState<{ name: string; abiertos: number; cerrados: number }[]>([])
@@ -606,18 +615,15 @@ export default function DashboardPage() {
 
       // ═══════════════════════════════════════════════════════════════════
       // Proyección anual — año calendario en curso, 12 meses fijos.
-      // Modelo RUN RATE (v1.0.159):
-      //   1. Meses pasados y actual: altas/bajas REALES por fecha_inicio /
-      //      fecha_baja en ese mes. Un alta agendada para agosto aparece en
-      //      agosto (no en julio cuando la cargaste).
-      //   2. Meses futuros: PROYECCIÓN por run rate.
-      //         promedio_altas = altas_del_año_hasta_hoy / meses_transcurridos
-      //         promedio_bajas = bajas_del_año_hasta_hoy / meses_transcurridos
-      //      "meses_transcurridos" = desde el primer mes con actividad (mín
-      //      created_at) hasta hoy, en el año en curso. Si empezaste a cargar
-      //      en junio, son ~2 meses.
-      //   3. Sin ajustes manuales por estacionalidad/crecimiento (queda como
-      //      opción futura si el PAS lo pide).
+      // Modelo RUN RATE (v1.0.160):
+      //   - Meses pasados y actual: altas/bajas EFECTIVAS por fecha_inicio /
+      //     fecha_baja en ese mes. Un alta con fecha_inicio en agosto aparece
+      //     en agosto (no en el mes en que la cargaste al CRM).
+      //   - Meses futuros: PROYECCIÓN por promedio de los últimos 3 meses
+      //     CERRADOS (no incluye el mes actual porque está incompleto y
+      //     desviaría el promedio hacia abajo).
+      //     Si el año recién arrancó (ej: febrero), tomamos los meses cerrados
+      //     que haya disponibles (mínimo 1).
       //
       // Saldo acumulado arranca en la cartera al 31-dic del año anterior y
       // se actualiza mes a mes con neto = altas - bajas.
@@ -627,6 +633,7 @@ export default function DashboardPage() {
         const mesActualIdx = ahora.getMonth() // 0-11
         const mesActualMes = mesActualIdx + 1 // 1-12
         const finAnioAnt = `${anio - 1}-12-31`
+        const hoyStr = ahora.toISOString().slice(0, 10)
 
         // Saldo inicial: cartera al 31-dic del año anterior.
         let saldoInicial = 0
@@ -639,8 +646,9 @@ export default function DashboardPage() {
           }
         }
 
-        // Altas y bajas por mes del año en curso (todo cae en el mes de su
-        // fecha_inicio o fecha_baja, no importa cuándo se cargó).
+        // Altas y bajas por mes del año en curso. Todo cae en el mes de su
+        // fecha efectiva (fecha_inicio para altas, fecha_baja para bajas),
+        // sin importar cuándo se cargó al CRM.
         const altasPorMes: Record<number, number> = {}
         const bajasPorMes: Record<number, number> = {}
         for (let m = 1; m <= 12; m++) {
@@ -664,60 +672,65 @@ export default function DashboardPage() {
           }
         }
 
-        // Detectar el primer mes del año con actividad real (alta o baja).
-        // Usamos fecha_inicio/fecha_baja porque reflejan cuándo hubo actividad
-        // comercial, no cuándo se cargó al CRM. Ejemplo: si el PAS cargó su
-        // cartera en junio pero las ventas de enero-mayo se cargaron con sus
-        // fechas reales, meses_transcurridos = 7 (no 2).
-        let primerMesConActividad = mesActualMes
-        for (let m = 1; m <= mesActualMes; m++) {
-          if ((altasPorMes[m] || 0) + (bajasPorMes[m] || 0) > 0) {
-            primerMesConActividad = m
-            break
-          }
+        // Promedio: últimos 3 meses cerrados del año en curso.
+        // Ej: si hoy es julio → jun, may, abr. Si es marzo → feb, ene.
+        const mesesCerrados: number[] = []
+        for (let k = 1; k <= 3; k++) {
+          const m = mesActualMes - k
+          if (m >= 1) mesesCerrados.push(m)
         }
-
-        // Sumar altas/bajas reales del año hasta hoy para calcular run rate.
-        let totalAltasAcum = 0
-        let totalBajasAcum = 0
-        for (let m = primerMesConActividad; m <= mesActualMes; m++) {
-          totalAltasAcum += altasPorMes[m] || 0
-          totalBajasAcum += bajasPorMes[m] || 0
-        }
-        const mesesTranscurridos = Math.max(1, mesActualMes - primerMesConActividad + 1)
-        const promAltas = totalAltasAcum / mesesTranscurridos
-        const promBajas = totalBajasAcum / mesesTranscurridos
+        const nMesesCerrados = Math.max(1, mesesCerrados.length)
+        const sumAltasCerrados = mesesCerrados.reduce((s, m) => s + (altasPorMes[m] || 0), 0)
+        const sumBajasCerrados = mesesCerrados.reduce((s, m) => s + (bajasPorMes[m] || 0), 0)
+        const promAltas = Math.round(sumAltasCerrados / nMesesCerrados)
+        const promBajas = Math.round(sumBajasCerrados / nMesesCerrados)
 
         // Armar las 12 filas.
         const filas: typeof chartProyeccion = []
         let saldoAcum = saldoInicial
+        let saldoHoy = saldoInicial
         for (let m = 1; m <= 12; m++) {
           const esFuturo = m > mesActualMes
           const esActual = m === mesActualMes
-          // Real: siempre lo que efectivamente ocurrió (por fecha_inicio /
-          // fecha_baja). Si hay agendados con fecha en este mes, ya cuentan.
-          const altasReales = altasPorMes[m] || 0
-          const bajasReales = bajasPorMes[m] || 0
-          // Proyectadas: solo meses futuros. Si hay agendados que superan
-          // el promedio, usamos los agendados (no restamos por debajo).
-          const altasProyectadas = esFuturo ? Math.max(0, Math.round(promAltas) - altasReales) : 0
-          const bajasProyectadas = esFuturo ? Math.max(0, Math.round(promBajas) - bajasReales) : 0
-          const altasTotales = altasReales + altasProyectadas
-          const bajasTotales = bajasReales + bajasProyectadas
-          saldoAcum += altasTotales - bajasTotales
+          const altas = esFuturo ? promAltas : (altasPorMes[m] || 0)
+          const bajas = esFuturo ? promBajas : (bajasPorMes[m] || 0)
+          saldoAcum += altas - bajas
+          // Cartera "hoy" = saldo al mes actual inclusive (aprox — no
+          // discrimina fecha exacta dentro del mes).
+          if (!esFuturo) saldoHoy = Math.max(0, saldoAcum)
           filas.push({
             mes: nombreMesCorto(m - 1),
             numMes: m,
-            altas_conocidas: altasReales,
-            altas_proyectadas: altasProyectadas,
-            bajas_conocidas: bajasReales,
-            bajas_proyectadas: bajasProyectadas,
+            altas,
+            bajas,
             saldo_acumulado: Math.max(0, saldoAcum),
-            esFuturo,
-            esActual,
+            tipo: esFuturo ? 'proyectado' : esActual ? 'actual' : 'real',
           })
         }
         setChartProyeccion(filas)
+
+        // Cartera hoy exacta: altas raíz con fecha_inicio<=hoy menos bajas
+        // con fecha_baja<=hoy. Más precisa que el saldo del mes actual.
+        let carteraHoy = 0
+        for (const p of polizas) {
+          const fi = (p.fecha_inicio || '').slice(0, 10)
+          if (fi && !p.poliza_origen_id && fi <= hoyStr) carteraHoy++
+          if (p.estado === 'CANCELADA' || p.estado === 'ANULADA') {
+            const fb = (p.fecha_baja || '').slice(0, 10)
+            if (fb && fb <= hoyStr) carteraHoy--
+          }
+        }
+        carteraHoy = Math.max(0, carteraHoy)
+
+        setProyeccionKpis({
+          inicio: Math.max(0, saldoInicial),
+          hoy: carteraHoy,
+          fin: filas[11].saldo_acumulado,
+          crecimiento: filas[11].saldo_acumulado - Math.max(0, saldoInicial),
+          promAltas,
+          promBajas,
+          mesesPromedio: mesesCerrados.slice().reverse().map((m) => nombreMesCorto(m - 1)),
+        })
       }
 
       // Distribución por compañía — todas las pólizas que tuviste alguna vez
@@ -1596,15 +1609,41 @@ export default function DashboardPage() {
                         icono={<BarChart className="h-3.5 w-3.5" />}
                         titulo={`Proyección anual ${new Date().getFullYear()}`}
                         tono="emerald"
-                        badge={chartProyeccion.length > 0 ? chartProyeccion[chartProyeccion.length - 1].saldo_acumulado : undefined}
+                        badge={proyeccionKpis ? proyeccionKpis.fin : undefined}
                       >
-                        {chartProyeccion.length === 0 ? <SinDatos /> : (
+                        {chartProyeccion.length === 0 || !proyeccionKpis ? <SinDatos /> : (
                           <div className="flex flex-col gap-4">
-                            <div className="text-2xs text-slate-600 -mt-1">
-                              Real hasta el mes actual (por fecha de inicio / fecha de baja de cada póliza) · Proyectado con método run rate: promedio mensual del año hasta hoy, extrapolado a los meses restantes.
+                            {/* 4 KPIs arriba */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              <div className="bg-slate-50 border border-slate-200 rounded p-2">
+                                <div className="text-2xs text-slate-600">Cartera inicio {new Date().getFullYear()}</div>
+                                <div className="text-lg font-bold text-slate-800 font-mono mt-0.5">{proyeccionKpis.inicio}</div>
+                              </div>
+                              <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                                <div className="text-2xs text-blue-700">Cartera hoy</div>
+                                <div className="text-lg font-bold text-blue-800 font-mono mt-0.5">{proyeccionKpis.hoy}</div>
+                              </div>
+                              <div className="bg-emerald-50 border border-emerald-200 rounded p-2">
+                                <div className="text-2xs text-emerald-700">Proyectada 31-dic</div>
+                                <div className="text-lg font-bold text-emerald-800 font-mono mt-0.5">{proyeccionKpis.fin}</div>
+                              </div>
+                              <div className={`border rounded p-2 ${proyeccionKpis.crecimiento >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                                <div className={`text-2xs ${proyeccionKpis.crecimiento >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>Crecimiento anual</div>
+                                <div className={`text-lg font-bold font-mono mt-0.5 ${proyeccionKpis.crecimiento >= 0 ? 'text-emerald-800' : 'text-red-800'}`}>
+                                  {proyeccionKpis.crecimiento >= 0 ? `+${proyeccionKpis.crecimiento}` : proyeccionKpis.crecimiento}
+                                </div>
+                              </div>
                             </div>
 
-                            {/* Barras: altas (verde) vs bajas (rojo) por mes. */}
+                            {/* Subtítulo con la fórmula del promedio */}
+                            <div className="text-2xs text-slate-600 -mb-1">
+                              <strong>Proyección:</strong> promedio de altas y bajas de los últimos 3 meses cerrados
+                              {proyeccionKpis.mesesPromedio.length > 0 && ` (${proyeccionKpis.mesesPromedio.join(', ')})`}
+                              {' '}→ <strong>{proyeccionKpis.promAltas} altas/mes</strong> y <strong>{proyeccionKpis.promBajas} bajas/mes</strong> aplicados a los meses restantes del año.
+                              Las barras y filas con opacidad reducida son proyecciones.
+                            </div>
+
+                            {/* Barras: 2 por mes (altas verde + bajas rojo). Meses futuros con opacidad 40%. */}
                             <ResponsiveContainer width="100%" height={260}>
                               <BarChart data={chartProyeccion} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -1613,58 +1652,64 @@ export default function DashboardPage() {
                                 <Tooltip
                                   contentStyle={TOOLTIP_STYLE}
                                   cursor={{ fill: 'rgba(16, 185, 129, 0.06)' }}
-                                  formatter={(v: number, k: string) => {
-                                    const labels: Record<string, string> = {
-                                      altas_conocidas: 'Altas conocidas',
-                                      altas_proyectadas: 'Altas proyectadas',
-                                      bajas_conocidas: 'Bajas conocidas',
-                                      bajas_proyectadas: 'Bajas proyectadas',
-                                    }
-                                    return [v, labels[k] ?? k]
+                                  formatter={(v: number, k: string) => [v, k === 'altas' ? 'Altas' : 'Bajas']}
+                                  labelFormatter={(label: string, payload: any[]) => {
+                                    const f = payload?.[0]?.payload
+                                    if (!f) return label
+                                    const tipoLbl = f.tipo === 'proyectado' ? ' (proyectado)' : f.tipo === 'actual' ? ' (en curso)' : ''
+                                    return `${label}${tipoLbl}`
                                   }}
                                 />
                                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                                <Bar dataKey="altas_conocidas" stackId="altas" fill="#10b981" name="Altas conocidas" radius={[0, 0, 0, 0]} />
-                                <Bar dataKey="altas_proyectadas" stackId="altas" fill="#a7f3d0" name="Altas proyectadas" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="bajas_conocidas" stackId="bajas" fill="#ef4444" name="Bajas conocidas" radius={[0, 0, 0, 0]} />
-                                <Bar dataKey="bajas_proyectadas" stackId="bajas" fill="#fecaca" name="Bajas proyectadas" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="altas" name="Altas" radius={[4, 4, 0, 0]}>
+                                  {chartProyeccion.map((f, i) => (
+                                    <Cell key={`ca-${i}`} fill="#10b981" fillOpacity={f.tipo === 'proyectado' ? 0.4 : 1} />
+                                  ))}
+                                </Bar>
+                                <Bar dataKey="bajas" name="Bajas" radius={[4, 4, 0, 0]}>
+                                  {chartProyeccion.map((f, i) => (
+                                    <Cell key={`cb-${i}`} fill="#ef4444" fillOpacity={f.tipo === 'proyectado' ? 0.4 : 1} />
+                                  ))}
+                                </Bar>
                               </BarChart>
                             </ResponsiveContainer>
 
-                            {/* Tabla compañera con los mismos datos + saldo acumulado. */}
+                            {/* Tabla: Mes | Estado | Altas | Bajas | Neto | Cartera */}
                             <div className="overflow-x-auto -mx-2">
                               <table className="w-full text-2xs">
                                 <thead>
                                   <tr className="border-b border-slate-200 text-slate-600">
                                     <th className="text-left px-2 py-1.5 font-semibold">Mes</th>
+                                    <th className="text-left px-2 py-1.5 font-semibold">Estado</th>
                                     <th className="text-right px-2 py-1.5 font-semibold text-emerald-700">Altas</th>
-                                    <th className="text-right px-2 py-1.5 font-normal text-emerald-600">(proy.)</th>
                                     <th className="text-right px-2 py-1.5 font-semibold text-red-700">Bajas</th>
-                                    <th className="text-right px-2 py-1.5 font-normal text-red-600">(proy.)</th>
                                     <th className="text-right px-2 py-1.5 font-semibold">Neto</th>
                                     <th className="text-right px-2 py-1.5 font-semibold">Cartera</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {chartProyeccion.map((f) => {
-                                    const totAltas = f.altas_conocidas + f.altas_proyectadas
-                                    const totBajas = f.bajas_conocidas + f.bajas_proyectadas
-                                    const neto = totAltas - totBajas
-                                    const bgClase = f.esActual
+                                    const neto = f.altas - f.bajas
+                                    const bgClase = f.tipo === 'actual'
                                       ? 'bg-blue-50/60'
-                                      : f.esFuturo
-                                        ? 'bg-slate-50/60 text-slate-600'
+                                      : f.tipo === 'proyectado'
+                                        ? 'bg-slate-50/60 text-slate-500'
                                         : ''
+                                    const chipEstado = f.tipo === 'real'
+                                      ? { texto: 'Real',       clases: 'bg-emerald-100 text-emerald-700' }
+                                      : f.tipo === 'actual'
+                                        ? { texto: 'En curso',  clases: 'bg-blue-100 text-blue-700' }
+                                        : { texto: 'Proyectado', clases: 'bg-slate-200 text-slate-700' }
                                     return (
                                       <tr key={f.numMes} className={`border-b border-slate-100 ${bgClase}`}>
-                                        <td className="px-2 py-1.5 font-medium">
-                                          {f.mes}
-                                          {f.esActual && <span className="ml-1.5 text-2xs text-blue-600 font-normal">(actual)</span>}
+                                        <td className="px-2 py-1.5 font-medium">{f.mes} {new Date().getFullYear()}</td>
+                                        <td className="px-2 py-1.5">
+                                          <span className={`inline-block px-1.5 py-0.5 rounded text-2xs font-medium ${chipEstado.clases}`}>
+                                            {chipEstado.texto}
+                                          </span>
                                         </td>
-                                        <td className="px-2 py-1.5 text-right font-mono">{f.altas_conocidas}</td>
-                                        <td className="px-2 py-1.5 text-right font-mono text-emerald-600">{f.altas_proyectadas > 0 ? `+${f.altas_proyectadas}` : '—'}</td>
-                                        <td className="px-2 py-1.5 text-right font-mono">{f.bajas_conocidas}</td>
-                                        <td className="px-2 py-1.5 text-right font-mono text-red-600">{f.bajas_proyectadas > 0 ? `+${f.bajas_proyectadas}` : '—'}</td>
+                                        <td className="px-2 py-1.5 text-right font-mono">{f.altas}</td>
+                                        <td className="px-2 py-1.5 text-right font-mono">{f.bajas}</td>
                                         <td className={`px-2 py-1.5 text-right font-mono font-semibold ${neto > 0 ? 'text-emerald-700' : neto < 0 ? 'text-red-700' : 'text-slate-500'}`}>
                                           {neto > 0 ? `+${neto}` : neto}
                                         </td>
@@ -1672,6 +1717,23 @@ export default function DashboardPage() {
                                       </tr>
                                     )
                                   })}
+                                  {/* Fila total al pie */}
+                                  {(() => {
+                                    const totalAltas = chartProyeccion.reduce((s, f) => s + f.altas, 0)
+                                    const totalBajas = chartProyeccion.reduce((s, f) => s + f.bajas, 0)
+                                    const totalNeto = totalAltas - totalBajas
+                                    return (
+                                      <tr className="border-t-2 border-slate-300 font-bold bg-slate-50">
+                                        <td className="px-2 py-2 uppercase text-2xs tracking-wide text-slate-700" colSpan={2}>Total año {new Date().getFullYear()}</td>
+                                        <td className="px-2 py-2 text-right font-mono text-emerald-700">{totalAltas}</td>
+                                        <td className="px-2 py-2 text-right font-mono text-red-700">{totalBajas}</td>
+                                        <td className={`px-2 py-2 text-right font-mono ${totalNeto >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                                          {totalNeto >= 0 ? `+${totalNeto}` : totalNeto}
+                                        </td>
+                                        <td></td>
+                                      </tr>
+                                    )
+                                  })()}
                                 </tbody>
                               </table>
                             </div>
