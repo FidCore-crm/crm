@@ -1652,7 +1652,6 @@ export default function DashboardPage() {
                                 <Tooltip
                                   contentStyle={TOOLTIP_STYLE}
                                   cursor={{ fill: 'rgba(16, 185, 129, 0.06)' }}
-                                  formatter={(v: number, k: string) => [v, k === 'altas' ? 'Altas' : 'Bajas']}
                                   labelFormatter={(label: string, payload: any[]) => {
                                     const f = payload?.[0]?.payload
                                     if (!f) return label
@@ -1661,12 +1660,15 @@ export default function DashboardPage() {
                                   }}
                                 />
                                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                                <Bar dataKey="altas" name="Altas" radius={[4, 4, 0, 0]}>
+                                {/* fill al nivel <Bar> es lo que usa la Legend para el color del chip.
+                                    Los <Cell> internos pisan el color por barra individual (opacidad
+                                    reducida en meses proyectados), pero la Legend lee del Bar. */}
+                                <Bar dataKey="altas" name="Altas" fill="#10b981" radius={[4, 4, 0, 0]}>
                                   {chartProyeccion.map((f, i) => (
                                     <Cell key={`ca-${i}`} fill="#10b981" fillOpacity={f.tipo === 'proyectado' ? 0.4 : 1} />
                                   ))}
                                 </Bar>
-                                <Bar dataKey="bajas" name="Bajas" radius={[4, 4, 0, 0]}>
+                                <Bar dataKey="bajas" name="Bajas" fill="#ef4444" radius={[4, 4, 0, 0]}>
                                   {chartProyeccion.map((f, i) => (
                                     <Cell key={`cb-${i}`} fill="#ef4444" fillOpacity={f.tipo === 'proyectado' ? 0.4 : 1} />
                                   ))}
