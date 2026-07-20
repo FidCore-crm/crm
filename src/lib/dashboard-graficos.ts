@@ -39,6 +39,12 @@ export const GRAFICOS_DASHBOARD: GraficoDashboard[] = [
     categoria: 'cartera',
   },
   {
+    id: 'proyeccion_anual',
+    nombre: 'Proyección anual',
+    descripcion: 'Altas y bajas mes a mes del año en curso, con proyección para los meses restantes basada en el promedio de los últimos 3 meses cerrados.',
+    categoria: 'cartera',
+  },
+  {
     id: 'distribucion_compania',
     nombre: 'Distribución por compañía',
     descripcion: 'Cantidad de pólizas por compañía. Muestra todas las que tienen al menos una póliza.',

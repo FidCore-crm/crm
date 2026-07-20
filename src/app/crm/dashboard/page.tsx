@@ -258,6 +258,20 @@ export default function DashboardPage() {
 
   // ── PESTAÑA ANÁLISIS: Gráficos ──
   const [chartEvolucion, setChartEvolucion] = useState<{ mes: string; cantidad: number }[]>([])
+  // Fila por mes del año calendario en curso con desglose real/agendado/proyectado.
+  // "conocidas" = ya en DB (real o agendada); "proyectadas" = relleno con
+  // promedio de últimos 3 meses cerrados para meses futuros.
+  const [chartProyeccion, setChartProyeccion] = useState<Array<{
+    mes: string
+    numMes: number
+    altas_conocidas: number
+    altas_proyectadas: number
+    bajas_conocidas: number
+    bajas_proyectadas: number
+    saldo_acumulado: number
+    esFuturo: boolean
+    esActual: boolean
+  }>>([])
   const [chartCompanias, setChartCompanias] = useState<{ name: string; value: number }[]>([])
   const [chartRamos, setChartRamos] = useState<{ name: string; value: number }[]>([])
   const [chartSiniestralidad, setChartSiniestralidad] = useState<{ name: string; abiertos: number; cerrados: number }[]>([])
@@ -525,26 +539,30 @@ export default function DashboardPage() {
       // — no en los rangos de vigencia (que daban una curva poco intuitiva).
       // Excluye RENOVADA (estado sombra) para no duplicar con la VIGENTE de
       // la cadena.
-      // Evolución de cartera VIGENTE por mes:
-      // Para cada mes del último año, cuántas pólizas estaban efectivamente
-      // vigentes al último día del mes. "Vigente en ese momento" =
-      //   fecha_inicio ≤ ultimo_del_mes
-      //   AND fecha_fin  > ultimo_del_mes  (no había vencido)
-      //   AND fecha_baja IS NULL OR fecha_baja > ultimo_del_mes  (no dada de baja)
-      // Con esto, las pólizas que después vencieron/cancelaron aparecen en los
-      // meses donde SÍ estaban vigentes y desaparecen cuando dejaron de estarlo.
-      // El mes actual (parcial) matchea el KPI "Vigentes" del dashboard.
-      // Excluye estado 'RENOVADA' porque es sombra latente hasta que se activa.
+      // Evolución de cartera (12 meses móviles):
+      // Para cada mes del último año, cartera activa al último día del mes.
+      // Fórmula (v1.0.158):
+      //   altas_hasta_fin_mes = polizas RAÍZ (poliza_origen_id IS NULL)
+      //                         con fecha_inicio <= fin_mes
+      //   bajas_hasta_fin_mes = polizas CANCELADA/ANULADA con fecha_baja <= fin_mes
+      //   cartera = altas - bajas
+      //
+      // Racional (definido por el PAS 2026-07-20):
+      // - Una renovación NO cuenta como alta nueva (es continuación del mismo
+      //   seguro), por eso filtramos por `poliza_origen_id IS NULL`.
+      // - NO_VIGENTE y RENOVADA nunca cuentan: son fantasmas de renovaciones
+      //   (una NO_VIGENTE de hoy es la versión vieja de una VIGENTE de hoy).
+      // - Usamos `fecha_inicio` (no `created_at`) porque refleja el momento
+      //   real en que la póliza empezó su cobertura, no cuando se cargó al CRM.
+      //   Importante para instalaciones con importación masiva histórica.
       const evolucion: { mes: string; cantidad: number }[] = []
       let qTodas = supabase
         .from('polizas')
-        .select('fecha_inicio, fecha_fin, fecha_baja, estado')
-        .neq('estado', 'RENOVADA')
+        .select('fecha_inicio, fecha_baja, estado, poliza_origen_id')
+        .in('estado', ['VIGENTE', 'PROGRAMADA', 'CANCELADA', 'ANULADA'])
       qTodas = filtrarPorPersonas(qTodas, idsPersonas, 'asegurado_id')
       const { data: todasPolizas, error: errPolizas } = await qTodas
       if (errPolizas) {
-        // El chart "Evolución de cartera" se muestra vacío si falla — el resto
-        // del dashboard sigue armándose. Loggeamos para diagnóstico.
         logger.error({
           modulo: 'dashboard',
           mensaje: 'Falló carga de pólizas para chart evolución',
@@ -554,44 +572,176 @@ export default function DashboardPage() {
 
       const polizas = (todasPolizas ?? []) as Array<{
         fecha_inicio: string | null
-        fecha_fin: string | null
         fecha_baja: string | null
         estado: string
+        poliza_origen_id: string | null
       }>
 
       for (let i = 11; i >= 0; i--) {
         const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1)
         const ultimo = ultimoDiaMes(d) // 'YYYY-MM-DD' inclusive
 
-        let vigentesEnEseMomento = 0
+        let altas = 0
+        let bajas = 0
         for (const p of polizas) {
           const fi = (p.fecha_inicio || '').slice(0, 10)
-          const ff = (p.fecha_fin || '').slice(0, 10)
-          if (!fi || !ff) continue
-          if (fi > ultimo) continue           // todavía no empezó
-          if (ff <= ultimo) continue          // ya venció
-          const fb = (p.fecha_baja || '').slice(0, 10)
-          if (fb && fb <= ultimo) continue    // ya dada de baja
-          vigentesEnEseMomento++
+          if (fi && !p.poliza_origen_id && fi <= ultimo) altas++
+          if (p.estado === 'CANCELADA' || p.estado === 'ANULADA') {
+            const fb = (p.fecha_baja || '').slice(0, 10)
+            if (fb && fb <= ultimo) bajas++
+          }
         }
 
         evolucion.push({
           mes: nombreMesCorto(d.getMonth()),
-          cantidad: vigentesEnEseMomento,
+          cantidad: Math.max(0, altas - bajas),
         })
       }
       setChartEvolucion(evolucion)
 
+      // ═══════════════════════════════════════════════════════════════════
+      // Proyección anual — año calendario en curso, 12 meses fijos.
+      // Reusa el mismo array `polizas` ya cargado (VIGENTE/PROGRAMADA/
+      // CANCELADA/ANULADA — sin NO_VIGENTE ni RENOVADA).
+      //
+      // Para cada mes m del año:
+      //   altas_conocidas = altas raíz (fecha_inicio en mes m, ya en DB)
+      //   bajas_conocidas = CANCELADA/ANULADA (fecha_baja en mes m, ya en DB)
+      //   altas_proyectadas = solo si m > mes_actual:
+      //       max(0, promedio_altas_3_meses_cerrados - altas_conocidas)
+      //   bajas_proyectadas = idem para bajas
+      // "Conocidas" incluye tanto reales (pasado/actual) como agendadas
+      // (fecha futura ya cargada en DB).
+      // "Proyectadas" solo rellena el hueco entre lo agendado y el promedio.
+      //
+      // Saldo acumulado arranca en la cartera al 31-dic del año anterior
+      // y se actualiza mes a mes con neto = altas_totales - bajas_totales.
+      // ═══════════════════════════════════════════════════════════════════
+      {
+        const anio = ahora.getFullYear()
+        const mesActualIdx = ahora.getMonth() // 0-11
+        const hoyStr = ahora.toISOString().slice(0, 10)
+        const finAnioAnt = `${anio - 1}-12-31`
+
+        // Saldo inicial: cartera al 31-dic del año anterior.
+        let saldoInicial = 0
+        for (const p of polizas) {
+          const fi = (p.fecha_inicio || '').slice(0, 10)
+          if (fi && !p.poliza_origen_id && fi <= finAnioAnt) saldoInicial++
+          if (p.estado === 'CANCELADA' || p.estado === 'ANULADA') {
+            const fb = (p.fecha_baja || '').slice(0, 10)
+            if (fb && fb <= finAnioAnt) saldoInicial--
+          }
+        }
+
+        // Altas y bajas por mes del año en curso.
+        type MesBucket = { real: number; agendado: number }
+        const altasPorMes: Record<number, MesBucket> = {}
+        const bajasPorMes: Record<number, MesBucket> = {}
+        for (let m = 1; m <= 12; m++) {
+          altasPorMes[m] = { real: 0, agendado: 0 }
+          bajasPorMes[m] = { real: 0, agendado: 0 }
+        }
+        for (const p of polizas) {
+          const fi = (p.fecha_inicio || '').slice(0, 10)
+          if (fi && !p.poliza_origen_id) {
+            const anioFi = parseInt(fi.slice(0, 4), 10)
+            const mesFi = parseInt(fi.slice(5, 7), 10)
+            if (anioFi === anio) {
+              if (fi <= hoyStr) altasPorMes[mesFi].real++
+              else altasPorMes[mesFi].agendado++
+            }
+          }
+          if (p.estado === 'CANCELADA' || p.estado === 'ANULADA') {
+            const fb = (p.fecha_baja || '').slice(0, 10)
+            if (fb) {
+              const anioFb = parseInt(fb.slice(0, 4), 10)
+              const mesFb = parseInt(fb.slice(5, 7), 10)
+              if (anioFb === anio) {
+                if (fb <= hoyStr) bajasPorMes[mesFb].real++
+                else bajasPorMes[mesFb].agendado++
+              }
+            }
+          }
+        }
+
+        // Promedio de altas/bajas en los últimos 3 meses CERRADOS
+        // (mes anterior, dos antes, tres antes — no incluye el actual).
+        const contarAltasEnMes = (aa: number, mm: number) => {
+          let n = 0
+          for (const p of polizas) {
+            const fi = (p.fecha_inicio || '').slice(0, 10)
+            if (fi && !p.poliza_origen_id) {
+              const anioFi = parseInt(fi.slice(0, 4), 10)
+              const mesFi = parseInt(fi.slice(5, 7), 10)
+              if (anioFi === aa && mesFi === mm) n++
+            }
+          }
+          return n
+        }
+        const contarBajasEnMes = (aa: number, mm: number) => {
+          let n = 0
+          for (const p of polizas) {
+            if (p.estado === 'CANCELADA' || p.estado === 'ANULADA') {
+              const fb = (p.fecha_baja || '').slice(0, 10)
+              if (fb) {
+                const anioFb = parseInt(fb.slice(0, 4), 10)
+                const mesFb = parseInt(fb.slice(5, 7), 10)
+                if (anioFb === aa && mesFb === mm) n++
+              }
+            }
+          }
+          return n
+        }
+        let sumAltasProm = 0
+        let sumBajasProm = 0
+        for (let k = 1; k <= 3; k++) {
+          const d = new Date(anio, mesActualIdx - k, 1)
+          sumAltasProm += contarAltasEnMes(d.getFullYear(), d.getMonth() + 1)
+          sumBajasProm += contarBajasEnMes(d.getFullYear(), d.getMonth() + 1)
+        }
+        const promAltas = Math.round(sumAltasProm / 3)
+        const promBajas = Math.round(sumBajasProm / 3)
+
+        // Armar las 12 filas.
+        const filas: typeof chartProyeccion = []
+        let saldoAcum = saldoInicial
+        for (let m = 1; m <= 12; m++) {
+          const esFuturo = m - 1 > mesActualIdx
+          const esActual = m - 1 === mesActualIdx
+          const altasConocidas = altasPorMes[m].real + altasPorMes[m].agendado
+          const bajasConocidas = bajasPorMes[m].real + bajasPorMes[m].agendado
+          const altasProyectadas = esFuturo ? Math.max(0, promAltas - altasConocidas) : 0
+          const bajasProyectadas = esFuturo ? Math.max(0, promBajas - bajasConocidas) : 0
+          saldoAcum += (altasConocidas + altasProyectadas) - (bajasConocidas + bajasProyectadas)
+          filas.push({
+            mes: nombreMesCorto(m - 1),
+            numMes: m,
+            altas_conocidas: altasConocidas,
+            altas_proyectadas: altasProyectadas,
+            bajas_conocidas: bajasConocidas,
+            bajas_proyectadas: bajasProyectadas,
+            saldo_acumulado: Math.max(0, saldoAcum),
+            esFuturo,
+            esActual,
+          })
+        }
+        setChartProyeccion(filas)
+      }
+
       // Distribución por compañía — todas las pólizas que tuviste alguna vez
-      // como cartera real. Excluye solo RENOVADA (estado temporal de la sombra
-      // que duplicaría con la VIGENTE de la cadena). Incluye NO_VIGENTE,
-      // CANCELADA y ANULADA porque forman parte del histórico del PAS.
+      // como cartera real. Excluye RENOVADA (estado sombra que duplicaría con
+      // la VIGENTE de la cadena) y NO_VIGENTE (fantasmas de renovaciones —
+      // versiones viejas ya reemplazadas). Incluye CANCELADA y ANULADA
+      // porque forman parte del histórico útil del PAS (ej: "estas son las
+      // compañías con las que operé, incluidas las que perdí clientes"). v1.0.158.
       // Muestra TODAS las compañías (sin agrupador "Otras") porque el chart
       // ahora es bar horizontal con altura dinámica.
+      const ESTADOS_CARTERA_HISTORICA = ['VIGENTE', 'PROGRAMADA', 'CANCELADA', 'ANULADA'] as const
       let qVig = supabase
         .from('polizas')
         .select('compania:catalogos!compania_id (nombre)')
-        .neq('estado', 'RENOVADA')
+        .in('estado', ESTADOS_CARTERA_HISTORICA as unknown as string[])
       qVig = filtrarPorPersonas(qVig, idsPersonas, 'asegurado_id')
       const { data: vigentes } = await qVig
 
@@ -605,11 +755,11 @@ export default function DashboardPage() {
         .sort((a, b) => b.value - a.value)
       setChartCompanias(compArr)
 
-      // Distribución por ramo — misma lógica: histórico completo, sin RENOVADA.
+      // Distribución por ramo — misma lógica: sin NO_VIGENTE ni RENOVADA.
       let qVigR = supabase
         .from('polizas')
         .select('ramo:catalogos!ramo_id (nombre)')
-        .neq('estado', 'RENOVADA')
+        .in('estado', ESTADOS_CARTERA_HISTORICA as unknown as string[])
       qVigR = filtrarPorPersonas(qVigR, idsPersonas, 'asegurado_id')
       const { data: vigRamos } = await qVigR
 
@@ -687,9 +837,12 @@ export default function DashboardPage() {
       // Cada uno respeta el filtro de cartera del usuario.
       // ═════════════════════════════════════════════════════════════════
 
-      // Helper: cartera "viva" = sin RENOVADA (estado sombra).
+      // Helper: cartera "viva" = sin RENOVADA (sombra) y sin NO_VIGENTE
+      // (fantasmas de renovaciones) — regla del PAS (v1.0.158). Incluye
+      // VIGENTE + PROGRAMADA + CANCELADA + ANULADA para que las
+      // distribuciones sigan reflejando el histórico útil.
       const baseCartera = () => {
-        let q = supabase.from('polizas').select('*, compania:catalogos!compania_id(nombre), ramo:catalogos!ramo_id(nombre), cobertura:catalogos!cobertura_id(nombre), asegurado:personas!asegurado_id(id, apellido, nombre, razon_social, created_at)').neq('estado', 'RENOVADA')
+        let q = supabase.from('polizas').select('*, compania:catalogos!compania_id(nombre), ramo:catalogos!ramo_id(nombre), cobertura:catalogos!cobertura_id(nombre), asegurado:personas!asegurado_id(id, apellido, nombre, razon_social, created_at)').in('estado', ESTADOS_CARTERA_HISTORICA as unknown as string[])
         return filtrarPorPersonas(q, idsPersonas, 'asegurado_id')
       }
 
@@ -1396,7 +1549,7 @@ export default function DashboardPage() {
 
             // Si todo está apagado, mostrar mensaje guía
             const algunoVisible = [
-              'evolucion','distribucion_compania','distribucion_ramo','distribucion_cobertura',
+              'evolucion','proyeccion_anual','distribucion_compania','distribucion_ramo','distribucion_cobertura',
               'distribucion_medio_pago',
               'antiguedad_cartera',
               'siniestralidad_compania','tasa_siniestralidad_compania','tiempo_resolucion_siniestros',
@@ -1444,6 +1597,97 @@ export default function DashboardPage() {
                         </AreaChart>
                       </ResponsiveContainer>
                     </ChartCard>
+                  )}
+
+                  {Vis('proyeccion_anual') && (
+                    <div className="lg:col-span-2">
+                      <ChartCard
+                        icono={<BarChart className="h-3.5 w-3.5" />}
+                        titulo={`Proyección anual ${new Date().getFullYear()}`}
+                        tono="emerald"
+                        badge={chartProyeccion.length > 0 ? chartProyeccion[chartProyeccion.length - 1].saldo_acumulado : undefined}
+                      >
+                        {chartProyeccion.length === 0 ? <SinDatos /> : (
+                          <div className="flex flex-col gap-4">
+                            <div className="text-2xs text-slate-600 -mt-1">
+                              Real hasta el mes actual · Agendado = altas o bajas ya cargadas con fecha futura · Proyectado = estimación basada en el promedio de los últimos 3 meses cerrados.
+                            </div>
+
+                            {/* Barras: altas (verde) vs bajas (rojo) por mes. */}
+                            <ResponsiveContainer width="100%" height={260}>
+                              <BarChart data={chartProyeccion} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="#94a3b8" tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                                <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickLine={false} axisLine={false} allowDecimals={false} />
+                                <Tooltip
+                                  contentStyle={TOOLTIP_STYLE}
+                                  cursor={{ fill: 'rgba(16, 185, 129, 0.06)' }}
+                                  formatter={(v: number, k: string) => {
+                                    const labels: Record<string, string> = {
+                                      altas_conocidas: 'Altas conocidas',
+                                      altas_proyectadas: 'Altas proyectadas',
+                                      bajas_conocidas: 'Bajas conocidas',
+                                      bajas_proyectadas: 'Bajas proyectadas',
+                                    }
+                                    return [v, labels[k] ?? k]
+                                  }}
+                                />
+                                <Legend wrapperStyle={{ fontSize: 11 }} />
+                                <Bar dataKey="altas_conocidas" stackId="altas" fill="#10b981" name="Altas conocidas" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="altas_proyectadas" stackId="altas" fill="#a7f3d0" name="Altas proyectadas" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="bajas_conocidas" stackId="bajas" fill="#ef4444" name="Bajas conocidas" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="bajas_proyectadas" stackId="bajas" fill="#fecaca" name="Bajas proyectadas" radius={[4, 4, 0, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+
+                            {/* Tabla compañera con los mismos datos + saldo acumulado. */}
+                            <div className="overflow-x-auto -mx-2">
+                              <table className="w-full text-2xs">
+                                <thead>
+                                  <tr className="border-b border-slate-200 text-slate-600">
+                                    <th className="text-left px-2 py-1.5 font-semibold">Mes</th>
+                                    <th className="text-right px-2 py-1.5 font-semibold text-emerald-700">Altas</th>
+                                    <th className="text-right px-2 py-1.5 font-normal text-emerald-600">(proy.)</th>
+                                    <th className="text-right px-2 py-1.5 font-semibold text-red-700">Bajas</th>
+                                    <th className="text-right px-2 py-1.5 font-normal text-red-600">(proy.)</th>
+                                    <th className="text-right px-2 py-1.5 font-semibold">Neto</th>
+                                    <th className="text-right px-2 py-1.5 font-semibold">Cartera</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {chartProyeccion.map((f) => {
+                                    const totAltas = f.altas_conocidas + f.altas_proyectadas
+                                    const totBajas = f.bajas_conocidas + f.bajas_proyectadas
+                                    const neto = totAltas - totBajas
+                                    const bgClase = f.esActual
+                                      ? 'bg-blue-50/60'
+                                      : f.esFuturo
+                                        ? 'bg-slate-50/60 text-slate-600'
+                                        : ''
+                                    return (
+                                      <tr key={f.numMes} className={`border-b border-slate-100 ${bgClase}`}>
+                                        <td className="px-2 py-1.5 font-medium">
+                                          {f.mes}
+                                          {f.esActual && <span className="ml-1.5 text-2xs text-blue-600 font-normal">(actual)</span>}
+                                        </td>
+                                        <td className="px-2 py-1.5 text-right font-mono">{f.altas_conocidas}</td>
+                                        <td className="px-2 py-1.5 text-right font-mono text-emerald-600">{f.altas_proyectadas > 0 ? `+${f.altas_proyectadas}` : '—'}</td>
+                                        <td className="px-2 py-1.5 text-right font-mono">{f.bajas_conocidas}</td>
+                                        <td className="px-2 py-1.5 text-right font-mono text-red-600">{f.bajas_proyectadas > 0 ? `+${f.bajas_proyectadas}` : '—'}</td>
+                                        <td className={`px-2 py-1.5 text-right font-mono font-semibold ${neto > 0 ? 'text-emerald-700' : neto < 0 ? 'text-red-700' : 'text-slate-500'}`}>
+                                          {neto > 0 ? `+${neto}` : neto}
+                                        </td>
+                                        <td className="px-2 py-1.5 text-right font-mono font-semibold text-slate-800">{f.saldo_acumulado}</td>
+                                      </tr>
+                                    )
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </ChartCard>
+                    </div>
                   )}
 
                   {Vis('distribucion_compania') && (
