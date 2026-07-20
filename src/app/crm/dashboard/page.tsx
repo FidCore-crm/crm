@@ -540,26 +540,30 @@ export default function DashboardPage() {
       // Excluye RENOVADA (estado sombra) para no duplicar con la VIGENTE de
       // la cadena.
       // Evolución de cartera (12 meses móviles):
-      // Para cada mes del último año, cartera activa al último día del mes.
-      // Fórmula (v1.0.158):
-      //   altas_hasta_fin_mes = polizas RAÍZ (poliza_origen_id IS NULL)
-      //                         con fecha_inicio <= fin_mes
-      //   bajas_hasta_fin_mes = polizas CANCELADA/ANULADA con fecha_baja <= fin_mes
+      // Para cada mes contar cartera acumulada al fin de mes.
+      // Fórmula (v1.0.159, corregida):
+      //   altas hasta fin_mes = polizas RAÍZ (poliza_origen_id IS NULL) con
+      //                         fecha_inicio <= fin_mes
+      //   bajas hasta fin_mes = polizas CANCELADA/ANULADA con fecha_baja <= fin_mes
       //   cartera = altas - bajas
       //
-      // Racional (definido por el PAS 2026-07-20):
-      // - Una renovación NO cuenta como alta nueva (es continuación del mismo
-      //   seguro), por eso filtramos por `poliza_origen_id IS NULL`.
-      // - NO_VIGENTE y RENOVADA nunca cuentan: son fantasmas de renovaciones
-      //   (una NO_VIGENTE de hoy es la versión vieja de una VIGENTE de hoy).
-      // - Usamos `fecha_inicio` (no `created_at`) porque refleja el momento
-      //   real en que la póliza empezó su cobertura, no cuando se cargó al CRM.
-      //   Importante para instalaciones con importación masiva histórica.
+      // Racional:
+      // - Cada póliza RAÍZ representa a su cadena una única vez. Aunque hoy
+      //   sea NO_VIGENTE (porque fue renovada), sigue siendo el alta original
+      //   de esa cartera — no duplica porque las hijas tienen
+      //   poliza_origen_id != NULL y no cuentan como altas nuevas.
+      // - Renovaciones NO son altas nuevas (son continuación del mismo seguro).
+      // - Bajas = solo cancelación/anulación explícita. NO_VIGENTE sin
+      //   renovación no debería existir en la cartera del PAS (según su
+      //   feedback: todas las NO_VIGENTE son fantasmas de renovaciones).
+      //
+      // NO se filtra por estado en la query: NO_VIGENTE raíces también cuentan
+      // como alta original. El filtro poliza_origen_id IS NULL evita duplicar
+      // con la hija VIGENTE. Verificado contra DB real: 164 raíces - 1 baja = 163.
       const evolucion: { mes: string; cantidad: number }[] = []
       let qTodas = supabase
         .from('polizas')
-        .select('fecha_inicio, fecha_baja, estado, poliza_origen_id')
-        .in('estado', ['VIGENTE', 'PROGRAMADA', 'CANCELADA', 'ANULADA'])
+        .select('fecha_inicio, fecha_baja, estado, poliza_origen_id, created_at')
       qTodas = filtrarPorPersonas(qTodas, idsPersonas, 'asegurado_id')
       const { data: todasPolizas, error: errPolizas } = await qTodas
       if (errPolizas) {
@@ -575,6 +579,7 @@ export default function DashboardPage() {
         fecha_baja: string | null
         estado: string
         poliza_origen_id: string | null
+        created_at: string
       }>
 
       for (let i = 11; i >= 0; i--) {
@@ -601,26 +606,26 @@ export default function DashboardPage() {
 
       // ═══════════════════════════════════════════════════════════════════
       // Proyección anual — año calendario en curso, 12 meses fijos.
-      // Reusa el mismo array `polizas` ya cargado (VIGENTE/PROGRAMADA/
-      // CANCELADA/ANULADA — sin NO_VIGENTE ni RENOVADA).
+      // Modelo RUN RATE (v1.0.159):
+      //   1. Meses pasados y actual: altas/bajas REALES por fecha_inicio /
+      //      fecha_baja en ese mes. Un alta agendada para agosto aparece en
+      //      agosto (no en julio cuando la cargaste).
+      //   2. Meses futuros: PROYECCIÓN por run rate.
+      //         promedio_altas = altas_del_año_hasta_hoy / meses_transcurridos
+      //         promedio_bajas = bajas_del_año_hasta_hoy / meses_transcurridos
+      //      "meses_transcurridos" = desde el primer mes con actividad (mín
+      //      created_at) hasta hoy, en el año en curso. Si empezaste a cargar
+      //      en junio, son ~2 meses.
+      //   3. Sin ajustes manuales por estacionalidad/crecimiento (queda como
+      //      opción futura si el PAS lo pide).
       //
-      // Para cada mes m del año:
-      //   altas_conocidas = altas raíz (fecha_inicio en mes m, ya en DB)
-      //   bajas_conocidas = CANCELADA/ANULADA (fecha_baja en mes m, ya en DB)
-      //   altas_proyectadas = solo si m > mes_actual:
-      //       max(0, promedio_altas_3_meses_cerrados - altas_conocidas)
-      //   bajas_proyectadas = idem para bajas
-      // "Conocidas" incluye tanto reales (pasado/actual) como agendadas
-      // (fecha futura ya cargada en DB).
-      // "Proyectadas" solo rellena el hueco entre lo agendado y el promedio.
-      //
-      // Saldo acumulado arranca en la cartera al 31-dic del año anterior
-      // y se actualiza mes a mes con neto = altas_totales - bajas_totales.
+      // Saldo acumulado arranca en la cartera al 31-dic del año anterior y
+      // se actualiza mes a mes con neto = altas - bajas.
       // ═══════════════════════════════════════════════════════════════════
       {
         const anio = ahora.getFullYear()
         const mesActualIdx = ahora.getMonth() // 0-11
-        const hoyStr = ahora.toISOString().slice(0, 10)
+        const mesActualMes = mesActualIdx + 1 // 1-12
         const finAnioAnt = `${anio - 1}-12-31`
 
         // Saldo inicial: cartera al 31-dic del año anterior.
@@ -634,92 +639,78 @@ export default function DashboardPage() {
           }
         }
 
-        // Altas y bajas por mes del año en curso.
-        type MesBucket = { real: number; agendado: number }
-        const altasPorMes: Record<number, MesBucket> = {}
-        const bajasPorMes: Record<number, MesBucket> = {}
+        // Altas y bajas por mes del año en curso (todo cae en el mes de su
+        // fecha_inicio o fecha_baja, no importa cuándo se cargó).
+        const altasPorMes: Record<number, number> = {}
+        const bajasPorMes: Record<number, number> = {}
         for (let m = 1; m <= 12; m++) {
-          altasPorMes[m] = { real: 0, agendado: 0 }
-          bajasPorMes[m] = { real: 0, agendado: 0 }
+          altasPorMes[m] = 0
+          bajasPorMes[m] = 0
         }
         for (const p of polizas) {
           const fi = (p.fecha_inicio || '').slice(0, 10)
           if (fi && !p.poliza_origen_id) {
             const anioFi = parseInt(fi.slice(0, 4), 10)
             const mesFi = parseInt(fi.slice(5, 7), 10)
-            if (anioFi === anio) {
-              if (fi <= hoyStr) altasPorMes[mesFi].real++
-              else altasPorMes[mesFi].agendado++
-            }
+            if (anioFi === anio) altasPorMes[mesFi]++
           }
           if (p.estado === 'CANCELADA' || p.estado === 'ANULADA') {
             const fb = (p.fecha_baja || '').slice(0, 10)
             if (fb) {
               const anioFb = parseInt(fb.slice(0, 4), 10)
               const mesFb = parseInt(fb.slice(5, 7), 10)
-              if (anioFb === anio) {
-                if (fb <= hoyStr) bajasPorMes[mesFb].real++
-                else bajasPorMes[mesFb].agendado++
-              }
+              if (anioFb === anio) bajasPorMes[mesFb]++
             }
           }
         }
 
-        // Promedio de altas/bajas en los últimos 3 meses CERRADOS
-        // (mes anterior, dos antes, tres antes — no incluye el actual).
-        const contarAltasEnMes = (aa: number, mm: number) => {
-          let n = 0
-          for (const p of polizas) {
-            const fi = (p.fecha_inicio || '').slice(0, 10)
-            if (fi && !p.poliza_origen_id) {
-              const anioFi = parseInt(fi.slice(0, 4), 10)
-              const mesFi = parseInt(fi.slice(5, 7), 10)
-              if (anioFi === aa && mesFi === mm) n++
-            }
+        // Detectar el primer mes del año con actividad real (alta o baja).
+        // Usamos fecha_inicio/fecha_baja porque reflejan cuándo hubo actividad
+        // comercial, no cuándo se cargó al CRM. Ejemplo: si el PAS cargó su
+        // cartera en junio pero las ventas de enero-mayo se cargaron con sus
+        // fechas reales, meses_transcurridos = 7 (no 2).
+        let primerMesConActividad = mesActualMes
+        for (let m = 1; m <= mesActualMes; m++) {
+          if ((altasPorMes[m] || 0) + (bajasPorMes[m] || 0) > 0) {
+            primerMesConActividad = m
+            break
           }
-          return n
         }
-        const contarBajasEnMes = (aa: number, mm: number) => {
-          let n = 0
-          for (const p of polizas) {
-            if (p.estado === 'CANCELADA' || p.estado === 'ANULADA') {
-              const fb = (p.fecha_baja || '').slice(0, 10)
-              if (fb) {
-                const anioFb = parseInt(fb.slice(0, 4), 10)
-                const mesFb = parseInt(fb.slice(5, 7), 10)
-                if (anioFb === aa && mesFb === mm) n++
-              }
-            }
-          }
-          return n
+
+        // Sumar altas/bajas reales del año hasta hoy para calcular run rate.
+        let totalAltasAcum = 0
+        let totalBajasAcum = 0
+        for (let m = primerMesConActividad; m <= mesActualMes; m++) {
+          totalAltasAcum += altasPorMes[m] || 0
+          totalBajasAcum += bajasPorMes[m] || 0
         }
-        let sumAltasProm = 0
-        let sumBajasProm = 0
-        for (let k = 1; k <= 3; k++) {
-          const d = new Date(anio, mesActualIdx - k, 1)
-          sumAltasProm += contarAltasEnMes(d.getFullYear(), d.getMonth() + 1)
-          sumBajasProm += contarBajasEnMes(d.getFullYear(), d.getMonth() + 1)
-        }
-        const promAltas = Math.round(sumAltasProm / 3)
-        const promBajas = Math.round(sumBajasProm / 3)
+        const mesesTranscurridos = Math.max(1, mesActualMes - primerMesConActividad + 1)
+        const promAltas = totalAltasAcum / mesesTranscurridos
+        const promBajas = totalBajasAcum / mesesTranscurridos
 
         // Armar las 12 filas.
         const filas: typeof chartProyeccion = []
         let saldoAcum = saldoInicial
         for (let m = 1; m <= 12; m++) {
-          const esFuturo = m - 1 > mesActualIdx
-          const esActual = m - 1 === mesActualIdx
-          const altasConocidas = altasPorMes[m].real + altasPorMes[m].agendado
-          const bajasConocidas = bajasPorMes[m].real + bajasPorMes[m].agendado
-          const altasProyectadas = esFuturo ? Math.max(0, promAltas - altasConocidas) : 0
-          const bajasProyectadas = esFuturo ? Math.max(0, promBajas - bajasConocidas) : 0
-          saldoAcum += (altasConocidas + altasProyectadas) - (bajasConocidas + bajasProyectadas)
+          const esFuturo = m > mesActualMes
+          const esActual = m === mesActualMes
+          // Real: siempre lo que efectivamente ocurrió (por fecha_inicio /
+          // fecha_baja). Si hay agendados con fecha en este mes, ya cuentan.
+          const altasReales = altasPorMes[m] || 0
+          const bajasReales = bajasPorMes[m] || 0
+          // Proyectadas: solo meses futuros. Si hay agendados que superan
+          // el promedio, usamos los agendados (no restamos por debajo).
+          const altasProyectadas = esFuturo ? Math.max(0, Math.round(promAltas) - altasReales) : 0
+          const bajasProyectadas = esFuturo ? Math.max(0, Math.round(promBajas) - bajasReales) : 0
+          const altasTotales = altasReales + altasProyectadas
+          const bajasTotales = bajasReales + bajasProyectadas
+          saldoAcum += altasTotales - bajasTotales
           filas.push({
             mes: nombreMesCorto(m - 1),
             numMes: m,
-            altas_conocidas: altasConocidas,
+            altas_conocidas: altasReales,
             altas_proyectadas: altasProyectadas,
-            bajas_conocidas: bajasConocidas,
+            bajas_conocidas: bajasReales,
             bajas_proyectadas: bajasProyectadas,
             saldo_acumulado: Math.max(0, saldoAcum),
             esFuturo,
@@ -1610,7 +1601,7 @@ export default function DashboardPage() {
                         {chartProyeccion.length === 0 ? <SinDatos /> : (
                           <div className="flex flex-col gap-4">
                             <div className="text-2xs text-slate-600 -mt-1">
-                              Real hasta el mes actual · Agendado = altas o bajas ya cargadas con fecha futura · Proyectado = estimación basada en el promedio de los últimos 3 meses cerrados.
+                              Real hasta el mes actual (por fecha de inicio / fecha de baja de cada póliza) · Proyectado con método run rate: promedio mensual del año hasta hoy, extrapolado a los meses restantes.
                             </div>
 
                             {/* Barras: altas (verde) vs bajas (rojo) por mes. */}
