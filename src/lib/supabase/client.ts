@@ -43,17 +43,30 @@ function leerCookie(nombre: string): string | null {
 
 /** Llama al endpoint del CRM que refresca el JWT usando el refresh_token de
  *  la cookie HttpOnly. Devuelve true si el refresh fue exitoso (la cookie
- *  `fidcore_jwt` queda actualizada) o false si no se pudo renovar. */
+ *  `fidcore_jwt` queda actualizada) o false si no se pudo renovar.
+ *
+ *  Dedup: si ya hay un refresh en vuelo, todos los callers concurrentes
+ *  esperan a la misma promise para evitar hammering al endpoint cuando
+ *  vencen 10 queries a la vez. */
+let refreshEnCurso: Promise<boolean> | null = null
 async function refrescarJwt(): Promise<boolean> {
-  try {
-    const res = await fetch('/api/auth/refrescar-token', {
-      method: 'POST',
-      credentials: 'include',
-    })
-    return res.ok
-  } catch {
-    return false
-  }
+  if (refreshEnCurso) return refreshEnCurso
+  refreshEnCurso = (async () => {
+    try {
+      const res = await fetch('/api/auth/refrescar-token', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      return res.ok
+    } catch {
+      return false
+    } finally {
+      // Liberar el lock en el próximo tick para que callers en la misma
+      // microtask reciban el mismo resultado.
+      setTimeout(() => { refreshEnCurso = null }, 0)
+    }
+  })()
+  return refreshEnCurso
 }
 
 /** Última JWT sincronizada al canal Realtime — evita llamar setAuth con el
@@ -85,13 +98,31 @@ export function createClient() {
       },
       global: {
         fetch: async (input, init) => {
-          const jwt = leerCookie('fidcore_jwt')
+          let jwt = leerCookie('fidcore_jwt')
+
+          // Fallback preventivo: si no hay JWT (cookie expiró — dura 1h con
+          // maxAge) tenemos que refrescar ANTES de mandar la query. Sin JWT,
+          // PostgREST trata la request como anónima y las RLS con `auth.uid()`
+          // devuelven [] con HTTP 200 (no 401), por lo que el retry por 401
+          // no dispara y el CRM aparece "vacío" hasta que el usuario recarga
+          // la página. Este refresh preventivo evita ese síntoma.
+          if (!jwt) {
+            const refreshed = await refrescarJwt()
+            if (refreshed) {
+              jwt = leerCookie('fidcore_jwt')
+              if (jwt) sincronizarJwtRealtime(cliente)
+            }
+          }
+
           const headers = new Headers(init?.headers)
           if (jwt) headers.set('Authorization', `Bearer ${jwt}`)
 
           let response = await fetch(input, { ...init, headers })
 
-          // Si 401 y teníamos JWT, intentar refresh + retry UNA vez
+          // Si 401 y teníamos JWT, intentar refresh + retry UNA vez.
+          // Cubre el caso raro donde el JWT existía al leer la cookie pero
+          // GoTrue lo consideró expirado (drift de reloj o vencimiento
+          // durante la request).
           if (response.status === 401 && jwt) {
             const refreshed = await refrescarJwt()
             if (refreshed) {
@@ -117,9 +148,28 @@ export function createClient() {
 // Singleton para componentes cliente
 let client: ReturnType<typeof createClient> | null = null
 
+/** Refresh preventivo: cada 50 min llamamos al endpoint que renueva las 3
+ *  cookies (crm_session, crm_access, fidcore_jwt) usando el refresh_token
+ *  HttpOnly. Con esto la cookie fidcore_jwt nunca llega a expirar (dura 1h)
+ *  y las queries siempre viajan con Authorization válido.
+ *
+ *  Solo arranca en el browser (no SSR) y se dispara una única vez por
+ *  singleton del cliente. */
+let intervaloRefreshPreventivo: ReturnType<typeof setInterval> | null = null
+function iniciarRefreshPreventivo(cliente: any): void {
+  if (typeof window === 'undefined') return
+  if (intervaloRefreshPreventivo) return
+  const INTERVALO_MS = 50 * 60 * 1000 // 50 min (JWT dura 60 min)
+  intervaloRefreshPreventivo = setInterval(async () => {
+    const ok = await refrescarJwt()
+    if (ok) sincronizarJwtRealtime(cliente)
+  }, INTERVALO_MS)
+}
+
 export function getSupabaseClient() {
   if (!client) {
     client = createClient()
+    iniciarRefreshPreventivo(client)
   }
   // Cada vez que se pide el cliente, resincronizamos por si el JWT cambió
   // (login, refresh manual, cambio de sesión). Es no-op si el JWT es el mismo.
