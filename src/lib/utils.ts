@@ -180,18 +180,18 @@ export function getTooltipEstado(estado: string): string {
     BLOQUEADO: 'Cliente bloqueado manualmente (ej. fraude / falta de pago)',
     PROSPECTO: 'Lead aún no convertido a cliente',
     // Pólizas
-    PROGRAMADA: 'Póliza emitida con fecha de inicio futura',
-    RENOVADA: 'Póliza de renovación esperando que se active la nueva vigencia',
-    VIGENTE: 'Póliza activa y dentro del período de cobertura',
+    PROGRAMADA: 'Póliza emitida a la espera del inicio de vigencia',
+    RENOVADA: 'Póliza renovada a la espera del inicio de vigencia',
+    VIGENTE: 'Póliza vigente y dentro del período de cobertura',
     NO_VIGENTE: 'Póliza con vigencia vencida',
     CANCELADA: 'Póliza dada de baja por solicitud del cliente',
     ANULADA: 'Póliza dada de baja por decisión de la compañía',
     // Siniestros
     DENUNCIADO: 'Siniestro denunciado, sin gestión aún',
     EN_TRAMITE: 'En gestión administrativa con la compañía',
-    INSPECCION: 'En inspección por el liquidador',
+    INSPECCION: 'En inspección',
     LIQUIDACION: 'En proceso de liquidación',
-    REPARACION: 'En reparación / pago al asegurado',
+    REPARACION: 'En reparación',
     FINALIZADO: 'Siniestro cerrado',
     RECHAZADO: 'Siniestro rechazado por la compañía',
   }

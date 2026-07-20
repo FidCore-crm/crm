@@ -35,10 +35,15 @@ const KEYS_CORE_POR_RENDER: Record<RenderTipoRiesgo, string[]> = {
 
 /**
  * Keys "reservadas" — nunca aparecen como "extras" aunque no estén en el
- * schema hardcodeado. Motivo: tienen su propio input en el form
- * (`observaciones` = textarea de "Observaciones del bien asegurado").
+ * schema hardcodeado. Motivo: tienen su propio input dedicado o su propio
+ * renderer, distinto del input genérico de "extras" (que asume string plano).
+ *
+ * - `observaciones`: textarea de "Observaciones del bien asegurado".
+ * - `clausulas`: la IA la extrae como `{ label, valor }[]` (datos particulares
+ *   del contrato). Se renderea aparte en la ficha como sub-lista; no como
+ *   input genérico. Sino aparecería como "[object Object], [object Object]".
  */
-const KEYS_RESERVADAS = new Set(['observaciones'])
+const KEYS_RESERVADAS = new Set(['observaciones', 'clausulas'])
 
 /**
  * Aliases de nombre humano para keys frecuentes que la IA suele generar.

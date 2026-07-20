@@ -3,6 +3,7 @@ import path from 'path'
 import { requireAuth, requireOwnership } from '@/lib/api-auth'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { compararPolizasConIA } from '@/lib/agente-pdf/extractor'
+import { obtenerCatalogoCoberturasCompania } from '@/lib/agente-pdf/catalogo-coberturas-compania'
 import { checkLicenciaActiva } from '@/lib/licencia-guard'
 import { logger } from '@/lib/errores'
 
@@ -115,9 +116,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     })
   }
 
-  // 4. Correr la comparación sincrónicamente. El frontend espera.
+  // 4. Cargamos el catálogo de equivalencias de coberturas para la compañía
+  //    de la póliza origen. La IA lo usa para resolver códigos comerciales
+  //    (ej: "CF") a nombres canónicos ("Terceros Completo") sin inventar.
+  const { data: polOrigen } = await supabase
+    .from('polizas').select('compania_id').eq('id', polizaOrigenId).maybeSingle()
+  const catalogo = await obtenerCatalogoCoberturasCompania(
+    supabase,
+    (polOrigen as { compania_id?: string } | null)?.compania_id ?? null,
+  )
+
+  // 5. Correr la comparación sincrónicamente. El frontend espera.
   const inicio = Date.now()
-  const resultado = await compararPolizasConIA(rutaViejaAbs, rutaPDFNuevo)
+  const resultado = await compararPolizasConIA(rutaViejaAbs, rutaPDFNuevo, {
+    companiaNombre: catalogo.companiaNombre,
+    catalogoCoberturas: catalogo.equivalencias,
+  })
 
   const comparacionResultado = resultado.ok
     ? {

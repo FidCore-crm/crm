@@ -861,13 +861,24 @@ export default function FichaPolizaPage() {
                         const entries = Object.entries(dt).filter(
                           ([, v]) => v != null && v !== '' && !(Array.isArray(v) && v.length === 0),
                         )
+                        // `clausulas` (datos particulares del contrato extraídos
+                        // por la IA en formato { label, valor }[]) se renderea
+                        // aparte como sub-lista, no como campo largo/corto.
+                        const clausulasObj = Array.isArray(dt.clausulas)
+                          && dt.clausulas.length > 0
+                          && dt.clausulas.every((c: any) => c && typeof c === 'object' && 'label' in c && 'valor' in c)
+                          ? (dt.clausulas as { label: string; valor: string }[])
+                          : null
+                        const entriesSinClausulas = clausulasObj
+                          ? entries.filter(([k]) => k !== 'clausulas')
+                          : entries
                         const esLargo = (k: string, v: unknown) => {
                           if (k === 'observaciones' || k === 'observaciones_bien' || k === 'notas') return true
                           if (typeof v !== 'string') return false
                           return v.length > 60 || v.includes('\n')
                         }
-                        const cortos = entries.filter(([k, v]) => !esLargo(k, v))
-                        const largos = entries.filter(([k, v]) => esLargo(k, v))
+                        const cortos = entriesSinClausulas.filter(([k, v]) => !esLargo(k, v))
+                        const largos = entriesSinClausulas.filter(([k, v]) => esLargo(k, v))
                         return (
                           <>
                             {cortos.map(([k, v]) => (
@@ -890,6 +901,21 @@ export default function FichaPolizaPage() {
                                 </p>
                               </div>
                             ))}
+                            {clausulasObj && (
+                              <div className="flex flex-col gap-1.5 pt-2 mt-1 border-t border-slate-100">
+                                <span className="text-2xs text-slate-600 font-semibold uppercase tracking-wide">
+                                  Datos particulares del contrato
+                                </span>
+                                <ul className="flex flex-col gap-1">
+                                  {clausulasObj.map((c, i) => (
+                                    <li key={i} className="flex justify-between gap-2 items-baseline">
+                                      <span className="text-slate-600 shrink-0">{c.label}</span>
+                                      <span className="text-slate-700 font-medium text-right font-mono break-words min-w-0">{c.valor}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
                           </>
                         )
                       })()}

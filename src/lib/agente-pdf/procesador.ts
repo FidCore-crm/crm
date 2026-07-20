@@ -9,6 +9,7 @@ import path from 'path'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { encolarEmailSistema } from '@/lib/comunicaciones-sender'
 import { extraerDatosDePDF, compararPolizasConIA } from './extractor'
+import { obtenerCatalogoCoberturasCompania } from './catalogo-coberturas-compania'
 import { mapearCatalogos } from './mapeador-catalogos'
 import { validarDatosExtraidosPoliza, validarDatosExtraidosEndoso } from './validador'
 import { notificarPDF } from './notificaciones-helper'
@@ -182,7 +183,22 @@ export async function procesarPDFAsync(procesamientoId: string): Promise<void> {
           const rutaViejaAbs = path.resolve(STORAGE_ROOT, (principalRow as { ruta: string }).ruta)
           if (!rutaViejaAbs.startsWith(STORAGE_ROOT)) return null
 
-          const resultado = await compararPolizasConIA(rutaViejaAbs, rutaPDF)
+          // Cargamos el catálogo de equivalencias de coberturas de la
+          // compañía involucrada (leído de `catalogos.metadata.equivalencias`
+          // en el CRM). La IA lo usa para resolver códigos comerciales (ej:
+          // "CF", "CM") a nombres canónicos ("Terceros Completo") sin
+          // inventar equivalencias.
+          const { data: polOrigen } = await supabase
+            .from('polizas').select('compania_id').eq('id', polizaOrigenId).maybeSingle()
+          const catalogo = await obtenerCatalogoCoberturasCompania(
+            supabase,
+            (polOrigen as { compania_id?: string } | null)?.compania_id ?? null,
+          )
+
+          const resultado = await compararPolizasConIA(rutaViejaAbs, rutaPDF, {
+            companiaNombre: catalogo.companiaNombre,
+            catalogoCoberturas: catalogo.equivalencias,
+          })
           if (!resultado.ok) {
             return {
               poliza_origen_id: polizaOrigenId,

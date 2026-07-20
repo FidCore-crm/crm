@@ -212,15 +212,24 @@ ${construirSeccionTiposRiesgo()}
      • ART / Personas: profesion, actividad, categoria_ocupacion, tiene_beneficiarios
      • Cualquier tipo: observaciones (SOLO para info que no se puede estructurar en una key)
     Regla: si podés convertir la info en una key con nombre claro, hacelo. "observaciones" es el último recurso para texto libre que no encaje en nada estructurado.
-10.b CLÁUSULAS ESPECIALES DE LA PÓLIZA — CRÍTICO para renovaciones. Los PDFs suelen listar cláusulas específicas del contrato (cláusulas adicionales, endosos incluidos, condiciones particulares, cláusulas de exclusión, limitaciones, franquicias especiales, tolerancias, ampliaciones de cobertura, adhesiones a servicios) que NO están en las coberturas estándar y son específicas de esa póliza en particular. Estas cláusulas cambian entre pólizas y son las que el PAS necesita comparar en cada renovación para detectar si la compañía las agregó, quitó o modificó.
-    Extraelas SIEMPRE que aparezcan como una key "clausulas" en detalle_tecnico, con formato array de strings. Cada string es una cláusula tal como figura en el PDF (podés recortar palabras redundantes pero mantené el sentido). Ejemplos:
-     • "Cláusula de robo total y parcial con franquicia del 5%"
-     • "Amparo por daños ocasionados por granizo — extendido hasta el 31/12"
-     • "Exclusión: no cubre daños causados por participación en carreras"
-     • "Adhesión a servicio de asistencia mecánica 24hs (Assist Card)"
-     • "Cláusula de tolerancia por mora — 15 días"
-     • "Ampliación de suma asegurada para accesorios hasta USD 500"
-    Si no hay cláusulas especiales (póliza estándar sin agregados), omití la key "clausulas" (no la pongas como array vacío).
+10.b DATOS PARTICULARES DE LA PÓLIZA — CRÍTICO para el PAS.
+    Extraé como key "clausulas" en detalle_tecnico un array de objetos { label, valor } con datos específicos del contrato de ESTA póliza que varían aunque la cobertura contratada sea la misma. Son los datos que el PAS necesita para comparar renovaciones y detectar variaciones sin abrir el PDF.
+
+    QUÉ EXTRAER:
+    Cualquier dato del PDF que aparezca como par identificable (concepto → valor) en secciones tipo "Datos relevantes del riesgo", "Condiciones particulares", "Beneficios adicionales", "Cláusulas anexas", "Descuentos y bonificaciones", "Extensiones de cobertura", "Franquicias específicas", o similar. Categorías habituales sin ánimo exhaustivo: bonificaciones aplicadas, descuentos por medidas de seguridad, tipo de franquicia, sublímites específicos del contrato, extensiones geográficas del contrato, zona de riesgo, lugar de guarda, RC ampliada o no, ajustes automáticos, cláusulas de tolerancia por mora, adhesiones a servicios adicionales del contrato.
+
+    REGLAS ESTRICTAS:
+    1. TEXTUAL del PDF: "label" y "valor" deben ser copiados exactamente como figuran en el PDF. Sin reformular, sin traducir, sin resumir, sin normalizar, sin corregir mayúsculas/minúsculas, sin agregar contexto.
+    2. NO extraer el detalle de qué cubre cada cobertura estándar (Robo Total, Robo Parcial, Daño Total, Incendio, RC, Granizo, Cristales, etc.) — el CRM ya sabe qué cubre cada cobertura del catálogo. Solo interesa lo que varía dentro de esa cobertura.
+    3. NO extraer exclusiones generales de la cobertura, condiciones generales, artículos de la Ley de Seguros, direcciones de aseguradoras, textos administrativos de SSN, información legal general.
+    4. NO extraer datos que ya están estructurados en otras columnas del CRM: nombre del asegurado, DNI/CUIT, dirección del asegurado, número de póliza, vigencia, suma asegurada global, patente, marca, modelo, motor, chasis, año, uso — todo eso va en sus keys core, NO en "clausulas".
+    5. NO inventar un "label" si el PDF no lo trae explícito. Si el dato viene sin label claro pero es útil, usá el título de la sección del PDF como label; nunca uses un label ficticio.
+    6. NO agregar "clausulas" si el PDF no tiene esos datos. Omití la key entera; no la pongas como array vacío.
+
+    Formato del array:
+     "clausulas": [
+       { "label": "<texto del label tal cual figura en el PDF>", "valor": "<texto del valor tal cual figura en el PDF>" }
+     ]
 11. Patente, motor y chasis siempre en MAYÚSCULA, sin espacios ni guiones en la patente.
 12. Si detectás inconsistencias (ej: fecha_fin antes de fecha_inicio), agregá advertencia a "advertencias_ia".
 
@@ -577,59 +586,55 @@ export interface ResultadoComparacion {
   modo?: 'pdf_nativo' | 'texto_plano'
 }
 
-const SYSTEM_COMPARADOR = `Sos un asistente especializado en comparar dos versiones de una póliza de seguros argentina (la póliza vigente y su renovación de la misma compañía).
+const SYSTEM_COMPARADOR = `Sos un asistente especializado en comparar dos versiones de una póliza de seguros argentina.
 
 Tu tarea es leer los 2 PDFs adjuntos y devolver un JSON con los cambios materiales que detectes. El PAS que asesora al cliente necesita saber qué cambió para poder avisarle antes de que el cliente firme la renovación.
 
-CONTEXTO IMPORTANTE — nombres de coberturas:
-Las compañías usan nombres/códigos comerciales que varían aunque el producto sea el mismo. Por ejemplo, en San Cristóbal "CM", "Premium Max" y "CF" son variantes del mismo producto "Terceros Full". NO marques como cambio material si el nombre cambia pero el nivel de cobertura es equivalente (ej: "CF" → "Premium Max" en la misma compañía = sin cambio). SÍ marcá como material si el nivel real cambia (ej: "CF" → "C" pasa de Terceros Full a Terceros común).
+CONTEXTO — comparación de la misma póliza entre 2 vigencias:
+Los 2 PDFs son de la MISMA póliza en 2 momentos distintos: la vigencia actual y su renovación. Siempre son de la MISMA compañía.
+
+Cada compañía usa sus propios códigos o nombres comerciales para las coberturas contratadas (por ejemplo, la cobertura puede figurar como "CM", "CF", "D", "Terceros Completo", "M-Plus", o cualquier otro identificador propio de esa compañía). Estos códigos varían entre compañías y no tenés que inferir equivalencias entre ellos por tu cuenta.
+
+Regla dura sobre nombres de cobertura:
+- Si el código/nombre de la cobertura contratada cambia entre el PDF viejo y el PDF nuevo, marcalo como cambio material con categoría "Cobertura". Copiá ambos códigos textuales.
+- Dentro de la misma compañía, un cambio de código o nombre casi siempre implica un cambio real de plan (por ejemplo pasar de un plan de responsabilidad civil a un todo riesgo, o viceversa). El PAS necesita saberlo sí o sí.
+- No inventes equivalencias entre nombres. Si el catálogo del CRM (bloque más abajo, cuando esté disponible) provee la equivalencia código → cobertura canónica para la compañía involucrada, usalo. Si no hay catálogo o el código no aparece ahí, reportá exactamente lo que ves sin asumir nada.
 
 QUÉ CONSIDERAR COMO CAMBIO MATERIAL:
-- Cambio de cobertura o plan contratado.
+- Cambio de código/nombre de la cobertura contratada.
 - Cambio de suma asegurada de la póliza o de una cobertura interna.
 - Cambio de responsabilidad civil (RC): monto, sublímite, exclusiones.
 - Cambio de franquicia.
-- Coberturas adicionales agregadas o quitadas (granizo, cristales, robo de ruedas, asistencia mecánica, etc.).
+- Coberturas adicionales agregadas o quitadas.
 - Cambio de sublímites por cobertura.
-- Cambio de zonas geográficas cubiertas (ej: "ya no cubre Chile").
+- Cambio de zonas geográficas cubiertas.
 - Cambio de exclusiones o restricciones.
 - Cambio de moneda (ARS → USD o viceversa).
-- **Cláusulas específicas del contrato** (cláusulas adicionales, endosos incorporados, condiciones particulares, cláusulas de tolerancia, adhesiones a servicios opcionales, ampliaciones o restricciones puntuales). Enumeralas COMPLETAS de ambos PDFs y detectá cuáles fueron agregadas, cuáles quitadas y cuáles modificadas. Estas cláusulas son específicas de la póliza y no son parte de las coberturas estándar — el PAS necesita saber si desapareció una cláusula que le importaba al cliente o si aparecieron nuevas restricciones. Marcá cada cambio con la categoría "Cláusulas".
+- Cláusulas específicas del contrato (condiciones particulares, bonificaciones, descuentos, franquicias específicas, extensiones de cobertura del contrato, adhesiones a servicios opcionales del contrato). Enumeralas de ambos PDFs y detectá cuáles fueron agregadas, cuáles quitadas y cuáles modificadas. Marcá cada cambio con la categoría "Cláusulas".
 
 QUÉ CONSIDERAR COSMÉTICO (marcá igual, pero con tipo 'cosmético'):
 - Número de póliza nuevo (es normal en renovaciones).
 - Fecha de emisión.
 - Número de endoso.
-- Número de recibo, forma de pago si es la misma.
-- Datos del asegurado (dirección, teléfono) si sólo son actualizaciones.
+- Número de recibo.
+- Forma de pago si es la misma.
+- Datos del asegurado (dirección, teléfono) si son solo actualizaciones.
 
-LENGUAJE — MUY IMPORTANTE:
-El PAS es un profesional del rubro. Escribí en tono técnico y factual. Limitate a describir QUÉ cambió, en qué monto o de qué a qué. NO valores el cambio, no digas si es bueno o malo para el cliente. El PAS lo evalúa él.
-
-PALABRAS PROHIBIDAS (no aparecen en el rubro de seguros argentino):
-- "upgrade" / "downgrade" / "downgradear" / "upgradear"
-- "mejora" / "empeora" / "mejor cobertura" / "peor cobertura"
-- "protección" (usar "cobertura")
-- "beneficio" / "beneficios" (usar "cobertura" o "condiciones")
-- "premium" (salvo que sea nombre comercial exacto del producto, como "Premium Max")
-- Adjetivos evaluativos: "mejor", "peor", "conveniente", "favorable", "desfavorable", "positivo", "negativo".
+TONO — MUY IMPORTANTE:
+- El PAS es un profesional del rubro. Escribí en la terminología habitual del rubro tal como aparece en el PDF.
+- Limitate a describir QUÉ cambió, citando los valores exactos que aparecen en cada PDF. No traduzcas términos técnicos ni uses sinónimos genéricos.
+- No valorés el cambio. No digas si es bueno o malo para el cliente. Eso lo evalúa el PAS.
+- No uses palabras valorativas: "mejor", "peor", "mejora", "empeora", "conveniente", "favorable", "desfavorable", "positivo", "negativo", "upgrade", "downgrade", "beneficia", "perjudica".
 
 REGLAS DURAS:
 1. Respondé SOLO con JSON válido, sin texto extra, sin fences.
 2. Los 2 PDFs se te pasan en orden: PRIMERO el PDF viejo (póliza vigente), SEGUNDO el PDF nuevo (renovación).
-3. El campo "resumen" debe ser UNA sola oración, corta y factual. Mencionar QUÉ cambió, no VALORARLO. Máximo 20 palabras.
-   - Ejemplos VÁLIDOS de resumen:
-     · "Se modificaron las sumas aseguradas de las coberturas y el premio."
-     · "Aumentó el sublímite de RC de $30.000.000 a $50.000.000."
-     · "Cambió la cobertura principal de CF a C y se quitó granizo."
-     · "Sin cambios materiales — la renovación mantiene las mismas condiciones."
-   - Ejemplos INVÁLIDOS (no los uses):
-     · "Se detectaron cambios materiales... representa un upgrade en la protección." (palabras prohibidas)
-     · "La renovación mejora significativamente la cobertura." (valoración)
-     · "El cliente sale beneficiado con esta renovación." (valoración)
-4. Sé preciso con montos. Si en el viejo era $30.000.000 y en el nuevo $50.000.000, escribilo exacto.
-5. En "descripcion" también aplicá el mismo tono factual, sin valoraciones ni palabras prohibidas.
-6. Si detectás algo dudoso (no estás seguro si es cambio o no), agregalo con severidad 'baja' y aclará en descripción.
+3. Prohibido inventar montos, porcentajes, fechas o nombres de cobertura que no figuren textualmente en los PDFs.
+4. Copiá las cifras exactas que aparecen en cada PDF, sin redondear.
+5. Copiá los nombres/códigos de cobertura tal cual (letras, códigos, mayúsculas).
+6. El campo "resumen" debe ser UNA sola oración, corta y factual. Máximo 20 palabras. Mencioná QUÉ cambió citando los valores exactos. Si no hay cambios materiales, respondé "Sin cambios materiales — se mantienen las mismas condiciones."
+7. En "descripcion" aplicá el mismo tono factual, sin valoraciones.
+8. Si detectás algo dudoso (no estás seguro si es cambio o no), agregalo con severidad 'baja' y aclará en descripción.
 
 Schema de salida:
 {
@@ -653,7 +658,7 @@ Schema de salida:
 // (extraído con pdf-parse) — sin imágenes, sin layout. Advertimos a la IA
 // sobre posibles errores de tablas y le pedimos marcar como severidad baja
 // cualquier cosa dudosa por orden de columnas.
-const SYSTEM_COMPARADOR_TEXTO = `Sos un asistente especializado en comparar dos versiones de una póliza de seguros argentina (la póliza vigente y su renovación de la misma compañía).
+const SYSTEM_COMPARADOR_TEXTO = `Sos un asistente especializado en comparar dos versiones de una póliza de seguros argentina.
 
 Tu tarea es leer el TEXTO PLANO extraído de 2 PDFs y devolver un JSON con los cambios materiales que detectes. El PAS que asesora al cliente necesita saber qué cambió para poder avisarle antes de que el cliente firme la renovación.
 
@@ -667,45 +672,50 @@ El texto se te pasa en dos bloques delimitados así:
 IMPORTANTE — LIMITACIÓN DEL FORMATO:
 El texto viene de una extracción PDF sin layout. Algunas tablas pueden aparecer con las columnas mezcladas o el orden de lectura alterado. Si detectás un dato ambiguo por posible error de tabla, marcalo con severidad 'baja' y aclará en descripción "posible confusión de columnas — revisar manualmente".
 
-CONTEXTO IMPORTANTE — nombres de coberturas:
-Las compañías usan nombres/códigos comerciales que varían aunque el producto sea el mismo. Por ejemplo, en San Cristóbal "CM", "Premium Max" y "CF" son variantes del mismo producto "Terceros Full". NO marques como cambio material si el nombre cambia pero el nivel de cobertura es equivalente (ej: "CF" → "Premium Max" en la misma compañía = sin cambio). SÍ marcá como material si el nivel real cambia (ej: "CF" → "C" pasa de Terceros Full a Terceros común).
+CONTEXTO — comparación de la misma póliza entre 2 vigencias:
+Los 2 PDFs son de la MISMA póliza en 2 momentos distintos: la vigencia actual y su renovación. Siempre son de la MISMA compañía.
+
+Cada compañía usa sus propios códigos o nombres comerciales para las coberturas contratadas. Estos códigos varían entre compañías y no tenés que inferir equivalencias entre ellos por tu cuenta.
+
+Regla dura sobre nombres de cobertura:
+- Si el código/nombre de la cobertura contratada cambia entre el PDF viejo y el PDF nuevo, marcalo como cambio material con categoría "Cobertura". Copiá ambos códigos textuales.
+- Dentro de la misma compañía, un cambio de código o nombre casi siempre implica un cambio real de plan. El PAS necesita saberlo sí o sí.
+- No inventes equivalencias entre nombres. Si el catálogo del CRM (bloque más abajo, cuando esté disponible) provee la equivalencia código → cobertura canónica para la compañía involucrada, usalo. Si no hay catálogo o el código no aparece ahí, reportá exactamente lo que ves sin asumir nada.
 
 QUÉ CONSIDERAR COMO CAMBIO MATERIAL:
-- Cambio de cobertura o plan contratado.
+- Cambio de código/nombre de la cobertura contratada.
 - Cambio de suma asegurada de la póliza o de una cobertura interna.
 - Cambio de responsabilidad civil (RC): monto, sublímite, exclusiones.
 - Cambio de franquicia.
-- Coberturas adicionales agregadas o quitadas (granizo, cristales, robo de ruedas, asistencia mecánica, etc.).
+- Coberturas adicionales agregadas o quitadas.
 - Cambio de sublímites por cobertura.
-- Cambio de zonas geográficas cubiertas (ej: "ya no cubre Chile").
+- Cambio de zonas geográficas cubiertas.
 - Cambio de exclusiones o restricciones.
 - Cambio de moneda (ARS → USD o viceversa).
-- **Cláusulas específicas del contrato** (cláusulas adicionales, endosos incorporados, condiciones particulares, cláusulas de tolerancia, adhesiones a servicios opcionales, ampliaciones o restricciones puntuales). Enumeralas COMPLETAS de ambos PDFs y detectá cuáles fueron agregadas, cuáles quitadas y cuáles modificadas. Estas cláusulas son específicas de la póliza y no son parte de las coberturas estándar — el PAS necesita saber si desapareció una cláusula que le importaba al cliente o si aparecieron nuevas restricciones. Marcá cada cambio con la categoría "Cláusulas".
+- Cláusulas específicas del contrato (condiciones particulares, bonificaciones, descuentos, franquicias específicas, extensiones de cobertura del contrato, adhesiones a servicios opcionales del contrato). Enumeralas de ambos PDFs y detectá cuáles fueron agregadas, cuáles quitadas y cuáles modificadas. Marcá cada cambio con la categoría "Cláusulas".
 
 QUÉ CONSIDERAR COSMÉTICO (marcá igual, pero con tipo 'cosmético'):
 - Número de póliza nuevo (es normal en renovaciones).
 - Fecha de emisión.
 - Número de endoso.
-- Número de recibo, forma de pago si es la misma.
-- Datos del asegurado (dirección, teléfono) si sólo son actualizaciones.
+- Número de recibo.
+- Forma de pago si es la misma.
+- Datos del asegurado (dirección, teléfono) si son solo actualizaciones.
 
-LENGUAJE — MUY IMPORTANTE:
-El PAS es un profesional del rubro. Escribí en tono técnico y factual. Limitate a describir QUÉ cambió, en qué monto o de qué a qué. NO valores el cambio, no digas si es bueno o malo para el cliente. El PAS lo evalúa él.
-
-PALABRAS PROHIBIDAS (no aparecen en el rubro de seguros argentino):
-- "upgrade" / "downgrade" / "downgradear" / "upgradear"
-- "mejora" / "empeora" / "mejor cobertura" / "peor cobertura"
-- "protección" (usar "cobertura")
-- "beneficio" / "beneficios" (usar "cobertura" o "condiciones")
-- "premium" (salvo que sea nombre comercial exacto del producto, como "Premium Max")
-- Adjetivos evaluativos: "mejor", "peor", "conveniente", "favorable", "desfavorable", "positivo", "negativo".
+TONO — MUY IMPORTANTE:
+- El PAS es un profesional del rubro. Escribí en la terminología habitual del rubro tal como aparece en el PDF.
+- Limitate a describir QUÉ cambió, citando los valores exactos que aparecen en cada PDF. No traduzcas términos técnicos ni uses sinónimos genéricos.
+- No valorés el cambio. No digas si es bueno o malo para el cliente. Eso lo evalúa el PAS.
+- No uses palabras valorativas: "mejor", "peor", "mejora", "empeora", "conveniente", "favorable", "desfavorable", "positivo", "negativo", "upgrade", "downgrade", "beneficia", "perjudica".
 
 REGLAS DURAS:
 1. Respondé SOLO con JSON válido, sin texto extra, sin fences.
-2. El campo "resumen" debe ser UNA sola oración, corta y factual. Mencionar QUÉ cambió, no VALORARLO. Máximo 20 palabras.
-3. Sé preciso con montos. Si en el viejo era $30.000.000 y en el nuevo $50.000.000, escribilo exacto.
-4. En "descripcion" también aplicá el mismo tono factual, sin valoraciones ni palabras prohibidas.
-5. Si detectás algo dudoso (no estás seguro si es cambio o no), agregalo con severidad 'baja' y aclará en descripción.
+2. Prohibido inventar montos, porcentajes, fechas o nombres de cobertura que no figuren textualmente en los PDFs.
+3. Copiá las cifras exactas que aparecen en cada PDF, sin redondear.
+4. Copiá los nombres/códigos de cobertura tal cual (letras, códigos, mayúsculas).
+5. El campo "resumen" debe ser UNA sola oración, corta y factual. Máximo 20 palabras. Mencioná QUÉ cambió citando los valores exactos. Si no hay cambios materiales, respondé "Sin cambios materiales — se mantienen las mismas condiciones."
+6. En "descripcion" aplicá el mismo tono factual, sin valoraciones.
+7. Si detectás algo dudoso (no estás seguro si es cambio o no), agregalo con severidad 'baja' y aclará en descripción.
 
 Schema de salida:
 {
@@ -722,6 +732,45 @@ Schema de salida:
     }
   ]
 }`
+
+/**
+ * Ítem del catálogo de coberturas del CRM para una compañía específica.
+ * El caller lo carga leyendo `catalogos` + `metadata.equivalencias` filtrado
+ * por la compañía involucrada en la comparación.
+ */
+export interface EquivalenciaCoberturaCompania {
+  /** Código o nombre comercial que la compañía usa en sus PDFs (ej: "CF", "CM", "M-Plus"). */
+  codigo_compania: string
+  /** Nombre canónico de la cobertura en el catálogo del CRM (ej: "Terceros Completo"). */
+  nombre_canonico: string
+}
+
+/**
+ * Devuelve el bloque de texto que se concatena al system prompt del comparador
+ * cuando tenemos el catálogo de equivalencias de la compañía involucrada.
+ * Se pega justo después del system fijo; le da a la IA el mapa "código del PDF
+ * → cobertura canónica" para razonar sobre cambios reales de plan sin inventar
+ * equivalencias.
+ *
+ * Si el array está vacío devuelve string vacío (no inyectamos ruido innecesario).
+ */
+function construirBloqueCatalogoCoberturas(
+  companiaNombre: string | null,
+  equivalencias: EquivalenciaCoberturaCompania[],
+): string {
+  if (!equivalencias || equivalencias.length === 0) return ''
+  const lineas = equivalencias
+    .map((e) => `- "${e.codigo_compania}" → ${e.nombre_canonico}`)
+    .join('\n')
+  const companiaLbl = companiaNombre ? ` para ${companiaNombre}` : ''
+  return `
+
+CATÁLOGO DE COBERTURAS DEL CRM${companiaLbl}:
+Este es el mapa oficial de equivalencias entre los códigos/nombres comerciales de la compañía y las coberturas canónicas del CRM. Usalo para resolver el código de cobertura que veas en cada PDF a su cobertura canónica:
+${lineas}
+
+Al citar un cambio de cobertura en el resumen o en el campo "descripcion", mencioná tanto el código del PDF como la cobertura canónica del catálogo cuando la equivalencia esté disponible arriba. Ejemplo de formato: "antes '<código_viejo>' (<cobertura_canónica>), ahora '<código_nuevo>' (<cobertura_canónica>)". Si un código no aparece en el catálogo, reportá solo el código sin inventar la cobertura canónica.`
+}
 
 /**
  * Detecta si un error de la comparación IA fue causado por superar el límite
@@ -741,6 +790,10 @@ function esErrorLimiteTokens(err: any): boolean {
 async function compararPolizasEnTextoPlano(
   rutaPDFViejo: string,
   rutaPDFNuevo: string,
+  opciones?: {
+    companiaNombre?: string | null
+    catalogoCoberturas?: EquivalenciaCoberturaCompania[]
+  },
 ): Promise<ResultadoComparacion> {
   const inicio = Date.now()
   try {
@@ -751,6 +804,13 @@ async function compararPolizasEnTextoPlano(
 
     const prompt = `=== PÓLIZA VIGENTE (VIEJA) ===\n${textoViejo.texto}\n\n=== PÓLIZA NUEVA (RENOVACIÓN) ===\n${textoNuevo.texto}`
 
+    // Inyectamos el catálogo del CRM al system solo si el caller lo trae —
+    // así la IA puede resolver códigos comerciales a nombres canónicos sin
+    // inventar equivalencias.
+    const systemFinal =
+      SYSTEM_COMPARADOR_TEXTO +
+      construirBloqueCatalogoCoberturas(opciones?.companiaNombre ?? null, opciones?.catalogoCoberturas ?? [])
+
     // Resolvemos la familia HAIKU explícitamente (el texto plano es mucho más
     // barato — no hace falta un modelo más grande). Igual llamarClaude puede
     // auto-sustituir si el ID vigente cambió.
@@ -758,7 +818,7 @@ async function compararPolizasEnTextoPlano(
 
     const resultado = await llamarClaude({
       prompt,
-      system: SYSTEM_COMPARADOR_TEXTO,
+      system: systemFinal,
       max_tokens: 3072,
       temperature: 0,
       modelo,
@@ -855,11 +915,22 @@ async function compararPolizasEnTextoPlano(
 export async function compararPolizasConIA(
   rutaPDFViejo: string,
   rutaPDFNuevo: string,
+  opciones?: {
+    companiaNombre?: string | null
+    catalogoCoberturas?: EquivalenciaCoberturaCompania[]
+  },
 ): Promise<ResultadoComparacion> {
   try {
+    // Inyectamos el catálogo del CRM al system solo si el caller lo trae —
+    // así la IA puede resolver códigos comerciales a nombres canónicos sin
+    // inventar equivalencias.
+    const systemFinal =
+      SYSTEM_COMPARADOR +
+      construirBloqueCatalogoCoberturas(opciones?.companiaNombre ?? null, opciones?.catalogoCoberturas ?? [])
+
     const { texto, tokens_input, tokens_output, ms_ia } = await llamarClaudeConPDF(
       rutaPDFViejo,
-      SYSTEM_COMPARADOR,
+      systemFinal,
       'Adjunto dos PDFs. El PRIMERO es la póliza vigente (viejo). El SEGUNDO es la renovación (nuevo). Compará y devolvé el JSON de cambios materiales según el schema del system prompt.',
       { familia: FAMILIA_EXTRACTOR, pdfExtra: rutaPDFNuevo, max_tokens: 3072 },
     )
@@ -899,7 +970,7 @@ export async function compararPolizasConIA(
         mensaje: 'PDF nativo superó límite de tokens — reintentando con texto plano',
         contexto: { error: String(err?.message || err).slice(0, 200) },
       })
-      return compararPolizasEnTextoPlano(rutaPDFViejo, rutaPDFNuevo)
+      return compararPolizasEnTextoPlano(rutaPDFViejo, rutaPDFNuevo, opciones)
     }
 
     return {
