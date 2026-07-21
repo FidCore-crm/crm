@@ -626,7 +626,7 @@ export default function RevisarPDFPage() {
                 />
               </div>
 
-              {/* Datos particulares del contrato (clausulas) — solo eliminar.
+              {/* Condiciones particulares (key JSONB `clausulas`) — solo eliminar.
                   El PAS puede descartar filas irrelevantes antes de aprobar,
                   pero no editar (preserva literalidad del PDF). */}
               <div className="mt-3 pt-3 border-t border-slate-100">

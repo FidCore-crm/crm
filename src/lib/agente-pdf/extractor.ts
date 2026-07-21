@@ -212,21 +212,27 @@ ${construirSeccionTiposRiesgo()}
      • ART / Personas: profesion, actividad, categoria_ocupacion, tiene_beneficiarios
      • Cualquier tipo: observaciones (SOLO para info que no se puede estructurar en una key)
     Regla: si podés convertir la info en una key con nombre claro, hacelo. "observaciones" es el último recurso para texto libre que no encaje en nada estructurado.
-10.b DATOS PARTICULARES DE LA PÓLIZA — CRÍTICO para el PAS.
-    Extraé como key "clausulas" en detalle_tecnico un array de objetos { label, valor } con datos específicos del contrato de ESTA póliza que varían aunque la cobertura contratada sea la misma. Son los datos que el PAS necesita para comparar renovaciones y detectar variaciones sin abrir el PDF.
+10.b CONDICIONES PARTICULARES — CRÍTICO para el PAS.
+    Las condiciones particulares son la parte personalizada del contrato — todo lo que aplica a ESTA póliza en particular y no al marco general del ramo. Se contraponen a las "condiciones generales" (cláusulas estándar aplicables a todos los contratos del mismo tipo de seguro: alcance genérico, exclusiones estándar, plazos legales, procedimientos de resolución). Las condiciones generales NO se extraen; las particulares SÍ, con el límite indicado en la regla 4.
+
+    Extraé como key "clausulas" en detalle_tecnico un array de objetos { label, valor } con condiciones particulares del contrato que el PAS necesita para comparar renovaciones y detectar variaciones sin abrir el PDF.
 
     QUÉ EXTRAER:
-    Cualquier dato del PDF que aparezca como par identificable (concepto → valor) en secciones tipo "Datos relevantes del riesgo", "Condiciones particulares", "Beneficios adicionales", "Cláusulas anexas", "Descuentos y bonificaciones", "Extensiones de cobertura", "Franquicias específicas", o similar. Categorías habituales sin ánimo exhaustivo: bonificaciones aplicadas, descuentos por medidas de seguridad, tipo de franquicia, sublímites específicos del contrato, extensiones geográficas del contrato, zona de riesgo, lugar de guarda, RC ampliada o no, ajustes automáticos, cláusulas de tolerancia por mora, adhesiones a servicios adicionales del contrato.
+    Pares (concepto → valor) que aparezcan como parte de las condiciones particulares del PDF, típicamente en secciones tipo "Datos relevantes del riesgo", "Condiciones particulares", "Beneficios adicionales", "Cláusulas anexas", "Descuentos y bonificaciones", "Extensiones de cobertura", "Franquicias específicas", "Coberturas adicionales", "Sublímites", o similar. Categorías habituales sin ánimo exhaustivo: coberturas adicionales contratadas, bonificaciones aplicadas, descuentos por medidas de seguridad, tipo de franquicia, sublímites específicos del contrato, extensiones geográficas del contrato, zona de riesgo, lugar de guarda, RC ampliada, ajustes automáticos, cláusulas de tolerancia por mora, adhesiones a servicios adicionales del contrato, cesiones de derechos.
 
     REGLAS ESTRICTAS:
     1. TEXTUAL del PDF: "label" y "valor" deben ser copiados exactamente como figuran en el PDF. Sin reformular, sin traducir, sin resumir, sin normalizar, sin corregir mayúsculas/minúsculas, sin agregar contexto.
     2. NO extraer el detalle de qué cubre cada cobertura estándar (Robo Total, Robo Parcial, Daño Total, Incendio, RC, Granizo, Cristales, etc.) — el CRM ya sabe qué cubre cada cobertura del catálogo. Solo interesa lo que varía dentro de esa cobertura.
-    3. NO extraer exclusiones generales de la cobertura, condiciones generales, artículos de la Ley de Seguros, direcciones de aseguradoras, textos administrativos de SSN, información legal general.
-    4. NO extraer datos que ya están estructurados en otras columnas del CRM: nombre del asegurado, DNI/CUIT, dirección del asegurado, número de póliza, vigencia, suma asegurada global, patente, marca, modelo, motor, chasis, año, uso — todo eso va en sus keys core, NO en "clausulas".
+    3. NO extraer condiciones generales: alcance genérico de la cobertura, exclusiones estándar, artículos de la Ley de Seguros, procedimientos generales de denuncia, plazos legales, direcciones de aseguradoras, textos administrativos de SSN, información legal general del ramo.
+    4. NO extraer condiciones particulares que ya están estructuradas en columnas core del CRM. Aunque conceptualmente son parte de las condiciones particulares del contrato, estos datos viven en columnas propias y duplicarlos en "clausulas" no aporta:
+       • Datos identificatorios: nombre/apellido/razón social del asegurado y tomador, DNI/CUIT, domicilio, email, teléfono.
+       • Datos de la póliza: número de póliza, número de endoso, fecha de inicio, fecha de fin, moneda, suma asegurada global.
+       • Datos del bien asegurado: patente, marca, modelo, año, motor, chasis, uso (automotor); calle, número, localidad, provincia, código postal, superficie (integrales); y todas las keys core listadas en la regla 10.
+       • Costo y forma de pago: refacturación (mensual/anual/etc), medio de pago.
     5. NO inventar un "label" si el PDF no lo trae explícito. Si el dato viene sin label claro pero es útil, usá el título de la sección del PDF como label; nunca uses un label ficticio.
     6. NO agregar "clausulas" si el PDF no tiene esos datos. Omití la key entera; no la pongas como array vacío.
 
-    Formato del array:
+    Formato del array (el nombre de key "clausulas" se mantiene por retrocompat con datos ya cargados; conceptualmente es la lista de condiciones particulares):
      "clausulas": [
        { "label": "<texto del label tal cual figura en el PDF>", "valor": "<texto del valor tal cual figura en el PDF>" }
      ]

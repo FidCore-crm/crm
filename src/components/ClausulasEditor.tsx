@@ -4,12 +4,17 @@
  * Editor de la key `clausulas` del `detalle_tecnico` de un riesgo.
  *
  * `clausulas` es un array `{ label, valor }[]` que la IA extrae al leer el PDF
- * (regla 10.b del prompt SYSTEM_POLIZA — datos particulares del contrato como
- * bonificaciones, franquicias específicas, extensiones de cobertura). La regla
- * de v1.0.155 es que los textos van TEXTUAL del PDF (sin reformular). Por eso
- * el editor es de **solo lectura + eliminar**: preservamos literalidad pero
- * permitimos que el PAS descarte filas que no le aportan (aprovechar espacio,
- * información no relevante para la operación diaria, etc.).
+ * (regla 10.b del prompt SYSTEM_POLIZA — condiciones particulares del contrato:
+ * coberturas adicionales, bonificaciones, franquicias específicas, extensiones
+ * de cobertura, sublímites, cláusulas especiales). La regla de v1.0.155 es que
+ * los textos van TEXTUAL del PDF (sin reformular). Por eso el editor es de
+ * **solo lectura + eliminar**: preservamos literalidad pero permitimos que el
+ * PAS descarte filas que no le aportan (aprovechar espacio, información no
+ * relevante para la operación diaria, etc.).
+ *
+ * NOTA sobre el nombre "clausulas" de la key JSONB: se mantiene por retrocompat
+ * con pólizas ya cargadas. La UI visible al PAS habla de "Condiciones
+ * particulares" — término correcto en el rubro (ver v1.0.166).
  *
  * La key está reservada en `KEYS_RESERVADAS` de `detalle-tecnico-extras.ts` —
  * NO aparece en la subsección "Datos adicionales".
@@ -61,10 +66,10 @@ export function ClausulasEditor({ valor, onChange }: Props) {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-          Datos particulares del contrato
+          Condiciones particulares
         </span>
         <span className="text-2xs text-slate-500 italic">
-          Cargados textualmente del PDF · usá la X para descartar filas que no necesites
+          Cargadas textualmente del PDF · usá la X para descartar filas que no necesites
         </span>
       </div>
 

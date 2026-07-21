@@ -947,7 +947,7 @@ export default function FichaPolizaPage() {
                             {clausulasObj && (
                               <div className="flex flex-col gap-1.5 pt-2 mt-1 border-t border-slate-100">
                                 <span className="text-2xs text-slate-600 font-semibold uppercase tracking-wide">
-                                  Datos particulares del contrato
+                                  Condiciones particulares
                                 </span>
                                 <ul className="flex flex-col gap-1">
                                   {clausulasObj.map((c, i) => (

@@ -805,10 +805,11 @@ export default function EditarPolizaPage() {
               />
             </div>
 
-            {/* Datos particulares del contrato (clausulas) — solo eliminar.
-                La IA los guarda TEXTUAL del PDF; no permitimos editar para
+            {/* Condiciones particulares (key JSONB `clausulas`) — solo eliminar.
+                La IA las guarda TEXTUAL del PDF; no permitimos editar para
                 preservar literalidad. Sí se puede descartar filas que el PAS
-                no considere útiles. Se guarda en detalle_tecnico.clausulas. */}
+                no considere útiles. Se guarda en detalle_tecnico.clausulas
+                (nombre de key legacy — la UI usa "Condiciones particulares"). */}
             <div className="col-span-2">
               <ClausulasEditor
                 valor={datosRiesgo.detalle_dinamico?.clausulas}

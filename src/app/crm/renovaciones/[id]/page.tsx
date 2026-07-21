@@ -861,7 +861,7 @@ export default function RenovarPolizaPage() {
             />
           </div>
 
-          {/* Datos particulares del contrato (clausulas) — solo eliminar,
+          {/* Condiciones particulares (key JSONB `clausulas`) — solo eliminar,
               preserva literalidad del PDF original. Se mantienen desde la
               póliza origen; el PAS puede descartar las que no necesita. */}
           <div className="col-span-2">
