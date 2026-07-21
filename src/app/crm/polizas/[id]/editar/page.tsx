@@ -18,6 +18,7 @@ import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { tipoRenderForm, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 import { CoberturasDesglosadasEditor, type CoberturaDesglosada } from '@/components/CoberturasDesglosadasEditor'
+import { ClausulasEditor, type Clausula } from '@/components/ClausulasEditor'
 import { keysExtrasDeDetalle, labelHumanoDeKey, valorAString } from '@/lib/detalle-tecnico-extras'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
 import { opcionesMedioPago } from '@/lib/medios-pago'
@@ -801,6 +802,25 @@ export default function EditarPolizaPage() {
                   setR('detalle_dinamico', dt)
                 }}
                 moneda={poliza.moneda}
+              />
+            </div>
+
+            {/* Datos particulares del contrato (clausulas) — solo eliminar.
+                La IA los guarda TEXTUAL del PDF; no permitimos editar para
+                preservar literalidad. Sí se puede descartar filas que el PAS
+                no considere útiles. Se guarda en detalle_tecnico.clausulas. */}
+            <div className="col-span-2">
+              <ClausulasEditor
+                valor={datosRiesgo.detalle_dinamico?.clausulas}
+                onChange={(nuevo: Clausula[]) => {
+                  const dt = { ...(datosRiesgo.detalle_dinamico ?? {}) }
+                  if (nuevo.length === 0) {
+                    delete dt.clausulas
+                  } else {
+                    dt.clausulas = nuevo
+                  }
+                  setR('detalle_dinamico', dt)
+                }}
               />
             </div>
 

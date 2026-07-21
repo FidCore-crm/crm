@@ -13,6 +13,7 @@ import SelectorCatalogoPDF from '@/components/agente-pdf/SelectorCatalogoPDF'
 import ClienteExistenteBanner, { AccionCliente } from '@/components/agente-pdf/ClienteExistenteBanner'
 import ComparacionEnRevision from '@/components/agente-pdf/ComparacionEnRevision'
 import { CoberturasDesglosadasEditor, type CoberturaDesglosada } from '@/components/CoberturasDesglosadasEditor'
+import { ClausulasEditor, type Clausula } from '@/components/ClausulasEditor'
 import type {
   DatosExtraidosPoliza,
   DatosExtraidosEndoso,
@@ -622,6 +623,28 @@ export default function RevisarPDFPage() {
                     })
                   }}
                   moneda={d.poliza?.moneda ?? 'ARS'}
+                />
+              </div>
+
+              {/* Datos particulares del contrato (clausulas) — solo eliminar.
+                  El PAS puede descartar filas irrelevantes antes de aprobar,
+                  pero no editar (preserva literalidad del PDF). */}
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <ClausulasEditor
+                  valor={d.riesgo?.detalle_tecnico?.clausulas}
+                  onChange={(nuevo: Clausula[]) => {
+                    setDatos(prev => {
+                      if (!prev) return prev
+                      const p = prev as DatosExtraidosPoliza
+                      const dt = { ...(p.riesgo.detalle_tecnico || {}) }
+                      if (nuevo.length === 0) {
+                        delete dt.clausulas
+                      } else {
+                        dt.clausulas = nuevo
+                      }
+                      return { ...p, riesgo: { ...p.riesgo, detalle_tecnico: dt } }
+                    })
+                  }}
                 />
               </div>
             </SeccionCard>

@@ -20,6 +20,7 @@ import { EstadoCarga } from '@/components/EstadoCarga'
 import { tipoRenderForm, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
 import { CoberturasDesglosadasEditor, type CoberturaDesglosada } from '@/components/CoberturasDesglosadasEditor'
+import { ClausulasEditor, type Clausula } from '@/components/ClausulasEditor'
 import { keysExtrasDeDetalle, labelHumanoDeKey, valorAString } from '@/lib/detalle-tecnico-extras'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
 import { opcionesMedioPago } from '@/lib/medios-pago'
@@ -857,6 +858,24 @@ export default function RenovarPolizaPage() {
                 setR('detalle_dinamico', dt)
               }}
               moneda={moneda}
+            />
+          </div>
+
+          {/* Datos particulares del contrato (clausulas) — solo eliminar,
+              preserva literalidad del PDF original. Se mantienen desde la
+              póliza origen; el PAS puede descartar las que no necesita. */}
+          <div className="col-span-2">
+            <ClausulasEditor
+              valor={riesgo.detalle_dinamico?.clausulas}
+              onChange={(nuevo: Clausula[]) => {
+                const dt = { ...(riesgo.detalle_dinamico ?? {}) }
+                if (nuevo.length === 0) {
+                  delete dt.clausulas
+                } else {
+                  dt.clausulas = nuevo
+                }
+                setR('detalle_dinamico', dt)
+              }}
             />
           </div>
 
