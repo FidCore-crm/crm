@@ -146,6 +146,33 @@ export function nombreCompleto(apellido: string, nombre: string | null, razonSoc
   return `${apellido}${nombre ? ', ' + nombre : ''}`
 }
 
+/**
+ * Devuelve el primer nombre de una persona (primer token del string).
+ *
+ * Uso principal: vocativos ("Hola X", "Estimado X") en emails, WhatsApp,
+ * portal del asegurado y cualquier superficie donde saludar con el nombre
+ * completo del asegurado suena raro (ej: "Hola Juan Alberto Maximiliano" vs
+ * "Hola Juan").
+ *
+ * NO usar en referencias formales/documentales (PDF de denuncia, bitácora
+ * interna, notificaciones al PAS, campos de datos del asegurado en formularios)
+ * — ahí el nombre completo es el dato correcto.
+ *
+ * Ejemplos:
+ *   "Juan Alberto Maximiliano" → "Juan"
+ *   "María de los Ángeles"     → "María"
+ *   "Juan-Carlos"              → "Juan-Carlos"  (guiones son parte del token)
+ *   ""                         → ""
+ *   "   "                      → ""
+ *   null / undefined           → ""
+ */
+export function primerNombre(nombre: string | null | undefined): string {
+  if (!nombre) return ''
+  const s = String(nombre).trim()
+  if (!s) return ''
+  return s.split(/\s+/)[0] ?? ''
+}
+
 // Badge class según estado
 export function getBadgeClase(estado: string): string {
   const mapa: Record<string, string> = {

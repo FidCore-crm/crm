@@ -13,7 +13,7 @@ import { parseUserAgent, etiquetaBrowserOS, etiquetaDispositivo } from '@/lib/pa
 import { logger } from '@/lib/errores'
 import { validarDNI, validarPatente } from '@/lib/importacion/validators'
 import { validarYNormalizarSiniestro } from '@/lib/siniestros-validacion'
-import { hoyAR } from '@/lib/utils'
+import { hoyAR, primerNombre } from '@/lib/utils'
 import { registrarEventoBitacoraSiniestro } from '@/lib/bitacora-siniestro'
 import {
   construirDetalleSiniestro,
@@ -1063,7 +1063,7 @@ function construirEmailCliente(args: {
           <p style="margin:0;color:#64748b;font-size:13px;">Número de caso</p>
           <p style="margin:4px 0 0;color:${tonos.base};font-size:22px;font-weight:bold;">${numeroCaso}</p>
         </div>
-        <p style="color:#334155;">Hola <strong>${persona.nombre || ''} ${persona.apellido}</strong>,</p>
+        <p style="color:#334155;">Hola <strong>${primerNombre(persona.nombre) || persona.apellido}</strong>,</p>
         <p style="color:#334155;">Tu denuncia de siniestro fue registrada correctamente. A continuación, el resumen:</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0;">
           <tr><td style="padding:6px 12px;color:#64748b;font-size:13px;">Póliza</td><td style="padding:6px 12px;font-weight:500;">${poliza.numero_poliza}</td></tr>

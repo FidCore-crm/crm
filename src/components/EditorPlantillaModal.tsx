@@ -197,11 +197,21 @@ export default function EditorPlantillaModal({ codigo, onClose, onSaved }: Props
               <p className="text-2xs text-slate-600 uppercase font-medium mt-2">Variables disponibles</p>
               <div className="flex flex-wrap gap-1 mt-1">
                 {plantilla.variables_disponibles.map((v) => (
-                  <span key={v} className="text-2xs bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-mono">
+                  <span
+                    key={v}
+                    title={v === 'nombre' ? 'Solo el primer nombre del asegurado (ej: "Juan"). Ideal para saludos.' : undefined}
+                    className="text-2xs bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-mono"
+                  >
                     {`{{${v}}}`}
                   </span>
                 ))}
               </div>
+              {plantilla.variables_disponibles.includes('nombre') && (
+                <p className="text-2xs text-slate-500 mt-1.5 leading-relaxed">
+                  <span className="font-mono">{'{{nombre}}'}</span> es solo el primer nombre (ej: "Juan"), ideal para saludos.
+                  Si necesitás el nombre completo, usá <span className="font-mono">{'{{nombre_completo}}'}</span>.
+                </p>
+              )}
             </div>
 
             {/* Campos editables */}

@@ -29,7 +29,7 @@ interface Props {
 }
 
 const VARIABLES_BASE = [
-  '{{nombre}}', '{{apellido}}', '{{email}}', '{{telefono}}',
+  '{{nombre}}', '{{nombre_completo}}', '{{apellido}}', '{{email}}', '{{telefono}}',
   '{{organizacion_nombre}}', '{{organizacion_telefono}}', '{{organizacion_email}}',
   '{{titulo}}', '{{cuerpo_mensaje}}',
 ]
@@ -228,6 +228,10 @@ export default function ModalEditarMailingPlantilla({ plantilla, onCerrar, onGua
                 </button>
               ))}
             </div>
+            <p className="text-2xs text-slate-500 mt-1.5 leading-relaxed">
+              <span className="font-mono">{'{{nombre}}'}</span> es solo el primer nombre del asegurado (ideal para saludos: "Hola Juan!").
+              Usá <span className="font-mono">{'{{nombre_completo}}'}</span> si necesitás el nombre completo tal como está cargado en la ficha.
+            </p>
           </div>
 
           {/* Asunto */}

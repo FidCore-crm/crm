@@ -8,6 +8,7 @@
  */
 
 import { getSupabaseClient } from '@/lib/supabase/client'
+import { primerNombre } from '@/lib/utils'
 
 export type CodigoPlantillaWhatsapp =
   | 'portal_cliente_acceso'
@@ -85,6 +86,31 @@ export function renderizarPlantillaWhatsapp(
 }
 
 /**
+ * Normaliza el par (nombre, nombre_completo) para vocativos del asegurado.
+ * Convención v1.0.167: `{{nombre}}` = primer nombre solo (evita "Hola Juan
+ * Alberto Maximiliano"). `{{nombre_completo}}` disponible para plantillas
+ * que necesiten explícitamente el nombre completo.
+ *
+ * Los callers legacy pasan `vars.nombre` con el nombre completo del asegurado
+ * — se normaliza acá al primer nombre y el valor original se preserva en
+ * `nombre_completo` para retrocompat con plantillas que dependan de él.
+ *
+ * Idempotente: si el caller ya pasó `nombre_completo` explícito, se respeta.
+ * Si el caller pasó un `nombre` ya sanitizado, aplicar primerNombre otra vez
+ * devuelve el mismo valor.
+ */
+function normalizarVarsNombre(
+  vars: Record<string, string | null | undefined>,
+): Record<string, string | null | undefined> {
+  const nombreOriginal = vars.nombre
+  return {
+    ...vars,
+    nombre: primerNombre(nombreOriginal ?? ''),
+    nombre_completo: vars.nombre_completo ?? (nombreOriginal ?? ''),
+  }
+}
+
+/**
  * Helper principal: dado el código de plantilla y variables, devuelve la URL
  * `https://wa.me/...?text=...` lista para `window.open()`.
  *
@@ -97,6 +123,11 @@ export async function construirUrlWhatsapp(
   telefono: string | null | undefined,
   vars: Record<string, string | null | undefined>,
 ): Promise<string> {
+  // Normalizamos las vars una sola vez al arranque: `{{nombre}}` pasa a ser
+  // el primer nombre del asegurado (vocativo). Se preserva el nombre completo
+  // en `{{nombre_completo}}` para plantillas que lo necesiten.
+  const varsNormalizadas = normalizarVarsNombre(vars)
+
   let mensaje = ''
   try {
     const plantillas = await cargarPlantillas()
@@ -105,7 +136,7 @@ export async function construirUrlWhatsapp(
       // Auto-completar el nombre del PAS u organización si el caller no lo pasó.
       const varsCompletas = {
         organizacion_nombre: organizacionNombre,
-        ...vars,
+        ...varsNormalizadas,
       }
       mensaje = renderizarPlantillaWhatsapp(plantilla.mensaje, varsCompletas)
     }
@@ -113,9 +144,9 @@ export async function construirUrlWhatsapp(
     // ignoramos: caemos al fallback
   }
 
-  // Fallback si no hay plantilla cargable: mensaje crudo con nombre.
+  // Fallback si no hay plantilla cargable: mensaje crudo con nombre (ya normalizado).
   if (!mensaje) {
-    const nombre = vars.nombre || ''
+    const nombre = varsNormalizadas.nombre || ''
     mensaje = nombre
       ? `Hola ${nombre}, te contactamos.`
       : 'Hola, te contactamos.'
@@ -135,15 +166,16 @@ export function construirUrlWhatsappSync(
   telefono: string | null | undefined,
   vars: Record<string, string | null | undefined>,
 ): string {
+  const varsNormalizadas = normalizarVarsNombre(vars)
   let mensaje = ''
   if (cache) {
     const plantilla = cache.get(codigo)
     if (plantilla) {
-      mensaje = renderizarPlantillaWhatsapp(plantilla.mensaje, vars)
+      mensaje = renderizarPlantillaWhatsapp(plantilla.mensaje, varsNormalizadas)
     }
   }
   if (!mensaje) {
-    const nombre = vars.nombre || ''
+    const nombre = varsNormalizadas.nombre || ''
     mensaje = nombre ? `Hola ${nombre}, te contactamos.` : 'Hola, te contactamos.'
   }
   const tel = (telefono ?? '').replace(/\D/g, '')

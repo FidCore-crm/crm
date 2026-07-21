@@ -96,6 +96,8 @@ export default function WhatsappPlantillasSection() {
           Mensajes pre-armados que se cargan al abrir WhatsApp desde el CRM. Las variables
           (<span className="font-mono">{'{{nombre}}'}</span>, <span className="font-mono">{'{{numero_poliza}}'}</span>, etc.)
           se reemplazan con datos reales antes de abrir wa.me.
+          <br />
+          <span className="font-mono">{'{{nombre}}'}</span> es solo el primer nombre del asegurado (ej: "Juan"). Si necesitás el nombre completo, usá <span className="font-mono">{'{{nombre_completo}}'}</span>.
         </p>
 
         <div className="flex flex-col gap-2">

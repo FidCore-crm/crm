@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabase/server'
-import { formatFechaLocalLarga, diasHastaVencimiento } from '@/lib/utils'
+import { formatFechaLocalLarga, diasHastaVencimiento, primerNombre } from '@/lib/utils'
 
 /**
  * Reemplaza {{variable}} por su valor. Si falta, deja vacío.
@@ -21,8 +21,13 @@ export async function obtenerVariablesPersona(personaId: string): Promise<Record
 
   if (!data) return {}
 
+  // `{{nombre}}` = solo el primer nombre — usado en vocativos ("Hola Juan!"
+  // suena mejor que "Hola Juan Alberto Maximiliano!"). Convención v1.0.167.
+  // `{{nombre_completo}}` disponible como variable alternativa para plantillas
+  // que necesiten explícitamente el nombre completo tal cual está en DB.
   return {
-    nombre: data.nombre || '',
+    nombre: primerNombre(data.nombre),
+    nombre_completo: data.nombre || '',
     apellido: data.apellido || '',
     email: data.email || '',
     telefono: data.telefono || '',
