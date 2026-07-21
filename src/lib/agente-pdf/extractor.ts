@@ -149,7 +149,18 @@ function traducirErrorExtractor(err: any): string {
   if (/timeout|timed out/.test(msg)) {
     return 'La IA tardó demasiado en responder. Probá de nuevo; si se repite, el PDF puede ser muy largo.'
   }
+  // Error específico de nuestro helper cuando detectamos stop_reason=max_tokens.
+  // Ya viene con mensaje humano — pasar tal cual.
+  if (mensajeCrudo.startsWith('La IA no pudo devolver la respuesta completa')) {
+    return mensajeCrudo
+  }
   if (/json/.test(msg) && /malformed|parse|invalid/.test(msg)) {
+    // Los "Expected ',' or ']' after array element" son casi siempre truncamiento
+    // por max_tokens que no detectamos (el SDK igualó el status a 200 pero cortó
+    // a mitad del JSON). Damos mensaje operativo.
+    if (/expected\s*['`]?,['`]?\s*or\s*['`]?\]['`]?/i.test(msg) || /unterminated|unexpected end/i.test(msg)) {
+      return `La IA devolvió una respuesta incompleta (probablemente el PDF genera más datos de los que caben en el límite del modelo). Probá con un PDF más chico o dividí el documento en secciones.`
+    }
     return `La IA devolvió una respuesta que no pudimos interpretar. Probá cargar el PDF otra vez. Detalle técnico: ${mensajeCrudo.slice(0, 200)}`
   }
   if (mensajeCrudo.startsWith('La IA devolvió')) {
@@ -394,7 +405,12 @@ async function llamarClaudeConPDF(
 
       const requestBody: any = {
         model: modelo,
-        max_tokens: opciones?.max_tokens ?? 2048,
+        // 8192 tokens de output ≈ 24-28k caracteres de JSON estructurado.
+        // Suficiente para pólizas integrales complejas con muchas condiciones
+        // particulares + coberturas desglosadas. Antes era 2048, que se
+        // quedaba corto y la IA truncaba a mitad del array de clausulas
+        // devolviendo JSON malformado (ver [[fix-max-tokens-extractor-truncaba-json]]).
+        max_tokens: opciones?.max_tokens ?? 8192,
         system,
         messages: [{ role: 'user', content: contenido }],
       }
@@ -449,6 +465,29 @@ async function llamarClaudeConPDF(
 
   const tokensInput = respuesta.usage?.input_tokens ?? 0
   const tokensOutput = respuesta.usage?.output_tokens ?? 0
+
+  // Detección explícita de truncamiento por max_tokens. Si esto pasa, la IA
+  // cortó la respuesta a mitad de un array/objeto y el JSON queda malformado.
+  // Loggeamos con contexto útil y tiramos un error humano para que el caller
+  // (extraerDatosPoliza / compararPolizasConIA) lo pueda traducir.
+  if (respuesta.stop_reason === 'max_tokens') {
+    const maxTokensPedidos = opciones?.max_tokens ?? 8192
+    logger.warn({
+      modulo: 'agente-pdf',
+      mensaje: 'Respuesta de la IA truncada por max_tokens',
+      contexto: {
+        modelo,
+        max_tokens_pedidos: maxTokensPedidos,
+        tokens_input: tokensInput,
+        tokens_output: tokensOutput,
+        primeros_200_chars: texto.slice(0, 200),
+      },
+    })
+    throw new Error(
+      `La IA no pudo devolver la respuesta completa porque el PDF genera más datos de los que caben en el límite del modelo (${tokensOutput} tokens de output, límite ${maxTokensPedidos}). ` +
+      `Probá con un PDF más chico o dividí el documento en secciones.`,
+    )
+  }
 
   // Reportar a las estadísticas globales (mensuales + totales)
   const costoInterno =
@@ -846,7 +885,10 @@ async function compararPolizasEnTextoPlano(
     const resultado = await llamarClaude({
       prompt,
       system: systemFinal,
-      max_tokens: 3072,
+      // 4096 tokens de output — margen para pólizas con muchos cambios
+      // materiales detectados. Antes era 3072; en comparaciones de integrales
+      // complejos podía truncarse.
+      max_tokens: 4096,
       temperature: 0,
       modelo,
       response_format: 'json',
@@ -959,7 +1001,7 @@ export async function compararPolizasConIA(
       rutaPDFViejo,
       systemFinal,
       'Adjunto dos PDFs. El PRIMERO es la póliza vigente (viejo). El SEGUNDO es la renovación (nuevo). Compará y devolvé el JSON de cambios materiales según el schema del system prompt.',
-      { familia: FAMILIA_EXTRACTOR, pdfExtra: rutaPDFNuevo, max_tokens: 3072 },
+      { familia: FAMILIA_EXTRACTOR, pdfExtra: rutaPDFNuevo, max_tokens: 4096 },
     )
 
     logger.info({
