@@ -17,6 +17,7 @@ import { validarPatente } from '@/lib/importacion/validators'
 import BuscadorPersona from '@/components/BuscadorPersona'
 import { tipoRenderForm } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
+import { CoberturasDesglosadasEditor, type CoberturaDesglosada } from '@/components/CoberturasDesglosadasEditor'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
 import { opcionesMedioPago } from '@/lib/medios-pago'
 import { vigenciaTextoDesdeFechas } from '@/lib/vigencia'
@@ -797,6 +798,25 @@ function NuevaPolizaContent() {
                 placeholder="Info libre sobre el bien (sublímites, cláusulas específicas, condiciones particulares que no encajan en los campos)..."
               />
             </Campo>
+
+            {/* Coberturas desglosadas — útil para pólizas integrales (hogar,
+                comercio, consorcio) donde cada sub-cobertura tiene su propia
+                suma asegurada. Se guarda en detalle_tecnico.coberturas_desglosadas. */}
+            <div className="col-span-2">
+              <CoberturasDesglosadasEditor
+                valor={riesgo.detalle_dinamico?.coberturas_desglosadas}
+                onChange={(nuevo: CoberturaDesglosada[]) => {
+                  const dt = { ...(riesgo.detalle_dinamico ?? {}) }
+                  if (nuevo.length === 0) {
+                    delete dt.coberturas_desglosadas
+                  } else {
+                    dt.coberturas_desglosadas = nuevo
+                  }
+                  setR('detalle_dinamico', dt)
+                }}
+                moneda={poliza.moneda}
+              />
+            </div>
           </div>
         </div>
       )}

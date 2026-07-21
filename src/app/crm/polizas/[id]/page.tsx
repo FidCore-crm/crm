@@ -869,16 +869,25 @@ export default function FichaPolizaPage() {
                           && dt.clausulas.every((c: any) => c && typeof c === 'object' && 'label' in c && 'valor' in c)
                           ? (dt.clausulas as { label: string; valor: string }[])
                           : null
-                        const entriesSinClausulas = clausulasObj
-                          ? entries.filter(([k]) => k !== 'clausulas')
-                          : entries
+                        // `coberturas_desglosadas` (sub-coberturas con suma
+                        // asegurada propia — típico integrales). Se renderea
+                        // como tabla aparte con Cobertura / Suma / Notas.
+                        const coberturasDesglosadasArr = Array.isArray(dt.coberturas_desglosadas)
+                          && dt.coberturas_desglosadas.length > 0
+                          && dt.coberturas_desglosadas.every((c: any) => c && typeof c === 'object' && 'cobertura' in c)
+                          ? (dt.coberturas_desglosadas as Array<{ cobertura: string; suma_asegurada: number | null; notas?: string | null }>)
+                          : null
+                        const entriesSinEspeciales = entries.filter(
+                          ([k]) => k !== 'clausulas' && k !== 'coberturas_desglosadas',
+                        )
                         const esLargo = (k: string, v: unknown) => {
                           if (k === 'observaciones' || k === 'observaciones_bien' || k === 'notas') return true
                           if (typeof v !== 'string') return false
                           return v.length > 60 || v.includes('\n')
                         }
-                        const cortos = entriesSinClausulas.filter(([k, v]) => !esLargo(k, v))
-                        const largos = entriesSinClausulas.filter(([k, v]) => esLargo(k, v))
+                        const cortos = entriesSinEspeciales.filter(([k, v]) => !esLargo(k, v))
+                        const largos = entriesSinEspeciales.filter(([k, v]) => esLargo(k, v))
+                        const monedaPoliza = (poliza.moneda as string) || 'ARS'
                         return (
                           <>
                             {cortos.map(([k, v]) => (
@@ -901,6 +910,40 @@ export default function FichaPolizaPage() {
                                 </p>
                               </div>
                             ))}
+                            {coberturasDesglosadasArr && (
+                              <div className="flex flex-col gap-1.5 pt-2 mt-1 border-t border-slate-100">
+                                <span className="text-2xs text-slate-600 font-semibold uppercase tracking-wide">
+                                  Coberturas contratadas
+                                </span>
+                                <div className="border border-slate-200 rounded overflow-hidden">
+                                  <table className="w-full text-xs">
+                                    <thead className="bg-slate-50 border-b border-slate-200">
+                                      <tr>
+                                        <th className="text-left px-2 py-1 font-semibold text-slate-700">Cobertura</th>
+                                        <th className="text-right px-2 py-1 font-semibold text-slate-700">Suma asegurada</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {coberturasDesglosadasArr.map((c, i) => (
+                                        <tr key={i} className="border-t border-slate-100 first:border-t-0 align-top">
+                                          <td className="px-2 py-1 text-slate-700">
+                                            <div>{c.cobertura || '—'}</div>
+                                            {c.notas && (
+                                              <div className="text-2xs text-slate-600 italic mt-0.5">{c.notas}</div>
+                                            )}
+                                          </td>
+                                          <td className="px-2 py-1 text-slate-700 font-mono font-medium text-right whitespace-nowrap">
+                                            {typeof c.suma_asegurada === 'number' && c.suma_asegurada > 0
+                                              ? formatMoneda(c.suma_asegurada, monedaPoliza)
+                                              : '—'}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
                             {clausulasObj && (
                               <div className="flex flex-col gap-1.5 pt-2 mt-1 border-t border-slate-100">
                                 <span className="text-2xs text-slate-600 font-semibold uppercase tracking-wide">

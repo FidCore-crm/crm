@@ -19,6 +19,7 @@ import { validarPatente } from '@/lib/importacion/validators'
 import { EstadoCarga } from '@/components/EstadoCarga'
 import { tipoRenderForm, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
+import { CoberturasDesglosadasEditor, type CoberturaDesglosada } from '@/components/CoberturasDesglosadasEditor'
 import { keysExtrasDeDetalle, labelHumanoDeKey, valorAString } from '@/lib/detalle-tecnico-extras'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
 import { opcionesMedioPago } from '@/lib/medios-pago'
@@ -838,6 +839,26 @@ export default function RenovarPolizaPage() {
               placeholder="Info libre sobre el bien (sublímites, cláusulas específicas, condiciones particulares que no encajan en los campos)..."
             />
           </Campo>
+
+          {/* Coberturas desglosadas — se preserva desde la póliza origen y se
+              puede ajustar en la renovación (típico integrales donde las sumas
+              se actualizan año a año). Se guarda en detalle_tecnico.
+              coberturas_desglosadas del riesgo. */}
+          <div className="col-span-2">
+            <CoberturasDesglosadasEditor
+              valor={riesgo.detalle_dinamico?.coberturas_desglosadas}
+              onChange={(nuevo: CoberturaDesglosada[]) => {
+                const dt = { ...(riesgo.detalle_dinamico ?? {}) }
+                if (nuevo.length === 0) {
+                  delete dt.coberturas_desglosadas
+                } else {
+                  dt.coberturas_desglosadas = nuevo
+                }
+                setR('detalle_dinamico', dt)
+              }}
+              moneda={moneda}
+            />
+          </div>
 
           {/* Datos adicionales — keys que la IA agregó y no están en el schema
               hardcodeado del render tipo. Ver detalle-tecnico-extras.ts. */}

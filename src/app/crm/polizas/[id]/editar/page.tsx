@@ -17,6 +17,7 @@ import { BannerError } from '@/components/BannerError'
 import { PresenciaEnFicha } from '@/components/PresenciaEnFicha'
 import { tipoRenderForm, obtenerTipoRiesgo } from '@/lib/tipos-riesgo'
 import { CamposBienAseguradoDinamico, validarCamposDinamicos } from '@/components/CamposBienAseguradoDinamico'
+import { CoberturasDesglosadasEditor, type CoberturaDesglosada } from '@/components/CoberturasDesglosadasEditor'
 import { keysExtrasDeDetalle, labelHumanoDeKey, valorAString } from '@/lib/detalle-tecnico-extras'
 import { opcionesRefacturacion } from '@/lib/refacturaciones'
 import { opcionesMedioPago } from '@/lib/medios-pago'
@@ -781,6 +782,27 @@ export default function EditarPolizaPage() {
                 placeholder="Info libre sobre el bien (sublímites, cláusulas específicas, condiciones particulares que no encajan en los campos)..."
               />
             </Campo>
+
+            {/* Coberturas desglosadas — para pólizas con múltiples sub-coberturas
+                cada una con su suma asegurada propia (típico integrales: hogar,
+                comercio, consorcio). La IA la puebla al leer el PDF; el PAS puede
+                agregar, editar o eliminar filas. Se guarda en detalle_tecnico.
+                coberturas_desglosadas del riesgo. */}
+            <div className="col-span-2">
+              <CoberturasDesglosadasEditor
+                valor={datosRiesgo.detalle_dinamico?.coberturas_desglosadas}
+                onChange={(nuevo: CoberturaDesglosada[]) => {
+                  const dt = { ...(datosRiesgo.detalle_dinamico ?? {}) }
+                  if (nuevo.length === 0) {
+                    delete dt.coberturas_desglosadas
+                  } else {
+                    dt.coberturas_desglosadas = nuevo
+                  }
+                  setR('detalle_dinamico', dt)
+                }}
+                moneda={poliza.moneda}
+              />
+            </div>
 
             {/* Datos adicionales — keys del JSONB que NO son parte del schema
                 hardcodeado del render tipo. Origen típico: agente IA de PDFs

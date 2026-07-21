@@ -42,8 +42,12 @@ const KEYS_CORE_POR_RENDER: Record<RenderTipoRiesgo, string[]> = {
  * - `clausulas`: la IA la extrae como `{ label, valor }[]` (datos particulares
  *   del contrato). Se renderea aparte en la ficha como sub-lista; no como
  *   input genérico. Sino aparecería como "[object Object], [object Object]".
+ * - `coberturas_desglosadas`: array `{ cobertura, suma_asegurada, notas }[]`
+ *   que la IA extrae para pólizas integrales con sub-coberturas. Tiene su
+ *   propio editor de tabla (CoberturasDesglosadasEditor) y su propia sección
+ *   en la ficha ("Coberturas contratadas"). No pasar por el input genérico.
  */
-const KEYS_RESERVADAS = new Set(['observaciones', 'clausulas'])
+const KEYS_RESERVADAS = new Set(['observaciones', 'clausulas', 'coberturas_desglosadas'])
 
 /**
  * Aliases de nombre humano para keys frecuentes que la IA suele generar.

@@ -12,6 +12,7 @@ import CampoEditable from '@/components/agente-pdf/CampoEditable'
 import SelectorCatalogoPDF from '@/components/agente-pdf/SelectorCatalogoPDF'
 import ClienteExistenteBanner, { AccionCliente } from '@/components/agente-pdf/ClienteExistenteBanner'
 import ComparacionEnRevision from '@/components/agente-pdf/ComparacionEnRevision'
+import { CoberturasDesglosadasEditor, type CoberturaDesglosada } from '@/components/CoberturasDesglosadasEditor'
 import type {
   DatosExtraidosPoliza,
   DatosExtraidosEndoso,
@@ -578,19 +579,51 @@ export default function RevisarPDFPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(d.riesgo?.detalle_tecnico || {}).map(([k, v]) => (
-                    <CampoEditable
-                      key={k}
-                      label={k}
-                      valor={v != null ? String(v) : ''}
-                      onChange={nv => updateRiesgoDetalle({ [k]: nv })}
-                    />
-                  ))}
-                  {Object.keys(d.riesgo?.detalle_tecnico || {}).length === 0 && (
+                  {Object.entries(d.riesgo?.detalle_tecnico || {})
+                    // Ocultar keys "estructuradas" (arrays de objetos): tienen su
+                    // propio renderizador. Sino se mostrarían como "[object Object]".
+                    .filter(([k]) => k !== 'coberturas_desglosadas' && k !== 'clausulas')
+                    .map(([k, v]) => (
+                      <CampoEditable
+                        key={k}
+                        label={k}
+                        valor={v != null ? String(v) : ''}
+                        onChange={nv => updateRiesgoDetalle({ [k]: nv })}
+                      />
+                    ))}
+                  {Object.keys(d.riesgo?.detalle_tecnico || {}).filter(k => k !== 'coberturas_desglosadas' && k !== 'clausulas').length === 0 && (
                     <p className="col-span-2 text-xs text-slate-500 italic">La IA no extrajo datos específicos del bien asegurado.</p>
                   )}
                 </div>
               )}
+
+              {/* Coberturas desglosadas — la IA la puebla para pólizas
+                  integrales con sub-coberturas. Se muestra abajo del bloque
+                  de datos del bien; el PAS puede editar, agregar o eliminar
+                  filas antes de aprobar. */}
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <CoberturasDesglosadasEditor
+                  valor={d.riesgo?.detalle_tecnico?.coberturas_desglosadas}
+                  onChange={(nuevo: CoberturaDesglosada[]) => {
+                    // Si quedó vacío, eliminamos la key entera para no dejar
+                    // arrays vacíos en el JSONB. Reasignamos detalle_tecnico
+                    // completo en vez de patch spread (que deja `undefined`
+                    // en la key en vez de removerla).
+                    setDatos(prev => {
+                      if (!prev) return prev
+                      const p = prev as DatosExtraidosPoliza
+                      const dt = { ...(p.riesgo.detalle_tecnico || {}) }
+                      if (nuevo.length === 0) {
+                        delete dt.coberturas_desglosadas
+                      } else {
+                        dt.coberturas_desglosadas = nuevo
+                      }
+                      return { ...p, riesgo: { ...p.riesgo, detalle_tecnico: dt } }
+                    })
+                  }}
+                  moneda={d.poliza?.moneda ?? 'ARS'}
+                />
+              </div>
             </SeccionCard>
 
             {/* Sección 5 — Archivo */}

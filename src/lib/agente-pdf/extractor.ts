@@ -230,6 +230,27 @@ ${construirSeccionTiposRiesgo()}
      "clausulas": [
        { "label": "<texto del label tal cual figura en el PDF>", "valor": "<texto del valor tal cual figura en el PDF>" }
      ]
+10.c COBERTURAS DESGLOSADAS — para pólizas con múltiples sub-coberturas con suma asegurada propia.
+    Extraé como key "coberturas_desglosadas" en detalle_tecnico un array de objetos { cobertura, suma_asegurada, notas } cuando el PDF trae un listado de coberturas contratadas cada una con su propia suma asegurada. Típico en seguros integrales (hogar, comercio, consorcio), transporte con múltiples riesgos cubiertos, embarcaciones, ART con distintos capitales, y algunas pólizas de vida con sumas por evento.
+
+    QUÉ EXTRAER:
+    Cada línea del PDF donde figura una cobertura junto a un monto asegurado propio. Ejemplos habituales: "Incendio edificio", "Incendio contenido", "Robo contenido", "Daños por agua", "RC frente a terceros", "Cristales", "Rotura de máquinas", "Todo riesgo operativo", "Equipos electrónicos", "Robo con violación", "Granizo", "Tempestad", "Huelga y tumulto", "Responsabilidad civil comprensiva".
+
+    REGLAS ESTRICTAS:
+    1. TEXTUAL del PDF: el campo "cobertura" es el nombre exacto como aparece en el PDF (sin normalizar, sin traducir, sin abreviar).
+    2. "suma_asegurada" es NUMBER — solo el número, sin símbolos, sin separadores de miles, con "." para decimales. NUNCA string. Si el PDF muestra "$1.500.000" devolvé 1500000.
+    3. "notas" (opcional, string | null) solo si el PDF trae info específica de esa cobertura al lado de la suma (ej: "Franquicia 5%", "Sin franquicia", "A prorrata", "Al valor de reposición"). Si no hay nota extra, devolvé null.
+    4. NO extraer coberturas sin suma asegurada propia. Si el PDF solo dice "incluye Robo" sin monto, NO va acá.
+    5. NO duplicar la suma asegurada global de la póliza. Si el PDF solo tiene una única cobertura con la misma suma que ya cargaste en poliza.suma_asegurada, OMITÍ esta key entera.
+    6. NO extraer coberturas base cuya cobertura sale sin listado de sub-coberturas (ej: automotor Terceros Completo — es una sola cobertura, no un desglose).
+    7. Si un ítem del listado NO tiene monto porque dice "SIN COBERTURA", "NO CONTRATADO", "$0", "-" o similar, OMITILO — no lo incluyas con 0.
+    8. NO inventar coberturas ni sumas. Si no está en el PDF, no va.
+    9. Si el PDF NO trae este tipo de listado, OMITÍ la key entera (no la pongas como array vacío).
+
+    Formato del array:
+     "coberturas_desglosadas": [
+       { "cobertura": "<nombre exacto del PDF>", "suma_asegurada": <number>, "notas": "<texto|null>" }
+     ]
 11. Patente, motor y chasis siempre en MAYÚSCULA, sin espacios ni guiones en la patente.
 12. Si detectás inconsistencias (ej: fecha_fin antes de fecha_inicio), agregá advertencia a "advertencias_ia".
 
