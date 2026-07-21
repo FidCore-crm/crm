@@ -7,6 +7,7 @@
 #   - cleanup temporales:             /tmp/pdf-procesamientos, /tmp/crm-restauraciones
 #   - retencion emails:               archivar/borrar historial de emails viejos
 #   - retencion errores:              archivar/borrar errores_sistema viejos
+#   - retencion pdf procesamientos:   borrar pdf_procesamientos en estado terminal >30d
 #   - sincronizar modelos anthropic:  refrescar catálogo de modelos vigentes
 #   - pdfs huerfanos:                 detectar PDFs en tmp sin procesar
 #   - emails/jobs huerfanos:          detectar emails ENVIANDO estancados
@@ -27,6 +28,7 @@ run_cron "cleanup importaciones"  /api/cron/importacion-cleanup
 run_cron "cleanup temporales"     /api/cron/limpiar-temporales
 run_cron "retencion emails"       /api/cron/limpiar-historial-emails
 run_cron "retencion errores"      /api/cron/limpiar-errores
+run_cron "retencion pdfs proc"    /api/cron/limpiar-pdf-procesamientos
 run_cron "sincronizar modelos"    /api/cron/sincronizar-modelos-anthropic
 run_cron "pdfs huerfanos"         /api/cron/recuperar-pdfs-huerfanos
 run_cron "emails/jobs huerfanos"  /api/cron/recuperar-huerfanos
