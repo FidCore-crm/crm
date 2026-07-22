@@ -60,6 +60,7 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
 
   const [archivos, setArchivos] = useState<File[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
+  const [dragOver, setDragOver] = useState(false)
 
   const [enviando, setEnviando] = useState(false)
   const [resultado, setResultado] = useState<ResultadoEnvio | null>(null)
@@ -369,12 +370,13 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                     </label>
                     <input type="text" className="form-input w-full text-xs" value={asunto}
                       onChange={e => setAsunto(e.target.value)} placeholder="Asunto del email..." />
+                    <p className="text-2xs text-slate-500 mt-1">Las variables como {'{{nombre}}'} se reemplazan automáticamente.</p>
                   </div>
                   {aceptaTitulo && (
                     <div>
                       <label className="block text-xs font-medium text-slate-600 mb-1">Título del email</label>
                       <input type="text" className="form-input w-full text-xs" value={titulo}
-                        onChange={e => setTitulo(e.target.value)} placeholder="Título (opcional)..." />
+                        onChange={e => setTitulo(e.target.value)} placeholder="Título que aparece dentro del email (opcional)..." />
                     </div>
                   )}
                   {aceptaCuerpo && (
@@ -392,10 +394,10 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                       <textarea
                         ref={cuerpoRef}
                         className="form-input w-full text-xs"
-                        rows={3}
+                        rows={4}
                         value={cuerpo}
                         onChange={e => setCuerpo(e.target.value)}
-                        placeholder="Texto personalizado (opcional)..."
+                        placeholder="Texto personalizado del email (opcional)..."
                       />
                     </div>
                   )}
@@ -415,28 +417,38 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                     </div>
                   )}
 
-                  {/* Adjuntos */}
+                  {/* Adjuntos — alineado con ModalEnviarEmail (v1.0.173):
+                      drag-drop + iconos + padding + tamaño en KB unificados. */}
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">
                       Archivos adjuntos <span className="text-slate-500 font-normal">({archivos.length}/{MAX_FILES})</span>
                     </label>
                     <div
-                      className={`border-2 border-dashed rounded p-2 text-center cursor-pointer transition-colors border-slate-200 hover:border-slate-300 ${archivos.length >= MAX_FILES ? 'opacity-50 pointer-events-none' : ''}`}
+                      className={`border-2 border-dashed rounded p-3 text-center cursor-pointer transition-colors ${
+                        dragOver ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                      } ${archivos.length >= MAX_FILES ? 'opacity-50 pointer-events-none' : ''}`}
+                      onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={e => { e.preventDefault(); setDragOver(false); agregarArchivos(e.dataTransfer.files) }}
                       onClick={() => inputRef.current?.click()}
                     >
                       <input ref={inputRef} type="file" multiple className="hidden"
                         onChange={e => { if (e.target.files) agregarArchivos(e.target.files); e.target.value = '' }} />
-                      <Paperclip className="h-3.5 w-3.5 text-slate-500 mx-auto mb-0.5" />
-                      <p className="text-2xs text-slate-600">
-                        <span className="text-blue-600 font-medium">Seleccionar archivos</span> · Máx. 10MB, {MAX_FILES} archivos
+                      <Paperclip className="h-4 w-4 text-slate-500 mx-auto mb-1" />
+                      <p className="text-xs text-slate-600">
+                        Arrastrá archivos o <span className="text-blue-600 font-medium">hacé clic</span>
                       </p>
+                      <p className="text-2xs text-slate-500 mt-0.5">Máx. 10MB por archivo, {MAX_FILES} archivos</p>
                     </div>
                     {archivos.length > 0 && (
-                      <div className="mt-1.5 flex flex-col gap-1">
+                      <div className="mt-2 flex flex-col gap-1">
                         {archivos.map((f, i) => (
-                          <div key={i} className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 rounded px-2 py-1">
+                          <div key={i} className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 rounded px-2 py-1.5">
                             <FileText className="h-3 w-3 text-slate-500 shrink-0" />
                             <span className="flex-1 truncate">{f.name}</span>
+                            <span className="text-2xs text-slate-500 shrink-0">
+                              {(f.size / 1024).toFixed(0)} KB
+                            </span>
                             <button onClick={() => setArchivos(prev => prev.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-500 shrink-0">
                               <X className="h-3 w-3" />
                             </button>
