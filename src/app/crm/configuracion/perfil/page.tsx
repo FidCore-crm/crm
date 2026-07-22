@@ -715,12 +715,12 @@ export default function PerfilPage() {
               {
                 valor: 'banda',
                 titulo: 'Banda con logo',
-                descripcion: 'Encabezado destacado con logo a la izquierda.',
+                descripcion: 'Logo dentro de cuadro blanco (funciona con cualquier logo).',
                 preview: (
                   <div className="rounded overflow-hidden bg-white">
                     <div
                       className="px-3 py-3 flex items-center gap-2"
-                      style={{ background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.oscuro} 100%)` }}
+                      style={{ background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.stopMedio} 60%, ${tonos.stopProfundo} 100%)` }}
                     >
                       <div
                         className="h-7 w-7 rounded bg-white flex items-center justify-center shrink-0"
@@ -734,63 +734,78 @@ export default function PerfilPage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-white truncate leading-tight">{nombreOrg}</p>
+                        <p className="text-xs font-bold truncate leading-tight" style={{ color: tonos.textoSobreColor }}>{nombreOrg}</p>
                         {emailHeaderSubtitulo.trim() && (
-                          <p className="text-[9px] text-white/70 uppercase tracking-widest mt-0.5 truncate">{emailHeaderSubtitulo.trim()}</p>
+                          <p className="text-[9px] uppercase tracking-widest mt-0.5 truncate" style={{ color: tonos.esOscuro ? '#CBD5E1' : '#475569' }}>{emailHeaderSubtitulo.trim()}</p>
                         )}
                       </div>
                     </div>
-                    <div className="h-[3px]" style={{ backgroundColor: '#D4DDE8' }}></div>
+                    <div className="h-[3px]" style={{ backgroundColor: tonos.stopProfundo }}></div>
                   </div>
                 ),
               },
               {
                 valor: 'compacto',
                 titulo: 'Compacto',
-                descripcion: 'Encabezado fino, protagonismo al cuerpo del email.',
+                descripcion: 'Sin cuadro — el logo va directo sobre el fondo.',
                 preview: (
                   <div className="rounded overflow-hidden bg-white">
                     <div
-                      className="px-3 py-2 flex items-center justify-between gap-2"
-                      style={{ background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.oscuro} 100%)` }}
+                      className="px-3 py-3 flex items-center gap-2"
+                      style={{ background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.stopMedio} 60%, ${tonos.stopProfundo} 100%)` }}
                     >
-                      <p className="text-[11px] font-bold text-white truncate">{nombreOrg}</p>
-                      <div
-                        className="h-5 w-5 rounded bg-white flex items-center justify-center shrink-0"
-                        style={{ borderRadius: 4 }}
-                      >
+                      <div className="h-7 w-7 flex items-center justify-center shrink-0">
                         {mostrarLogo ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={logoPreview!} alt="" className="max-h-3.5 max-w-3.5 object-contain" />
+                          <img src={logoPreview!} alt="" className="max-h-6 max-w-6 object-contain" />
                         ) : (
-                          <span className="text-[9px] font-bold" style={{ color: tonos.base }}>{inicial}</span>
+                          <span className="text-xs font-bold" style={{ color: tonos.textoSobreColor }}>{inicial}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold truncate leading-tight" style={{ color: tonos.textoSobreColor }}>{nombreOrg}</p>
+                        {emailHeaderSubtitulo.trim() && (
+                          <p className="text-[9px] uppercase tracking-widest mt-0.5 truncate" style={{ color: tonos.esOscuro ? '#CBD5E1' : '#475569' }}>{emailHeaderSubtitulo.trim()}</p>
                         )}
                       </div>
                     </div>
-                    <div className="h-[2px]" style={{ backgroundColor: '#D4DDE8' }}></div>
+                    <div className="h-[3px]" style={{ backgroundColor: tonos.stopProfundo }}></div>
                   </div>
                 ),
               },
               {
                 valor: 'lateral',
                 titulo: 'Borde lateral',
-                descripcion: 'Sin bloque de color, borde superior fino.',
+                descripcion: 'Logo teñido automáticamente para integrarse al fondo.',
                 preview: (
-                  <div className="rounded overflow-hidden bg-white border-t-[3px]" style={{ borderTopColor: tonos.base }}>
-                    <div className="px-3 py-3 flex items-center gap-2 bg-white">
-                      <div
-                        className="h-6 w-6 rounded flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: tonos.base, borderRadius: 5 }}
-                      >
+                  <div className="rounded overflow-hidden bg-white">
+                    <div
+                      className="px-3 py-3 flex items-center gap-2"
+                      style={{ background: `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.stopMedio} 60%, ${tonos.stopProfundo} 100%)` }}
+                    >
+                      <div className="h-7 w-7 flex items-center justify-center shrink-0">
                         {mostrarLogo ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={logoPreview!} alt="" className="max-h-4 max-w-4 object-contain brightness-0 invert" />
+                          <img
+                            src={logoPreview!}
+                            alt=""
+                            className="max-h-6 max-w-6 object-contain"
+                            style={tonos.esOscuro
+                              ? { filter: 'brightness(0) invert(1)' }
+                              : { filter: 'brightness(0)', opacity: 0.82 }}
+                          />
                         ) : (
-                          <span className="text-[10px] font-bold text-white">{inicial}</span>
+                          <span className="text-xs font-bold" style={{ color: tonos.textoSobreColor }}>{inicial}</span>
                         )}
                       </div>
-                      <p className="text-xs font-bold truncate" style={{ color: tonos.base }}>{nombreOrg}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold truncate leading-tight" style={{ color: tonos.textoSobreColor }}>{nombreOrg}</p>
+                        {emailHeaderSubtitulo.trim() && (
+                          <p className="text-[9px] uppercase tracking-widest mt-0.5 truncate" style={{ color: tonos.esOscuro ? '#CBD5E1' : '#475569' }}>{emailHeaderSubtitulo.trim()}</p>
+                        )}
+                      </div>
                     </div>
+                    <div className="h-[3px]" style={{ backgroundColor: tonos.stopProfundo }}></div>
                   </div>
                 ),
               },
