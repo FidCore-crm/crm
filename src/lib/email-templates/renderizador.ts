@@ -209,73 +209,38 @@ function generarHeaderHtml(
   const inicial = escapeHtml((organizacion.nombre || '?').charAt(0).toUpperCase())
   const logoUrlEscapado = organizacion.logo_url ? escapeHtml(organizacion.logo_url) : ''
   const stack = `-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif`
-  // Subtítulo solo se muestra en variante 'banda' y solo si tiene texto.
-  const subtituloBanda = (organizacion.email_header_subtitulo ?? '').trim()
+  const subtitulo = (organizacion.email_header_subtitulo ?? '').trim()
 
-  // Gradient del header (banda y compacto): de color base a oscuro.
+  // v1.0.174: gradient adaptativo en HSL — misma gama del color base.
+  // base → stopMedio (60%) → stopProfundo (100%). Estilo del login del CRM.
   // Outlook ignora gradient y cae al background-color plano (fallback).
-  const gradient = `background-color:${tonos.base};background-image:linear-gradient(135deg,${tonos.base} 0%,${tonos.oscuro} 100%);`
+  const gradient = `background-color:${tonos.base};background-image:linear-gradient(135deg,${tonos.base} 0%,${tonos.stopMedio} 60%,${tonos.stopProfundo} 100%);`
 
-  if (estilo === 'compacto') {
-    // Compacto: header bajo, nombre a la izquierda, cuadrito logo a la derecha.
-    // v1.0.149: logo agrandado 34→48 y cuadro 42→54 (+29%).
-    const cuadroLogo = organizacion.logo_url
-      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="48" style="max-width:48px;max-height:48px;display:block;" />`
-      : `<span style="color:${tonos.base};font-weight:bold;font-size:22px;font-family:${stack};">${inicial}</span>`
-    const cuadroContenedor = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:10px;width:54px;height:54px;">
-          <tr><td align="center" valign="middle" style="width:54px;height:54px;padding:5px;">
-            ${cuadroLogo}
-          </td></tr>
-        </table>`
-    return `
-<!-- HEADER: compacto -->
-<tr><td class="fc-header-compacto" style="${gradient}padding:22px 26px;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-    <tr>
-      <td valign="middle">
-        <span class="fc-header-nombre" style="font-size:18px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
-      </td>
-      <td width="54" align="right" valign="middle" style="width:54px;">${cuadroContenedor}</td>
-    </tr>
-  </table>
-</td></tr>
+  // v1.0.174: color del texto adaptativo según brillo del base (aplica a las 3
+  // opciones con fondo de color: banda, compacto, lateral). Si base oscuro
+  // → texto blanco. Si base claro → texto gris muy oscuro (#0F172A, no negro
+  // puro — más elegante). Subtítulo en tono más suave del mismo eje.
+  const colorNombre = tonos.textoSobreColor
+  const colorSubtitulo = tonos.esOscuro ? '#CBD5E1' : '#475569'
+  // La barra de acento inferior usa el stopProfundo (más oscuro/profundo de la
+  // gama) para que siempre contraste con el fondo del gradient sin importar
+  // el color de marca.
+  const colorBarraAcento = tonos.stopProfundo
 
-<!-- Barra de acento fina -->
-<tr><td style="background-color:#D4DDE8;height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>`
-  }
+  // Bloque reusable de nombre + subtítulo — mismo en las 3 opciones con fondo
+  // de color, para consistencia total del layout.
+  const nombreYSubtituloHtml = `
+        <p class="fc-header-nombre" style="margin:0;font-size:22px;font-weight:bold;color:${colorNombre};line-height:1.15;font-family:${stack};word-break:break-word;">${nombreEscapado}</p>
+        ${subtitulo ? `<p class="fc-header-subtitulo" style="margin:4px 0 0;font-size:12px;color:${colorSubtitulo};letter-spacing:1px;text-transform:uppercase;font-family:${stack};word-break:break-word;">${escapeHtml(subtitulo)}</p>` : ''}`
 
-  if (estilo === 'lateral') {
-    // Lateral: sin bloque de color (fondo blanco). El border-top de 5px en
-    // marca lo aplica el contenedor de 600px (no acá). Logo en cuadro con
-    // color de marca. No lleva barra de acento.
-    // v1.0.149: logo 48→66 y cuadro 56→74 (+32%).
-    const cuadroLogo = organizacion.logo_url
-      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="66" style="max-width:66px;max-height:66px;display:block;" />`
-      : `<span style="color:#ffffff;font-weight:bold;font-size:30px;font-family:${stack};">${inicial}</span>`
-    const cuadroContenedor = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:${tonos.base};border-radius:13px;width:74px;height:74px;">
-          <tr><td align="center" valign="middle" style="width:74px;height:74px;padding:5px;">
-            ${cuadroLogo}
-          </td></tr>
-        </table>`
-    return `
-<!-- HEADER: lateral (fondo blanco; el border-top de marca va en el contenedor de 600px) -->
-<tr><td class="fc-header-lateral" style="background-color:#ffffff;padding:24px 24px 0;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-    <tr>
-      <td width="74" valign="middle" style="width:74px;">${cuadroContenedor}</td>
-      <td width="16" style="width:16px;font-size:0;line-height:0;">&nbsp;</td>
-      <td valign="middle">
-        <span class="fc-header-nombre" style="font-size:19px;font-weight:bold;color:${tonos.base};font-family:${stack};word-break:break-word;">${nombreEscapado}</span>
-      </td>
-    </tr>
-  </table>
-</td></tr>`
-  }
+  // Barra de acento fina inferior — misma en las 3 opciones con fondo color.
+  const barraAcentoHtml = `\n\n<!-- Barra de acento fina -->\n<tr><td style="background-color:${colorBarraAcento};height:5px;line-height:5px;font-size:0;">&nbsp;</td></tr>`
 
+  // ==========================================================================
+  // OPCIÓN 4 — blanco_solo_logo: sin cambios. Fondo blanco + logo grande
+  // centrado + barra fina de acento arriba.
+  // ==========================================================================
   if (estilo === 'blanco_solo_logo') {
-    // v1.0.150: fondo blanco + barra fina de acento arriba en color de marca
-    // + logo grande centrado. Sin nombre. Ideal cuando el logo del PAS tiene
-    // fondo blanco o transparente y no querés conflicto con cuadros de color.
     const logoImg = organizacion.logo_url
       ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" style="max-width:280px;max-height:100px;object-fit:contain;display:block;margin:0 auto;" />`
       : `<span style="color:${tonos.base};font-weight:bold;font-size:36px;font-family:${stack};">${nombreEscapado}</span>`
@@ -287,34 +252,90 @@ function generarHeaderHtml(
 </td></tr>`
   }
 
-  // Default — banda (predeterminado): banda con gradient, logo a la izquierda
-  // en cuadro blanco, nombre + subtítulo a la derecha, barra de acento debajo.
-  // v1.0.149: logo 56→80 y cuadro 64→84 (+31%).
-  const cuadroLogo = organizacion.logo_url
+  // ==========================================================================
+  // Layout compartido entre banda, compacto y lateral:
+  //   logo (izquierda) + nombre/subtítulo (derecha), gradient adaptativo,
+  //   barra de acento inferior en color de la misma gama.
+  //
+  // Diferencias:
+  //   - banda:    logo dentro de cuadro blanco (para contraste con logos oscuros).
+  //   - compacto: logo directo sobre el fondo (sin cuadro).
+  //   - lateral:  logo directo sobre el fondo + filter CSS adaptativo (fuerza a
+  //               blanco si base oscuro, a negro suavizado si base claro).
+  // ==========================================================================
+
+  if (estilo === 'compacto') {
+    // Compacto: mismo layout que banda pero SIN cuadro blanco. Logo directo
+    // sobre el gradient. Si no hay logo, muestra la inicial en el color del
+    // texto (blanco u oscuro según brillo del fondo).
+    const logoImg = organizacion.logo_url
+      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="80" style="max-width:80px;max-height:80px;display:block;" />`
+      : `<span style="color:${colorNombre};font-weight:bold;font-size:34px;font-family:${stack};">${inicial}</span>`
+    return `
+<!-- HEADER: compacto (gradient + logo suelto sin cuadro) -->
+<tr><td class="fc-header-compacto" style="${gradient}padding:30px 30px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+      <td width="80" valign="middle" style="width:80px;">${logoImg}</td>
+      <td width="18" style="width:18px;font-size:0;line-height:0;">&nbsp;</td>
+      <td valign="middle">${nombreYSubtituloHtml}
+      </td>
+    </tr>
+  </table>
+</td></tr>${barraAcentoHtml}`
+  }
+
+  if (estilo === 'lateral') {
+    // Lateral: mismo layout que banda pero sin cuadro + logo con filter
+    // adaptativo. Antes tenía fondo blanco + border-top de color; ahora
+    // pasa a tener el gradient de color como las otras 2 variantes.
+    // - Base oscuro → filter:brightness(0) invert(1) → logo blanco 100%.
+    // - Base claro → filter:brightness(0);opacity:0.82 → logo negro suavizado.
+    // El filter no funciona en Outlook Desktop 2007-2016 (se ignora — el logo
+    // se muestra en su color original). Aceptable para el 15% de mercado.
+    const filterLogo = tonos.esOscuro
+      ? 'filter:brightness(0) invert(1);'
+      : 'filter:brightness(0);opacity:0.82;'
+    const logoImg = organizacion.logo_url
+      ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="80" style="max-width:80px;max-height:80px;display:block;${filterLogo}" />`
+      : `<span style="color:${colorNombre};font-weight:bold;font-size:34px;font-family:${stack};">${inicial}</span>`
+    return `
+<!-- HEADER: lateral (gradient + logo suelto con filter adaptativo) -->
+<tr><td class="fc-header-lateral" style="${gradient}padding:30px 30px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+      <td width="80" valign="middle" style="width:80px;">${logoImg}</td>
+      <td width="18" style="width:18px;font-size:0;line-height:0;">&nbsp;</td>
+      <td valign="middle">${nombreYSubtituloHtml}
+      </td>
+    </tr>
+  </table>
+</td></tr>${barraAcentoHtml}`
+  }
+
+  // Default — banda: logo dentro de cuadro blanco. Compatible con cualquier
+  // logo (oscuro, claro, con color, con fondo blanco) porque el cuadro actúa
+  // como "isla neutra". Es la opción más segura para cualquier PAS.
+  const logoImgBanda = organizacion.logo_url
     ? `<img src="${logoUrlEscapado}" alt="${nombreEscapado}" width="80" style="max-width:80px;max-height:80px;display:block;" />`
     : `<span style="color:${tonos.base};font-weight:bold;font-size:34px;font-family:${stack};">${inicial}</span>`
   const cuadroContenedorBanda = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:14px;width:84px;height:84px;">
           <tr><td align="center" valign="middle" style="width:84px;height:84px;padding:6px;">
-            ${cuadroLogo}
+            ${logoImgBanda}
           </td></tr>
         </table>`
   return `
-<!-- HEADER: banda horizontal -->
+<!-- HEADER: banda (gradient + logo en cuadro blanco) -->
 <tr><td class="fc-header-banda" style="${gradient}padding:30px 30px;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
     <tr>
       <td width="84" valign="middle" style="width:84px;">${cuadroContenedorBanda}</td>
       <td width="18" style="width:18px;font-size:0;line-height:0;">&nbsp;</td>
-      <td valign="middle">
-        <p class="fc-header-nombre" style="margin:0;font-size:22px;font-weight:bold;color:#ffffff;line-height:1.15;font-family:${stack};word-break:break-word;">${nombreEscapado}</p>
-        ${subtituloBanda ? `<p class="fc-header-subtitulo" style="margin:4px 0 0;font-size:12px;color:#cbd5e1;letter-spacing:1px;text-transform:uppercase;font-family:${stack};word-break:break-word;">${escapeHtml(subtituloBanda)}</p>` : ''}
+      <td valign="middle">${nombreYSubtituloHtml}
       </td>
     </tr>
   </table>
-</td></tr>
-
-<!-- Barra de acento fina -->
-<tr><td style="background-color:#D4DDE8;height:5px;line-height:5px;font-size:0;">&nbsp;</td></tr>`
+</td></tr>${barraAcentoHtml}`
 }
 
 function armarHtml(params: {
@@ -352,11 +373,11 @@ function armarHtml(params: {
 
   const headerHtml = generarHeaderHtml(estiloHeader, tonos, organizacion)
 
-  // Solo 'lateral' agrega un border-top de 5px en color de marca al contenedor
-  // de 600px. 'banda' y 'compacto' no.
-  const borderTopContenedor = estiloHeader === 'lateral'
-    ? `border-top:5px solid ${tonos.base};`
-    : ''
+  // v1.0.174: quitado el border-top del contenedor de 600px que antes se
+  // aplicaba solo en 'lateral'. Ahora las 3 variantes con fondo de color
+  // (banda, compacto, lateral) tienen el gradient de fondo — el border-top
+  // ya no cumple función.
+  const borderTopContenedor = ''
 
   // Barra decorativa de acento debajo del saludo — agrega personalidad visual
   // sin cargar el diseño.
@@ -418,9 +439,9 @@ function armarHtml(params: {
     @media only screen and (max-width:520px) {
       .fc-outer-td { padding:16px 8px !important; }
       .fc-container { border-radius:10px !important; }
-      .fc-header-banda { padding:18px 18px !important; }
-      .fc-header-compacto { padding:14px 16px !important; }
-      .fc-header-lateral { padding:18px 18px 0 !important; }
+      .fc-header-banda { padding:20px 20px !important; }
+      .fc-header-compacto { padding:20px 20px !important; }
+      .fc-header-lateral { padding:20px 20px !important; }
       .fc-header-blanco-solo { padding:20px 16px !important; }
       .fc-header-nombre { font-size:16px !important; line-height:1.25 !important; }
       .fc-header-subtitulo { font-size:10px !important; letter-spacing:0.5px !important; }

@@ -94,6 +94,11 @@ export type TonosDerivados = {
   vibrante: string         // Versión más luminosa (~35% mezcla con blanco) — gradient/destacados
   textoSobreColor: string  // '#FFFFFF' o '#0F172A' según contraste WCAG AA
   borde: string            // Versión semitransparente / mezcla 30% — bordes sutiles
+  // Stops del gradient del header de emails — misma gama del base (HSL, varía solo lightness)
+  // v1.0.174: si base es oscuro, van "aclarando"; si es claro, van "profundizando".
+  stopMedio: string        // Punto medio del gradient (60%)
+  stopProfundo: string     // Punto final del gradient (100%)
+  esOscuro: boolean        // True si luminancia(base) < 0.5 — para decidir texto/logo
 }
 
 export type ColorMarcaRgb = { r: number; g: number; b: number }
@@ -153,11 +158,79 @@ export function textoSobreColor(hex: string): string {
   return lum > 0.55 ? '#0F172A' : '#FFFFFF'
 }
 
+export type HSL = { h: number; s: number; l: number }
+
+/**
+ * Convierte '#RRGGBB' a HSL (h: 0-360, s: 0-1, l: 0-1).
+ * Usado para generar variaciones que preservan la gama (mismo hue).
+ */
+export function hexToHsl(hex: string): HSL {
+  const { r, g, b } = hexARgb(hex)
+  const rn = r / 255
+  const gn = g / 255
+  const bn = b / 255
+  const max = Math.max(rn, gn, bn)
+  const min = Math.min(rn, gn, bn)
+  const l = (max + min) / 2
+  let h = 0
+  let s = 0
+  if (max !== min) {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    switch (max) {
+      case rn: h = ((gn - bn) / d + (gn < bn ? 6 : 0)) * 60; break
+      case gn: h = ((bn - rn) / d + 2) * 60; break
+      case bn: h = ((rn - gn) / d + 4) * 60; break
+    }
+  }
+  return { h, s, l }
+}
+
+/**
+ * Convierte HSL a '#RRGGBB'.
+ */
+export function hslToHex({ h, s, l }: HSL): string {
+  const hn = ((h % 360) + 360) % 360 / 360
+  const sn = Math.max(0, Math.min(1, s))
+  const ln = Math.max(0, Math.min(1, l))
+  if (sn === 0) {
+    const v = Math.round(ln * 255)
+    return rgbAHex({ r: v, g: v, b: v })
+  }
+  const q = ln < 0.5 ? ln * (1 + sn) : ln + sn - ln * sn
+  const p = 2 * ln - q
+  const canal = (t: number) => {
+    if (t < 0) t += 1
+    if (t > 1) t -= 1
+    if (t < 1 / 6) return p + (q - p) * 6 * t
+    if (t < 1 / 2) return q
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+    return p
+  }
+  return rgbAHex({
+    r: Math.round(canal(hn + 1 / 3) * 255),
+    g: Math.round(canal(hn) * 255),
+    b: Math.round(canal(hn - 1 / 3) * 255),
+  })
+}
+
 /**
  * Deriva todos los tonos a partir del color base.
  */
 export function derivarTonos(hex: string): TonosDerivados {
   const rgb = hexARgb(hex)
+  const hsl = hexToHsl(hex)
+  const esOscuro = luminanciaRelativa(rgb) < 0.5
+
+  // v1.0.174: stops del gradient del header en la misma gama (HSL).
+  // Base oscuro → aclarar (subir L). Base claro → profundizar (bajar L).
+  // Delta 0.14 para el stop medio, 0.24 para el profundo — matchea el gradient
+  // del login del CRM (#0A1628 → #1E3A5F → #2A4A7A) cuando el base es navy.
+  const delta1 = esOscuro ? +0.14 : -0.14
+  const delta2 = esOscuro ? +0.24 : -0.24
+  const stopMedio = hslToHex({ h: hsl.h, s: hsl.s, l: Math.max(0.05, Math.min(0.95, hsl.l + delta1)) })
+  const stopProfundo = hslToHex({ h: hsl.h, s: hsl.s, l: Math.max(0.05, Math.min(0.95, hsl.l + delta2)) })
+
   return {
     base: hex,
     claro: rgbAHex(mezclar(rgb, 'blanco', 0.85)),
@@ -166,7 +239,21 @@ export function derivarTonos(hex: string): TonosDerivados {
     vibrante: rgbAHex(mezclar(rgb, 'blanco', 0.32)),
     textoSobreColor: textoSobreColor(hex),
     borde: rgbAHex(mezclar(rgb, 'blanco', 0.65)),
+    stopMedio,
+    stopProfundo,
+    esOscuro,
   }
+}
+
+/**
+ * Devuelve el gradient del header de emails: base → stopMedio (60%) → stopProfundo (100%).
+ * Misma gama del color de marca, estilo del gradient del login del CRM.
+ * v1.0.174.
+ */
+export function gradientHeaderEmail(hex: string | null | undefined): string {
+  const colorBase = hex && esColorMarcaValido(hex) ? hex : COLOR_MARCA_DEFAULT
+  const tonos = derivarTonos(colorBase)
+  return `linear-gradient(135deg, ${tonos.base} 0%, ${tonos.stopMedio} 60%, ${tonos.stopProfundo} 100%)`
 }
 
 /**
