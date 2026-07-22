@@ -17,7 +17,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   X, Loader2, ChevronLeft, ChevronRight, Send, CheckCircle2,
   User, Users, Filter as FilterIcon, FileText, Edit3, Paperclip,
-  AlertTriangle, Search, Image as ImageIcon, Eye, RefreshCw,
+  AlertTriangle, Search, Image as ImageIcon, Eye,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
@@ -26,6 +26,7 @@ import type { MailingAudiencia } from './TabMailingAudiencias'
 import type { MailingPlantilla } from './TabMailingPlantillas'
 import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from '@/components/biblioteca/SelectorImagenBiblioteca'
 import { ConfiguradorBotonCTA } from '@/components/comunicaciones/ConfiguradorBotonCTA'
+import ModalVistaPrevia from '@/components/ModalVistaPrevia'
 
 interface Props {
   abierto: boolean
@@ -591,6 +592,8 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
   const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null)
   const [emailPreviewCargando, setEmailPreviewCargando] = useState(false)
   const [emailPreviewError, setEmailPreviewError] = useState<string | null>(null)
+  // Modal grande de vista previa — unificado con ModalEnviarEmail/Masivo (v1.0.172).
+  const [mostrarPreviewModal, setMostrarPreviewModal] = useState(false)
 
   const cargarEmailPreview = useCallback(async () => {
     setEmailPreviewCargando(true)
@@ -623,10 +626,8 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
     setEmailPreviewCargando(false)
   }, [mensajeTipo, mailingPlantillaId, asuntoOverride, asuntoFinal, cuerpoLibre, ctaTextoLibre, ctaUrlLibre])
 
-  // Auto-cargar el preview al entrar al paso
-  useEffect(() => {
-    cargarEmailPreview()
-  }, [cargarEmailPreview])
+  // El preview se carga a demanda cuando el PAS aprieta "Ver vista previa"
+  // (v1.0.172 — antes se auto-cargaba y ocupaba mucho espacio inline).
 
   if (previewCargando || !preview) {
     return (
@@ -683,49 +684,26 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
         </dl>
       </div>
 
-      {/* Preview HTML del email */}
-      <div className="border border-slate-200 rounded overflow-hidden">
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <Eye className="h-4 w-4 text-slate-600" />
-            <span className="text-xs font-semibold text-slate-700">Vista previa del email</span>
+      {/* Botón de vista previa — abre modal aparte a pantalla grande
+          (unificado con ModalEnviarEmail/Masivo desde v1.0.172). */}
+      <div className="border border-slate-200 rounded p-4 bg-slate-50 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Eye className="h-4 w-4 text-slate-600" />
+          <div>
+            <p className="text-xs font-semibold text-slate-700">Vista previa del email</p>
+            <p className="text-2xs text-slate-500 mt-0.5">Se abre en una ventana grande con datos de ejemplo (nombre &quot;Juan Pérez&quot;).</p>
           </div>
-          <button
-            type="button"
-            onClick={cargarEmailPreview}
-            disabled={emailPreviewCargando}
-            className="text-2xs px-2 py-1 border border-slate-300 rounded hover:bg-white text-slate-600 flex items-center gap-1 disabled:opacity-50"
-          >
-            {emailPreviewCargando ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-            Actualizar
-          </button>
         </div>
-        <div className="bg-white">
-          {emailPreviewCargando ? (
-            <div className="py-10 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Generando preview...
-            </div>
-          ) : emailPreviewError ? (
-            <div className="py-6 text-center text-xs text-red-600 bg-red-50">
-              {emailPreviewError}
-            </div>
-          ) : emailPreviewHtml ? (
-            <iframe
-              srcDoc={emailPreviewHtml}
-              title="Preview del email"
-              className="w-full border-0 bg-white"
-              style={{ height: '500px' }}
-              sandbox="allow-same-origin allow-popups"
-            />
-          ) : (
-            <div className="py-6 text-center text-xs text-slate-500">
-              Sin preview disponible
-            </div>
-          )}
-        </div>
-        <p className="text-2xs text-slate-500 bg-slate-50 border-t border-slate-100 px-3 py-1.5">
-          Datos de ejemplo: nombre &quot;Juan Pérez&quot;. Al enviar, se reemplazan por los datos reales de cada destinatario.
-        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setMostrarPreviewModal(true)
+            if (!emailPreviewHtml && !emailPreviewCargando) cargarEmailPreview()
+          }}
+          className="text-xs px-3 py-1.5 border border-blue-200 bg-blue-50 rounded hover:bg-blue-100 hover:border-blue-300 flex items-center gap-1.5 text-blue-700 font-medium transition-colors"
+        >
+          <Eye className="h-3.5 w-3.5" /> Ver vista previa
+        </button>
       </div>
 
       {/* Advertencia */}
@@ -738,6 +716,14 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
           </p>
         </div>
       )}
+
+      <ModalVistaPrevia
+        abierto={mostrarPreviewModal}
+        onCerrar={() => setMostrarPreviewModal(false)}
+        html={emailPreviewHtml ?? ''}
+        titulo="Vista previa del email (datos de ejemplo)"
+        cargando={emailPreviewCargando}
+      />
     </div>
   )
 }

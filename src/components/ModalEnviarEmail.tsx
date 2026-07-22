@@ -9,6 +9,7 @@ import {
 import { apiCall } from '@/lib/api-client'
 import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from './biblioteca/SelectorImagenBiblioteca'
 import { ConfiguradorBotonCTA } from './comunicaciones/ConfiguradorBotonCTA'
+import ModalVistaPrevia from './ModalVistaPrevia'
 
 interface Plantilla {
   codigo: string
@@ -149,19 +150,21 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
   }
 
   async function verPreview() {
+    // Abre el modal ANTES del fetch para que muestre el estado "cargando"
+    // sin que el PAS tenga que esperar 1-2s frente a un botón silencioso.
+    setPreviewHtml('')
+    setMostrarPreview(true)
     setCargandoPreview(true)
-    setMostrarPreview(false)
     const r = await apiCall<{ html: string }>(`/api/comunicaciones/plantillas/${plantillaSeleccionada}/preview`, {
       method: 'POST',
       body: {
         persona_id: persona.id,
         poliza_id: poliza?.id || null,
-        campos_editables: { titulo, cuerpo },
+        campos_editables: { titulo, cuerpo, cta_texto: ctaTexto.trim() || undefined, cta_url: ctaUrl.trim() || undefined },
       },
     }, { mostrar_toast_en_error: false })
     if (r.ok && r.data) {
       setPreviewHtml(r.data.html)
-      setMostrarPreview(true)
     } else if (r.error) {
       logger.warn({ modulo: 'emails', mensaje: 'Error cargando preview de plantilla', contexto: { error: r.error.mensaje } })
     }
@@ -442,25 +445,6 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
                 </>
               )}
 
-              {/* Preview */}
-              {mostrarPreview && (
-                <div className="border border-slate-200 rounded overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-100">
-                    <span className="text-xs font-medium text-slate-600">Vista previa</span>
-                    <button onClick={() => setMostrarPreview(false)} className="text-slate-500 hover:text-slate-600">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <iframe
-                    srcDoc={previewHtml}
-                    title="Preview"
-                    className="w-full border-0"
-                    style={{ minHeight: '400px' }}
-                    sandbox="allow-same-origin allow-popups"
-                  />
-                </div>
-              )}
-
               {/* Resultado */}
               {resultado && (
                 <div className={`flex items-center gap-2 text-xs rounded p-3 ${
@@ -485,24 +469,14 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
             {noTieneEmail ? 'Cerrar' : 'Cancelar'}
           </button>
           {!noTieneEmail && plantillaSeleccionada && (
-            <>
-              <button
-                onClick={verPreview}
-                disabled={cargandoPreview}
-                className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
-              >
-                {cargandoPreview ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
-                Vista previa
-              </button>
-              <button
-                onClick={enviar}
-                disabled={enviando || (esPlantillaLibre && !asunto.trim()) || resultado?.ok === true}
-                className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {enviando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
-                {enviando ? 'Enviando...' : 'Enviar'}
-              </button>
-            </>
+            <button
+              onClick={enviar}
+              disabled={enviando || (esPlantillaLibre && !asunto.trim()) || resultado?.ok === true}
+              className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {enviando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+              {enviando ? 'Enviando...' : 'Enviar'}
+            </button>
           )}
         </div>
       </div>
@@ -512,6 +486,13 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
         onCerrar={() => setSelectorImagenAbierto(false)}
         onElegir={insertarImagenEnCuerpo}
         titulo="Insertar imagen en el cuerpo"
+      />
+
+      <ModalVistaPrevia
+        abierto={mostrarPreview}
+        onCerrar={() => setMostrarPreview(false)}
+        html={previewHtml}
+        cargando={cargandoPreview}
       />
     </div>
   )

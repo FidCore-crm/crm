@@ -62,6 +62,9 @@ export default function SelectorImagenBiblioteca({
   const [carpetaDestinoUpload, setCarpetaDestinoUpload] = useState<string | null>(null)
   const [nuevaCarpetaNombre, setNuevaCarpetaNombre] = useState('')
   const [creandoCarpeta, setCreandoCarpeta] = useState(false)
+  // Feedback visual al elegir imagen (v1.0.172) — highlight momentáneo
+  // + toast + auto-cierre. Antes el PAS no sabía si la imagen se inserto.
+  const [idInsertando, setIdInsertando] = useState<string | null>(null)
   const inputFileRef = useRef<HTMLInputElement>(null)
 
   // Cargar árbol de carpetas al abrir
@@ -330,25 +333,56 @@ export default function SelectorImagenBiblioteca({
                     </div>
                   ) : (
                     <div className="grid grid-cols-4 gap-3">
-                      {archivos.map(a => (
-                        <button
-                          key={a.id}
-                          onClick={() => onElegir(a)}
-                          className="group border border-slate-200 rounded-lg overflow-hidden hover:border-blue-500 hover:shadow-md transition-all bg-white text-left"
-                        >
-                          <div className="aspect-square bg-slate-100 overflow-hidden">
-                            <img
-                              src={`/api/biblioteca-publica/${a.id}/${encodeURIComponent(a.nombre_archivo)}`}
-                              alt={a.nombre_archivo}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            />
-                          </div>
-                          <div className="p-2">
-                            <p className="text-xs font-medium text-slate-700 truncate">{a.nombre_archivo}</p>
-                            <p className="text-2xs text-slate-500 mt-0.5">{formatearTamano(a.tamano_bytes)}</p>
-                          </div>
-                        </button>
-                      ))}
+                      {archivos.map(a => {
+                        const insertando = idInsertando === a.id
+                        return (
+                          <button
+                            key={a.id}
+                            type="button"
+                            disabled={idInsertando !== null}
+                            onClick={() => {
+                              // Feedback visual + toast + auto-cierre (v1.0.172).
+                              // Antes el PAS clickeaba, no veia nada visual y tenia
+                              // que cerrar la biblioteca a mano sin saber si
+                              // habia funcionado. Ver [[fix-selector-imagen-feedback]].
+                              setIdInsertando(a.id)
+                              toast.exito('Imagen insertada')
+                              // Delay muy corto para que el highlight sea perceptible
+                              // antes de que el modal se cierre.
+                              setTimeout(() => {
+                                onElegir(a)
+                                setIdInsertando(null)
+                              }, 200)
+                            }}
+                            className={`group border-2 rounded-lg overflow-hidden transition-all bg-white text-left disabled:cursor-not-allowed ${
+                              insertando
+                                ? 'border-emerald-500 ring-2 ring-emerald-200 shadow-md scale-[0.98]'
+                                : 'border-slate-200 hover:border-blue-500 hover:shadow-md active:scale-[0.98]'
+                            }`}
+                          >
+                            <div className="aspect-square bg-slate-100 overflow-hidden relative">
+                              <img
+                                src={`/api/biblioteca-publica/${a.id}/${encodeURIComponent(a.nombre_archivo)}`}
+                                alt={a.nombre_archivo}
+                                className={`w-full h-full object-cover transition-transform ${
+                                  insertando ? '' : 'group-hover:scale-105'
+                                }`}
+                              />
+                              {insertando && (
+                                <div className="absolute inset-0 bg-emerald-500/30 flex items-center justify-center">
+                                  <div className="bg-white rounded-full p-2 shadow-lg">
+                                    <Loader2 className="h-5 w-5 text-emerald-600 animate-spin" />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-2">
+                              <p className="text-xs font-medium text-slate-700 truncate">{a.nombre_archivo}</p>
+                              <p className="text-2xs text-slate-500 mt-0.5">{formatearTamano(a.tamano_bytes)}</p>
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
