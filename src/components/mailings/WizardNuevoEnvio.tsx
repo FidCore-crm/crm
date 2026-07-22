@@ -260,8 +260,11 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
               </ol>
             </div>
 
-            {/* Body */}
-            <div className="overflow-y-auto px-5 py-4 flex-1">
+            {/* Body — min-h-0 obligatorio para que `overflow-y-auto` respete la
+                altura del contenedor flex (sin él, pasos con contenido largo
+                — preview del email, listas de destinatarios — se cortan
+                sin scroll). */}
+            <div className="overflow-y-auto px-5 py-4 flex-1 min-h-0">
               {step === 'destinatarios' && (
                 <PasoDestinatarios
                   supabase={supabase}

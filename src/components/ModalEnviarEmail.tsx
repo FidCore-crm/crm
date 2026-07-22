@@ -239,8 +239,11 @@ export default function ModalEnviarEmail({ isOpen, onClose, persona, poliza, onS
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-auto px-5 py-4 flex flex-col gap-4">
+        {/* Body — min-h-0 obligatorio: sin él, `flex-1 overflow-auto` no scrollea
+            porque el contenido intrínseco empuja el flex-item más allá del
+            max-h-[90vh] del contenedor y rompe el clip interno. Se manifiesta
+            al abrir la vista previa (iframe alto queda cortado sin scroll). */}
+        <div className="flex-1 min-h-0 overflow-auto px-5 py-4 flex flex-col gap-4">
           {/* Sin email */}
           {noTieneEmail ? (
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded p-4">

@@ -217,7 +217,13 @@ export default function SelectorImagenBiblioteca({
   const breadcrumb = construirBreadcrumb(carpetaSeleccionada, carpetas)
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    // stopPropagation en el overlay: este selector se suele renderizar como
+    // hijo dentro del árbol de otros modales (ModalEnviarEmail,
+    // ModalEnviarEmailMasivo, EditorPlantillaModal, WizardNuevoEnvio,
+    // ModalEditarMailingPlantilla). Sin este stopPropagation, cualquier
+    // click dentro del selector burbujea al backdrop del modal padre y lo
+    // cierra. Ver [[patron-submodal-burbuja-cierra-padre]].
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={e => e.stopPropagation()}>
       <div className="bg-white rounded-lg w-full max-w-5xl shadow-2xl flex flex-col" style={{ height: '85vh', maxHeight: '85vh' }}>
         {/* Header */}
         <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b">

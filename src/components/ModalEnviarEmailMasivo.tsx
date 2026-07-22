@@ -214,8 +214,10 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
           )}
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-auto px-5 py-4 flex flex-col gap-4">
+        {/* Body — min-h-0 obligatorio para que `overflow-auto` respete el
+            max-h-[90vh] del contenedor (sin él, el preview y las listas largas
+            de destinatarios quedan cortadas sin scroll). */}
+        <div className="flex-1 min-h-0 overflow-auto px-5 py-4 flex flex-col gap-4">
 
           {/* Resultado final */}
           {resultado ? (
