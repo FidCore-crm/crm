@@ -187,8 +187,11 @@ export async function registrarIntento(params: RegistroIntentoParams): Promise<v
       payload_resumen: params.payload_resumen ?? null,
     })
 
-    // Limpieza oportunista: si la tabla tiene > 500 rows, borra los más viejos.
-    // No bloquea la respuesta principal.
+    // Limpieza oportunista: si la tabla tiene > 5000 rows, borra los más
+    // viejos. Es defensa en profundidad — la retención "real" la hace el cron
+    // /api/cron/limpiar-leads-web-intentos que corre cada 2h con criterio de
+    // edad (90 días) + techo (5000). Si el cron falla o tarda, esta cleanup
+    // best-effort igual acota el crecimiento.
     await limpiarIntentosAntiguos().catch((e) => {
       logger.warn({ modulo: 'leads-web', mensaje: 'Cleanup de intentos falló', contexto: { error: String(e) } })
     })
@@ -202,14 +205,15 @@ async function limpiarIntentosAntiguos(): Promise<void> {
   const { count } = await supabase
     .from('leads_web_intentos')
     .select('*', { count: 'exact', head: true })
-  if (!count || count <= 500) return
+  if (!count || count <= 5000) return
 
-  // Mantiene los últimos 500 — borra el resto.
+  // Mantiene los últimos 5000 — borra el resto. Techo alto porque la retención
+  // real la hace el cron dedicado; esto es solo cinturón de seguridad.
   const { data: viejos } = await supabase
     .from('leads_web_intentos')
     .select('id')
     .order('created_at', { ascending: false })
-    .range(500, count - 1)
+    .range(5000, count - 1)
   const ids = (viejos ?? []).map((r) => (r as { id: string }).id)
   if (ids.length === 0) return
   await supabase.from('leads_web_intentos').delete().in('id', ids)

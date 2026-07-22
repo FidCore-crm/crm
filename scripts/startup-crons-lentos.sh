@@ -8,6 +8,10 @@
 #   - retencion emails:               archivar/borrar historial de emails viejos
 #   - retencion errores:              archivar/borrar errores_sistema viejos
 #   - retencion pdf procesamientos:   borrar pdf_procesamientos en estado terminal >30d
+#   - retencion leads web intentos:   borrar leads_web_intentos >90d o excedente sobre 5000
+#   - limpiar notif+tokens+rl:        garantía de ejecución de las 3 limpiezas
+#                                     (defensa en profundidad — el cron de
+#                                     notificaciones también las corre)
 #   - sincronizar modelos anthropic:  refrescar catálogo de modelos vigentes
 #   - pdfs huerfanos:                 detectar PDFs en tmp sin procesar
 #   - emails/jobs huerfanos:          detectar emails ENVIANDO estancados
@@ -29,6 +33,8 @@ run_cron "cleanup temporales"     /api/cron/limpiar-temporales
 run_cron "retencion emails"       /api/cron/limpiar-historial-emails
 run_cron "retencion errores"      /api/cron/limpiar-errores
 run_cron "retencion pdfs proc"    /api/cron/limpiar-pdf-procesamientos
+run_cron "retencion leads web"    /api/cron/limpiar-leads-web-intentos
+run_cron "limpiar notif+tokens"   /api/cron/limpiar-notificaciones
 run_cron "sincronizar modelos"    /api/cron/sincronizar-modelos-anthropic
 run_cron "pdfs huerfanos"         /api/cron/recuperar-pdfs-huerfanos
 run_cron "emails/jobs huerfanos"  /api/cron/recuperar-huerfanos
