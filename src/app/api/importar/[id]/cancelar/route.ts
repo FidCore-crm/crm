@@ -32,21 +32,37 @@ export async function POST(request: Request, context: { params: { id: string } }
       { status: 400 }
     )
   }
-  // Durante IMPORTACION_FINAL (estado IMPORTANDO) el handler async corre en
-  // background y no se puede interrumpir limpiamente. Si marcáramos el job
-  // CANCELADO, el handler seguiría haciendo INSERTs y dejaría datos parciales
-  // con la importación marcada como cancelada — peor que no permitir cancelar.
-  // El PAS tiene "Deshacer" en el historial (24h) para revertir.
+  // El estado IMPORTANDO se usa en DOS etapas distintas del flujo:
+  //   1) Procesamiento de lotes (jobs PROCESAMIENTO_LOTE) — analiza con IA y
+  //      valida datos, PERO no inserta nada en la DB de negocio. Cancelable
+  //      sin dejar datos parciales.
+  //   2) Importación final (job IMPORTACION_FINAL) — hace los INSERTs
+  //      efectivos en la DB. NO cancelable a mitad, dejaría datos parciales.
+  //
+  // Distinguimos por el tipo de job activo. Si hay un IMPORTACION_FINAL en
+  // ejecución o pendiente, rechazamos. Sino permitimos cancelar los lotes.
   if (estado === 'IMPORTANDO') {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          'La importación ya está creando registros y no se puede cancelar a mitad. ' +
-          'Esperá a que termine y usá "Deshacer" en el historial (disponible 24h).',
-      },
-      { status: 400 }
-    )
+    const { data: jobFinal } = await supabase
+      .from('importacion_jobs')
+      .select('id')
+      .eq('importacion_id', id)
+      .eq('tipo', 'IMPORTACION_FINAL')
+      .in('estado', ['PENDIENTE', 'EJECUTANDO', 'REINTENTANDO'])
+      .limit(1)
+      .maybeSingle()
+
+    if (jobFinal) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'La importación ya está creando registros y no se puede cancelar a mitad. ' +
+            'Esperá a que termine y usá "Deshacer" en el historial (disponible 24h).',
+        },
+        { status: 400 }
+      )
+    }
+    // Si no hay IMPORTACION_FINAL activo, es procesamiento de lotes: cancelable.
   }
 
   // Cancelar jobs pendientes/ejecutando
