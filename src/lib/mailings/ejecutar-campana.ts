@@ -268,6 +268,8 @@ export async function ejecutarCampana(campana_id: string): Promise<ResultadoEjec
           campos_editables,
           tipo_envio: 'MASIVO',
           enviado_por_usuario_id: c.usuario_creador_id ?? undefined,
+          // Linkea el envío al padre para que aparezca agrupado en el historial.
+          envio_agrupado_id: c.id,
         })
         if (resultado.ok) {
           enviados++

@@ -96,6 +96,13 @@ export interface EncolarParams {
    * y el admin no puede desuscribirse de ellas.
    */
   bypass_email_bajas?: boolean
+  /**
+   * FK opcional a `mailing_campanas`. Cuando el envío forma parte de una
+   * campaña del wizard o de un envío masivo simple, se linkea acá para
+   * agruparlos en el historial. Los envíos individuales (MANUAL,
+   * AUTOMATICO_*, NOTIFICACION_INTERNA) lo dejan en null.
+   */
+  envio_agrupado_id?: string
 }
 
 export interface EncolarResult {
@@ -416,6 +423,7 @@ export async function encolarEmail(params: EncolarParams): Promise<EncolarResult
             prioridad,
             estado: 'EXCLUIDO_BAJA',
             enviado_por_usuario_id: params.enviado_por_usuario_id || null,
+            envio_agrupado_id: params.envio_agrupado_id || null,
           })
           .select('id')
           .single()
@@ -453,6 +461,7 @@ export async function encolarEmail(params: EncolarParams): Promise<EncolarResult
             prioridad,
             estado: 'EXCLUIDO_NO_MARKETING',
             enviado_por_usuario_id: params.enviado_por_usuario_id || null,
+            envio_agrupado_id: params.envio_agrupado_id || null,
           })
           .select('id')
           .single()
@@ -488,6 +497,7 @@ export async function encolarEmail(params: EncolarParams): Promise<EncolarResult
         variables_usadas: variables_extra,
         archivos_adjuntos: params.archivos_adjuntos || null,
         enviado_por_usuario_id: params.enviado_por_usuario_id || null,
+        envio_agrupado_id: params.envio_agrupado_id || null,
       })
       .select('id')
       .single()
@@ -806,6 +816,8 @@ export async function enviarComunicacion(params: {
   tipo_envio: TipoEnvioEmail
   enviado_por_usuario_id?: string
   variables_extra?: Record<string, string>
+  /** FK a mailing_campanas. Se linkea en email_envios.envio_agrupado_id para agrupar el historial. */
+  envio_agrupado_id?: string
 }): Promise<{ ok: boolean; envio_id?: string; error?: string }> {
   // Las plantillas generales usan `titulo` y `cuerpo_mensaje` como variables.
   // Si el caller pasó campos_editables legacy, los mapeo.
@@ -856,6 +868,7 @@ export async function enviarComunicacion(params: {
     variables_extra,
     archivos_adjuntos: params.archivos_adjuntos,
     anti_spam: false, // los envíos manuales no aplican anti-spam
+    envio_agrupado_id: params.envio_agrupado_id,
   })
 
   if (!encoladoResult.ok || !encoladoResult.envio_id) {

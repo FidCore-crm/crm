@@ -103,6 +103,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Crear la campaña padre para agrupar el envío masivo en el historial.
+    // Todos los email_envios generados en este loop van a linkear a este ID.
+    // Los envíos individuales (MANUAL, AUTOMATICO_*) no crean campaña.
+    const asuntoParaCampana = (formData.get('asunto') as string) || plantilla_codigo
+    const nombreCampana = `Envío masivo — ${asuntoParaCampana}`.slice(0, 200)
+    const personaIdsUnicos = (personas as any[]).map(p => p.id)
+    const { data: campanaData, error: campanaError } = await (supabase.from('mailing_campanas') as any)
+      .insert({
+        nombre: nombreCampana,
+        descripcion: `Envío masivo iniciado desde ${plantilla_codigo}.`,
+        personas_ids: personaIdsUnicos,
+        asunto_libre: asuntoParaCampana,
+        cuerpo_libre: '(envío masivo desde ficha/listado)',
+        estado: 'EJECUTANDO',
+        total_destinatarios: (personas as any[]).length,
+        fecha_inicio_ejecucion: new Date().toISOString(),
+        usuario_creador_id: usuario.id,
+      })
+      .select('id')
+      .single()
+
+    const envio_agrupado_id: string | undefined = campanaError ? undefined : (campanaData as any)?.id
+
     // Procesar envíos secuencialmente
     const detalle: Array<{ persona_id: string; nombre: string; estado: string; error?: string }> = []
     let enviados = 0
@@ -152,6 +175,7 @@ export async function POST(request: NextRequest) {
         archivos_adjuntos: archivos_adjuntos.length > 0 ? archivos_adjuntos : undefined,
         tipo_envio: 'MASIVO',
         enviado_por_usuario_id: usuario.id,
+        envio_agrupado_id,
       })
 
       if (resultado.ok) {
@@ -172,6 +196,19 @@ export async function POST(request: NextRequest) {
     // Limpiar archivos temporales
     if (fs.existsSync(tmpDir)) {
       fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+
+    // Cerrar la campaña padre con métricas finales.
+    if (envio_agrupado_id) {
+      await (supabase.from('mailing_campanas') as any)
+        .update({
+          estado: 'COMPLETADA',
+          enviados,
+          fallidos,
+          excluidos,
+          fecha_fin_ejecucion: new Date().toISOString(),
+        })
+        .eq('id', envio_agrupado_id)
     }
 
     return NextResponse.json({

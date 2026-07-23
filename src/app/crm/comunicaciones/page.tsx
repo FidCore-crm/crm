@@ -24,6 +24,7 @@ import { apiCall } from '@/lib/api-client'
 import { useAuth } from '@/contexts/AuthContext'
 import { useEmailConfigurado } from '@/lib/hooks/useEmailConfigurado'
 import ComunicacionesTab from '@/components/ComunicacionesTab'
+import ComunicacionesTabAgrupado from '@/components/comunicaciones/ComunicacionesTabAgrupado'
 import TabMailingPlantillas from '@/components/mailings/TabMailingPlantillas'
 import TabMailingAudiencias from '@/components/mailings/TabMailingAudiencias'
 import TabMailingCampanas from '@/components/mailings/TabMailingCampanas'
@@ -209,7 +210,7 @@ export default function ComunicacionesPage() {
 
       {/* Contenido del tab activo */}
       <div className="min-h-[300px]">
-        {tab === 'envios' && <ComunicacionesTab global />}
+        {tab === 'envios' && <ComunicacionesTabAgrupado />}
         {tab === 'campanas' && <TabMailingCampanas />}
         {tab === 'plantillas' && <TabMailingPlantillas />}
         {tab === 'audiencias' && <TabMailingAudiencias />}

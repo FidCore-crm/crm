@@ -263,6 +263,29 @@ export async function POST(request: NextRequest) {
       })),
     ]
 
+    // Crear la campaña padre para agrupar el envío en el historial. Solo
+    // aplica en modo masivo (destinatarios_tipo !== 'individual') — los
+    // envíos individuales del wizard son 1-a-1 y no merecen agrupar.
+    let envio_agrupado_id: string | undefined
+    if (destinatarios_tipo !== 'individual' && cola.length > 0) {
+      const nombreCampana = `Envío desde wizard — ${asunto}`.slice(0, 200)
+      const { data: campanaData } = await (supabase.from('mailing_campanas') as any)
+        .insert({
+          nombre: nombreCampana,
+          descripcion: 'Envío iniciado desde el wizard de campañas.',
+          personas_ids: listaPersonas.map(p => p.id),
+          asunto_libre: asunto,
+          cuerpo_libre: cuerpoFinal || '(sin cuerpo)',
+          estado: 'EJECUTANDO',
+          total_destinatarios: cola.length,
+          fecha_inicio_ejecucion: new Date().toISOString(),
+          usuario_creador_id: usuario.id,
+        })
+        .select('id')
+        .single()
+      envio_agrupado_id = (campanaData as any)?.id
+    }
+
     for (const dst of cola) {
       if (!dst.email) {
         excluidos++
@@ -297,6 +320,7 @@ export async function POST(request: NextRequest) {
         archivos_adjuntos: archivos_adjuntos.length > 0 ? archivos_adjuntos : undefined,
         tipo_envio: destinatarios_tipo === 'individual' ? 'MANUAL' : 'MASIVO',
         enviado_por_usuario_id: usuario.id,
+        envio_agrupado_id,
       })
 
       if (resultado.ok) {
@@ -314,6 +338,19 @@ export async function POST(request: NextRequest) {
     // Limpiar tmp
     if (fs.existsSync(tmpDir)) {
       fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+
+    // Cerrar la campaña padre con métricas finales.
+    if (envio_agrupado_id) {
+      await (supabase.from('mailing_campanas') as any)
+        .update({
+          estado: 'COMPLETADA',
+          enviados,
+          fallidos,
+          excluidos,
+          fecha_fin_ejecucion: new Date().toISOString(),
+        })
+        .eq('id', envio_agrupado_id)
     }
 
     return NextResponse.json({
