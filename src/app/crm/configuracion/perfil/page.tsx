@@ -714,8 +714,8 @@ export default function PerfilPage() {
             }> = [
               {
                 valor: 'banda',
-                titulo: 'Banda con logo',
-                descripcion: 'Logo dentro de cuadro blanco (funciona con cualquier logo).',
+                titulo: 'Banda clásica',
+                descripcion: 'Logo dentro de un cuadro blanco sobre el color de marca. La opción más segura — funciona con cualquier logo.',
                 preview: (
                   <div className="rounded overflow-hidden bg-white">
                     <div
@@ -746,8 +746,8 @@ export default function PerfilPage() {
               },
               {
                 valor: 'compacto',
-                titulo: 'Compacto',
-                descripcion: 'Sin cuadro — el logo va directo sobre el fondo.',
+                titulo: 'Banda integrada',
+                descripcion: 'Logo directo sobre el color de marca, sin cuadro. Ideal si tu logo tiene fondo blanco o transparente.',
                 preview: (
                   <div className="rounded overflow-hidden bg-white">
                     <div
@@ -775,8 +775,8 @@ export default function PerfilPage() {
               },
               {
                 valor: 'lateral',
-                titulo: 'Borde lateral',
-                descripcion: 'Logo teñido automáticamente para integrarse al fondo.',
+                titulo: 'Banda con logo teñido',
+                descripcion: 'El logo se tiñe automáticamente en blanco o negro según tu color de marca. Ideal si tu logo es de un solo color.',
                 preview: (
                   <div className="rounded overflow-hidden bg-white">
                     <div
@@ -814,7 +814,7 @@ export default function PerfilPage() {
               {
                 valor: 'blanco_solo_logo',
                 titulo: 'Solo logo — fondo blanco',
-                descripcion: 'Fondo blanco + barra fina de acento arriba.',
+                descripcion: 'Fondo blanco con una barra fina de tu color de marca arriba. Elegante y sobrio.',
                 preview: (
                   <div className="rounded overflow-hidden bg-white">
                     <div className="h-[3px]" style={{ backgroundColor: tonos.base }}></div>
