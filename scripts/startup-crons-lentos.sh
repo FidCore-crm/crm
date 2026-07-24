@@ -35,6 +35,7 @@ run_cron "retencion errores"      /api/cron/limpiar-errores
 run_cron "retencion pdfs proc"    /api/cron/limpiar-pdf-procesamientos
 run_cron "retencion leads web"    /api/cron/limpiar-leads-web-intentos
 run_cron "limpiar notif+tokens"   /api/cron/limpiar-notificaciones
+run_cron "limpiar campanas storage" /api/cron/limpiar-campanas-storage
 run_cron "sincronizar modelos"    /api/cron/sincronizar-modelos-anthropic
 run_cron "pdfs huerfanos"         /api/cron/recuperar-pdfs-huerfanos
 run_cron "emails/jobs huerfanos"  /api/cron/recuperar-huerfanos

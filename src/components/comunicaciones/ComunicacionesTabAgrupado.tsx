@@ -19,6 +19,7 @@ import {
   Search, ChevronLeft, RefreshCw,
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 function formatearFechaHora(iso: string): string {
   if (!iso) return '—'
@@ -172,6 +173,15 @@ export default function ComunicacionesTabAgrupado() {
   }
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Realtime: cuando el cron actualiza métricas/estado de una campaña
+  // (v1.0.180), refrescamos el listado en vivo. También cuando llegan emails
+  // nuevos al historial (bienvenida, renovación, etc.) que aparecen sin
+  // recargar la pantalla.
+  useRealtimeRefresh({
+    tablas: ['mailing_campanas', 'email_envios'],
+    onCambio: () => cargar(),
+  })
 
   // Debounce búsqueda
   useEffect(() => {
@@ -478,6 +488,14 @@ function PanelDestinatarios({ campanaId }: { campanaId: string }) {
     const t = setTimeout(() => { setBusqAplicada(busq.trim()); setPage(1) }, 350)
     return () => clearTimeout(t)
   }, [busq])
+
+  // Realtime: refrescar destinatarios cuando el cron procesa un email de esta
+  // campaña. Filtrado por envio_agrupado_id=eq.X — solo eventos de esta campaña.
+  useRealtimeRefresh({
+    tablas: ['email_envios'],
+    filter: `envio_agrupado_id=eq.${campanaId}`,
+    onCambio: () => cargar(),
+  })
 
   return (
     <div className="p-3">
