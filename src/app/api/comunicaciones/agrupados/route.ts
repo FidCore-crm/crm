@@ -18,7 +18,12 @@ import { tieneAccesoTotal } from '@/lib/cartera-filter'
  *
  * Query params:
  *   - tipo_grupo : 'campana' | 'individual' | 'todos' (default 'todos')
- *   - desde | hasta : filtros de fecha (ISO)
+ *   - tipo_envio : filtro por tipo específico (MASIVO, MANUAL, AUTOMATICO_BIENVENIDA,
+ *                   AUTOMATICO_RENOVACION, AUTOMATICO_PORTAL_CLIENTE, etc.)
+ *   - estado : filtro por estado de la fila (ENVIADO, FALLIDO, ENCOLADO, EXCLUIDO_BAJA,
+ *              EXCLUIDO_NO_MARKETING, COMPLETADA, EJECUTANDO, PROGRAMADA, etc.)
+ *   - desde | hasta : filtros de fecha (ISO). Para campañas usa created_at, para
+ *                     sueltos usa fecha_creacion.
  *   - busqueda : texto libre en nombre de campaña / asunto / destinatario
  *   - page, page_size : paginación (default 25)
  *
@@ -32,6 +37,8 @@ export async function GET(request: NextRequest) {
 
   const sp = request.nextUrl.searchParams
   const tipoGrupo = sp.get('tipo_grupo') || 'todos'
+  const tipoEnvio = sp.get('tipo_envio') || undefined
+  const estadoFiltro = sp.get('estado') || undefined
   const desde = sp.get('desde') || undefined
   const hasta = sp.get('hasta') || undefined
   const busqueda = (sp.get('busqueda') || '').trim()
@@ -53,16 +60,27 @@ export async function GET(request: NextRequest) {
   }
 
   // ── 1) Campañas ──────────────────────────────────────────────
+  // Traemos ambos tipos (CAMPANA + ENVIO_MASIVO) porque el historial de
+  // "Envíos" muestra todo. La solapa "Campañas" tiene su propio endpoint que
+  // sí filtra por tipo='CAMPANA'.
+  //
+  // Si el usuario pidió filtrar por tipo_envio específico:
+  //   - MASIVO → solo trae filas de mailing_campanas (excluye sueltos porque
+  //     ya no hay MASIVO sueltos post-v1.0.178).
+  //   - MANUAL/AUTOMATICO_*/etc → excluye campañas (no matchea).
   let camps: any[] = []
-  if (tipoGrupo === 'todos' || tipoGrupo === 'campana') {
+  const traerCampanas = (tipoGrupo === 'todos' || tipoGrupo === 'campana')
+    && (!tipoEnvio || tipoEnvio === 'MASIVO' || tipoEnvio === 'CAMPANA')
+  if (traerCampanas) {
     let q = supabase
       .from('mailing_campanas')
       .select(
-        'id, nombre, asunto_libre, asunto_override, estado, total_destinatarios, enviados, fallidos, excluidos, fecha_inicio_ejecucion, fecha_fin_ejecucion, usuario_creador_id, created_at',
+        'id, nombre, tipo, asunto_libre, asunto_override, estado, total_destinatarios, enviados, fallidos, excluidos, fecha_inicio_ejecucion, fecha_fin_ejecucion, usuario_creador_id, created_at',
       )
     if (!esTotal) q = q.eq('usuario_creador_id', usuario.id)
     if (desde) q = q.gte('created_at', desde)
     if (hasta) q = q.lte('created_at', hasta)
+    if (estadoFiltro) q = q.eq('estado', estadoFiltro)
     if (busqueda) {
       const safe = busqueda.replace(/[%_,()]/g, '')
       q = q.or(`nombre.ilike.%${safe}%,asunto_libre.ilike.%${safe}%,asunto_override.ilike.%${safe}%`)
@@ -72,7 +90,8 @@ export async function GET(request: NextRequest) {
     camps = (data ?? []).map((c: any) => ({
       es_grupo: true,
       id: c.id,
-      tipo: 'campana' as const,
+      // "campana" para las guardadas del wizard, "masivo" para envíos ad-hoc
+      tipo: c.tipo === 'CAMPANA' ? 'campana' : 'masivo',
       titulo: c.nombre,
       asunto: c.asunto_override || c.asunto_libre || c.nombre,
       estado_grupo: c.estado,
@@ -87,8 +106,11 @@ export async function GET(request: NextRequest) {
   }
 
   // ── 2) Envíos individuales sueltos (NO agrupados) ────────────
+  // Si el usuario pidió tipoEnvio='MASIVO' o 'CAMPANA', no traemos sueltos.
   let sueltos: any[] = []
-  if (tipoGrupo === 'todos' || tipoGrupo === 'individual') {
+  const traerSueltos = (tipoGrupo === 'todos' || tipoGrupo === 'individual')
+    && tipoEnvio !== 'MASIVO' && tipoEnvio !== 'CAMPANA'
+  if (traerSueltos) {
     let q = supabase
       .from('email_envios')
       .select(
@@ -107,6 +129,8 @@ export async function GET(request: NextRequest) {
     }
     if (desde) q = q.gte('fecha_creacion', desde)
     if (hasta) q = q.lte('fecha_creacion', hasta)
+    if (tipoEnvio) q = q.eq('tipo_envio', tipoEnvio)
+    if (estadoFiltro) q = q.eq('estado', estadoFiltro)
     if (busqueda) {
       const safe = busqueda.replace(/[%_,()]/g, '')
       q = q.or(

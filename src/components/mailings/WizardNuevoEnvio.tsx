@@ -87,6 +87,12 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
   // ── Paso 3: Config ────────────────────────────────────────
   const [cAsuntoOverride, setCAsuntoOverride] = useState('')
   const [cAdjuntos, setCAdjuntos] = useState<File[]>([])
+  const [cProgramarModo, setCProgramarModo] = useState<'ahora' | 'futuro'>('ahora')
+  const [cProgramadaPara, setCProgramadaPara] = useState<string>(() => {
+    const d = new Date(Date.now() + 5 * 60_000)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  })
 
   // ── Paso 4: Revisar ───────────────────────────────────────
   const [preview, setPreview] = useState<PreviewResult | null>(null)
@@ -175,6 +181,21 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
 
   // Enviar
   async function enviar() {
+    // Validar fecha programada si aplica
+    let programadaIso: string | null = null
+    if (cProgramarModo === 'futuro') {
+      const fecha = new Date(cProgramadaPara)
+      if (isNaN(fecha.getTime())) {
+        toast.error('Fecha programada inválida')
+        return
+      }
+      if (fecha.getTime() < Date.now() + 60_000) {
+        toast.error('La fecha programada debe ser al menos 1 minuto en el futuro')
+        return
+      }
+      programadaIso = fecha.toISOString()
+    }
+
     setEnviando(true)
     const fd = new FormData()
     fd.set('destinatarios_tipo', dTipo)
@@ -190,12 +211,12 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
     } else {
       fd.set('asunto', mAsuntoLibre.trim())
       fd.set('cuerpo', mCuerpoLibre.trim())
-      // Botón CTA en modo libre (v1.0.141)
       if (mCtaTexto.trim() && mCtaUrl.trim()) {
         fd.set('cta_texto_libre', mCtaTexto.trim())
         fd.set('cta_url_libre', mCtaUrl.trim())
       }
     }
+    if (programadaIso) fd.set('programada_para', programadaIso)
 
     for (const archivo of cAdjuntos) {
       fd.append('archivos', archivo)
@@ -209,8 +230,18 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
       toast.error(json.error ?? 'Error al enviar')
       return
     }
-    setResultado(json)
-    if (onEnviado) onEnviado()
+
+    // Modo individual sigue devolviendo el shape viejo (enviados/fallidos) —
+    // mostramos la pantalla de resultado clásica. El modo masivo (async)
+    // cierra el modal + toast con el mensaje del backend.
+    if (dTipo === 'individual') {
+      setResultado(json)
+      if (onEnviado) onEnviado()
+    } else {
+      toast.exito(json.mensaje || `${json.encolados} emails encolados. Se envían en segundo plano.`)
+      if (onEnviado) onEnviado()
+      onClose()
+    }
   }
 
   if (!abierto) return null
@@ -295,6 +326,9 @@ export default function WizardNuevoEnvio({ abierto, onClose, onEnviado }: Props)
                   plantillaId={mPlantillaId}
                   asuntoOverride={cAsuntoOverride} setAsuntoOverride={setCAsuntoOverride}
                   adjuntos={cAdjuntos} setAdjuntos={setCAdjuntos}
+                  programarModo={cProgramarModo} setProgramarModo={setCProgramarModo}
+                  programadaPara={cProgramadaPara} setProgramadaPara={setCProgramadaPara}
+                  esIndividual={dTipo === 'individual'}
                 />
               )}
               {step === 'revisar' && (
@@ -505,7 +539,7 @@ function PasoMensaje(props: any) {
   )
 }
 
-function PasoConfig({ mensajeTipo, plantillas, plantillaId, asuntoOverride, setAsuntoOverride, adjuntos, setAdjuntos }: any) {
+function PasoConfig({ mensajeTipo, plantillas, plantillaId, asuntoOverride, setAsuntoOverride, adjuntos, setAdjuntos, programarModo, setProgramarModo, programadaPara, setProgramadaPara, esIndividual }: any) {
   const plantilla = plantillas.find((p: MailingPlantilla) => p.id === plantillaId)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -580,10 +614,49 @@ function PasoConfig({ mensajeTipo, plantillas, plantillaId, asuntoOverride, setA
         )}
       </div>
 
-      <div className="bg-slate-50 border border-slate-200 rounded p-3 text-2xs text-slate-600">
-        <strong>Próximamente:</strong> programación para fecha/hora futura (Sprint 2).
-        Por ahora todos los envíos se procesan inmediatamente.
-      </div>
+      {!esIndividual && (
+        <div className="border border-slate-200 rounded p-3 bg-slate-50">
+          <label className="block text-xs font-medium text-slate-600 mb-2">¿Cuándo enviar?</label>
+          <div className="flex gap-4 flex-wrap">
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <input
+                type="radio"
+                checked={programarModo === 'ahora'}
+                onChange={() => setProgramarModo('ahora')}
+                className="h-3.5 w-3.5"
+              />
+              Enviar ahora (segundo plano)
+            </label>
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <input
+                type="radio"
+                checked={programarModo === 'futuro'}
+                onChange={() => setProgramarModo('futuro')}
+                className="h-3.5 w-3.5"
+              />
+              Programar para fecha y hora
+            </label>
+          </div>
+          {programarModo === 'futuro' && (
+            <div className="mt-2">
+              <input
+                type="datetime-local"
+                value={programadaPara}
+                onChange={e => setProgramadaPara(e.target.value)}
+                className="form-input h-8 text-xs w-full"
+              />
+              <p className="text-2xs text-slate-500 mt-1">
+                El sistema los envía automáticamente cuando llegue esta fecha. Podés cerrar el CRM.
+              </p>
+            </div>
+          )}
+          {programarModo === 'ahora' && (
+            <p className="text-2xs text-slate-500 mt-2">
+              Los emails se encolan y se envían en segundo plano. Podés cerrar el modal y seguir trabajando — el progreso lo ves en el historial.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -706,13 +779,13 @@ function PasoRevisar({ preview, previewCargando, mensajeTipo, plantilla, asuntoF
         </button>
       </div>
 
-      {/* Advertencia */}
-      {preview.total > 100 && (
-        <div className="bg-amber-50 border border-amber-200 rounded p-2 flex items-start gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-900">
-            Vas a enviar a <strong>{preview.total} personas</strong>. El envío puede tardar varios minutos
-            (con delay anti-spam entre cada email). No cierres esta ventana mientras procesa.
+      {/* Info async */}
+      {preview.total > 1 && (
+        <div className="bg-blue-50 border border-blue-200 rounded p-2 flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-blue-900">
+            Los emails se van a enviar en <strong>segundo plano</strong>. Al confirmar, el modal se cierra y podés seguir usando el CRM.
+            El progreso se ve en el historial de comunicaciones.
           </p>
         </div>
       )}

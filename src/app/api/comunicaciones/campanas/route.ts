@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
       fecha_inicio_ejecucion, fecha_fin_ejecucion, ultimo_error,
       created_at, updated_at
     `, { count: 'exact' })
+    // La solapa "Campañas" solo muestra las CAMPANA (guardadas y reutilizables
+    // del wizard). Los ENVIO_MASIVO son agrupadores técnicos del historial y
+    // NO son campañas — no aparecen acá.
+    .eq('tipo', 'CAMPANA')
     .order('created_at', { ascending: false })
     .range(pagina * tamanio, pagina * tamanio + tamanio - 1)
 
@@ -110,6 +114,7 @@ export async function POST(request: NextRequest) {
       asunto_override: body.asunto_override?.trim() || null,
       programada_para,
       estado: estado_inicial,
+      tipo: 'CAMPANA', // guardada reutilizable — aparece en la solapa Campañas
       usuario_creador_id: auth.id,
     })
     .select('*')

@@ -125,6 +125,10 @@ function estadoBadge(estado: string): { label: string; color: string } {
 
 export default function ComunicacionesTabAgrupado() {
   const [tipoGrupo, setTipoGrupo] = useState<'todos' | 'campana' | 'individual'>('todos')
+  const [tipoEnvio, setTipoEnvio] = useState('')
+  const [estadoFiltro, setEstadoFiltro] = useState('')
+  const [desde, setDesde] = useState('')
+  const [hasta, setHasta] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [busquedaAplicada, setBusquedaAplicada] = useState('')
   const [page, setPage] = useState(1)
@@ -132,6 +136,7 @@ export default function ComunicacionesTabAgrupado() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandido, setExpandido] = useState<string | null>(null)
+  const [mostrarFiltrosAvanzados, setMostrarFiltrosAvanzados] = useState(false)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -141,6 +146,10 @@ export default function ComunicacionesTabAgrupado() {
     params.set('page', String(page))
     params.set('page_size', String(PAGE_SIZE))
     if (busquedaAplicada) params.set('busqueda', busquedaAplicada)
+    if (tipoEnvio) params.set('tipo_envio', tipoEnvio)
+    if (estadoFiltro) params.set('estado', estadoFiltro)
+    if (desde) params.set('desde', desde)
+    if (hasta) params.set('hasta', new Date(hasta + 'T23:59:59').toISOString())
     const r = await apiCall<RespuestaAgrupados>(`/api/comunicaciones/agrupados?${params.toString()}`, undefined, { mostrar_toast_en_error: false })
     if (r.ok && r.data) {
       setDatos(r.data)
@@ -148,7 +157,19 @@ export default function ComunicacionesTabAgrupado() {
       setError(r.error?.mensaje || 'No se pudieron cargar las comunicaciones')
     }
     setCargando(false)
-  }, [tipoGrupo, page, busquedaAplicada])
+  }, [tipoGrupo, page, busquedaAplicada, tipoEnvio, estadoFiltro, desde, hasta])
+
+  const hayFiltrosActivos = tipoEnvio || estadoFiltro || desde || hasta || busquedaAplicada
+  const limpiarFiltros = () => {
+    setTipoEnvio('')
+    setEstadoFiltro('')
+    setDesde('')
+    setHasta('')
+    setBusqueda('')
+    setBusquedaAplicada('')
+    setTipoGrupo('todos')
+    setPage(1)
+  }
 
   useEffect(() => { cargar() }, [cargar])
 
@@ -165,7 +186,7 @@ export default function ComunicacionesTabAgrupado() {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Filtros */}
+      {/* Filtros — fila 1 (buscador + tipo agrupamiento + toggle avanzados + acciones) */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
@@ -186,10 +207,81 @@ export default function ComunicacionesTabAgrupado() {
           <option value="campana">Solo campañas / masivos</option>
           <option value="individual">Solo envíos individuales</option>
         </select>
+        <button
+          onClick={() => setMostrarFiltrosAvanzados(v => !v)}
+          className={`btn-secondary flex items-center gap-1 text-xs ${mostrarFiltrosAvanzados || hayFiltrosActivos ? 'ring-1 ring-blue-400 text-blue-700' : ''}`}
+          title="Filtros avanzados"
+        >
+          Filtros{hayFiltrosActivos ? ' •' : ''}
+        </button>
+        {hayFiltrosActivos && (
+          <button onClick={limpiarFiltros} className="btn-secondary flex items-center gap-1 text-xs" title="Limpiar todos los filtros">
+            Limpiar
+          </button>
+        )}
         <button onClick={cargar} className="btn-secondary flex items-center gap-1 text-xs" title="Actualizar">
           <RefreshCw className="h-3.5 w-3.5" />
         </button>
       </div>
+
+      {/* Filtros — fila 2 (avanzados) */}
+      {mostrarFiltrosAvanzados && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 bg-slate-50 border border-slate-200 rounded">
+          <label className="flex flex-col gap-1">
+            <span className="text-2xs text-slate-600 uppercase tracking-wide">Tipo de envío</span>
+            <select
+              value={tipoEnvio}
+              onChange={e => { setTipoEnvio(e.target.value); setPage(1) }}
+              className="form-input h-8 text-xs"
+            >
+              <option value="">Todos</option>
+              <option value="MASIVO">Envío masivo</option>
+              <option value="MANUAL">Envío manual</option>
+              <option value="AUTOMATICO_BIENVENIDA">Auto — bienvenida</option>
+              <option value="AUTOMATICO_RENOVACION">Auto — renovación</option>
+              <option value="AUTOMATICO_PORTAL_CLIENTE">Auto — portal asegurado</option>
+              <option value="NOTIFICACION_INTERNA">Notif interna</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-2xs text-slate-600 uppercase tracking-wide">Estado</span>
+            <select
+              value={estadoFiltro}
+              onChange={e => { setEstadoFiltro(e.target.value); setPage(1) }}
+              className="form-input h-8 text-xs"
+            >
+              <option value="">Todos</option>
+              <option value="ENVIADO">Enviado</option>
+              <option value="FALLIDO">Fallido</option>
+              <option value="ENCOLADO">En cola</option>
+              <option value="ENVIANDO">Enviando</option>
+              <option value="COMPLETADA">Completada (campañas)</option>
+              <option value="EJECUTANDO">Ejecutando (campañas)</option>
+              <option value="PROGRAMADA">Programada</option>
+              <option value="EXCLUIDO_BAJA">Excluido — baja</option>
+              <option value="EXCLUIDO_NO_MARKETING">Excluido — opt-out</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-2xs text-slate-600 uppercase tracking-wide">Desde</span>
+            <input
+              type="date"
+              value={desde}
+              onChange={e => { setDesde(e.target.value); setPage(1) }}
+              className="form-input h-8 text-xs"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-2xs text-slate-600 uppercase tracking-wide">Hasta</span>
+            <input
+              type="date"
+              value={hasta}
+              onChange={e => { setHasta(e.target.value); setPage(1) }}
+              className="form-input h-8 text-xs"
+            />
+          </label>
+        </div>
+      )}
 
       {/* Info */}
       <div className="text-xs text-slate-600">

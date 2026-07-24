@@ -7,6 +7,7 @@ import {
   FileText, Paperclip, Users, ChevronDown, ChevronUp, Image as ImageIcon
 } from 'lucide-react'
 import { apiCall } from '@/lib/api-client'
+import { toast } from '@/lib/toast'
 import SelectorImagenBiblioteca, { type ArchivoBiblioteca } from './biblioteca/SelectorImagenBiblioteca'
 import { ConfiguradorBotonCTA } from './comunicaciones/ConfiguradorBotonCTA'
 import ModalVistaPrevia from './ModalVistaPrevia'
@@ -40,11 +41,19 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024
 const MAX_FILES = 5
 
 interface ResultadoEnvio {
+  campana_id?: string
   total: number
-  enviados: number
-  fallidos: number
+  encolados: number
   excluidos: number
-  detalle: Array<{ persona_id: string; nombre: string; estado: string; error?: string }>
+  programada?: string | null
+  mensaje?: string
+}
+
+function isoLocalMin() {
+  // datetime-local mínimo: ahora + 5 min, sin segundos ni TZ
+  const d = new Date(Date.now() + 5 * 60_000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, contexto, onSuccess }: Props) {
@@ -65,6 +74,9 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
   const [enviando, setEnviando] = useState(false)
   const [resultado, setResultado] = useState<ResultadoEnvio | null>(null)
   const [errorGral, setErrorGral] = useState('')
+
+  const [programarModo, setProgramarModo] = useState<'ahora' | 'futuro'>('ahora')
+  const [programadaPara, setProgramadaPara] = useState<string>(isoLocalMin())
 
   const [previewHtml, setPreviewHtml] = useState('')
   const [mostrarPreview, setMostrarPreview] = useState(false)
@@ -153,7 +165,24 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
 
   async function enviar() {
     if (!plantillaSeleccionada || !validos.length) return
-    if (!confirm(`Estás por enviar ${validos.length} emails. ¿Confirmás?`)) return
+
+    // Validar fecha programada si aplica
+    let programadaIso: string | null = null
+    if (programarModo === 'futuro') {
+      const fecha = new Date(programadaPara)
+      if (isNaN(fecha.getTime())) {
+        setErrorGral('Fecha programada inválida')
+        return
+      }
+      if (fecha.getTime() < Date.now() + 60_000) {
+        setErrorGral('La fecha programada debe ser al menos 1 minuto en el futuro')
+        return
+      }
+      programadaIso = fecha.toISOString()
+      if (!confirm(`Vas a programar ${validos.length} emails para el ${fecha.toLocaleString('es-AR')}. ¿Confirmás?`)) return
+    } else {
+      if (!confirm(`Vas a encolar ${validos.length} emails para enviar en segundo plano. ¿Confirmás?`)) return
+    }
 
     setEnviando(true)
     setResultado(null)
@@ -169,15 +198,28 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
       cta_url: ctaUrl.trim() || undefined,
     }))
     if (asunto) formData.append('asunto', asunto)
+    if (programadaIso) formData.append('programada_para', programadaIso)
     archivos.forEach(f => formData.append('archivos', f))
 
     const r = await apiCall<ResultadoEnvio>('/api/comunicaciones/enviar-masivo', { method: 'POST', body: formData }, { mostrar_toast_en_error: false })
+    setEnviando(false)
+
     if (r.ok && r.data) {
-      setResultado(r.data)
+      // Envío async: cerrar el modal + toast con el mensaje del backend.
+      // El PAS ve el progreso en el historial.
+      toast.exito(r.data.mensaje || `${r.data.encolados} emails encolados. Se envían en segundo plano.`)
+      onSuccess?.()
+      onClose()
+      // Reset local para próxima apertura
+      setResultado(null)
+      setErrorGral('')
+      setArchivos([])
+      setMostrarPreview(false)
+      setProgramarModo('ahora')
+      setProgramadaPara(isoLocalMin())
     } else {
       setErrorGral(r.error?.mensaje || 'Error al enviar')
     }
-    setEnviando(false)
   }
 
   function cerrar() {
@@ -222,49 +264,9 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
             de destinatarios quedan cortadas sin scroll). */}
         <div className="flex-1 min-h-0 overflow-auto px-5 py-4 flex flex-col gap-4">
 
-          {/* Resultado final */}
-          {resultado ? (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded p-4">
-                <CheckCircle className="h-6 w-6 text-green-600 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-green-800">Envío masivo completado</p>
-                  <p className="text-xs text-green-600 mt-1">
-                    {resultado.enviados} enviado{resultado.enviados !== 1 ? 's' : ''}
-                    {resultado.fallidos > 0 && ` · ${resultado.fallidos} fallido${resultado.fallidos !== 1 ? 's' : ''}`}
-                    {resultado.excluidos > 0 && ` · ${resultado.excluidos} excluido${resultado.excluidos !== 1 ? 's' : ''}`}
-                  </p>
-                </div>
-              </div>
-
-              {/* Detalle */}
-              <div className="border border-slate-200 rounded overflow-hidden max-h-60 overflow-auto">
-                <table className="crm-table text-xs w-full">
-                  <thead>
-                    <tr>
-                      <th className="text-left py-1.5 px-3 bg-slate-50 text-2xs">Destinatario</th>
-                      <th className="text-left py-1.5 px-3 bg-slate-50 text-2xs">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {resultado.detalle.map((d, i) => (
-                      <tr key={i} className="border-t border-slate-100">
-                        <td className="py-1 px-3 text-slate-700">{d.nombre}</td>
-                        <td className="py-1 px-3">
-                          {d.estado === 'enviado' && <span className="text-green-600">Enviado</span>}
-                          {d.estado === 'fallido' && <span className="text-red-600" title={d.error}>Fallido</span>}
-                          {d.estado === 'sin_email' && <span className="text-slate-500">Sin email</span>}
-                          {d.estado === 'no_marketing' && <span className="text-amber-600">No acepta marketing</span>}
-                          {d.estado === 'baja' && <span className="text-amber-600">Dado de baja</span>}
-                          {d.estado === 'limite_diario' && <span className="text-amber-600">Límite diario</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
+          {/* En modo async (v1.0.179) el resultado se muestra como toast + cierre
+              del modal. No hay pantalla de resultado inline. */}
+          {(
             <>
               {/* Resumen de destinatarios */}
               <div className="bg-slate-50 border border-slate-200 rounded p-3">
@@ -457,16 +459,59 @@ export default function ModalEnviarEmailMasivo({ isOpen, onClose, personas, cont
                       </div>
                     )}
                   </div>
+                  {/* Enviar ahora / Programar para fecha y hora */}
+                  <div className="border border-slate-200 rounded p-3 bg-slate-50">
+                    <label className="block text-xs font-medium text-slate-600 mb-2">¿Cuándo enviar?</label>
+                    <div className="flex gap-3 flex-wrap">
+                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={programarModo === 'ahora'}
+                          onChange={() => setProgramarModo('ahora')}
+                          className="h-3.5 w-3.5"
+                        />
+                        Enviar ahora (segundo plano)
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={programarModo === 'futuro'}
+                          onChange={() => setProgramarModo('futuro')}
+                          className="h-3.5 w-3.5"
+                        />
+                        Programar para fecha y hora
+                      </label>
+                    </div>
+                    {programarModo === 'futuro' && (
+                      <div className="mt-2">
+                        <input
+                          type="datetime-local"
+                          value={programadaPara}
+                          onChange={e => setProgramadaPara(e.target.value)}
+                          min={isoLocalMin()}
+                          className="form-input h-8 text-xs w-full"
+                        />
+                        <p className="text-2xs text-slate-500 mt-1">
+                          El sistema va a enviarlos automáticamente cuando llegue esta fecha. Mientras tanto podés seguir usando el CRM.
+                        </p>
+                      </div>
+                    )}
+                    {programarModo === 'ahora' && (
+                      <p className="text-2xs text-slate-500 mt-2">
+                        Los emails se encolan y se envían en segundo plano. Podés cerrar esta ventana y seguir trabajando — el progreso lo ves en el historial.
+                      </p>
+                    )}
+                  </div>
                 </>
               )}
 
-              {/* Enviando */}
+              {/* Encolando */}
               {enviando && (
                 <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded p-4">
                   <Loader2 className="h-5 w-5 animate-spin text-blue-600 shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-blue-800">Enviando {validos.length} emails...</p>
-                    <p className="text-xs text-blue-600 mt-0.5">Esto puede tardar varios minutos. No cierres esta ventana.</p>
+                    <p className="text-sm font-medium text-blue-800">Encolando {validos.length} emails...</p>
+                    <p className="text-xs text-blue-600 mt-0.5">Un segundo — el envío en sí corre en segundo plano.</p>
                   </div>
                 </div>
               )}

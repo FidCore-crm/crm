@@ -30,7 +30,7 @@ import * as path from 'path'
 import * as crypto from 'crypto'
 import { obtenerUsuarioDesdeRequest } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
-import { enviarComunicacion } from '@/lib/comunicaciones-sender'
+import { enviarComunicacion, encolarEmail } from '@/lib/comunicaciones-sender'
 import { checkLicenciaActiva } from '@/lib/licencia-guard'
 import { aplicarFiltroAudiencia } from '@/lib/mailings/audiencia-filtros'
 
@@ -167,21 +167,25 @@ export async function POST(request: NextRequest) {
       campos_editables.cta_url = cta_url
     }
 
-    // ── 4) Adjuntos ───────────────────────────────────────────
-    const archivos_adjuntos: Array<{ filename: string; path: string }> = []
-    const tmpDir = path.join('/tmp', 'crm-attachments', crypto.randomUUID())
+    // ── 4) Adjuntos: individual → /tmp, masivo → storage/campanas/{id} ─
+    // Para individual (síncrono) usamos /tmp que es efímero. Para masivo (async)
+    // los archivos tienen que sobrevivir al request hasta que el cron los procese
+    // (puede tardar minutos, o días si es programado). Los movemos a storage/
+    // usando el id de la campaña padre como carpeta única.
     const archivos = formData.getAll('archivos') as File[]
-    if (archivos.length > 0) {
-      fs.mkdirSync(tmpDir, { recursive: true })
-      for (const archivo of archivos) {
-        if (!(archivo instanceof File) || archivo.size === 0) continue
-        if (archivo.size > 10 * 1024 * 1024) continue
-        const safeName = archivo.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-        const filePath = path.join(tmpDir, safeName)
-        const buffer = Buffer.from(await archivo.arrayBuffer())
-        fs.writeFileSync(filePath, buffer)
-        archivos_adjuntos.push({ filename: archivo.name, path: filePath })
+
+    // Validar programada_para (opcional). Debe ser al menos 1 min en el futuro.
+    const programada_para_raw = formData.get('programada_para') as string | null
+    let programadaPara: Date | null = null
+    if (programada_para_raw) {
+      const parsed = new Date(programada_para_raw)
+      if (isNaN(parsed.getTime())) {
+        return NextResponse.json({ ok: false, error: 'programada_para inválida' }, { status: 400 })
       }
+      if (parsed.getTime() < Date.now() + 60_000) {
+        return NextResponse.json({ ok: false, error: 'La fecha programada debe ser al menos 1 minuto en el futuro' }, { status: 400 })
+      }
+      programadaPara = parsed
     }
 
     // ── 5) Obtener personas + leads + chequeos previos ────────
@@ -263,52 +267,137 @@ export async function POST(request: NextRequest) {
       })),
     ]
 
-    // Crear la campaña padre para agrupar el envío en el historial. Solo
-    // aplica en modo masivo (destinatarios_tipo !== 'individual') — los
-    // envíos individuales del wizard son 1-a-1 y no merecen agrupar.
-    let envio_agrupado_id: string | undefined
-    if (destinatarios_tipo !== 'individual' && cola.length > 0) {
-      const nombreCampana = `Envío desde wizard — ${asunto}`.slice(0, 200)
-      const { data: campanaData } = await (supabase.from('mailing_campanas') as any)
-        .insert({
-          nombre: nombreCampana,
-          descripcion: 'Envío iniciado desde el wizard de campañas.',
-          personas_ids: listaPersonas.map(p => p.id),
-          asunto_libre: asunto,
-          cuerpo_libre: cuerpoFinal || '(sin cuerpo)',
-          estado: 'EJECUTANDO',
-          total_destinatarios: cola.length,
-          fecha_inicio_ejecucion: new Date().toISOString(),
-          usuario_creador_id: usuario.id,
+    // ─── MODO INDIVIDUAL (síncrono — es 1-a-1, tarda poco) ─────────────
+    if (destinatarios_tipo === 'individual') {
+      // Guardar adjuntos en /tmp (efímeros — se procesan en el mismo request)
+      const tmpDir = path.join('/tmp', 'crm-attachments', crypto.randomUUID())
+      const archivos_adjuntos: Array<{ filename: string; path: string }> = []
+      if (archivos.length > 0) {
+        fs.mkdirSync(tmpDir, { recursive: true })
+        for (const archivo of archivos) {
+          if (!(archivo instanceof File) || archivo.size === 0) continue
+          if (archivo.size > 10 * 1024 * 1024) continue
+          const safeName = archivo.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+          const filePath = path.join(tmpDir, safeName)
+          const buffer = Buffer.from(await archivo.arrayBuffer())
+          fs.writeFileSync(filePath, buffer)
+          archivos_adjuntos.push({ filename: archivo.name, path: filePath })
+        }
+      }
+
+      for (const dst of cola) {
+        if (!dst.email) { excluidos++; detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'sin_email' }); continue }
+        if (dst.tipo === 'persona' && !dst.acepta_marketing) { excluidos++; detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'no_marketing' }); continue }
+        if (emailsBaja.has(dst.email.toLowerCase())) { excluidos++; detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'baja' }); continue }
+        if (enviadosHoy >= limiteDiario) { excluidos++; detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'limite_diario' }); continue }
+
+        const resultado = await enviarComunicacion({
+          plantilla_codigo: 'notificacion_general',
+          destinatario: {
+            email: dst.email,
+            nombre: dst.nombre,
+            persona_id: dst.tipo === 'persona' ? dst.id : undefined,
+            lead_id: dst.tipo === 'lead' ? dst.id : undefined,
+          },
+          campos_editables,
+          archivos_adjuntos: archivos_adjuntos.length > 0 ? archivos_adjuntos : undefined,
+          tipo_envio: 'MANUAL',
+          enviado_por_usuario_id: usuario.id,
         })
-        .select('id')
-        .single()
-      envio_agrupado_id = (campanaData as any)?.id
+
+        if (resultado.ok) {
+          enviados++
+          enviadosHoy++
+          detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'enviado' })
+        } else {
+          fallidos++
+          detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'fallido', error: resultado.error })
+        }
+        if (delay > 0) await new Promise(r => setTimeout(r, delay))
+      }
+
+      if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true })
+
+      return NextResponse.json({
+        ok: true, total: cola.length, enviados, fallidos, excluidos, detalle,
+      })
     }
 
-    for (const dst of cola) {
-      if (!dst.email) {
-        excluidos++
-        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'sin_email' })
-        continue
-      }
-      if (dst.tipo === 'persona' && !dst.acepta_marketing) {
-        excluidos++
-        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'no_marketing' })
-        continue
-      }
-      if (emailsBaja.has(dst.email.toLowerCase())) {
-        excluidos++
-        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'baja' })
-        continue
-      }
-      if (enviadosHoy >= limiteDiario) {
-        excluidos++
-        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'limite_diario' })
-        continue
-      }
+    // ─── MODO MASIVO (async — encolar y volver rápido) ─────────────
+    // Crear campaña padre PRIMERO — necesitamos su ID para la carpeta de adjuntos.
+    const nombreCampana = `Envío desde wizard — ${asunto}`.slice(0, 200)
+    const estadoInicial = programadaPara ? 'PROGRAMADA' : 'EJECUTANDO'
+    const { data: campanaData, error: campanaError } = await (supabase.from('mailing_campanas') as any)
+      .insert({
+        nombre: nombreCampana,
+        descripcion: 'Envío iniciado desde el wizard de campañas.',
+        personas_ids: listaPersonas.map(p => p.id),
+        asunto_libre: asunto,
+        cuerpo_libre: cuerpoFinal || '(sin cuerpo)',
+        estado: estadoInicial,
+        tipo: 'ENVIO_MASIVO',
+        total_destinatarios: cola.length,
+        programada_para: programadaPara?.toISOString() ?? null,
+        fecha_inicio_ejecucion: programadaPara ? null : new Date().toISOString(),
+        usuario_creador_id: usuario.id,
+      })
+      .select('id')
+      .single()
 
-      const resultado = await enviarComunicacion({
+    if (campanaError || !campanaData) {
+      return NextResponse.json({ ok: false, error: 'No se pudo crear la campaña' }, { status: 500 })
+    }
+
+    const envio_agrupado_id = (campanaData as any).id as string
+
+    // Guardar adjuntos en storage permanente (bind mount al host).
+    const projectRoot = process.env.PROJECT_ROOT || process.cwd()
+    const carpetaCampana = path.join(projectRoot, 'storage', 'campanas', envio_agrupado_id)
+    const archivos_adjuntos_persistentes: Array<{ filename: string; path: string; size?: number }> = []
+    if (archivos.length > 0) {
+      fs.mkdirSync(carpetaCampana, { recursive: true })
+      for (const archivo of archivos) {
+        if (!(archivo instanceof File) || archivo.size === 0) continue
+        if (archivo.size > 10 * 1024 * 1024) continue
+        const safeName = archivo.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const filePath = path.join(carpetaCampana, safeName)
+        const buffer = Buffer.from(await archivo.arrayBuffer())
+        fs.writeFileSync(filePath, buffer)
+        archivos_adjuntos_persistentes.push({ filename: archivo.name, path: filePath, size: archivo.size })
+      }
+    }
+
+    // Pre-computar variables (botón CTA generado una sola vez).
+    let cuerpoConBoton = cuerpoFinal
+    let botonHtml: string | undefined
+    if (cta_texto && cta_url) {
+      const { obtenerVariablesOrganizacion } = await import('@/lib/email-variables')
+      const orgVars = await obtenerVariablesOrganizacion()
+      const { generarBotonHtml } = await import('@/lib/email-templates/botones')
+      botonHtml = generarBotonHtml({
+        texto: cta_texto,
+        url: cta_url,
+        color_marca: orgVars.organizacion_color_marca || undefined,
+      })
+      if (!cuerpoConBoton.includes('{{boton_accion}}')) {
+        cuerpoConBoton = cuerpoConBoton.trim()
+          ? `${cuerpoConBoton}\n\n{{boton_accion}}`
+          : `{{boton_accion}}`
+      }
+    }
+    const variablesExtra: Record<string, string> = {
+      ...(asunto ? { titulo: asunto } : {}),
+      ...(cuerpoConBoton ? { cuerpo_mensaje: cuerpoConBoton } : {}),
+      ...(botonHtml ? { boton_accion: botonHtml } : {}),
+    }
+
+    // Encolar N emails — todos con enviar_despues_de = ahora (o programada).
+    const enviar_despues_de = programadaPara ?? new Date()
+    let encolados = 0
+
+    for (const dst of cola) {
+      if (!dst.email) { excluidos++; continue }
+      const res = await encolarEmail({
         plantilla_codigo: 'notificacion_general',
         destinatario: {
           email: dst.email,
@@ -316,50 +405,33 @@ export async function POST(request: NextRequest) {
           persona_id: dst.tipo === 'persona' ? dst.id : undefined,
           lead_id: dst.tipo === 'lead' ? dst.id : undefined,
         },
-        campos_editables,
-        archivos_adjuntos: archivos_adjuntos.length > 0 ? archivos_adjuntos : undefined,
-        tipo_envio: destinatarios_tipo === 'individual' ? 'MANUAL' : 'MASIVO',
+        tipo_envio: 'MASIVO',
         enviado_por_usuario_id: usuario.id,
+        variables_extra: variablesExtra,
+        archivos_adjuntos: archivos_adjuntos_persistentes.length > 0 ? archivos_adjuntos_persistentes : undefined,
+        anti_spam: false,
         envio_agrupado_id,
+        enviar_despues_de,
       })
 
-      if (resultado.ok) {
-        enviados++
-        enviadosHoy++
-        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'enviado' })
-      } else {
-        fallidos++
-        detalle.push({ id: dst.id, tipo: dst.tipo, nombre: dst.nombre, estado: 'fallido', error: resultado.error })
-      }
-
-      if (delay > 0) await new Promise(r => setTimeout(r, delay))
+      if (res.ok && res.estado === 'ENCOLADO') encolados++
+      else excluidos++
     }
 
-    // Limpiar tmp
-    if (fs.existsSync(tmpDir)) {
-      fs.rmSync(tmpDir, { recursive: true, force: true })
-    }
-
-    // Cerrar la campaña padre con métricas finales.
-    if (envio_agrupado_id) {
-      await (supabase.from('mailing_campanas') as any)
-        .update({
-          estado: 'COMPLETADA',
-          enviados,
-          fallidos,
-          excluidos,
-          fecha_fin_ejecucion: new Date().toISOString(),
-        })
-        .eq('id', envio_agrupado_id)
-    }
+    await (supabase.from('mailing_campanas') as any)
+      .update({ excluidos, total_destinatarios: cola.length })
+      .eq('id', envio_agrupado_id)
 
     return NextResponse.json({
       ok: true,
+      campana_id: envio_agrupado_id,
       total: cola.length,
-      enviados,
-      fallidos,
+      encolados,
       excluidos,
-      detalle,
+      programada: programadaPara?.toISOString() ?? null,
+      mensaje: programadaPara
+        ? `${encolados} emails programados para ${programadaPara.toLocaleString('es-AR')}.`
+        : `${encolados} emails encolados. Se envían en segundo plano — vas a ver el progreso en el historial.`,
     })
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message ?? 'Error interno' }, { status: 500 })
